@@ -13,7 +13,7 @@ import AnnouncementOutlet, {
   type Announcement,
 } from "@/components/announcement/AnnouncementOutlet";
 import ConfiguredCtaList from "@/components/cta/ConfiguredCtaList";
-import EngagementZone from "@/components/engagement/EngagementZone";
+
 import { DashboardIcon } from "@/components/layout/DashboardIcons";
 import SimulatorProvider from "@/components/simulator/SimulatorProvider";
 import {
@@ -429,14 +429,6 @@ export default function AppChrome({
                   ) : null}
                 </div>
               </header>
-
-              <EngagementZone
-                title="Centro de acción"
-                description="Comunicados y accesos directos relevantes para la operación UNIDEP."
-                announcements={workspaceActionAnnouncements}
-                ctas={workspaceNavBannerCtas}
-                variant="workspace"
-              />
 
               <main className="min-w-0 pb-1">{children}</main>
 
