@@ -64,6 +64,18 @@ type PlanProgram = {
   hasPlan: boolean;
 };
 
+type EnrollmentFormat = {
+  id: string;
+  title: string;
+  description: string | null;
+  fileName: string | null;
+  fileUrl: string;
+  fileMimeType: string | null;
+  fileSizeBytes: number | null;
+  sourceType: string;
+  sortOrder: number;
+};
+
 type AcademicFee = {
   id: string;
   code: string;
@@ -722,6 +734,101 @@ function PlanesSection() {
   );
 }
 
+function formatFileSize(value: number | null) {
+  if (!value) return null;
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FormatosSection() {
+  const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<EnrollmentFormat[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("q", query.trim());
+      try {
+        const res = await fetch(`/api/public/formatos?${params.toString()}`, {
+          cache: "no-store",
+        });
+        const data = (await res.json()) as { formats?: EnrollmentFormat[] };
+        if (!mounted) return;
+        setRows(data.formats ?? []);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [query]);
+
+  return (
+    <section className="ui-card ui-card-pad min-w-0">
+      <h2 className="text-lg font-semibold">Formatos</h2>
+
+      <div className="mt-4 grid min-w-0 gap-2 text-sm">
+        Buscar formato
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="ui-control"
+          placeholder="Inscripción, documentos, solicitud..."
+        />
+      </div>
+
+      {loading ? (
+        <div className="mt-4 text-sm text-slate-300">Cargando formatos...</div>
+      ) : (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {rows.map((row) => {
+            const fileSize = formatFileSize(row.fileSizeBytes);
+            return (
+              <div
+                key={row.id}
+                className="grid min-w-0 gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4"
+              >
+                <div className="min-w-0">
+                  <div className="break-words font-semibold text-slate-100">
+                    {row.title}
+                  </div>
+                  {row.description ? (
+                    <div className="mt-1 break-words text-sm leading-5 text-slate-300">
+                      {row.description}
+                    </div>
+                  ) : null}
+                  <div className="mt-2 text-xs text-slate-500">
+                    {[row.fileName, fileSize].filter(Boolean).join(" · ") ||
+                      "Link de descarga"}
+                  </div>
+                </div>
+                <div>
+                  <a
+                    href={row.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs text-emerald-200 transition hover:bg-emerald-500/25"
+                  >
+                    Abrir / Descargar
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+          {!rows.length ? (
+            <div className="col-span-full text-sm text-slate-300">Sin formatos disponibles.</div>
+          ) : null}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function DirectorioSection() {
   const { campuses } = useCampuses();
   const [campus, setCampus] = useState("");
@@ -1005,6 +1112,7 @@ export default function UnidepWorkspace({
   );
 
   if (sectionToRender === "oferta") return <OfertaAcademicaSection />;
+  if (sectionToRender === "formatos") return <FormatosSection />;
   if (sectionToRender === "costos") return <CostosAcademicosSection />;
   if (sectionToRender === "planes") return <PlanesSection />;
   if (sectionToRender === "directorio") return <DirectorioSection />;

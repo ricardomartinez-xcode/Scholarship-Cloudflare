@@ -36,7 +36,14 @@ export const ADMIN_CONFIG_MODULE_META = {
   [AdminConfigModule.OFFER]: {
     label: "Oferta académica",
     description: "Programas y ofertas activas del ciclo de importación.",
-    revalidatePaths: ["/admin/oferta", "/api/public/oferta", "/unidep"],
+    revalidatePaths: [
+      "/admin/oferta",
+      "/admin/unidep/formatos",
+      "/api/public/oferta",
+      "/api/public/formatos",
+      "/unidep",
+      "/unidep/formatos",
+    ],
   },
 } as const satisfies Record<
   AdminConfigModule,

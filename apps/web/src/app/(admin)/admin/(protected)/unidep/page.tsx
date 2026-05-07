@@ -14,6 +14,11 @@ export default async function UnidepIndexPage() {
       desc: "Línea de negocio y URLs oficiales para brochure y plan de estudios.",
     },
     {
+      href: "/admin/unidep/formatos",
+      label: "Formatos",
+      desc: "Documentos útiles para inscripción en PDF, Word o link de descarga.",
+    },
+    {
       href: "/admin/unidep/campuses",
       label: "Planteles",
       desc: "Dirección, teléfono, WhatsApp, CSV y consistencia de sedes.",

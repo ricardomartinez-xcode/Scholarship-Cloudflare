@@ -134,18 +134,59 @@ function wrapCanvasText(
   const lines: string[] = [];
   let line = "";
 
+  const pushSplitWord = (word: string) => {
+    let chunk = "";
+    for (const char of word) {
+      const next = `${chunk}${char}`;
+      if (ctx.measureText(next).width <= maxWidth || !chunk) {
+        chunk = next;
+        continue;
+      }
+      lines.push(chunk);
+      chunk = char;
+    }
+    if (chunk) line = chunk;
+  };
+
   for (const word of words) {
     const next = line ? `${line} ${word}` : word;
     if (ctx.measureText(next).width <= maxWidth || !line) {
-      line = next;
+      if (!line && ctx.measureText(word).width > maxWidth) {
+        pushSplitWord(word);
+      } else {
+        line = next;
+      }
       continue;
     }
     lines.push(line);
-    line = word;
+    line = "";
+    if (ctx.measureText(word).width > maxWidth) {
+      pushSplitWord(word);
+    } else {
+      line = word;
+    }
   }
 
   if (line) lines.push(line);
   return lines;
+}
+
+function fitCanvasFontSize(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  fontFamily: string,
+  options: { max: number; min: number; weight?: number } = { max: 52, min: 34 },
+) {
+  for (let size = options.max; size >= options.min; size -= 1) {
+    const font = `${options.weight ?? 800} ${size}px ${fontFamily}`;
+    ctx.font = font;
+    if (ctx.measureText(text).width <= maxWidth) return { font, size };
+  }
+  return {
+    font: `${options.weight ?? 800} ${options.min}px ${fontFamily}`,
+    size: options.min,
+  };
 }
  
 type BenefitInfo = {
@@ -180,6 +221,17 @@ type PublicCta = {
 };
 
 type Calculation = CalculationOk | CalculationErr;
+
+type PaymentPlanRow = {
+  label: string;
+  detail: string;
+  amount: number;
+};
+
+type PaymentPlanSection = {
+  title: string;
+  rows: PaymentPlanRow[];
+};
 
 type QuoteApiResult =
   | {
@@ -1481,42 +1533,54 @@ export default function ScholarshipCalculator({
     : showResultPanelBenefits
       ? `Incluye beca de ${formatPercent(resultPanelScholarshipPercent)}. También aplica beneficio adicional de ${formatPercent(resultPanelBenefitPercent)}.`
       : `Incluye beca de ${formatPercent(resultPanelScholarshipPercent)}.`;
-  const paymentPlanRows = useMemo(() => {
+  const paymentPlanSections = useMemo<PaymentPlanSection[]>(() => {
     if (!resultPanelSnapshot) return [];
 
-    const rows: Array<{ label: string; detail: string; amount: number }> = [];
-    const monthlyAmount = resultPanelFinalTotal;
-    const firstAmount =
-      resultPanelFirstPaymentAmount > 0
-        ? resultPanelFirstPaymentAmount
-        : monthlyAmount;
+    const currentMonthlyAmount = resultPanelFinalTotal;
+    const secondTermMonthlyAmount =
+      showResultPanelBenefits && resultPanelBenefitDuration === "toda_la_carrera"
+        ? resultPanelFinalTotal
+        : resultPanelScholarshipSubtotal;
+    const firstPaymentAmount =
+      resultPanelFirstPaymentAmount > 0 ? resultPanelFirstPaymentAmount : 0;
 
-    rows.push({
-      label: "Mensualidad 1",
-      detail:
-        resultPanelFirstPaymentAmount > 0
-          ? "Primer pago"
-          : "Costo mensual",
-      amount: firstAmount,
-    });
-
-    for (let index = 2; index <= 4; index += 1) {
-      rows.push({
-        label: `Mensualidad ${index}`,
-        detail: "Costo mensual",
-        amount: monthlyAmount,
-      });
-    }
-
-    if (showResultPanelBenefits && resultPanelBenefitDuration === "primer_cuatrimestre") {
-      rows.push({
-        label: "Mensualidad 5",
-        detail: "Subtotal sin beneficio adicional",
-        amount: resultPanelScholarshipSubtotal,
-      });
-    }
-
-    return rows;
+    return [
+      {
+        title: "1er cuatrimestre",
+        rows: [
+          {
+            label: "Mensualidad 1",
+            detail: "Primera mensualidad",
+            amount: 0,
+          },
+          ...[2, 3, 4].map((index) => ({
+            label: `Mensualidad ${index}`,
+            detail: "Costo mensual cotizado",
+            amount: currentMonthlyAmount,
+          })),
+          {
+            label: "Pago de incorporación a la SEP + Gastos administrativos",
+            detail: "Pago único",
+            amount: firstPaymentAmount,
+          },
+        ],
+      },
+      {
+        title: "2do cuatrimestre",
+        rows: [
+          ...[1, 2, 3, 4].map((index) => ({
+            label: `Mensualidad ${index}`,
+            detail: "Costo mensual",
+            amount: secondTermMonthlyAmount,
+          })),
+          {
+            label: "Pago de incorporación a la SEP",
+            detail: "Pago único",
+            amount: firstPaymentAmount,
+          },
+        ],
+      },
+    ];
   }, [
     resultPanelBenefitDuration,
     resultPanelFinalTotal,
@@ -1525,8 +1589,9 @@ export default function ScholarshipCalculator({
     resultPanelSnapshot,
     showResultPanelBenefits,
   ]);
-  const paymentPlanTotal = paymentPlanRows.reduce(
-    (total, row) => round2(total + row.amount),
+  const paymentPlanTotal = paymentPlanSections.reduce(
+    (sectionTotal, section) =>
+      round2(sectionTotal + section.rows.reduce((total, row) => total + row.amount, 0)),
     0,
   );
   const resultCampusLabel =
@@ -1657,9 +1722,11 @@ export default function ScholarshipCalculator({
     setCopyQuoteImageStatus(null);
 
     try {
-      const width = 900;
-      const padding = 36;
+      const width = 408;
+      const padding = 18;
       const contentWidth = width - padding * 2;
+      const cardRadius = 8;
+      const cardGap = 16;
       const scale = Math.min(window.devicePixelRatio || 2, 2);
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -1670,7 +1737,19 @@ export default function ScholarshipCalculator({
 
       const fontFamily =
         "Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-      const detailRows: Array<{ label: string; value: string; muted?: string; strong?: boolean }> = [
+      const bodyFont = `14px ${fontFamily}`;
+      const smallFont = `12px ${fontFamily}`;
+      const rowFont = `14px ${fontFamily}`;
+      const strongFont = `700 16px ${fontFamily}`;
+      const cardInner = 16;
+      const amountColumnWidth = 112;
+      const labelColumnWidth = contentWidth - cardInner * 2 - amountColumnWidth - 12;
+      const detailRows: Array<{
+        label: string;
+        value: string;
+        muted?: string;
+        strong?: boolean;
+      }> = [
         { label: "Precio lista", value: formatMoney(resultPanelBase) },
         {
           label: `Beca ${
@@ -1699,22 +1778,28 @@ export default function ScholarshipCalculator({
       }
 
       detailRows.push({
-        label: showResultPanelSecondaryTotal ? "Total ya con cargos aplicados" : "Total",
-        value: formatMoney(resultPanelFinalTotal),
+        label: "Total",
+        value: formatMoney(resultPanelPrimaryTotal),
         strong: true,
       });
 
-      const detailLabelWidth = contentWidth - 260;
+      if (showResultPanelSecondaryTotal) {
+        detailRows.push({
+          label: "Total ya con cargos aplicados",
+          value: formatMoney(resultPanelFinalTotal),
+          strong: true,
+        });
+      }
+
       const detailRowsForImage = detailRows.map((row) => {
-        const rowFont = row.strong ? `700 20px ${fontFamily}` : `17px ${fontFamily}`;
-        const mutedFont = `13px ${fontFamily}`;
-        const labelLines = wrapCanvasText(ctx, row.label, detailLabelWidth, rowFont);
+        const activeRowFont = row.strong ? strongFont : rowFont;
+        const labelLines = wrapCanvasText(ctx, row.label, labelColumnWidth, activeRowFont);
         const mutedLines = row.muted
-          ? wrapCanvasText(ctx, row.muted, detailLabelWidth, mutedFont)
+          ? wrapCanvasText(ctx, row.muted, labelColumnWidth, smallFont)
           : [];
         const rowHeight = Math.max(
-          44,
-          14 + labelLines.length * 22 + mutedLines.length * 18,
+          row.strong ? 44 : 30,
+          8 + labelLines.length * 20 + mutedLines.length * 16,
         );
 
         return { ...row, labelLines, mutedLines, rowHeight };
@@ -1724,21 +1809,58 @@ export default function ScholarshipCalculator({
         0,
       );
       const firstPaymentNotesLines = resultPanelFirstPaymentNotes
-        ? wrapCanvasText(ctx, resultPanelFirstPaymentNotes, contentWidth - 48, `18px ${fontFamily}`)
+        ? wrapCanvasText(
+            ctx,
+            resultPanelFirstPaymentNotes,
+            contentWidth - cardInner * 2,
+            bodyFont,
+          )
         : [];
-      const heroCopyLines = wrapCanvasText(ctx, resultPanelHeroCopy, contentWidth - 48, `18px ${fontFamily}`);
+      const firstPaymentDurationLines = resultPanelFirstPaymentDurationSentence
+        ? wrapCanvasText(
+            ctx,
+            resultPanelFirstPaymentDurationSentence,
+            contentWidth - cardInner * 2,
+            smallFont,
+          )
+        : [];
+      const heroCopyLines = wrapCanvasText(
+        ctx,
+        resultPanelHeroCopy,
+        contentWidth - cardInner * 2,
+        bodyFont,
+      );
+      const heroAmount = formatMoney(resultPanelFinalTotal);
+      const heroAmountFont = fitCanvasFontSize(
+        ctx,
+        heroAmount,
+        contentWidth - cardInner * 2,
+        fontFamily,
+        { max: 42, min: 30, weight: 800 },
+      );
+      const heroHeight = Math.max(
+        153,
+        74 + heroAmountFont.size + heroCopyLines.length * 22,
+      );
       const firstPaymentHeight =
         resultPanelFirstPaymentAmount > 0
-          ? 124 + firstPaymentNotesLines.length * 24
+          ? Math.max(
+              122,
+              76 +
+                firstPaymentDurationLines.length * 16 +
+                firstPaymentNotesLines.length * 20,
+            )
           : 0;
+      const breakdownHeight = 50 + detailRowsHeight;
       const height =
-        padding * 2 +
-        170 +
-        28 +
-        72 +
-        detailRowsHeight +
-        firstPaymentHeight +
-        28;
+        padding +
+        22 +
+        18 +
+        heroHeight +
+        (firstPaymentHeight ? cardGap + firstPaymentHeight : 0) +
+        cardGap +
+        breakdownHeight +
+        padding;
 
       canvas.width = width * scale;
       canvas.height = height * scale;
@@ -1746,64 +1868,104 @@ export default function ScholarshipCalculator({
       canvas.style.height = `${height}px`;
       ctx.scale(scale, scale);
 
-      drawRoundedRect(ctx, 0, 0, width, height, 0, "#f4f8fb");
-      drawRoundedRect(ctx, padding, padding, contentWidth, 150, 28, "#17385f");
+      drawRoundedRect(ctx, 0.5, 0.5, width - 1, height - 1, 6, "#ffffff", "#c8d5df");
+      ctx.fillStyle = "#55728b";
+      ctx.font = `700 12px ${fontFamily}`;
+      ctx.fillText("C O T I Z A C I Ó N", padding, padding + 12);
+
+      let y = padding + 38;
+
+      drawRoundedRect(ctx, padding, y, contentWidth, heroHeight, cardRadius, "#1c3f68");
+      ctx.fillStyle = "#dbe7f0";
+      ctx.font = `700 11px ${fontFamily}`;
+      ctx.fillText("C O S T O   M E N S U A L", padding + cardInner, y + 28);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = heroAmountFont.font;
+      ctx.fillText(heroAmount, padding + cardInner, y + 78);
       ctx.fillStyle = "#edf6fb";
-      ctx.font = `700 13px ${fontFamily}`;
-      ctx.fillText("COSTO MENSUAL", padding + 24, padding + 36);
-      ctx.font = `800 52px ${fontFamily}`;
-      ctx.fillText(formatMoney(resultPanelFinalTotal), padding + 24, padding + 92);
-      ctx.font = `18px ${fontFamily}`;
-      heroCopyLines.slice(0, 2).forEach((line, index) => {
-        ctx.fillText(line, padding + 24, padding + 126 + index * 22);
+      ctx.font = bodyFont;
+      heroCopyLines.forEach((line, index) => {
+        ctx.fillText(line, padding + cardInner, y + 104 + index * 22);
       });
 
-      let y = padding + 190;
+      y += heroHeight + cardGap;
 
       if (resultPanelFirstPaymentAmount > 0) {
-        drawRoundedRect(ctx, padding + 20, y, contentWidth - 40, firstPaymentHeight - 20, 20, "#ffffff", "#cbd8e1");
-        ctx.fillStyle = "#486880";
-        ctx.font = `700 14px ${fontFamily}`;
-        ctx.fillText("PRIMER PAGO", padding + 44, y + 34);
-        ctx.fillStyle = "#13385f";
-        ctx.font = `700 24px ${fontFamily}`;
-        ctx.fillText(formatMoney(resultPanelFirstPaymentAmount), padding + 44, y + 70);
-        if (resultPanelFirstPaymentDurationSentence) {
-          ctx.font = `14px ${fontFamily}`;
-          ctx.fillText(resultPanelFirstPaymentDurationSentence, padding + 44, y + 96);
-        }
-        ctx.font = `18px ${fontFamily}`;
-        firstPaymentNotesLines.forEach((line, index) => {
-          ctx.fillText(line, padding + 44, y + 126 + index * 24);
+        drawRoundedRect(
+          ctx,
+          padding,
+          y,
+          contentWidth,
+          firstPaymentHeight,
+          cardRadius,
+          "#ffffff",
+          "#cbd8e1",
+        );
+        ctx.fillStyle = "#668097";
+        ctx.font = `700 11px ${fontFamily}`;
+        ctx.fillText("P R I M E R   P A G O", padding + cardInner, y + 26);
+        ctx.fillStyle = "#17385f";
+        ctx.font = `700 18px ${fontFamily}`;
+        ctx.fillText(
+          formatMoney(resultPanelFirstPaymentAmount),
+          padding + cardInner,
+          y + 54,
+        );
+        let noteY = y + 78;
+        ctx.font = smallFont;
+        firstPaymentDurationLines.forEach((line) => {
+          ctx.fillText(line, padding + cardInner, noteY);
+          noteY += 16;
         });
-        y += firstPaymentHeight + 18;
+        ctx.font = bodyFont;
+        firstPaymentNotesLines.forEach((line, index) => {
+          ctx.fillText(line, padding + cardInner, noteY + index * 20);
+        });
+        y += firstPaymentHeight + cardGap;
       }
 
-      drawRoundedRect(ctx, padding, y, contentWidth, 72 + detailRowsHeight, 22, "#e8f1f6", "#c5d6e1");
-      ctx.fillStyle = "#486880";
-      ctx.font = `700 15px ${fontFamily}`;
-      ctx.fillText("DESGLOSE", padding + 24, y + 36);
+      drawRoundedRect(
+        ctx,
+        padding,
+        y,
+        contentWidth,
+        breakdownHeight,
+        cardRadius,
+        "#eef5f9",
+        "#cbdce8",
+      );
+      ctx.fillStyle = "#668097";
+      ctx.font = `700 11px ${fontFamily}`;
+      ctx.fillText("D E S G L O S E", padding + cardInner, y + 28);
 
-      y += 72;
+      y += 50;
       detailRowsForImage.forEach((row) => {
-        ctx.fillStyle = row.strong ? "#13385f" : "#486880";
-        ctx.font = row.strong ? `700 20px ${fontFamily}` : `17px ${fontFamily}`;
+        if (row.label === "Subtotal" || row.strong) {
+          ctx.strokeStyle = "#cbdce8";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(padding + cardInner, y);
+          ctx.lineTo(padding + contentWidth - cardInner, y);
+          ctx.stroke();
+        }
+        ctx.fillStyle = row.strong ? "#17385f" : "#55728b";
+        ctx.font = row.strong ? strongFont : rowFont;
         row.labelLines.forEach((line, index) => {
-          ctx.fillText(line, padding + 24, y + 20 + index * 22);
+          ctx.fillText(line, padding + cardInner, y + 20 + index * 20);
         });
         ctx.textAlign = "right";
-        ctx.fillStyle = "#13385f";
-        ctx.font = row.strong ? `700 20px ${fontFamily}` : `600 17px ${fontFamily}`;
-        ctx.fillText(row.value, padding + contentWidth - 24, y + 20);
+        ctx.fillStyle = "#17385f";
+        ctx.font = row.strong ? strongFont : `600 14px ${fontFamily}`;
+        ctx.fillText(row.value, padding + contentWidth - cardInner, y + 20);
         ctx.textAlign = "left";
         if (row.mutedLines.length) {
-          ctx.fillStyle = "#5a748a";
-          ctx.font = `13px ${fontFamily}`;
+          ctx.fillStyle = "#668097";
+          ctx.font = smallFont;
           row.mutedLines.forEach((line, index) => {
             ctx.fillText(
               line,
-              padding + 24,
-              y + 22 + row.labelLines.length * 22 + index * 18,
+              padding + cardInner,
+              y + 22 + row.labelLines.length * 20 + index * 16,
             );
           });
         }
@@ -1856,6 +2018,7 @@ export default function ScholarshipCalculator({
     resultPanelFirstPaymentDurationSentence,
     resultPanelFirstPaymentNotes,
     resultPanelHeroCopy,
+    resultPanelPrimaryTotal,
     resultPanelScholarshipAmount,
     resultPanelScholarshipPercent,
     resultPanelScholarshipSubtotal,
@@ -2428,10 +2591,7 @@ export default function ScholarshipCalculator({
                     <div>
                       <div className="ui-panel-kicker">Plan de pagos</div>
                       <div className="mt-1 text-sm text-[color:var(--ui-text-secondary)]">
-                        Primer pago como mensualidad inicial y tres mensualidades con el costo mensual.
-                        {showResultPanelBenefits && resultPanelBenefitDuration === "primer_cuatrimestre"
-                          ? " Se añade una mensualidad posterior sin beneficio adicional."
-                          : null}
+                        Muestra mensualidades y pagos de incorporación por cuatrimestre.
                       </div>
                     </div>
                     <div className="text-right">
@@ -2444,23 +2604,33 @@ export default function ScholarshipCalculator({
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-2">
-                    {paymentPlanRows.map((row) => (
+                  <div className="mt-4 grid gap-3">
+                    {paymentPlanSections.map((section) => (
                       <div
-                        key={`${row.label}-${row.detail}`}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--ui-border)] bg-white px-3 py-2"
+                        key={section.title}
+                        className="grid gap-2 rounded-2xl border border-[color:var(--ui-border)] bg-white/80 p-3"
                       >
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                            {row.label}
-                          </div>
-                          <div className="text-xs text-[color:var(--ui-text-secondary)]">
-                            {row.detail}
-                          </div>
+                        <div className="text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                          {section.title}
                         </div>
-                        <div className="shrink-0 text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                          {formatMoney(row.amount)}
-                        </div>
+                        {section.rows.map((row) => (
+                          <div
+                            key={`${section.title}-${row.label}-${row.detail}`}
+                            className="flex items-start justify-between gap-3 rounded-xl border border-[color:var(--ui-border)] bg-white px-3 py-2"
+                          >
+                            <div className="min-w-0 break-words">
+                              <div className="text-sm font-semibold leading-5 text-[color:var(--ui-text-primary)]">
+                                {row.label}
+                              </div>
+                              <div className="text-xs leading-4 text-[color:var(--ui-text-secondary)]">
+                                {row.detail}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                              {formatMoney(row.amount)}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
