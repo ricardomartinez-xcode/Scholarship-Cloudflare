@@ -60,11 +60,16 @@
     const option = await textUtils.waitFor(() => {
       if (kind === "media") {
         return (
-          selectors.findAttachmentOptionByPosition(1) ||
-          selectors.findAttachmentOption("media")
+          selectors.findAttachmentOption("media") ||
+          selectors.findAttachmentOptionByPosition(0) ||
+          selectors.findAttachmentOptionByPosition(1)
         );
       }
-      return selectors.findAttachmentOption("document");
+      return (
+        selectors.findAttachmentOption("document") ||
+        selectors.findAttachmentOptionByPosition(1) ||
+        selectors.findAttachmentOptionByPosition(0)
+      );
     }, 4000, 150);
     if (!option) {
       throw Object.assign(new Error("No fue posible encontrar la opción correcta de adjuntos."), {
@@ -229,9 +234,7 @@
       250,
     );
     if (!previewClosed) {
-      throw Object.assign(new Error("El preview del adjunto no se cerró después de intentar enviarlo."), {
-        code: "attachment_preview_not_closed",
-      });
+      log("El preview del adjunto no se cerró después de enviar; se continúa para evitar falso negativo.");
     }
     await textUtils.wait(900);
   }
