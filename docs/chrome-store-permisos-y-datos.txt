@@ -1,0 +1,126 @@
+ReCalc Chrome Extension - Justificación de permisos y uso de datos
+Fecha: 2026-03-23
+
+PERMISOS SOLICITADOS POR LA EXTENSIÓN
+
+1. sidePanel
+Justificación:
+La extensión abre su interfaz principal dentro del panel lateral nativo de Chrome. Sin este permiso, la experiencia aprobada en Chrome Web Store no puede mostrarse ni fijarse como side panel.
+
+2. storage
+Justificación:
+Se usa para guardar configuración mínima del panel y la sesión técnica de la extensión entre aperturas del side panel. Esto evita obligar al usuario a autenticarse cada vez que abre el panel.
+
+3. host_permissions -> https://recalc.relead.com.mx/*
+Justificación:
+La extensión necesita conectarse únicamente al dominio oficial de ReCalc para:
+- iniciar sesión;
+- validar sesión;
+- cerrar sesión;
+- obtener catálogos y reglas de cotización;
+- consultar el backend oficial para resultados sincronizados;
+- pedir bootstrap, selector pack, borradores de WhatsApp y métricas de runs.
+
+4. host_permissions -> https://web.whatsapp.com/*
+Justificación:
+La extensión ya integra handoff controlado hacia WhatsApp Web. Este permiso se usa sólo para:
+- cargar un content script propio dentro de WhatsApp Web;
+- detectar el composer cuando el usuario abre un chat;
+- pegar un borrador generado por el backend oficial de ReCalc;
+- registrar métricas de apertura e inyección del borrador.
+
+Importante:
+- no se envía el mensaje automáticamente;
+- no se inspeccionan sitios arbitrarios;
+- el alcance queda limitado a web.whatsapp.com.
+
+PERMISOS QUE YA NO SON NECESARIOS EN EL MANIFIESTO ACTUAL
+
+- cookies
+La versión actual del manifiesto no solicita el permiso cookies. La sesión de la extensión se resuelve con token seguro en header y almacenamiento local mínimo, no mediante la API chrome.cookies.
+
+- history
+La extensión no lee historial de navegación ni usa la API chrome.history.
+
+- tabs
+La extensión abre WhatsApp Web o el sitio oficial sólo cuando el usuario lo pide. No inspecciona pestañas existentes ni requiere permiso tabs.
+
+- activeTab
+La extensión no inyecta scripts ni inspecciona el contenido de la pestaña activa.
+
+- scripting
+La extensión no usa la API chrome.scripting. El content script de WhatsApp Web es declarativo en el manifiesto y sólo corre en ese host permitido.
+
+- webRequest / declarativeNetRequest
+La extensión no intercepta tráfico ni modifica requests del navegador.
+
+EVALUACIÓN REAL DEL USO DE DATOS
+
+Datos que sí procesa la extensión:
+
+1. Información de identificación personal
+- Email del usuario autenticado.
+Uso:
+- mostrar la sesión activa;
+- asociar la cotización con la cuenta autenticada;
+- permitir acceso a funciones protegidas.
+
+2. Información de autenticación
+- Correo y contraseña ingresados por el usuario en el panel;
+- token de sesión técnica de la extensión.
+Uso:
+- autenticar al usuario contra ReCalc;
+- mantener la sesión del side panel.
+
+3. Datos funcionales del producto
+- Selecciones de cotización: tipo de inscripción, línea, modalidad, plan, plantel, promedio, materias y cargos adicionales;
+- resultados de cotización y beneficios.
+Uso:
+- calcular y mostrar el resultado sincronizado con el backend oficial.
+
+4. Contenido del sitio web
+- DOM mínimo de https://web.whatsapp.com/ cuando el usuario activa el handoff.
+Uso:
+- ubicar el composer del chat abierto;
+- insertar un borrador generado por ReCalc;
+- confirmar si el borrador pudo aplicarse.
+
+Datos que NO consume la extensión actual:
+
+- Historial web del usuario.
+- Actividad de usuario fuera del propio panel y del flujo explícito de handoff.
+- Contenido de sitios web arbitrarios.
+- Cookies del navegador mediante chrome.cookies.
+
+RECOMENDACIÓN PARA EL FORMULARIO "DATA USAGE" DE CHROME WEB STORE
+
+Mantener solamente las categorías que sí aplican de forma verificable:
+- Información de identificación personal.
+- Información de autenticación.
+- Contenido del sitio web.
+
+Categorías que deberían eliminarse si hoy siguen marcadas:
+- Historial web.
+- Actividad de usuario.
+
+Categorías que no deberían marcarse:
+- Cookies.
+- Ubicación.
+- Información financiera.
+- Información de salud.
+- Comunicaciones personales fuera del handoff explícito.
+
+WHATSAPP WEB / WEBHOOKS
+
+Estado actual:
+- Sí existe integración limitada con WhatsApp Web.
+- El backend oficial renderiza el borrador usando el template activo del usuario.
+- La extensión abre WhatsApp Web y pega el borrador en el composer cuando existe un chat activo.
+- El flujo registra métricas de token emitido, run creado, evento y apertura de WhatsApp.
+
+Límites de seguridad actuales:
+- no se mandan mensajes en automático;
+- no se recorren chats ni contactos;
+- no se extrae historial de conversaciones;
+- la acción sólo ocurre cuando el usuario pulsa el botón en el side panel;
+- el selector pack es administrable desde el panel admin para responder a cambios del DOM sin tocar credenciales ni instalar un backend paralelo.

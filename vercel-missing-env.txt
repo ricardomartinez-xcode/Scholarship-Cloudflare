@@ -1,0 +1,26 @@
+Variables faltantes en Vercel detectadas el 2026-04-01 para relead/scholarship
+
+Base de comparación:
+- `vercel env ls`
+- `.env.local.example`
+- uso real en el código del módulo WABA/Meta
+
+Necesarias para que funcione la integración WABA dentro de ReCalc:
+- NEXT_PUBLIC_META_APP_ID
+- NEXT_PUBLIC_WHATSAPP_EMBEDDED_CONFIG_ID
+- META_APP_ID
+- META_APP_SECRET
+- META_INTEGRATION_SECRET
+
+Opcionales porque el código ya tiene valor por defecto:
+- NEXT_PUBLIC_WHATSAPP_ES_SESSION_INFO_VERSION
+  Valor por defecto actual: 3
+- META_GRAPH_API_VERSION
+  Valor por defecto actual: v25.0
+
+Recomendada para despliegue consistente aunque hoy el código tenga fallback:
+- NEXT_PUBLIC_BASE_URL
+
+Notas:
+- Sin las 5 variables "Necesarias" no funciona el registro embebido ni el envío por Meta Cloud API.
+- `NEXT_PUBLIC_BASE_URL` no bloquea el módulo WABA, pero sí conviene definirla para URLs absolutas y flujos de invitación.

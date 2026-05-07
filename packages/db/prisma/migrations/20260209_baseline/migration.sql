@@ -1,0 +1,1 @@
+-- baseline: existing database has non-Prisma tables
