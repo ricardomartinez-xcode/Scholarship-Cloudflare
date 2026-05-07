@@ -110,9 +110,9 @@ export const ADMIN_PERMISSION_MATRIX: Record<
 
   [AdminCapability.manage_offers]: {
     module: "Oferta académica",
-    routes: ["/admin/oferta", "/admin/unidep/programs"],
-    uiActions: ["import_offer", "manage_programs"],
-    mutations: ["importOffer", "upsertProgram"],
+    routes: ["/admin/oferta", "/admin/unidep/programs", "/admin/unidep/formatos"],
+    uiActions: ["import_offer", "manage_programs", "manage_enrollment_formats"],
+    mutations: ["importOffer", "upsertProgram", "upsertEnrollmentFormat"],
   },
 
   [AdminCapability.manage_directory]: {
@@ -288,6 +288,9 @@ export const ADMIN_ROUTE_GUARDS: Record<
     requiredAny: [AdminCapability.manage_directory],
   },
   "/admin/unidep/programs": {
+    requiredAny: [AdminCapability.manage_offers],
+  },
+  "/admin/unidep/formatos": {
     requiredAny: [AdminCapability.manage_offers],
   },
   "/admin/unidep/campuses": {

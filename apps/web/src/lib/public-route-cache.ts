@@ -9,6 +9,7 @@ export const PUBLIC_ROUTE_CACHE_TAGS = {
   campuses: "public:campuses",
   costos: "public:costos",
   directorio: "public:directorio",
+  formatos: "public:formatos",
   oferta: "public:oferta",
   planes: "public:planes",
 } as const;
@@ -36,7 +37,7 @@ export function getPublicRouteTagsForModule(module: AdminConfigModule) {
     case AdminConfigModule.DIRECTORY:
       return [PUBLIC_ROUTE_CACHE_TAGS.directorio];
     case AdminConfigModule.OFFER:
-      return [PUBLIC_ROUTE_CACHE_TAGS.oferta];
+      return [PUBLIC_ROUTE_CACHE_TAGS.oferta, PUBLIC_ROUTE_CACHE_TAGS.formatos];
     default:
       return [];
   }

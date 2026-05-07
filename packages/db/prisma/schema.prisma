@@ -461,6 +461,25 @@ model Program {
   @@schema("recalc_admin")
 }
 
+model EnrollmentFormat {
+  id            String   @id @default(uuid()) @db.Uuid
+  title         String
+  description   String?
+  fileName      String?
+  fileUrl       String
+  fileMimeType  String?
+  fileSizeBytes Int?
+  sourceType    String   @default("link")
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive, sortOrder], map: "enrollment_format_active_sort_idx")
+  @@map("enrollment_format")
+  @@schema("recalc_admin")
+}
+
 model QuoteSession {
   id           String    @id @default(uuid()) @db.Uuid
   publicId     String    @unique @default(cuid())
