@@ -3788,6 +3788,64 @@ select:-webkit-autofill {
   white-space: nowrap;
 }
 
+.ui-workspace-header {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ui-workspace-header__identity {
+  flex: 1 1 250px;
+}
+
+.ui-workspace-header__title,
+.ui-workspace-header__email,
+.ui-shell-header--workspace nav,
+.ui-shell-header--workspace nav span {
+  color: #FFFFFF !important;
+}
+
+.ui-shell-header--workspace nav span {
+  opacity: 0.82;
+}
+
+.ui-shell-header--workspace nav span:last-child {
+  opacity: 1;
+}
+
+.ui-workspace-header__cta-strip {
+  display: flex;
+  min-width: min(100%, 240px);
+  max-width: min(52vw, 620px);
+  flex: 2 1 340px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ui-workspace-header__cta {
+  min-height: 34px;
+  flex: 1 1 132px;
+  max-width: 190px;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  background: rgba(255, 255, 255, 0.11) !important;
+  color: #FFFFFF !important;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+}
+
+.ui-workspace-header__cta:hover,
+.ui-workspace-header__cta:focus-visible {
+  border-color: rgba(255, 255, 255, 0.44) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #FFFFFF !important;
+}
+
+.ui-workspace-header__account {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+
 @media (max-width: 767px) {
   .ui-shell-header--workspace {
     align-items: flex-start;
@@ -4822,6 +4880,7 @@ a[role="button"] {
 .ui-admin-access-strip {
   display: flex;
   min-width: 0;
+  flex: 0 1 auto;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
@@ -5219,16 +5278,33 @@ a[role="button"] {
     padding: 10px;
   }
 
-  .ui-shell-header--workspace > .flex {
+  .ui-shell-header--workspace > .flex,
+  .ui-workspace-header__identity,
+  .ui-workspace-header__account {
     width: 100%;
     min-width: 0;
     flex-wrap: wrap;
   }
 
+  .ui-workspace-header__cta-strip {
+    order: 2;
+    width: 100%;
+    max-width: none;
+    justify-content: flex-start;
+  }
+
+  .ui-workspace-header__cta {
+    max-width: none;
+    flex: 1 1 142px;
+  }
+
+  .ui-workspace-header__account {
+    order: 3;
+  }
+
   .ui-admin-access-strip {
     width: 100%;
     justify-content: flex-start;
-    order: 3;
   }
 
   .ui-admin-access-cta {

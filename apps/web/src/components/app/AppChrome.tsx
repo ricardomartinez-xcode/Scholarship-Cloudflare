@@ -110,6 +110,16 @@ function dedupeCtas(ctas: PublicCta[]) {
   });
 }
 
+function dedupeAnnouncements(announcements: Announcement[]) {
+  const seen = new Set<string>();
+  return announcements.filter((item) => {
+    const key = `${item.title.toLowerCase()}:${item.message.toLowerCase()}:${item.url ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function isAdminPanelAnnouncement(item: Announcement) {
   const title = item.title.toLowerCase();
   const message = item.message.toLowerCase();
@@ -127,19 +137,13 @@ function WorkspaceSidebarNav({
   activeSection,
   onNavigate,
   sidebarTopAnnouncements,
-  sidebarTopCtas,
   sidebarBottomAnnouncements,
-  sidebarBottomCtas,
 }: {
   activeSection: string;
   onNavigate?: () => void;
   sidebarTopAnnouncements: Announcement[];
-  sidebarTopCtas: PublicCta[];
   sidebarBottomAnnouncements: Announcement[];
-  sidebarBottomCtas: PublicCta[];
 }) {
-  const appTopCtas = sidebarTopCtas.filter((cta) => !isAdminPanelCta(cta));
-  const appBottomCtas = sidebarBottomCtas.filter((cta) => !isAdminPanelCta(cta));
   const appTopAnnouncements = sidebarTopAnnouncements.filter(
     (item) => !isAdminPanelAnnouncement(item),
   );
@@ -172,14 +176,6 @@ function WorkspaceSidebarNav({
         appearance="compact"
         className="grid gap-2"
       />
-      {appTopCtas.length ? (
-        <ConfiguredCtaList
-          ctas={appTopCtas}
-          className="grid gap-2"
-          itemClassName="text-left"
-          appearance="compact"
-        />
-      ) : null}
 
       <AppSidebar activeKey={activeSection} onNavigate={onNavigate} />
 
@@ -188,14 +184,6 @@ function WorkspaceSidebarNav({
         appearance="compact"
         className="grid gap-2"
       />
-      {appBottomCtas.length ? (
-        <ConfiguredCtaList
-          ctas={appBottomCtas}
-          className="grid gap-2"
-          itemClassName="text-left"
-          appearance="compact"
-        />
-      ) : null}
     </div>
   );
 }
@@ -297,8 +285,22 @@ export default function AppChrome({
     sidebarTopCtas,
   ]);
   const workspaceNavBannerCtas = useMemo(
-    () => navBannerCtas.filter((cta) => !isAdminPanelCta(cta)),
-    [navBannerCtas],
+    () =>
+      dedupeCtas(
+        [...navBannerCtas, ...sidebarTopCtas, ...sidebarBottomCtas].filter(
+          (cta) => !isAdminPanelCta(cta),
+        ),
+      ),
+    [navBannerCtas, sidebarBottomCtas, sidebarTopCtas],
+  );
+  const workspaceActionAnnouncements = useMemo(
+    () =>
+      dedupeAnnouncements(
+        [...navAnnouncements, ...sidebarTopAnnouncements, ...sidebarBottomAnnouncements].filter(
+          (item) => !isAdminPanelAnnouncement(item),
+        ),
+      ),
+    [navAnnouncements, sidebarBottomAnnouncements, sidebarTopAnnouncements],
   );
 
   const ctx = useMemo<AppContextValue>(
@@ -365,8 +367,8 @@ export default function AppChrome({
         <div className="min-h-screen overflow-x-clip text-[color:var(--ui-text-primary)]">
           <div className="ui-page-frame ui-page-grid grid-cols-1">
             <div className="ui-page-main grid-rows-[auto_auto_auto_1fr_auto]">
-              <header className="ui-shell-header ui-shell-header--workspace flex min-h-[var(--ui-shell-topbar-height)] items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
+              <header className="ui-shell-header ui-shell-header--workspace ui-workspace-header flex min-h-[var(--ui-shell-topbar-height)] items-center justify-between gap-3">
+                <div className="ui-workspace-header__identity flex min-w-0 items-center gap-3">
                   {showWorkspaceLayout ? (
                     <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                       <Dialog.Trigger asChild>
@@ -396,9 +398,7 @@ export default function AppChrome({
                               activeSection={resolvedActiveSection}
                               onNavigate={() => setMobileNavOpen(false)}
                               sidebarTopAnnouncements={sidebarTopAnnouncements}
-                              sidebarTopCtas={sidebarTopCtas}
                               sidebarBottomAnnouncements={sidebarBottomAnnouncements}
-                              sidebarBottomCtas={sidebarBottomCtas}
                             />
                           </div>
                         </Dialog.Content>
@@ -425,13 +425,22 @@ export default function AppChrome({
                         </span>
                       ))}
                     </nav>
-                    <div className="mt-1 text-base font-semibold text-[color:var(--ui-text-primary)] sm:text-lg">
+                    <div className="ui-workspace-header__title mt-1 text-base font-semibold text-[color:var(--ui-text-primary)] sm:text-lg">
                       {pageTitle}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex min-w-0 items-center gap-2.5">
+                {showWorkspaceLayout && workspaceNavBannerCtas.length ? (
+                  <ConfiguredCtaList
+                    ctas={workspaceNavBannerCtas}
+                    appearance="pill"
+                    className="ui-workspace-header__cta-strip"
+                    itemClassName="ui-workspace-header__cta"
+                  />
+                ) : null}
+
+                <div className="ui-workspace-header__account flex min-w-0 items-center gap-2.5">
                   {adminAccessCtas.length ? (
                     <ConfiguredCtaList
                       ctas={adminAccessCtas}
@@ -442,7 +451,7 @@ export default function AppChrome({
                   ) : null}
 
                   <div className="hidden text-right sm:block">
-                    <div className="max-w-[260px] truncate text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                    <div className="ui-workspace-header__email max-w-[260px] truncate text-sm font-semibold text-[color:var(--ui-text-primary)]">
                       {userEmail ?? "n/a"}
                     </div>
                   </div>
@@ -461,7 +470,7 @@ export default function AppChrome({
               <EngagementZone
                 title="Centro de acción"
                 description="Comunicados y accesos directos relevantes para la operación UNIDEP."
-                announcements={navAnnouncements}
+                announcements={workspaceActionAnnouncements}
                 ctas={workspaceNavBannerCtas}
                 variant="workspace"
               />
