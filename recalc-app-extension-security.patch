@@ -1,0 +1,5159 @@
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/background.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/background.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/background.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/background.js	2026-05-07 05:40:37.097880371 +0000
+@@ -41,6 +41,8 @@
+     headers.set("Authorization", `Bearer ${token}`);
+     headers.set("x-extension-session-token", token);
+   }
++  headers.set("x-extension-client", "chrome-sidepanel");
++  headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
+ 
+   const response = await fetch(`${appBaseUrl}${path}`, {
+     method,
+@@ -61,6 +63,8 @@
+     headers.set("Authorization", `Bearer ${token}`);
+     headers.set("x-extension-session-token", token);
+   }
++  headers.set("x-extension-client", "chrome-sidepanel");
++  headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
+ 
+   return fetch(`${appBaseUrl}${path}`, {
+     method: "GET",
+@@ -79,6 +83,8 @@
+         "Content-Type": "application/json",
+         Authorization: `Bearer ${extensionSessionToken}`,
+         "x-extension-session-token": extensionSessionToken,
++        "x-extension-client": "chrome-sidepanel",
++        "x-extension-version": chrome?.runtime?.getManifest?.().version || "unknown",
+       },
+       credentials: "include",
+       body: JSON.stringify({ eventType, message, metaJson: metaJson ?? null }),
+@@ -203,26 +209,6 @@
+   return data.campaign ?? null;
+ }
+ 
+-async function reportRunnerHeartbeat(runnerState, heartbeat = {}) {
+-  const { response, data } = await apiJsonFetch({
+-    appBaseUrl: runnerState.appBaseUrl,
+-    extensionSessionToken: runnerState.extensionSessionToken,
+-    path: "/api/ext/runner/heartbeat",
+-    method: "POST",
+-    body: {
+-      runId: runnerState.runId ?? null,
+-      campaignId: runnerState.campaignId ?? null,
+-      status: runnerState.status ?? null,
+-      message: runnerState.lastMessage ?? null,
+-      meta: heartbeat ?? null,
+-    },
+-  });
+-  if (!response.ok || !data?.ok) {
+-    throw new Error(data?.error || "No fue posible reportar heartbeat del runner.");
+-  }
+-  return data.runner ?? null;
+-}
+-
+ function resolveMessage(working, recipient) {
+   if (recipient?.resolvedMessage) return String(recipient.resolvedMessage).trim();
+   return self.RecalcBuildMessage.buildMessage(
+@@ -339,7 +325,6 @@
+     loadCampaignById,
+     claimNextBatch,
+     reportDispatch,
+-    reportRunnerHeartbeat,
+     ensureWhatsAppTab,
+     ensureWhatsAppBridge,
+     resolveMessage,
+Binary files app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/branding/logo-recalc.png and app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/branding/logo-recalc.png differ
+Binary files app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/branding/logo-unidep.png and app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/branding/logo-unidep.png differ
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/campaigns.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/campaigns.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/campaigns.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/campaigns.js	2026-05-07 05:40:18.263485271 +0000
+@@ -6,6 +6,7 @@
+   const RUNNER_POLL_MS = 3000;
+   const CAMPAIGN_POLL_MS = 15000;
+   const TEMPLATE_LIBRARY_KEY = "recalc.campaignTemplateLibrary";
++  const RESULTS_URL = "https://recalc.relead.com.mx/unidep/web";
+   const PHONE_HEADER_ALIASES = [
+     "numero",
+     "numero_telefono",
+@@ -41,6 +42,9 @@
+     campaignSchedule: document.getElementById("campaign-schedule"),
+     campaignBatchSize: document.getElementById("campaign-batch-size"),
+     campaignDelaySeconds: document.getElementById("campaign-delay-seconds"),
++    campaignBatchDelaySeconds: document.getElementById("campaign-batch-delay-seconds"),
++    campaignJitterSeconds: document.getElementById("campaign-jitter-seconds"),
++    campaignCurrentTime: document.getElementById("campaign-current-time"),
+     campaignStartNow: document.getElementById("campaign-start-now"),
+     campaignCsv: document.getElementById("campaign-csv"),
+     campaignRecipients: document.getElementById("campaign-recipients"),
+@@ -61,12 +65,14 @@
+     campaignReset: document.getElementById("campaign-reset"),
+     campaignSubmit: document.getElementById("campaign-submit"),
+     campaignRefreshList: document.getElementById("campaign-refresh-list"),
++    campaignToggleList: document.getElementById("campaign-toggle-list"),
+     campaignStartSelected: document.getElementById("campaign-start-selected"),
+     campaignStopRunner: document.getElementById("campaign-stop-runner"),
+     campaignRunSelected: document.getElementById("campaign-run-selected"),
+     campaignPauseSelected: document.getElementById("campaign-pause-selected"),
+-    campaignAutoRepair: document.getElementById("campaign-auto-repair"),
+     campaignDeleteSelected: document.getElementById("campaign-delete-selected"),
++    campaignToggleDetail: document.getElementById("campaign-toggle-detail"),
++    campaignDownloadResults: document.getElementById("campaign-download-results"),
+     runnerStatusTitle: document.getElementById("runner-status-title"),
+     runnerStatusCopy: document.getElementById("runner-status-copy"),
+     summaryCampaigns: document.getElementById("summary-campaigns"),
+@@ -91,11 +97,6 @@
+     campaignDetailUpdated: document.getElementById("campaign-detail-updated"),
+     campaignDetailMediaWrap: document.getElementById("campaign-detail-media-wrap"),
+     campaignDetailMedia: document.getElementById("campaign-detail-media"),
+-    campaignFailuresWrap: document.getElementById("campaign-failures-wrap"),
+-    campaignFailuresDetails: document.getElementById("campaign-failures-details"),
+-    campaignFailuresSummary: document.getElementById("campaign-failures-summary"),
+-    campaignFailuresList: document.getElementById("campaign-failures-list"),
+-    campaignDownloadFailures: document.getElementById("campaign-download-failures"),
+     campaignDetailRecipients: document.getElementById("campaign-detail-recipients"),
+   };
+ 
+@@ -110,6 +111,9 @@
+     uploadedAsset: null,
+     recipientDraft: createEmptyRecipientDraft(),
+     autoStartInFlight: false,
++    listExpanded: false,
++    detailExpanded: false,
++    timeTickerId: null,
+   };
+ 
+   const DEFAULT_TEMPLATE = [
+@@ -152,6 +156,51 @@
+     );
+   }
+ 
++
++  function campaignScheduledAtMs(campaign) {
++    const ts = campaign?.scheduleAt ? new Date(campaign.scheduleAt).getTime() : NaN;
++    return Number.isFinite(ts) ? ts : 0;
++  }
++
++  function isCampaignReadyForAutoStart(campaign, now = Date.now()) {
++    const status = normalizeCampaignStatus(campaign?.status);
++    if (!["queued", "scheduled", "waiting_runner", "processing"].includes(status)) return false;
++    const scheduledAt = campaignScheduledAtMs(campaign);
++    return !scheduledAt || scheduledAt <= now + 5000;
++  }
++
++  function toDatetimeLocalValue(date = new Date()) {
++    const offsetMs = date.getTimezoneOffset() * 60000;
++    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
++  }
++
++  function updateCampaignClock() {
++    const now = new Date();
++    if (refs.campaignCurrentTime) {
++      refs.campaignCurrentTime.textContent = `Hora actual: ${now.toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}`;
++    }
++    if (refs.campaignSchedule) {
++      refs.campaignSchedule.min = toDatetimeLocalValue(now);
++    }
++  }
++
++  function normalizeDelaySeconds(input, fallback, { min = 0, max = 1800 } = {}) {
++    const parsed = Number(input);
++    const value = Number.isFinite(parsed) ? parsed : fallback;
++    return Math.min(max, Math.max(min, value));
++  }
++
++  function getCampaignAutomationSettings() {
++    const messageDelaySeconds = normalizeDelaySeconds(refs.campaignDelaySeconds?.value, 4, { min: 1, max: 120 });
++    const batchDelaySeconds = normalizeDelaySeconds(refs.campaignBatchDelaySeconds?.value, 30, { min: 0, max: 1800 });
++    const jitterSeconds = normalizeDelaySeconds(refs.campaignJitterSeconds?.value, 3, { min: 0, max: 60 });
++    return {
++      messageDelayMs: Math.round(messageDelaySeconds * 1000),
++      batchDelayMs: Math.round(batchDelaySeconds * 1000),
++      jitterMs: Math.round(jitterSeconds * 1000),
++    };
++  }
++
+   function pickAutoResumeCandidate(previousCampaigns, nextCampaigns) {
+     if (state.autoStartInFlight) return null;
+     if (hasActiveRunner()) return null;
+@@ -160,14 +209,13 @@
+       (previousCampaigns || []).map((campaign) => [campaign.id, normalizeCampaignStatus(campaign.status)]),
+     );
+     const preferredCampaignId = state.runner?.campaignId ?? state.selectedCampaignId ?? null;
+-    const actionableStatuses = new Set(["queued", "scheduled", "waiting_runner", "processing"]);
+-    const previousTriggerStatuses = new Set(["paused", "waiting_runner"]);
++    const previousTriggerStatuses = new Set(["paused", "waiting_runner", "scheduled", "queued", "processing"]);
++    const now = Date.now();
+ 
+     const candidates = (nextCampaigns || []).filter((campaign) => {
+-      const currentStatus = normalizeCampaignStatus(campaign?.status);
+       const previousStatus = previousStatusById.get(campaign?.id) ?? "";
+-      if (!campaign?.id || !actionableStatuses.has(currentStatus)) return false;
+-      if (!previousTriggerStatuses.has(previousStatus)) return false;
++      if (!campaign?.id || !isCampaignReadyForAutoStart(campaign, now)) return false;
++      if (previousStatus && !previousTriggerStatuses.has(previousStatus)) return false;
+       if (normalizeCampaignStatus(campaign?.channel) === "manual_review") return false;
+       if (normalizeCampaignStatus(campaign?.channel) === "test_mode") return false;
+       return true;
+@@ -671,6 +719,8 @@
+       headers.set(EXTENSION_SESSION_TOKEN_HEADER, token);
+       headers.set("Authorization", `Bearer ${token}`);
+     }
++    headers.set("x-extension-client", "chrome-sidepanel");
++    headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
+     const response = await fetch(`${APP_BASE_URL}${path}`, {
+       ...options,
+       headers,
+@@ -689,6 +739,8 @@
+       headers.set(EXTENSION_SESSION_TOKEN_HEADER, token);
+       headers.set("Authorization", `Bearer ${token}`);
+     }
++    headers.set("x-extension-client", "chrome-sidepanel");
++    headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
+     const response = await fetch(`${APP_BASE_URL}${path}`, {
+       method: "POST",
+       headers,
+@@ -734,33 +786,6 @@
+     return `status-chip ${normalized}`;
+   }
+ 
+-  function campaignStatusLabel(campaign) {
+-    const explicit = String(campaign?.businessStatusLabel || "").trim();
+-    if (explicit) return explicit;
+-    const normalized = String(campaign?.status ?? "queued").toLowerCase();
+-    if (normalized === "partial") return "Completada con incidencias";
+-    if (normalized === "sent" || normalized === "completed") return "Completada";
+-    return normalized;
+-  }
+-
+-  function isTerminalCampaignStatus(status) {
+-    const normalized = String(status ?? "").toLowerCase();
+-    return ["completed", "sent", "failed", "partial", "blocked"].includes(normalized);
+-  }
+-
+-  function toCsvCell(value) {
+-    const normalized = String(value ?? "");
+-    return `"${normalized.replaceAll('"', '""')}"`;
+-  }
+-
+-  function failedRecipientsForCampaign(campaign) {
+-    return Array.isArray(campaign?.recipients)
+-      ? campaign.recipients.filter(
+-          (recipient) => String(recipient?.status ?? "").toLowerCase() === "failed",
+-        )
+-      : [];
+-  }
+-
+   function getSelectedCampaign() {
+     return state.campaigns.find((campaign) => campaign.id === state.selectedCampaignId) ?? null;
+   }
+@@ -780,42 +805,53 @@
+ 
+   function canExecuteCampaign(campaign) {
+     if (!campaign?.id) return false;
+-    const status = String(campaign.status ?? "").toLowerCase();
+-    const channel = String(campaign.channel ?? "extension_runner").toLowerCase();
+-    const runnerChannel = channel === "extension_runner" || channel === "whatsapp_web";
+-    if (!runnerChannel) return false;
+-    return ["queued", "scheduled", "paused", "waiting_runner"].includes(status);
++    return ["queued", "scheduled", "paused", "waiting_runner"].includes(normalizeCampaignStatus(campaign.status));
+   }
+ 
+   function canPauseCampaign(campaign) {
+     if (!campaign?.id) return false;
+-    return !["completed", "sent", "failed", "partial", "blocked", "draft", "paused"].includes(
+-      String(campaign.status ?? "").toLowerCase(),
+-    );
++    return ["queued", "scheduled", "waiting_runner", "processing", "running", "claimed"].includes(normalizeCampaignStatus(campaign.status));
+   }
+ 
+   function canDeleteCampaign(campaign) {
+     if (!campaign?.id) return false;
+-    return ["paused", "completed", "sent", "failed", "partial", "blocked", "draft"].includes(
+-      String(campaign.status ?? "").toLowerCase(),
+-    );
++    return ["paused", "completed", "sent", "failed", "cancelled", "canceled"].includes(normalizeCampaignStatus(campaign.status));
+   }
+ 
+   function renderCampaignActions(campaign) {
++    const status = normalizeCampaignStatus(campaign?.status);
+     const runLabel =
+-      String(campaign?.status ?? "").toLowerCase() === "paused"
++      status === "paused"
+         ? "Reanudar y ejecutar"
+         : "Ejecutar";
++    const canRun = canExecuteCampaign(campaign);
++    const canPause = canPauseCampaign(campaign);
++    const canDelete = canDeleteCampaign(campaign);
+ 
+     refs.campaignRunSelected.textContent = runLabel;
+-    refs.campaignRunSelected.disabled = !canExecuteCampaign(campaign);
+-    refs.campaignPauseSelected.disabled = !canPauseCampaign(campaign);
+-    refs.campaignAutoRepair.disabled = !campaign?.id;
+-    refs.campaignDeleteSelected.disabled = !canDeleteCampaign(campaign);
++    refs.campaignRunSelected.disabled = !canRun;
++    refs.campaignPauseSelected.disabled = !canPause;
++    refs.campaignDeleteSelected.disabled = !canDelete;
++    refs.campaignRunSelected.classList.toggle("hidden", !canRun);
++    refs.campaignPauseSelected.classList.toggle("hidden", !canPause);
++    refs.campaignDeleteSelected.classList.toggle("hidden", !canDelete);
+     refs.campaignStartSelected.disabled = !campaign?.id;
++    refs.campaignStartSelected.classList.add("hidden");
+     refs.campaignStopRunner.disabled = !campaign?.id && !state.runner?.campaignId;
+   }
+ 
++  function getCampaignMetaNumber(campaign, key, fallback = 0) {
++    const parsed = Number(campaign?.meta?.[key]);
++    return Number.isFinite(parsed) ? parsed : fallback;
++  }
++
++  function formatCampaignDelaySummary(campaign) {
++    const messageDelay = Math.round((campaign?.messageDelayMs ?? 0) / 10) / 100;
++    const batchDelay = Math.round(getCampaignMetaNumber(campaign, "batchDelayMs", 0) / 10) / 100;
++    const jitter = Math.round(getCampaignMetaNumber(campaign, "jitterMs", 0) / 10) / 100;
++    return [`Delay msg: ${messageDelay}s`, batchDelay ? `Delay reclamo: ${batchDelay}s` : "", jitter ? `Variación: ±${jitter}s` : ""].filter(Boolean).join(" · ");
++  }
++
+   function renderCampaignList() {
+     const hasCampaigns = state.campaigns.length > 0;
+     refs.campaignList.classList.toggle("hidden", !hasCampaigns);
+@@ -830,22 +866,29 @@
+ 
+     ensureSelectedCampaign();
+ 
++    const listCard = refs.campaignList?.closest(".report-list-card");
++    listCard?.classList.toggle("is-collapsed", !state.listExpanded);
++    if (refs.campaignToggleList) {
++      refs.campaignToggleList.textContent = state.listExpanded ? "Ocultar historial" : "Mostrar historial";
++    }
++
+     const fragment = document.createDocumentFragment();
+-    state.campaigns.forEach((campaign) => {
++    state.campaigns.forEach((campaign, index) => {
+       const button = document.createElement("button");
+       button.type = "button";
+       button.className = `campaign-item${campaign.id === state.selectedCampaignId ? " is-selected" : ""}`;
+       button.innerHTML = `
+         <div class="campaign-item__head">
+           <div>
++            ${index === 0 ? '<div class="campaign-item__latest">Última campaña</div>' : ""}
+             <strong>${escapeHtml(campaign.campaignName)}</strong>
+             <div class="campaign-item__meta">${campaign.stats?.total ?? 0} destinatarios · batch ${campaign.batchSize}</div>
+           </div>
+-          <span class="${campaignStatusClass(campaign.businessStatus || campaign.status)}">${escapeHtml(campaignStatusLabel(campaign))}</span>
++          <span class="${campaignStatusClass(campaign.status)}">${escapeHtml(campaign.status)}</span>
+         </div>
+         <div class="campaign-item__summary">
+           <div>Programacion: ${escapeHtml(formatSchedule(campaign.scheduleAt))}</div>
+-          <div>Delay: ${Math.round((campaign.messageDelayMs ?? 0) / 10) / 100}s · Imagen: ${campaign.mediaUrl ? "Si" : "No"} · Enviados: ${campaign.stats?.sent ?? 0} · Fallidos: ${campaign.stats?.failed ?? 0}</div>
++          <div>${formatCampaignDelaySummary(campaign)} · Imagen: ${campaign.mediaUrl ? "Si" : "No"} · Enviados: ${campaign.stats?.sent ?? 0} · Fallidos: ${campaign.stats?.failed ?? 0}</div>
+         </div>
+       `;
+       button.addEventListener("click", () => {
+@@ -861,56 +904,21 @@
+   }
+ 
+   function renderCampaignDetail(campaign) {
+-    const renderCampaignFailureReport = (currentCampaign) => {
+-      if (!refs.campaignFailuresWrap) return;
+-      if (!currentCampaign) {
+-        refs.campaignFailuresWrap.classList.add("hidden");
+-        refs.campaignFailuresSummary.textContent = "Sin errores registrados.";
+-        refs.campaignFailuresList.replaceChildren();
+-        return;
+-      }
+-
+-      const failedRecipients = failedRecipientsForCampaign(currentCampaign);
+-      const shouldShow = failedRecipients.length > 0 && isTerminalCampaignStatus(currentCampaign.status);
+-      refs.campaignFailuresWrap.classList.toggle("hidden", !shouldShow);
+-      if (!shouldShow) {
+-        refs.campaignFailuresSummary.textContent = "Sin errores registrados.";
+-        refs.campaignFailuresList.replaceChildren();
+-        return;
+-      }
+-
+-      refs.campaignFailuresSummary.textContent = `Completada con incidencias: ${failedRecipients.length} número(s) fallido(s).`;
+-      const fragment = document.createDocumentFragment();
+-      failedRecipients.slice(0, 120).forEach((recipient) => {
+-        const row = document.createElement("div");
+-        row.className = "recipient-row";
+-        row.innerHTML = `
+-          <div class="recipient-row__meta">
+-            <strong>${escapeHtml(recipient.contactName || "Sin nombre")}</strong>
+-            <div class="recipient-row__sub">${escapeHtml(recipient.contactValue || "—")}${recipient.lastError ? ` · ${escapeHtml(recipient.lastError)}` : ""}</div>
+-          </div>
+-          <span class="${campaignStatusClass(recipient.status || "failed")}">${escapeHtml(recipient.status || "failed")}</span>
+-          <div class="recipient-row__time">${escapeHtml(formatDateTime(recipient.sentAt || recipient.attemptedAt || recipient.updatedAt))}</div>
+-        `;
+-        fragment.appendChild(row);
+-      });
+-      refs.campaignFailuresList.replaceChildren(fragment);
+-    };
+-
+     const hasCampaign = Boolean(campaign);
+     refs.campaignDetail.classList.toggle("hidden", !hasCampaign);
+     refs.campaignDetailEmpty.classList.toggle("hidden", hasCampaign);
++    refs.campaignDetail?.closest(".report-detail-card")?.classList.toggle("is-collapsed", !state.detailExpanded);
++    if (refs.campaignToggleDetail) refs.campaignToggleDetail.textContent = state.detailExpanded ? "Ocultar detalle completo" : "Mostrar detalle completo";
+     renderCampaignActions(campaign);
+ 
+     if (!campaign) {
+       refs.campaignDetailRecipients.replaceChildren();
+-      renderCampaignFailureReport(null);
+       return;
+     }
+ 
+     refs.campaignDetailTitle.textContent = campaign.campaignName;
+-    refs.campaignDetailStatus.className = campaignStatusClass(campaign.businessStatus || campaign.status);
+-    refs.campaignDetailStatus.textContent = campaignStatusLabel(campaign);
++    refs.campaignDetailStatus.className = campaignStatusClass(campaign.status);
++    refs.campaignDetailStatus.textContent = campaign.status;
+     refs.detailTotal.textContent = String(campaign.stats?.total ?? 0);
+     refs.detailQueued.textContent = String(campaign.stats?.queued ?? 0);
+     refs.detailScheduled.textContent = String(campaign.stats?.scheduled ?? 0);
+@@ -918,8 +926,9 @@
+     refs.detailSent.textContent = String(campaign.stats?.sent ?? 0);
+     refs.detailFailed.textContent = String(campaign.stats?.failed ?? 0);
+     refs.campaignDetailTemplate.textContent = campaign.messageTemplate || "Sin template.";
++    refs.campaignDetail?.querySelectorAll(".stats-grid--detail, .detail-grid--report, .media-detail, .recipients-panel").forEach((node) => node.classList.add("detail-collapsible"));
+     refs.campaignDetailSchedule.textContent = formatSchedule(campaign.scheduleAt);
+-    refs.campaignDetailDelay.textContent = `Delay: ${Math.round((campaign.messageDelayMs ?? 0) / 10) / 100}s · Imagen: ${campaign.mediaUrl ? "cargada" : "sin imagen"}`;
++    refs.campaignDetailDelay.textContent = `${formatCampaignDelaySummary(campaign)} · Imagen: ${campaign.mediaUrl ? "cargada" : "sin imagen"}`;
+     refs.campaignDetailUpdated.textContent = `Actualizada: ${formatDateTime(campaign.updatedAt)}`;
+ 
+     if (campaign.mediaUrl) {
+@@ -945,7 +954,6 @@
+       fragment.appendChild(row);
+     });
+     refs.campaignDetailRecipients.replaceChildren(fragment);
+-    renderCampaignFailureReport(campaign);
+   }
+ 
+   function renderRunnerStatus() {
+@@ -1068,6 +1076,18 @@
+     await loadRunnerStatus();
+   }
+ 
++  async function pauseLocalRunner() {
++    await sendRuntimeMessage(
++      {
++        type: "PAUSE_CAMPAIGN",
++        campaignId: state.runner?.campaignId ?? state.selectedCampaignId ?? null,
++        runId: state.runner?.runId ?? null,
++      },
++      "No fue posible pausar el runner.",
++    );
++    await loadRunnerStatus();
++  }
++
+   async function startSelectedCampaign(campaignId = state.selectedCampaignId) {
+     const campaign = state.campaigns.find((item) => item.id === campaignId) ?? null;
+     if (!campaign?.id) {
+@@ -1088,111 +1108,18 @@
+   }
+ 
+   async function forcePauseCampaign(campaignId = state.runner?.campaignId ?? state.selectedCampaignId) {
+-    const targetCampaignId = String(campaignId ?? "").trim();
+-    if (!targetCampaignId) {
+-      throw new Error("Selecciona una campaña para ejecutar forzar pausa.");
+-    }
+-
+-    let localRunnerWarning = "";
+-    if (state.runner?.enabled && state.runner?.campaignId === targetCampaignId) {
+-      try {
+-        await stopLocalRunner();
+-      } catch (error) {
+-        localRunnerWarning =
+-          error instanceof Error ? error.message : "No fue posible detener el runner local.";
+-      }
+-    }
+-
+-    await updateCampaignAction(targetCampaignId, "force_pause");
+-    await loadCampaigns({ silent: true });
+-    await loadRunnerStatus();
+-    if (localRunnerWarning) {
+-      setFeedback("warning", localRunnerWarning);
+-    }
+-  }
+-
+-  async function requestCampaignRepair(campaignId, mode) {
+-    const { response, data } = await fetchJson("/api/ext/campaigns/repair", {
+-      method: "POST",
+-      headers: { "Content-Type": "application/json" },
+-      body: JSON.stringify({ mode, campaignId }),
+-    });
+-    if (!response.ok || !data?.ok || !data?.report) {
+-      throw new Error(data?.error || "No fue posible ejecutar diagnóstico/reparación.");
+-    }
+-    return data.report;
+-  }
+-
+-  async function autoDiagnoseAndRepairCampaign(campaignId = state.selectedCampaignId ?? state.runner?.campaignId) {
+-    const targetCampaignId = String(campaignId ?? "").trim();
+-    if (!targetCampaignId) {
+-      throw new Error("Selecciona una campaña para auto-diagnóstico.");
++    const campaign = state.campaigns.find((item) => item.id === campaignId) ?? null;
++    if (!campaign?.id) {
++      throw new Error("Selecciona una campaña para pausarla.");
+     }
+ 
+-    const preview = await requestCampaignRepair(targetCampaignId, "preview");
+-    if (!Array.isArray(preview.actions) || preview.actions.length === 0) {
+-      setFeedback("success", "Diagnóstico completado: no hay reparaciones automáticas pendientes.");
+-      return;
++    if (state.runner?.enabled && state.runner?.campaignId === campaign.id) {
++      await pauseLocalRunner();
+     }
+ 
+-    const summary = [
+-      `Hallazgos: ${preview.summary?.findings ?? 0}`,
+-      `Acciones seguras: ${preview.summary?.safeActions ?? 0}`,
+-      `Campañas analizadas: ${preview.summary?.campaignsAnalyzed ?? 0}`,
+-    ].join("\n");
+-
+-    const shouldApply = window.confirm(
+-      `Diagnóstico listo.\n\n${summary}\n\n¿Aplicar auto-reparación segura ahora?`,
+-    );
+-    if (!shouldApply) return;
+-
+-    const applied = await requestCampaignRepair(targetCampaignId, "apply");
++    await updateCampaignAction(campaign.id, "force_pause");
+     await loadCampaigns({ silent: true });
+     await loadRunnerStatus();
+-
+-    const appliedActions = applied.applied?.appliedActions ?? 0;
+-    if (appliedActions > 0) {
+-      setFeedback(
+-        "success",
+-        `Auto-reparación aplicada: ${appliedActions} acción(es), ${applied.applied?.releasedClaimedRecipients ?? 0} claimed liberados.`,
+-      );
+-      return;
+-    }
+-    setFeedback("warning", "Auto-reparación ejecutada sin cambios adicionales.");
+-  }
+-
+-  function downloadFailedRecipients(campaignId = state.selectedCampaignId) {
+-    const campaign = state.campaigns.find((item) => item.id === campaignId) ?? null;
+-    if (!campaign?.id) {
+-      throw new Error("Selecciona una campaña para descargar incidencias.");
+-    }
+-
+-    const failedRecipients = failedRecipientsForCampaign(campaign);
+-    if (!failedRecipients.length) {
+-      throw new Error("La campaña seleccionada no tiene destinatarios fallidos.");
+-    }
+-
+-    const rows = [
+-      ["nombre", "telefono", "error", "programado", "intento_o_envio"],
+-      ...failedRecipients.map((recipient) => [
+-        recipient.contactName || "",
+-        recipient.contactValue || "",
+-        recipient.lastError || "",
+-        recipient.scheduledFor || "",
+-        recipient.sentAt || recipient.attemptedAt || "",
+-      ]),
+-    ];
+-
+-    const csv = rows.map((columns) => columns.map((value) => toCsvCell(value)).join(",")).join("\n");
+-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+-    const url = URL.createObjectURL(blob);
+-    const anchor = document.createElement("a");
+-    anchor.href = url;
+-    anchor.download = `campaign-failures-${campaign.id}.csv`;
+-    document.body.appendChild(anchor);
+-    anchor.click();
+-    anchor.remove();
+-    URL.revokeObjectURL(url);
+   }
+ 
+   async function deleteSelectedCampaign(campaignId = state.selectedCampaignId) {
+@@ -1202,7 +1129,7 @@
+     }
+ 
+     if (!canDeleteCampaign(campaign)) {
+-      throw new Error("Solo puedes eliminar campañas pausadas, bloqueadas o cerradas.");
++      throw new Error("Solo puedes eliminar campañas pausadas o completadas.");
+     }
+ 
+     if (!window.confirm(`Se eliminara la campaña "${campaign.campaignName}".`)) {
+@@ -1305,7 +1232,10 @@
+     refs.campaignSchedule.value = "";
+     refs.campaignBatchSize.value = "25";
+     refs.campaignDelaySeconds.value = "4";
++    if (refs.campaignBatchDelaySeconds) refs.campaignBatchDelaySeconds.value = "30";
++    if (refs.campaignJitterSeconds) refs.campaignJitterSeconds.value = "3";
+     refs.campaignStartNow.checked = true;
++    updateCampaignClock();
+     refs.campaignRecipients.value = "";
+     refs.campaignTemplate.value = DEFAULT_TEMPLATE;
+     refs.campaignNotes.value = "";
+@@ -1332,6 +1262,8 @@
+       refreshRecipientDraft();
+       ensureCampaignPayloadAllowed();
+ 
++      const automationSettings = getCampaignAutomationSettings();
++
+       const payload = {
+         campaignName: normalizeText(refs.campaignName.value) || "Campaña extensión",
+         notes: normalizeMultilineText(refs.campaignNotes.value) || null,
+@@ -1343,10 +1275,14 @@
+         scheduleAt: refs.campaignSchedule.value || null,
+         batchSize: Math.min(200, Math.max(1, Number(refs.campaignBatchSize.value) || 25)),
+         messageTemplate: normalizeMultilineText(refs.campaignTemplate.value) || "",
+-        messageDelayMs: Math.max(0.25, Number(refs.campaignDelaySeconds.value) || 4) * 1000,
++        messageDelayMs: automationSettings.messageDelayMs,
+         mediaUrl: state.uploadedAsset?.secureUrl || null,
+         meta: {
+           source: "chrome_side_panel_campaigns",
++          extensionVersion: chrome?.runtime?.getManifest?.().version || "unknown",
++          batchDelayMs: automationSettings.batchDelayMs,
++          jitterMs: automationSettings.jitterMs,
++          scheduleTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Mexico_City",
+           mediaPublicId: state.uploadedAsset?.publicId ?? null,
+           mediaBytes: state.uploadedAsset?.bytes ?? null,
+           mediaFormat: state.uploadedAsset?.format ?? null,
+@@ -1384,13 +1320,14 @@
+       }
+       setFeedback(state.recipientDraft.invalidCount ? "warning" : "success", pieces.join(" "));
+ 
+-      const shouldStartNow = refs.campaignStartNow.checked && !refs.campaignSchedule.value;
++      const shouldStartNow = refs.campaignStartNow.checked;
++      const wasScheduled = Boolean(refs.campaignSchedule.value);
+       resetCampaignForm();
+       activateTab("reports-panel");
+ 
+       if (shouldStartNow) {
+         await startSelectedCampaign(data.campaign.id);
+-        setFeedback("success", "Campaña creada e iniciada en el runner automático.");
++        setFeedback("success", wasScheduled ? "Campaña programada y runner activado; se enviará a la hora indicada." : "Campaña creada e iniciada en el runner automático.");
+       }
+     } catch (error) {
+       setFeedback("danger", error instanceof Error ? error.message : "No fue posible crear la campaña.");
+@@ -1453,7 +1390,20 @@
+ 
+   refs.campaignReset.addEventListener("click", resetCampaignForm);
+   refs.campaignForm.addEventListener("submit", (event) => void handleCampaignSubmit(event));
++  refs.campaignSchedule?.addEventListener("change", updateCampaignClock);
+   refs.campaignRefreshList.addEventListener("click", () => void loadCampaigns());
++  refs.campaignToggleList?.addEventListener("click", () => {
++    state.listExpanded = !state.listExpanded;
++    renderCampaignList();
++  });
++  refs.campaignToggleDetail?.addEventListener("click", () => {
++    state.detailExpanded = !state.detailExpanded;
++    renderCampaignDetail(getSelectedCampaign());
++  });
++  refs.campaignDownloadResults?.addEventListener("click", () => {
++    if (chrome?.tabs?.create) chrome.tabs.create({ url: RESULTS_URL });
++    else window.open(RESULTS_URL, "_blank", "noopener");
++  });
+   refs.campaignStartSelected.addEventListener("click", async () => {
+     try {
+       await startSelectedCampaign();
+@@ -1486,13 +1436,6 @@
+       setFeedback("danger", error instanceof Error ? error.message : "No fue posible pausar la campaña.");
+     }
+   });
+-  refs.campaignAutoRepair.addEventListener("click", async () => {
+-    try {
+-      await autoDiagnoseAndRepairCampaign();
+-    } catch (error) {
+-      setFeedback("danger", error instanceof Error ? error.message : "No fue posible auto-reparar la campaña.");
+-    }
+-  });
+   refs.campaignDeleteSelected.addEventListener("click", async () => {
+     try {
+       await deleteSelectedCampaign();
+@@ -1501,13 +1444,6 @@
+       setFeedback("danger", error instanceof Error ? error.message : "No fue posible eliminar la campaña.");
+     }
+   });
+-  refs.campaignDownloadFailures.addEventListener("click", () => {
+-    try {
+-      downloadFailedRecipients();
+-    } catch (error) {
+-      setFeedback("danger", error instanceof Error ? error.message : "No fue posible descargar el reporte de fallidos.");
+-    }
+-  });
+ 
+   if (canUseChromeStorage() && chrome.storage.onChanged) {
+     chrome.storage.onChanged.addListener((changes, areaName) => {
+@@ -1519,6 +1455,7 @@
+ 
+   document.addEventListener("visibilitychange", () => {
+     if (!document.hidden) {
++      updateCampaignClock();
+       void initializeCampaignModule({ silent: true });
+     }
+   });
+@@ -1541,5 +1478,7 @@
+   clearUploadedAsset();
+   renderRunnerStatus();
+   renderCampaignActions(null);
++  updateCampaignClock();
++  state.timeTickerId = window.setInterval(updateCampaignClock, 30_000);
+   void initializeCampaignModule({ silent: true });
+ });
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/content/bridge.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/content/bridge.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/content/bridge.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/content/bridge.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,72 +1,72 @@
+-(function attachRecalcBridge() {
+-  const pending = new Map();
+-  const DEFAULT_TIMEOUT_MS = 60000;
+-
+-  function requestMainWorld(action, payload, options = {}) {
+-    const timeoutMs = Number(options.timeoutMs || DEFAULT_TIMEOUT_MS);
+-    const requestId = `bridge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+-
+-    return new Promise((resolve) => {
+-      const timeout = window.setTimeout(() => {
+-        pending.delete(requestId);
+-        resolve({
+-          ok: false,
+-          error: "wa_main_timeout",
+-          step: "bridge_timeout",
+-        });
+-      }, timeoutMs);
+-
+-      pending.set(requestId, (response) => {
+-        window.clearTimeout(timeout);
+-        resolve(response);
+-      });
+-
+-      window.postMessage({
+-        source: "recalc-bridge",
+-        target: "recalc-wa-main",
+-        requestId,
+-        action,
+-        payload,
+-      }, "*");
+-    });
+-  }
+-
+-  window.addEventListener("message", (event) => {
+-    const data = event.data;
+-    if (!data || data.source !== "recalc-wa-main" || data.target !== "recalc-bridge") return;
+-    const resolver = pending.get(data.requestId);
+-    if (!resolver) return;
+-    pending.delete(data.requestId);
+-    resolver(data.response);
+-  });
+-
+-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+-    if (message?.type === "RECALC_WA_SEND_WITH_ATTACHMENTS") {
+-      void requestMainWorld(
+-        "sendTextWithAttachments",
++(function attachRecalcBridge() {
++  const pending = new Map();
++  const DEFAULT_TIMEOUT_MS = 60000;
++
++  function requestMainWorld(action, payload, options = {}) {
++    const timeoutMs = Number(options.timeoutMs || DEFAULT_TIMEOUT_MS);
++    const requestId = `bridge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
++
++    return new Promise((resolve) => {
++      const timeout = window.setTimeout(() => {
++        pending.delete(requestId);
++        resolve({
++          ok: false,
++          error: "wa_main_timeout",
++          step: "bridge_timeout",
++        });
++      }, timeoutMs);
++
++      pending.set(requestId, (response) => {
++        window.clearTimeout(timeout);
++        resolve(response);
++      });
++
++      window.postMessage({
++        source: "recalc-bridge",
++        target: "recalc-wa-main",
++        requestId,
++        action,
++        payload,
++      }, "*");
++    });
++  }
++
++  window.addEventListener("message", (event) => {
++    const data = event.data;
++    if (!data || data.source !== "recalc-wa-main" || data.target !== "recalc-bridge") return;
++    const resolver = pending.get(data.requestId);
++    if (!resolver) return;
++    pending.delete(data.requestId);
++    resolver(data.response);
++  });
++
++  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
++    if (message?.type === "RECALC_WA_SEND_WITH_ATTACHMENTS") {
++      void requestMainWorld(
++        "sendTextWithAttachments",
+         {
+           recipient: message.recipient ?? null,
+           text: message.text ?? "",
+           attachments: message.attachments ?? [],
+           selectorPack: message.selectorPack ?? null,
+         },
+-        { timeoutMs: 90000 },
+-      ).then((response) => sendResponse(response));
+-      return true;
+-    }
+-
+-    if (message?.type === "RECALC_APPLY_WHATSAPP_DRAFT") {
+-      void requestMainWorld(
+-        "applyDraft",
+-        {
+-          draftText: String(message.draftText ?? "").trim(),
+-          selectorPack: message.selectorPack ?? null,
+-        },
+-        { timeoutMs: 20000 },
+-      ).then((response) => sendResponse(response));
+-      return true;
+-    }
+-
+-    return undefined;
+-  });
+-})();
++        { timeoutMs: 90000 },
++      ).then((response) => sendResponse(response));
++      return true;
++    }
++
++    if (message?.type === "RECALC_APPLY_WHATSAPP_DRAFT") {
++      void requestMainWorld(
++        "applyDraft",
++        {
++          draftText: String(message.draftText ?? "").trim(),
++          selectorPack: message.selectorPack ?? null,
++        },
++        { timeoutMs: 20000 },
++      ).then((response) => sendResponse(response));
++      return true;
++    }
++
++    return undefined;
++  });
++})();
+Binary files app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon128.png and app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon128.png differ
+Binary files app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon16.png and app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon16.png differ
+Binary files app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon32.png and app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon32.png differ
+Binary files app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon48.png and app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/icons/icon48.png differ
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/injected/wa-main.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/injected/wa-main.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/injected/wa-main.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/injected/wa-main.js	2026-04-05 13:55:46.000000000 +0000
+@@ -31,19 +31,19 @@
+       });
+     });
+   }
+-
+-  async function applyDraft(payload) {
+-    const text = String(payload?.draftText || "").trim();
+-    const selectorPack = payload?.selectorPack ?? null;
+-    const composer = await globalScope.RecalcWaText.waitFor(() => globalScope.RecalcWaSelectors.findMessageInput(selectorPack), 10000, 250);
+-    if (!composer) {
+-      return { ok: true, applied: false };
+-    }
+-    const applied = globalScope.RecalcWaText.fillComposer(composer, text);
+-    return { ok: applied, applied };
+-  }
+-
+-  async function sendTextWithAttachments(payload) {
++
++  async function applyDraft(payload) {
++    const text = String(payload?.draftText || "").trim();
++    const selectorPack = payload?.selectorPack ?? null;
++    const composer = await globalScope.RecalcWaText.waitFor(() => globalScope.RecalcWaSelectors.findMessageInput(selectorPack), 10000, 250);
++    if (!composer) {
++      return { ok: true, applied: false };
++    }
++    const applied = globalScope.RecalcWaText.fillComposer(composer, text);
++    return { ok: applied, applied };
++  }
++
++  async function sendTextWithAttachments(payload) {
+     return globalScope.RecalcWaRunner.sendTextWithAttachments(
+       payload?.recipient ?? null,
+       payload?.text ?? "",
+@@ -51,32 +51,32 @@
+       payload?.selectorPack ?? null,
+     );
+   }
+-
+-  globalScope.__RECALC_WA__ = {
+-    applyDraft,
+-    sendTextWithAttachments,
+-  };
+-
++
++  globalScope.__RECALC_WA__ = {
++    applyDraft,
++    sendTextWithAttachments,
++  };
++
+   const messageListener = async (event) => {
+     const data = event.data;
+     if (!data || data.source !== "recalc-bridge" || data.target !== "recalc-wa-main") return;
+-
+-    let response;
+-    try {
+-      if (data.action === "applyDraft") {
+-        response = await applyDraft(data.payload);
+-      } else if (data.action === "sendTextWithAttachments") {
+-        response = await sendTextWithAttachments(data.payload);
+-      } else {
+-        response = { ok: false, error: "Acción no soportada." };
+-      }
+-    } catch (error) {
+-      response = {
+-        ok: false,
+-        error: error instanceof Error ? error.message : "Falló la ejecución en MAIN world.",
+-      };
+-    }
+-
++
++    let response;
++    try {
++      if (data.action === "applyDraft") {
++        response = await applyDraft(data.payload);
++      } else if (data.action === "sendTextWithAttachments") {
++        response = await sendTextWithAttachments(data.payload);
++      } else {
++        response = { ok: false, error: "Acción no soportada." };
++      }
++    } catch (error) {
++      response = {
++        ok: false,
++        error: error instanceof Error ? error.message : "Falló la ejecución en MAIN world.",
++      };
++    }
++
+     window.postMessage({
+       source: "recalc-wa-main",
+       target: "recalc-bridge",
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/buildMessage.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/buildMessage.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/buildMessage.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/buildMessage.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,66 +1,66 @@
+-(function attachRecalcBuildMessage(globalScope) {
+-  function normalizeKey(value) {
+-    return String(value || "")
+-      .normalize("NFD")
+-      .replace(/[\u0300-\u036f]/g, "")
+-      .replace(/[^a-zA-Z0-9]+/g, "_")
+-      .replace(/^_+|_+$/g, "")
+-      .toLowerCase();
+-  }
+-
+-  function cleanText(value) {
+-    return String(value ?? "")
+-      .replace(/\r\n?/g, "\n")
+-      .replace(/[ \t]+\n/g, "\n")
+-      .replace(/\n{3,}/g, "\n\n")
+-      .trim();
+-  }
+-
+-  function buildVariableMap(recipient, variables) {
+-    const map = {
+-      nombre: recipient?.contactName || recipient?.name || "",
+-      telefono: recipient?.contactValue || recipient?.phone || "",
+-      numero: recipient?.contactValue || recipient?.phone || "",
+-      contactname: recipient?.contactName || recipient?.name || "",
+-      contactvalue: recipient?.contactValue || recipient?.phone || "",
+-    };
+-
+-    const sources = [recipient?.payload, recipient, variables];
+-    sources.forEach((source) => {
+-      if (!source || typeof source !== "object") return;
+-      Object.entries(source).forEach(([key, value]) => {
+-        map[normalizeKey(key)] = value == null ? "" : String(value);
+-      });
+-    });
+-
+-    return map;
+-  }
+-
+-  function interpolateTemplate(template, recipient, variables) {
+-    const normalizedTemplate = String(template ?? "");
+-    if (!normalizedTemplate.trim()) return "";
+-
+-    const map = buildVariableMap(recipient, variables);
+-    return normalizedTemplate.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, token) => {
+-      const key = normalizeKey(token);
+-      return key in map ? String(map[key] ?? "") : "";
+-    });
+-  }
+-
+-  function buildMessage(template, recipient, variables, options) {
+-    const text = cleanText(interpolateTemplate(template, recipient, variables));
+-    if (!options || typeof options !== "object") return text;
+-
+-    if (options.textAsCaption) {
+-      return text;
+-    }
+-
+-    return text;
+-  }
+-
+-  globalScope.RecalcBuildMessage = {
+-    cleanText,
+-    interpolateTemplate,
+-    buildMessage,
+-  };
+-})(typeof self !== "undefined" ? self : window);
++(function attachRecalcBuildMessage(globalScope) {
++  function normalizeKey(value) {
++    return String(value || "")
++      .normalize("NFD")
++      .replace(/[\u0300-\u036f]/g, "")
++      .replace(/[^a-zA-Z0-9]+/g, "_")
++      .replace(/^_+|_+$/g, "")
++      .toLowerCase();
++  }
++
++  function cleanText(value) {
++    return String(value ?? "")
++      .replace(/\r\n?/g, "\n")
++      .replace(/[ \t]+\n/g, "\n")
++      .replace(/\n{3,}/g, "\n\n")
++      .trim();
++  }
++
++  function buildVariableMap(recipient, variables) {
++    const map = {
++      nombre: recipient?.contactName || recipient?.name || "",
++      telefono: recipient?.contactValue || recipient?.phone || "",
++      numero: recipient?.contactValue || recipient?.phone || "",
++      contactname: recipient?.contactName || recipient?.name || "",
++      contactvalue: recipient?.contactValue || recipient?.phone || "",
++    };
++
++    const sources = [recipient?.payload, recipient, variables];
++    sources.forEach((source) => {
++      if (!source || typeof source !== "object") return;
++      Object.entries(source).forEach(([key, value]) => {
++        map[normalizeKey(key)] = value == null ? "" : String(value);
++      });
++    });
++
++    return map;
++  }
++
++  function interpolateTemplate(template, recipient, variables) {
++    const normalizedTemplate = String(template ?? "");
++    if (!normalizedTemplate.trim()) return "";
++
++    const map = buildVariableMap(recipient, variables);
++    return normalizedTemplate.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, token) => {
++      const key = normalizeKey(token);
++      return key in map ? String(map[key] ?? "") : "";
++    });
++  }
++
++  function buildMessage(template, recipient, variables, options) {
++    const text = cleanText(interpolateTemplate(template, recipient, variables));
++    if (!options || typeof options !== "object") return text;
++
++    if (options.textAsCaption) {
++      return text;
++    }
++
++    return text;
++  }
++
++  globalScope.RecalcBuildMessage = {
++    cleanText,
++    interpolateTemplate,
++    buildMessage,
++  };
++})(typeof self !== "undefined" ? self : window);
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/runCampaign.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/runCampaign.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/runCampaign.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/campaigns/runCampaign.js	2026-05-07 05:46:38.861676318 +0000
+@@ -2,7 +2,7 @@
+   const ACTIVE_RUNNER_KEY = "recalc.activeCampaignRunner";
+   const RUNNER_ALARM = "recalc.campaignRunnerTick";
+   const MIN_RUNNER_DELAY_MS = 250;
+-  const TERMINAL_CAMPAIGN_STATUSES = ["completed", "sent", "failed", "partial", "blocked"];
++  const MAX_SAFE_DELAY_MS = 30 * 60 * 1000;
+ 
+   async function getState() {
+     const data = await chrome.storage.local.get([ACTIVE_RUNNER_KEY]);
+@@ -24,6 +24,25 @@
+     });
+   }
+ 
++  function clampDelayMs(value, fallback = 0) {
++    const parsed = Number(value);
++    if (!Number.isFinite(parsed)) return Math.max(0, fallback);
++    return Math.min(MAX_SAFE_DELAY_MS, Math.max(0, Math.round(parsed)));
++  }
++
++  function getCampaignMetaNumber(campaign, key, fallback = 0) {
++    const parsed = Number(campaign?.meta?.[key]);
++    return Number.isFinite(parsed) ? parsed : fallback;
++  }
++
++  function computeHumanizedDelayMs(baseDelayMs, campaign, { batchCompleted = false } = {}) {
++    const base = clampDelayMs(baseDelayMs, 4000);
++    const jitter = clampDelayMs(getCampaignMetaNumber(campaign, "jitterMs", 0));
++    const batchDelay = batchCompleted ? clampDelayMs(getCampaignMetaNumber(campaign, "batchDelayMs", 0)) : 0;
++    const variation = jitter > 0 ? Math.round((Math.random() * 2 - 1) * jitter) : 0;
++    return Math.max(MIN_RUNNER_DELAY_MS, base + batchDelay + variation);
++  }
++
+   function normalizePhone(value) {
+     const raw = String(value ?? "").trim();
+     if (!raw) return "";
+@@ -52,11 +71,6 @@
+     };
+   }
+ 
+-  function isTerminalCampaignStatus(status) {
+-    const normalized = String(status ?? "").toLowerCase();
+-    return TERMINAL_CAMPAIGN_STATUSES.includes(normalized);
+-  }
+-
+   async function runCampaign(input) {
+     const current = await getState();
+     const nextState = normalizeRunState(input, current);
+@@ -155,9 +169,6 @@
+ 
+     const nextState = { ...runner, busy: true, updatedAt: new Date().toISOString() };
+     await setState(nextState);
+-    if (typeof deps.reportRunnerHeartbeat === "function") {
+-      await deps.reportRunnerHeartbeat(nextState, { phase: "tick_start" }).catch(() => null);
+-    }
+ 
+     try {
+       let working = nextState;
+@@ -179,21 +190,14 @@
+           }
+ 
+           const status = String(campaign.status ?? "queued");
+-          if (isTerminalCampaignStatus(status)) {
++          if (status === "completed") {
+             await setState({
+               ...working,
+               enabled: false,
+               busy: false,
+               status: "completed",
+               campaignName: campaign.campaignName,
+-              lastMessage:
+-                status === "sent"
+-                  ? "Todos los destinatarios fueron enviados."
+-                  : status === "partial"
+-                    ? "La campaña se completó con incidencias."
+-                    : status === "failed"
+-                      ? "La campaña cerró con fallos."
+-                      : "La campaña ya no tiene ejecución pendiente.",
++              lastMessage: "Todos los destinatarios ya fueron procesados.",
+               currentBatch: null,
+               currentIndex: 0,
+             });
+@@ -209,14 +213,10 @@
+             ...working,
+             busy: false,
+             campaignName: campaign.campaignName,
+-            status:
+-              status === "scheduled" || status === "waiting_runner" ? "waiting" : "running",
+-            lastMessage:
+-              status === "scheduled"
+-                ? `La campaña está programada para ${new Date(campaign.scheduleAt).toLocaleString("es-MX")}.`
+-                : status === "waiting_runner"
+-                  ? "El backend está esperando un runner activo para continuar."
+-                  : "No hay destinatarios disponibles todavía. Se volverá a intentar.",
++            status: status === "scheduled" ? "waiting" : "running",
++            lastMessage: status === "scheduled"
++              ? `La campaña está programada para ${new Date(campaign.scheduleAt).toLocaleString("es-MX")}.`
++              : "No hay destinatarios disponibles todavía. Se volverá a intentar.",
+             currentBatch: null,
+             currentIndex: 0,
+           });
+@@ -309,26 +309,29 @@
+         return;
+       }
+ 
+-      const nextDelay = Math.max(
+-        MIN_RUNNER_DELAY_MS,
+-        Number(sendResult?.delayMs ?? recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000),
++      const nextIndex = working.currentIndex + 1;
++      const batchCompleted = nextIndex >= (working.currentBatch?.recipients?.length ?? 0);
++      const nextDelay = computeHumanizedDelayMs(
++        sendResult?.delayMs ?? recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000,
++        working.currentBatch?.campaign,
++        { batchCompleted },
+       );
+ 
+       const finalState = {
+         ...working,
+         busy: false,
+         campaignName: campaignSnapshot?.campaignName ?? working.campaignName,
+-        currentIndex: working.currentIndex + 1,
+-        status: isTerminalCampaignStatus(campaignSnapshot?.status) ? "completed" : "running",
++        currentIndex: nextIndex,
++        status: campaignSnapshot?.status === "completed" ? "completed" : "running",
+         lastMessage: sendResult?.success
+-          ? `Mensaje enviado a ${recipient.contactName || recipient.contactValue}.`
++          ? `Mensaje enviado a ${recipient.contactName || recipient.contactValue}${batchCompleted ? ". Esperando el delay por reclamo antes del siguiente batch" : ""}.`
+           : `Falló el envío para ${recipient.contactName || recipient.contactValue}: ${sendResult?.error || "sin detalle"}.`,
+         lastRecipientId: recipient.id,
+         lastRecipientPhone: phone,
+         lastSentAt: new Date().toISOString(),
+       };
+ 
+-      if (isTerminalCampaignStatus(campaignSnapshot?.status)) {
++      if (campaignSnapshot?.status === "completed") {
+         finalState.enabled = false;
+         await setState(finalState);
+         await chrome.alarms.clear(RUNNER_ALARM);
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/storage/attachments.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/storage/attachments.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/storage/attachments.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/storage/attachments.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,342 +1,342 @@
+-(function attachRecalcAttachmentStore(globalScope) {
+-  const STORAGE_KEY = "recalc.attachments.meta";
+-  const DB_NAME = "recalc-attachments";
+-  const DB_VERSION = 1;
+-  const STORE_NAME = "blobs";
+-  const MAX_FILE_SIZE_BYTES = 64 * 1024 * 1024;
+-  const ORPHAN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+-
+-  function getChromeStorage() {
+-    const storage = globalScope.chrome?.storage?.local;
+-    if (!storage) {
+-      throw new Error("chrome.storage.local no está disponible.");
+-    }
+-    return storage;
+-  }
+-
+-  function nowIso() {
+-    return new Date().toISOString();
+-  }
+-
+-  function randomId(prefix) {
+-    const chunk = Math.random().toString(36).slice(2, 10);
+-    return `${prefix}_${Date.now()}_${chunk}`;
+-  }
+-
+-  function formatBytes(size) {
+-    const value = Number(size || 0);
+-    if (value < 1024) return `${value} B`;
+-    if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
+-    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+-  }
+-
+-  function extensionFromName(name) {
+-    const match = String(name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+-    return match ? match[1] : "";
+-  }
+-
+-  function classifyAttachment(fileLike) {
+-    const mime = String(fileLike?.type || "").toLowerCase();
+-    if (mime.startsWith("image/")) return "image";
+-    if (mime.startsWith("video/")) return "video";
+-    if (mime.startsWith("audio/")) return "audio";
+-    return "document";
+-  }
+-
+-  function isBlockedExecutable(extension, mime) {
+-    return [
+-      "exe",
+-      "msi",
+-      "bat",
+-      "cmd",
+-      "com",
+-      "scr",
+-      "ps1",
+-      "vbs",
+-      "js",
+-      "jar",
+-    ].includes(extension) || mime === "application/x-msdownload";
+-  }
+-
+-  function validateFile(file) {
+-    if (!(file instanceof File)) {
+-      return { valid: false, code: "unsupported_type", message: "Solo se pueden adjuntar archivos reales desde tu equipo." };
+-    }
+-
+-    if (!file.size) {
+-      return { valid: false, code: "size_not_supported", message: `El archivo ${file.name} está vacío.` };
+-    }
+-
+-    if (file.size > MAX_FILE_SIZE_BYTES) {
+-      return {
+-        valid: false,
+-        code: "size_not_supported",
+-        message: `El archivo ${file.name} pesa ${formatBytes(file.size)} y supera el límite de ${formatBytes(MAX_FILE_SIZE_BYTES)} por archivo.`,
+-      };
+-    }
+-
+-    const mime = String(file.type || "").toLowerCase();
+-    const extension = extensionFromName(file.name);
+-    if (isBlockedExecutable(extension, mime)) {
+-      return {
+-        valid: false,
+-        code: "unsupported_type",
+-        message: `El tipo de archivo ${file.name} no está soportado por seguridad.`,
+-      };
+-    }
+-
+-    return { valid: true, code: "ok", message: "" };
+-  }
+-
+-  function validateFiles(files) {
+-    const accepted = [];
+-    const rejected = [];
+-
+-    Array.from(files || []).forEach((file) => {
+-      const result = validateFile(file);
+-      if (result.valid) {
+-        accepted.push(file);
+-      } else {
+-        rejected.push({
+-          fileName: String(file?.name || "archivo"),
+-          code: result.code,
+-          message: result.message,
+-        });
+-      }
+-    });
+-
+-    return { accepted, rejected };
+-  }
+-
+-  function openDb() {
+-    return new Promise((resolve, reject) => {
+-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+-      request.onerror = () => reject(request.error || new Error("No fue posible abrir IndexedDB."));
+-      request.onupgradeneeded = () => {
+-        const db = request.result;
+-        if (!db.objectStoreNames.contains(STORE_NAME)) {
+-          db.createObjectStore(STORE_NAME, { keyPath: "id" });
+-        }
+-      };
+-      request.onsuccess = () => resolve(request.result);
+-    });
+-  }
+-
+-  async function withStore(mode, worker) {
+-    const db = await openDb();
+-    return new Promise((resolve, reject) => {
+-      const transaction = db.transaction(STORE_NAME, mode);
+-      const store = transaction.objectStore(STORE_NAME);
+-      let settled = false;
+-
+-      transaction.oncomplete = () => {
+-        if (!settled) {
+-          settled = true;
+-          resolve(undefined);
+-        }
+-      };
+-      transaction.onerror = () => {
+-        if (!settled) {
+-          settled = true;
+-          reject(transaction.error || new Error("Falló la operación en IndexedDB."));
+-        }
+-      };
+-
+-      Promise.resolve(worker(store, transaction))
+-        .then((value) => {
+-          if (!settled) {
+-            settled = true;
+-            resolve(value);
+-          }
+-        })
+-        .catch((error) => {
+-          if (!settled) {
+-            settled = true;
+-            reject(error);
+-          }
+-        })
+-        .finally(() => db.close());
+-    });
+-  }
+-
+-  async function getMetaMap() {
+-    const storage = getChromeStorage();
+-    const data = await storage.get([STORAGE_KEY]);
+-    const meta = data?.[STORAGE_KEY];
+-    return meta && typeof meta === "object" ? meta : {};
+-  }
+-
+-  async function setMetaMap(nextValue) {
+-    const storage = getChromeStorage();
+-    await storage.set({ [STORAGE_KEY]: nextValue });
+-  }
+-
+-  function toMetaRecord(draftId, file) {
+-    return {
+-      attachmentId: randomId("attachment"),
+-      blobId: randomId("blob"),
+-      draftId,
+-      name: file.name,
+-      type: file.type || "application/octet-stream",
+-      size: file.size,
+-      lastModified: file.lastModified || Date.now(),
+-      kind: classifyAttachment(file),
+-      createdAt: nowIso(),
+-    };
+-  }
+-
+-  async function putBlob(blobId, file) {
+-    await withStore("readwrite", (store) => {
+-      store.put({
+-        id: blobId,
+-        blob: new Blob([file], { type: file.type || "application/octet-stream" }),
+-        name: file.name,
+-        type: file.type || "application/octet-stream",
+-        lastModified: file.lastModified || Date.now(),
+-      });
+-    });
+-  }
+-
+-  async function getBlobRecord(blobId) {
+-    return withStore("readonly", (store) => new Promise((resolve, reject) => {
+-      const request = store.get(blobId);
+-      request.onerror = () => reject(request.error || new Error("No fue posible leer el adjunto."));
+-      request.onsuccess = () => resolve(request.result || null);
+-    }));
+-  }
+-
+-  async function deleteBlob(blobId) {
+-    return withStore("readwrite", (store) => new Promise((resolve, reject) => {
+-      const request = store.delete(blobId);
+-      request.onerror = () => reject(request.error || new Error("No fue posible eliminar el blob."));
+-      request.onsuccess = () => resolve(true);
+-    }));
+-  }
+-
+-  async function getAttachmentMeta(draftId) {
+-    const metaMap = await getMetaMap();
+-    const list = Array.isArray(metaMap?.[draftId]) ? metaMap[draftId] : [];
+-    return list.slice().sort((left, right) => String(left.createdAt || "").localeCompare(String(right.createdAt || "")));
+-  }
+-
+-  async function saveAttachments(draftId, files) {
+-    const normalizedDraftId = String(draftId || "").trim();
+-    if (!normalizedDraftId) {
+-      throw new Error("Debes indicar un draftId para guardar adjuntos.");
+-    }
+-
+-    const { accepted, rejected } = validateFiles(files);
+-    if (!accepted.length && rejected.length) {
+-      return { saved: [], rejected };
+-    }
+-
+-    const metaMap = await getMetaMap();
+-    const current = Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId].slice() : [];
+-    const saved = [];
+-
+-    for (const file of accepted) {
+-      const record = toMetaRecord(normalizedDraftId, file);
+-      await putBlob(record.blobId, file);
+-      current.push(record);
+-      saved.push(record);
+-    }
+-
+-    metaMap[normalizedDraftId] = current;
+-    await setMetaMap(metaMap);
+-    return { saved, rejected };
+-  }
+-
+-  async function getAttachments(draftId) {
+-    const meta = await getAttachmentMeta(draftId);
+-    const files = [];
+-
+-    for (const item of meta) {
+-      const blobRecord = await getBlobRecord(item.blobId);
+-      if (!blobRecord?.blob) continue;
+-      files.push(
+-        new File([blobRecord.blob], item.name, {
+-          type: item.type || blobRecord.type || "application/octet-stream",
+-          lastModified: item.lastModified || blobRecord.lastModified || Date.now(),
+-        }),
+-      );
+-    }
+-
+-    return files;
+-  }
+-
+-  async function removeAttachment(draftId, attachmentId) {
+-    const normalizedDraftId = String(draftId || "").trim();
+-    const normalizedAttachmentId = String(attachmentId || "").trim();
+-    if (!normalizedDraftId || !normalizedAttachmentId) return [];
+-
+-    const metaMap = await getMetaMap();
+-    const current = Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId] : [];
+-    const target = current.find((item) => item.attachmentId === normalizedAttachmentId);
+-    if (!target) return current;
+-
+-    metaMap[normalizedDraftId] = current.filter((item) => item.attachmentId !== normalizedAttachmentId);
+-    if (!metaMap[normalizedDraftId].length) {
+-      delete metaMap[normalizedDraftId];
+-    }
+-    await setMetaMap(metaMap);
+-    await deleteBlob(target.blobId);
+-    return Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId] : [];
+-  }
+-
+-  async function clearAttachments(draftId) {
+-    const normalizedDraftId = String(draftId || "").trim();
+-    if (!normalizedDraftId) return;
+-
+-    const metaMap = await getMetaMap();
+-    const current = Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId] : [];
+-    for (const item of current) {
+-      await deleteBlob(item.blobId);
+-    }
+-    delete metaMap[normalizedDraftId];
+-    await setMetaMap(metaMap);
+-  }
+-
+-  async function cleanOrphanedAttachments(options) {
+-    const keepDraftIds = Array.isArray(options?.keepDraftIds)
+-      ? options.keepDraftIds.map((value) => String(value || "").trim()).filter(Boolean)
+-      : [];
+-    const metaMap = await getMetaMap();
+-    const keep = new Set(keepDraftIds);
+-    const nextMeta = {};
+-
+-    for (const [draftId, entries] of Object.entries(metaMap)) {
+-      const safeEntries = Array.isArray(entries) ? entries : [];
+-      if (keep.has(draftId)) {
+-        nextMeta[draftId] = safeEntries;
+-        continue;
+-      }
+-
+-      const newest = safeEntries.reduce((acc, item) => Math.max(acc, Date.parse(item?.createdAt || "") || 0), 0);
+-      if (Date.now() - newest < ORPHAN_TTL_MS) {
+-        nextMeta[draftId] = safeEntries;
+-        continue;
+-      }
+-
+-      for (const item of safeEntries) {
+-        await deleteBlob(item.blobId);
+-      }
+-    }
+-
+-    await setMetaMap(nextMeta);
+-  }
+-
+-  globalScope.RecalcAttachmentStore = {
+-    STORAGE_KEY,
+-    MAX_FILE_SIZE_BYTES,
+-    classifyAttachment,
+-    formatBytes,
+-    validateFile,
+-    validateFiles,
+-    saveAttachments,
+-    getAttachmentMeta,
+-    getAttachments,
+-    removeAttachment,
+-    clearAttachments,
+-    cleanOrphanedAttachments,
+-  };
+-})(typeof self !== "undefined" ? self : window);
++(function attachRecalcAttachmentStore(globalScope) {
++  const STORAGE_KEY = "recalc.attachments.meta";
++  const DB_NAME = "recalc-attachments";
++  const DB_VERSION = 1;
++  const STORE_NAME = "blobs";
++  const MAX_FILE_SIZE_BYTES = 64 * 1024 * 1024;
++  const ORPHAN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
++
++  function getChromeStorage() {
++    const storage = globalScope.chrome?.storage?.local;
++    if (!storage) {
++      throw new Error("chrome.storage.local no está disponible.");
++    }
++    return storage;
++  }
++
++  function nowIso() {
++    return new Date().toISOString();
++  }
++
++  function randomId(prefix) {
++    const chunk = Math.random().toString(36).slice(2, 10);
++    return `${prefix}_${Date.now()}_${chunk}`;
++  }
++
++  function formatBytes(size) {
++    const value = Number(size || 0);
++    if (value < 1024) return `${value} B`;
++    if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
++    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
++  }
++
++  function extensionFromName(name) {
++    const match = String(name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
++    return match ? match[1] : "";
++  }
++
++  function classifyAttachment(fileLike) {
++    const mime = String(fileLike?.type || "").toLowerCase();
++    if (mime.startsWith("image/")) return "image";
++    if (mime.startsWith("video/")) return "video";
++    if (mime.startsWith("audio/")) return "audio";
++    return "document";
++  }
++
++  function isBlockedExecutable(extension, mime) {
++    return [
++      "exe",
++      "msi",
++      "bat",
++      "cmd",
++      "com",
++      "scr",
++      "ps1",
++      "vbs",
++      "js",
++      "jar",
++    ].includes(extension) || mime === "application/x-msdownload";
++  }
++
++  function validateFile(file) {
++    if (!(file instanceof File)) {
++      return { valid: false, code: "unsupported_type", message: "Solo se pueden adjuntar archivos reales desde tu equipo." };
++    }
++
++    if (!file.size) {
++      return { valid: false, code: "size_not_supported", message: `El archivo ${file.name} está vacío.` };
++    }
++
++    if (file.size > MAX_FILE_SIZE_BYTES) {
++      return {
++        valid: false,
++        code: "size_not_supported",
++        message: `El archivo ${file.name} pesa ${formatBytes(file.size)} y supera el límite de ${formatBytes(MAX_FILE_SIZE_BYTES)} por archivo.`,
++      };
++    }
++
++    const mime = String(file.type || "").toLowerCase();
++    const extension = extensionFromName(file.name);
++    if (isBlockedExecutable(extension, mime)) {
++      return {
++        valid: false,
++        code: "unsupported_type",
++        message: `El tipo de archivo ${file.name} no está soportado por seguridad.`,
++      };
++    }
++
++    return { valid: true, code: "ok", message: "" };
++  }
++
++  function validateFiles(files) {
++    const accepted = [];
++    const rejected = [];
++
++    Array.from(files || []).forEach((file) => {
++      const result = validateFile(file);
++      if (result.valid) {
++        accepted.push(file);
++      } else {
++        rejected.push({
++          fileName: String(file?.name || "archivo"),
++          code: result.code,
++          message: result.message,
++        });
++      }
++    });
++
++    return { accepted, rejected };
++  }
++
++  function openDb() {
++    return new Promise((resolve, reject) => {
++      const request = indexedDB.open(DB_NAME, DB_VERSION);
++      request.onerror = () => reject(request.error || new Error("No fue posible abrir IndexedDB."));
++      request.onupgradeneeded = () => {
++        const db = request.result;
++        if (!db.objectStoreNames.contains(STORE_NAME)) {
++          db.createObjectStore(STORE_NAME, { keyPath: "id" });
++        }
++      };
++      request.onsuccess = () => resolve(request.result);
++    });
++  }
++
++  async function withStore(mode, worker) {
++    const db = await openDb();
++    return new Promise((resolve, reject) => {
++      const transaction = db.transaction(STORE_NAME, mode);
++      const store = transaction.objectStore(STORE_NAME);
++      let settled = false;
++
++      transaction.oncomplete = () => {
++        if (!settled) {
++          settled = true;
++          resolve(undefined);
++        }
++      };
++      transaction.onerror = () => {
++        if (!settled) {
++          settled = true;
++          reject(transaction.error || new Error("Falló la operación en IndexedDB."));
++        }
++      };
++
++      Promise.resolve(worker(store, transaction))
++        .then((value) => {
++          if (!settled) {
++            settled = true;
++            resolve(value);
++          }
++        })
++        .catch((error) => {
++          if (!settled) {
++            settled = true;
++            reject(error);
++          }
++        })
++        .finally(() => db.close());
++    });
++  }
++
++  async function getMetaMap() {
++    const storage = getChromeStorage();
++    const data = await storage.get([STORAGE_KEY]);
++    const meta = data?.[STORAGE_KEY];
++    return meta && typeof meta === "object" ? meta : {};
++  }
++
++  async function setMetaMap(nextValue) {
++    const storage = getChromeStorage();
++    await storage.set({ [STORAGE_KEY]: nextValue });
++  }
++
++  function toMetaRecord(draftId, file) {
++    return {
++      attachmentId: randomId("attachment"),
++      blobId: randomId("blob"),
++      draftId,
++      name: file.name,
++      type: file.type || "application/octet-stream",
++      size: file.size,
++      lastModified: file.lastModified || Date.now(),
++      kind: classifyAttachment(file),
++      createdAt: nowIso(),
++    };
++  }
++
++  async function putBlob(blobId, file) {
++    await withStore("readwrite", (store) => {
++      store.put({
++        id: blobId,
++        blob: new Blob([file], { type: file.type || "application/octet-stream" }),
++        name: file.name,
++        type: file.type || "application/octet-stream",
++        lastModified: file.lastModified || Date.now(),
++      });
++    });
++  }
++
++  async function getBlobRecord(blobId) {
++    return withStore("readonly", (store) => new Promise((resolve, reject) => {
++      const request = store.get(blobId);
++      request.onerror = () => reject(request.error || new Error("No fue posible leer el adjunto."));
++      request.onsuccess = () => resolve(request.result || null);
++    }));
++  }
++
++  async function deleteBlob(blobId) {
++    return withStore("readwrite", (store) => new Promise((resolve, reject) => {
++      const request = store.delete(blobId);
++      request.onerror = () => reject(request.error || new Error("No fue posible eliminar el blob."));
++      request.onsuccess = () => resolve(true);
++    }));
++  }
++
++  async function getAttachmentMeta(draftId) {
++    const metaMap = await getMetaMap();
++    const list = Array.isArray(metaMap?.[draftId]) ? metaMap[draftId] : [];
++    return list.slice().sort((left, right) => String(left.createdAt || "").localeCompare(String(right.createdAt || "")));
++  }
++
++  async function saveAttachments(draftId, files) {
++    const normalizedDraftId = String(draftId || "").trim();
++    if (!normalizedDraftId) {
++      throw new Error("Debes indicar un draftId para guardar adjuntos.");
++    }
++
++    const { accepted, rejected } = validateFiles(files);
++    if (!accepted.length && rejected.length) {
++      return { saved: [], rejected };
++    }
++
++    const metaMap = await getMetaMap();
++    const current = Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId].slice() : [];
++    const saved = [];
++
++    for (const file of accepted) {
++      const record = toMetaRecord(normalizedDraftId, file);
++      await putBlob(record.blobId, file);
++      current.push(record);
++      saved.push(record);
++    }
++
++    metaMap[normalizedDraftId] = current;
++    await setMetaMap(metaMap);
++    return { saved, rejected };
++  }
++
++  async function getAttachments(draftId) {
++    const meta = await getAttachmentMeta(draftId);
++    const files = [];
++
++    for (const item of meta) {
++      const blobRecord = await getBlobRecord(item.blobId);
++      if (!blobRecord?.blob) continue;
++      files.push(
++        new File([blobRecord.blob], item.name, {
++          type: item.type || blobRecord.type || "application/octet-stream",
++          lastModified: item.lastModified || blobRecord.lastModified || Date.now(),
++        }),
++      );
++    }
++
++    return files;
++  }
++
++  async function removeAttachment(draftId, attachmentId) {
++    const normalizedDraftId = String(draftId || "").trim();
++    const normalizedAttachmentId = String(attachmentId || "").trim();
++    if (!normalizedDraftId || !normalizedAttachmentId) return [];
++
++    const metaMap = await getMetaMap();
++    const current = Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId] : [];
++    const target = current.find((item) => item.attachmentId === normalizedAttachmentId);
++    if (!target) return current;
++
++    metaMap[normalizedDraftId] = current.filter((item) => item.attachmentId !== normalizedAttachmentId);
++    if (!metaMap[normalizedDraftId].length) {
++      delete metaMap[normalizedDraftId];
++    }
++    await setMetaMap(metaMap);
++    await deleteBlob(target.blobId);
++    return Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId] : [];
++  }
++
++  async function clearAttachments(draftId) {
++    const normalizedDraftId = String(draftId || "").trim();
++    if (!normalizedDraftId) return;
++
++    const metaMap = await getMetaMap();
++    const current = Array.isArray(metaMap[normalizedDraftId]) ? metaMap[normalizedDraftId] : [];
++    for (const item of current) {
++      await deleteBlob(item.blobId);
++    }
++    delete metaMap[normalizedDraftId];
++    await setMetaMap(metaMap);
++  }
++
++  async function cleanOrphanedAttachments(options) {
++    const keepDraftIds = Array.isArray(options?.keepDraftIds)
++      ? options.keepDraftIds.map((value) => String(value || "").trim()).filter(Boolean)
++      : [];
++    const metaMap = await getMetaMap();
++    const keep = new Set(keepDraftIds);
++    const nextMeta = {};
++
++    for (const [draftId, entries] of Object.entries(metaMap)) {
++      const safeEntries = Array.isArray(entries) ? entries : [];
++      if (keep.has(draftId)) {
++        nextMeta[draftId] = safeEntries;
++        continue;
++      }
++
++      const newest = safeEntries.reduce((acc, item) => Math.max(acc, Date.parse(item?.createdAt || "") || 0), 0);
++      if (Date.now() - newest < ORPHAN_TTL_MS) {
++        nextMeta[draftId] = safeEntries;
++        continue;
++      }
++
++      for (const item of safeEntries) {
++        await deleteBlob(item.blobId);
++      }
++    }
++
++    await setMetaMap(nextMeta);
++  }
++
++  globalScope.RecalcAttachmentStore = {
++    STORAGE_KEY,
++    MAX_FILE_SIZE_BYTES,
++    classifyAttachment,
++    formatBytes,
++    validateFile,
++    validateFiles,
++    saveAttachments,
++    getAttachmentMeta,
++    getAttachments,
++    removeAttachment,
++    clearAttachments,
++    cleanOrphanedAttachments,
++  };
++})(typeof self !== "undefined" ? self : window);
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-chat.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-chat.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-chat.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-chat.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,7 +1,7 @@
+-(function attachRecalcWaChat(globalScope) {
+-  const selectors = globalScope.RecalcWaSelectors;
+-  const textUtils = globalScope.RecalcWaText;
+-
++(function attachRecalcWaChat(globalScope) {
++  const selectors = globalScope.RecalcWaSelectors;
++  const textUtils = globalScope.RecalcWaText;
++
+   function detectInvalidPhoneMessage() {
+     const bodyText = document.body?.innerText?.toLowerCase?.() || "";
+     return [
+@@ -49,13 +49,13 @@
+ 
+     return status.ready;
+   }
+-
+-  async function openChat(_recipient, _text, pack) {
+-    return ensureChatReady(pack);
+-  }
+-
+-  globalScope.RecalcWaChat = {
+-    openChat,
+-    ensureChatReady,
+-  };
+-})(typeof self !== "undefined" ? self : window);
++
++  async function openChat(_recipient, _text, pack) {
++    return ensureChatReady(pack);
++  }
++
++  globalScope.RecalcWaChat = {
++    openChat,
++    ensureChatReady,
++  };
++})(typeof self !== "undefined" ? self : window);
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-runner.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-runner.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-runner.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-runner.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,18 +1,18 @@
+-(function attachRecalcWaRunner(globalScope) {
+-  const chat = globalScope.RecalcWaChat;
+-  const textUtils = globalScope.RecalcWaText;
+-  const attachments = globalScope.RecalcWaAttachments;
+-
++(function attachRecalcWaRunner(globalScope) {
++  const chat = globalScope.RecalcWaChat;
++  const textUtils = globalScope.RecalcWaText;
++  const attachments = globalScope.RecalcWaAttachments;
++
+   async function sendTextWithAttachments(recipient, text, attachmentFiles, selectorPack) {
+     const normalizedText = String(text || "").trim();
+     const files = Array.isArray(attachmentFiles) ? attachmentFiles : [];
+-    const result = {
+-      success: false,
+-      step: "init",
+-      error: null,
+-      delayMs: 4000,
+-    };
+-
++    const result = {
++      success: false,
++      step: "init",
++      error: null,
++      delayMs: 4000,
++    };
++
+     try {
+       await chat.openChat(recipient, "", selectorPack);
+       result.step = "chat_ready";
+@@ -30,18 +30,18 @@
+       } else if (!normalizedText) {
+         throw new Error("La campaña no tiene texto ni adjuntos.");
+       }
+-
+-      result.success = true;
+-      result.step = "completed";
+-      return result;
+-    } catch (error) {
+-      result.error = error instanceof Error ? error.message : "Falló la automatización del mensaje.";
+-      result.step = error?.code || result.step || "unknown_error";
+-      return result;
+-    }
+-  }
+-
+-  globalScope.RecalcWaRunner = {
+-    sendTextWithAttachments,
+-  };
+-})(typeof self !== "undefined" ? self : window);
++
++      result.success = true;
++      result.step = "completed";
++      return result;
++    } catch (error) {
++      result.error = error instanceof Error ? error.message : "Falló la automatización del mensaje.";
++      result.step = error?.code || result.step || "unknown_error";
++      return result;
++    }
++  }
++
++  globalScope.RecalcWaRunner = {
++    sendTextWithAttachments,
++  };
++})(typeof self !== "undefined" ? self : window);
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-selectors.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-selectors.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-selectors.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-selectors.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,8 +1,8 @@
+-(function attachRecalcWaSelectors(globalScope) {
+-  const DEFAULT_SELECTOR_PACK = {
+-    selectors: {
+-      // Estos selectores siguen siendo sensibles a cambios de WhatsApp Web,
+-      // pero se usan solo como punto de partida antes de aplicar fallbacks por texto/atributos.
++(function attachRecalcWaSelectors(globalScope) {
++  const DEFAULT_SELECTOR_PACK = {
++    selectors: {
++      // Estos selectores siguen siendo sensibles a cambios de WhatsApp Web,
++      // pero se usan solo como punto de partida antes de aplicar fallbacks por texto/atributos.
+       searchBox:
+         "div[role='textbox'][contenteditable='true'][data-tab], div[contenteditable='true'][data-tab='3']",
+       messageInput:
+@@ -20,61 +20,61 @@
+       fileInput: "input[type='file']",
+     },
+   };
+-
+-  function normalizeSelectorPack(pack) {
+-    const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
+-      ? pack.selectors
+-      : {};
+-    return {
+-      selectors: {
+-        ...DEFAULT_SELECTOR_PACK.selectors,
+-        ...selectors,
+-      },
+-    };
+-  }
+-
+-  function parseSelectorList(value) {
+-    return String(value || "")
+-      .split(",")
+-      .map((item) => item.trim())
+-      .filter(Boolean);
+-  }
+-
+-  function isVisible(node) {
+-    if (!(node instanceof Element)) return false;
+-    const style = window.getComputedStyle(node);
+-    const rect = node.getBoundingClientRect();
+-    return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+-  }
+-
++
++  function normalizeSelectorPack(pack) {
++    const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
++      ? pack.selectors
++      : {};
++    return {
++      selectors: {
++        ...DEFAULT_SELECTOR_PACK.selectors,
++        ...selectors,
++      },
++    };
++  }
++
++  function parseSelectorList(value) {
++    return String(value || "")
++      .split(",")
++      .map((item) => item.trim())
++      .filter(Boolean);
++  }
++
++  function isVisible(node) {
++    if (!(node instanceof Element)) return false;
++    const style = window.getComputedStyle(node);
++    const rect = node.getBoundingClientRect();
++    return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
++  }
++
+   function firstVisible(selectors) {
+     for (const selector of parseSelectorList(selectors)) {
+       const nodes = Array.from(document.querySelectorAll(selector));
+       const visible = nodes.find((node) => isVisible(node));
+       if (visible) return visible;
+       if (nodes[0]) return nodes[0];
+-    }
+-    return null;
+-  }
+-
+-  function textContent(node) {
+-    return String(node?.textContent || node?.innerText || "")
+-      .replace(/\s+/g, " ")
+-      .trim()
+-      .toLowerCase();
+-  }
+-
+-  function matchAnyText(node, needles) {
+-    const haystack = [
+-      node?.getAttribute?.("aria-label"),
+-      node?.getAttribute?.("title"),
+-      node?.textContent,
+-      node?.innerText,
+-    ]
+-      .map((value) => String(value || "").trim().toLowerCase())
+-      .filter(Boolean)
+-      .join(" ");
+-
++    }
++    return null;
++  }
++
++  function textContent(node) {
++    return String(node?.textContent || node?.innerText || "")
++      .replace(/\s+/g, " ")
++      .trim()
++      .toLowerCase();
++  }
++
++  function matchAnyText(node, needles) {
++    const haystack = [
++      node?.getAttribute?.("aria-label"),
++      node?.getAttribute?.("title"),
++      node?.textContent,
++      node?.innerText,
++    ]
++      .map((value) => String(value || "").trim().toLowerCase())
++      .filter(Boolean)
++      .join(" ");
++
+     return needles.some((needle) => haystack.includes(String(needle).trim().toLowerCase()));
+   }
+ 
+@@ -88,7 +88,7 @@
+     }
+     return null;
+   }
+-
++
+   function getSelector(name, pack) {
+     return normalizeSelectorPack(pack).selectors[name];
+   }
+@@ -132,15 +132,15 @@
+ 
+     return null;
+   }
+-
+-  function findAttachButton(pack) {
+-    return firstVisible(getSelector("attachButton", pack));
+-  }
+-
+-  function findConversationReady(pack) {
+-    return firstVisible(getSelector("conversationReady", pack));
+-  }
+-
++
++  function findAttachButton(pack) {
++    return firstVisible(getSelector("attachButton", pack));
++  }
++
++  function findConversationReady(pack) {
++    return firstVisible(getSelector("conversationReady", pack));
++  }
++
+   function findPreviewModal(pack) {
+     const removeButton = firstVisible(
+       "div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file']",
+@@ -163,7 +163,7 @@
+     }
+     return null;
+   }
+-
++
+   function allFileInputs(pack) {
+     return Array.from(document.querySelectorAll(getSelector("fileInput", pack))).filter((node) => node instanceof HTMLInputElement);
+   }
+@@ -201,15 +201,15 @@
+ 
+     return sorted[0]?.input || null;
+   }
+-
++
+   function findAttachmentOption(kind) {
+     const needles = kind === "document"
+       ? ["document", "documento", "archivo", "file"]
+       : ["photos & videos", "photos and videos", "fotos y videos", "photos", "videos", "fotos"];
+ 
+-    const candidates = Array.from(
+-      document.querySelectorAll("[role='menuitem'], [role='button'], button, li, div[aria-label], div[title]"),
+-    ).filter((node) => isVisible(node));
++    const candidates = Array.from(
++      document.querySelectorAll("[role='menuitem'], [role='button'], button, li, div[aria-label], div[title]"),
++    ).filter((node) => isVisible(node));
+ 
+     return candidates.find((node) => isVisible(node) && matchAnyText(node, needles)) || null;
+   }
+@@ -235,19 +235,19 @@
+   }
+ 
+   globalScope.RecalcWaSelectors = {
+-    DEFAULT_SELECTOR_PACK,
+-    normalizeSelectorPack,
+-    parseSelectorList,
+-    isVisible,
+-    firstVisible,
++    DEFAULT_SELECTOR_PACK,
++    normalizeSelectorPack,
++    parseSelectorList,
++    isVisible,
++    firstVisible,
+     textContent,
+     matchAnyText,
+     findMessageInput,
+     findSendButton,
+     findPreviewSendButton,
+     findAttachButton,
+-    findConversationReady,
+-    findPreviewModal,
++    findConversationReady,
++    findPreviewModal,
+     findCaptionInput,
+     findAttachmentInput,
+     findAttachmentOption,
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-text.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-text.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-text.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/lib/whatsapp/wa-text.js	2026-04-05 13:55:46.000000000 +0000
+@@ -1,24 +1,24 @@
+-(function attachRecalcWaText(globalScope) {
+-  const selectors = globalScope.RecalcWaSelectors;
+-
+-  function log(...args) {
+-    console.log("[ReCalc][WA]", ...args);
+-  }
+-
+-  function wait(ms) {
+-    return new Promise((resolve) => window.setTimeout(resolve, ms));
+-  }
+-
+-  async function waitFor(callback, timeoutMs, intervalMs) {
+-    const start = Date.now();
+-    while (Date.now() - start < timeoutMs) {
+-      const result = callback();
+-      if (result) return result;
+-      await wait(intervalMs);
+-    }
+-    return null;
+-  }
+-
++(function attachRecalcWaText(globalScope) {
++  const selectors = globalScope.RecalcWaSelectors;
++
++  function log(...args) {
++    console.log("[ReCalc][WA]", ...args);
++  }
++
++  function wait(ms) {
++    return new Promise((resolve) => window.setTimeout(resolve, ms));
++  }
++
++  async function waitFor(callback, timeoutMs, intervalMs) {
++    const start = Date.now();
++    while (Date.now() - start < timeoutMs) {
++      const result = callback();
++      if (result) return result;
++      await wait(intervalMs);
++    }
++    return null;
++  }
++
+   function composerText(node) {
+     return String(node?.innerText || node?.textContent || "")
+       .replace(/\u00a0/g, " ")
+@@ -166,7 +166,7 @@
+     clickable.click();
+     return true;
+   }
+-
++
+   function fillComposer(node, text) {
+     const normalized = normalizeComposerText(text);
+     if (!node || !normalized) return false;
+@@ -209,29 +209,29 @@
+     }
+     return composerText(node) === normalized;
+   }
+-
++
+   function clickSend(pack) {
+     const target = selectors.findSendButton(pack);
+     if (!target) return false;
+     return clickElement(target);
+   }
+-
+-  async function sendTextMessage(text, pack) {
+-    const composer = await waitFor(() => selectors.findMessageInput(pack), 15000, 250);
+-    if (!composer) {
+-      throw Object.assign(new Error("No fue posible encontrar la caja de mensaje."), { code: "text_send_failed" });
+-    }
+-    if (!fillComposer(composer, text)) {
+-      throw Object.assign(new Error("No fue posible escribir el mensaje."), { code: "text_send_failed" });
+-    }
+-    await wait(200);
+-    if (!clickSend(pack)) {
+-      throw Object.assign(new Error("No fue posible pulsar enviar."), { code: "final_send_failed" });
+-    }
+-    log("Texto enviado.");
+-    return { ok: true };
+-  }
+-
++
++  async function sendTextMessage(text, pack) {
++    const composer = await waitFor(() => selectors.findMessageInput(pack), 15000, 250);
++    if (!composer) {
++      throw Object.assign(new Error("No fue posible encontrar la caja de mensaje."), { code: "text_send_failed" });
++    }
++    if (!fillComposer(composer, text)) {
++      throw Object.assign(new Error("No fue posible escribir el mensaje."), { code: "text_send_failed" });
++    }
++    await wait(200);
++    if (!clickSend(pack)) {
++      throw Object.assign(new Error("No fue posible pulsar enviar."), { code: "final_send_failed" });
++    }
++    log("Texto enviado.");
++    return { ok: true };
++  }
++
+   globalScope.RecalcWaText = {
+     wait,
+     waitFor,
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/manifest.json app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/manifest.json
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/manifest.json	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/manifest.json	2026-05-07 05:38:03.480104959 +0000
+@@ -1,7 +1,8 @@
+ {
++  "update_url": "https://clients2.google.com/service/update2/crx",
+   "manifest_version": 3,
+   "name": "ReCalc",
+-  "version": "4.5.1",
++  "version": "4.6.2",
+   "description": "Panel lateral de ReCalc para acceso, campañas y automatización de WhatsApp Web con la app oficial.",
+   "minimum_chrome_version": "114",
+   "icons": {
+@@ -24,7 +25,14 @@
+   "background": {
+     "service_worker": "background.js"
+   },
+-  "permissions": ["sidePanel", "storage", "tabs", "alarms", "scripting", "activeTab"],
++  "permissions": [
++    "sidePanel",
++    "storage",
++    "tabs",
++    "alarms",
++    "scripting",
++    "activeTab"
++  ],
+   "host_permissions": [
+     "https://recalc.relead.com.mx/*",
+     "https://web.whatsapp.com/*"
+@@ -34,8 +42,13 @@
+   },
+   "content_scripts": [
+     {
+-      "matches": ["https://web.whatsapp.com/*"],
+-      "js": ["content-whatsapp.js", "content/bridge.js"],
++      "matches": [
++        "https://web.whatsapp.com/*"
++      ],
++      "js": [
++        "content-whatsapp.js",
++        "content/bridge.js"
++      ],
+       "run_at": "document_idle"
+     }
+   ]
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.css app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.css
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.css	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.css	2026-05-07 05:38:03.481452388 +0000
+@@ -1,60 +1,100 @@
+-
+ :root {
+-  color-scheme: dark;
+-  --bg: #05111c;
+-  --surface: rgba(8, 21, 34, 0.92);
+-  --surface-2: rgba(6, 17, 28, 0.96);
+-  --surface-3: rgba(11, 28, 45, 0.82);
+-  --border: rgba(195, 215, 236, 0.12);
+-  --border-strong: rgba(210, 228, 246, 0.22);
+-  --text: #eef4ff;
+-  --muted: rgba(178, 198, 221, 0.82);
+-  --accent: #23d0b5;
+-  --accent-2: #3f89de;
+-  --danger: #fb7185;
+-  --warning: #f59e0b;
+-  --shadow: 0 24px 56px rgba(2, 9, 18, 0.36);
+-  --radius-xl: 22px;
+-  --radius-lg: 16px;
+-  --radius-md: 12px;
++  color-scheme: light;
++  --brand-primary: #114e6d;
++  --brand-deep: #0f3c55;
++  --brand-success: #6cb514;
++  --success-soft: #edf7e2;
++  --canvas: #f4f9fc;
++  --canvas-strong: #eaf3f8;
++  --surface: #ffffff;
++  --surface-muted: #f7fbfd;
++  --border: #d7e4ed;
++  --border-strong: #bdd2df;
++  --text: #123348;
++  --muted: #657d8f;
++  --danger: #c2414b;
++  --danger-soft: #fff1f2;
++  --warning: #a15c04;
++  --warning-soft: #fff7df;
++  --shadow: 0 16px 34px rgba(18, 51, 72, 0.08);
++  --shadow-soft: 0 8px 18px rgba(18, 51, 72, 0.06);
++  --radius-xl: 8px;
++  --radius-lg: 8px;
++  --radius-md: 7px;
++  --radius-sm: 6px;
+   --shell-gap: 10px;
+-  --shell-pad: 10px;
+-  --card-pad: 14px;
+-  --control-height: 40px;
+-  --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
++  --shell-pad: 8px;
++  --card-pad: 12px;
++  --control-height: 38px;
++  --font: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
++}
++
++*,
++*::before,
++*::after {
++  box-sizing: border-box;
++}
++
++html,
++body {
++  min-height: 100%;
++  max-width: 100%;
++  overflow-x: clip;
+ }
+ 
+-*, *::before, *::after { box-sizing: border-box; }
+-html, body { min-height: 100%; max-width: 100%; overflow-x: clip; }
+ body {
+   margin: 0;
+   background:
+-    radial-gradient(circle at top right, rgba(35, 208, 181, 0.12), transparent 30%),
+-    radial-gradient(circle at bottom left, rgba(63, 137, 222, 0.12), transparent 36%),
+-    linear-gradient(180deg, #04101a 0%, #081724 100%);
++    linear-gradient(135deg, rgba(17, 78, 109, 0.08), transparent 34%),
++    linear-gradient(180deg, #ffffff 0%, var(--canvas) 100%);
+   color: var(--text);
+   font: 13px/1.45 var(--font);
++  letter-spacing: 0;
+ }
++
+ body::before {
+   content: "";
+   position: fixed;
+   inset: 0;
+   pointer-events: none;
+-  background-image:
+-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+-  background-size: 34px 34px;
+-  mask-image: radial-gradient(circle at top, rgba(0, 0, 0, 0.94), rgba(0, 0, 0, 0.68) 58%, transparent 100%);
+-}
+-button, input, select, textarea { font: inherit; }
+-button { cursor: pointer; }
+-img { max-width: 100%; display: block; }
+-textarea { resize: vertical; min-height: 92px; }
+-.hidden { display: none !important; }
++  background:
++    linear-gradient(rgba(17, 78, 109, 0.025) 1px, transparent 1px),
++    linear-gradient(90deg, rgba(17, 78, 109, 0.025) 1px, transparent 1px);
++  background-size: 36px 36px;
++  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.58), transparent 74%);
++}
++
++button,
++input,
++select,
++textarea {
++  font: inherit;
++}
++
++button {
++  cursor: pointer;
++}
++
++img {
++  display: block;
++  max-width: 100%;
++}
++
++textarea {
++  min-height: 92px;
++  resize: vertical;
++}
++
++.hidden {
++  display: none !important;
++}
+ 
+ .shell {
++  position: relative;
++  z-index: 1;
+   min-height: 100vh;
+   display: grid;
++  align-content: start;
+   gap: var(--shell-gap);
+   padding: var(--shell-pad);
+ }
+@@ -73,27 +113,11 @@
+ .runner-inline,
+ .sync-badge {
+   border: 1px solid var(--border);
+-  background:
+-    radial-gradient(circle at top right, rgba(35, 208, 181, 0.04), transparent 24%),
+-    linear-gradient(180deg, rgba(10, 24, 38, 0.96), rgba(7, 18, 29, 0.98));
+-  box-shadow: var(--shadow);
+-  backdrop-filter: blur(14px);
++  border-radius: var(--radius-xl);
++  background: var(--surface);
++  box-shadow: var(--shadow-soft);
+ }
+ 
+-.card,
+-.meta-card,
+-.insight-card,
+-.result-line,
+-.result-hero,
+-.feedback,
+-.stat-card,
+-.upload-card,
+-.empty-state,
+-.template-box,
+-.compact-section,
+-.runner-inline,
+-.sync-badge { border-radius: var(--radius-xl); }
+-
+ .hero,
+ .state-card,
+ #auth-view,
+@@ -102,31 +126,44 @@
+ .app-grid > .card,
+ .campaign-stack > .card,
+ .report-grid > .card,
+-.report-toolbar { padding: var(--card-pad); }
++.report-toolbar {
++  padding: var(--card-pad);
++}
+ 
+-.hero,
+-.topbar-card,
+-.tabs-card,
+-.panel-stack,
+-.form-stack,
+-.detail-stack,
+-.report-shell,
+-.report-grid,
+-.app-shell,
+-.campaign-stack,
+-.stats-grid,
+-.detail-grid,
+-.helper-stack,
+-.recipient-list,
+-.campaign-list,
+-.report-list-card,
+-.report-detail-card,
+-.result-stack {
++.hero {
+   display: grid;
+-  gap: 10px;
++  gap: 9px;
++  overflow: hidden;
++  background:
++    linear-gradient(180deg, rgba(17, 78, 109, 0.97), rgba(15, 60, 85, 0.98)),
++    var(--brand-primary);
++  color: #ffffff;
++  box-shadow: var(--shadow);
++}
++
++.hero::after {
++  content: "";
++  position: absolute;
++  inset: auto -22px -58px auto;
++  width: 170px;
++  height: 170px;
++  border-radius: 999px;
++  background: rgba(108, 181, 20, 0.14);
++  pointer-events: none;
++}
++
++.hero,
++.field,
++.enhanced-select,
++.media-preview,
++.media-detail,
++.campaign-item,
++.recipient-item,
++.recipient-row {
++  position: relative;
+ }
+ 
+-.hero-topline,
++.hero-row,
+ .hero-actions,
+ .section-head,
+ .button-row,
+@@ -136,7 +173,10 @@
+ .topbar-actions,
+ .runner-inline,
+ .media-inline__controls,
+-.hero-branding {
++.hero-branding,
++.campaign-item__head,
++.campaign-item__meta,
++.recipient-item__meta {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+@@ -144,132 +184,310 @@
+   flex-wrap: wrap;
+ }
+ 
+-.section-head--tight { align-items: flex-start; }
+-.button-row .btn { flex: 1 1 132px; }
+-.button-row--compact .btn, .templates-toolbar .btn { flex: 0 1 auto; }
++.hero-row {
++  position: relative;
++  z-index: 1;
++}
++
++.hero-branding {
++  justify-content: flex-start;
++  min-width: 0;
++}
++
++.hero-brand {
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  min-width: 0;
++}
++
++.hero-brand--recalc {
++  padding-right: 10px;
++  border-right: 1px solid rgba(255, 255, 255, 0.2);
++}
++
++.hero-brand--unidep {
++  opacity: 0.94;
++}
++
++.hero-logo {
++  width: auto;
++  object-fit: contain;
++  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.14));
++}
++
++.hero-logo--recalc {
++  height: 40px;
++}
++
++.hero-logo--unidep {
++  height: 24px;
++}
+ 
+-.hero-branding { justify-content: flex-start; }
+ .hero-session {
++  position: relative;
++  z-index: 1;
+   display: grid;
+-  gap: 6px;
+-  padding: 10px 12px;
++  gap: 4px;
++  padding: 8px 10px;
++  border: 1px solid rgba(255, 255, 255, 0.18);
+   border-radius: var(--radius-lg);
+-  border: 1px solid rgba(195, 215, 236, 0.1);
+-  background: rgba(4, 12, 21, 0.38);
++  background: rgba(255, 255, 255, 0.08);
+ }
++
+ .hero-session__meta {
+   display: grid;
+-  gap: 4px;
++  grid-template-columns: minmax(0, 1fr) auto;
++  align-items: center;
++  gap: 4px 8px;
+   min-width: 0;
+ }
++
+ .hero-session__meta strong {
+-  font-size: 15px;
+-  white-space: nowrap;
++  color: #ffffff;
++  font-size: 13px;
+   overflow: hidden;
+   text-overflow: ellipsis;
++  white-space: nowrap;
+ }
+-.hero-brand, .topbar-logos {
+-  display: inline-flex;
+-  align-items: center;
+-  gap: 10px;
++
++.hero-session__meta .eyebrow {
++  grid-column: 1 / -1;
+ }
+-.hero-brand--recalc {
+-  padding-right: 10px;
+-  border-right: 1px solid rgba(255,255,255,0.08);
++
++.hero-actions {
++  position: relative;
++  z-index: 1;
++  display: grid;
++  grid-template-columns: repeat(4, minmax(0, 1fr));
++  align-items: stretch;
++}
++
++.topbar-card,
++.tabs-card,
++.panel-stack,
++.form-stack,
++.detail-stack,
++.report-shell,
++.report-grid,
++.app-shell,
++.campaign-stack,
++.stats-grid,
++.detail-grid,
++.helper-stack,
++.recipient-list,
++.campaign-list,
++.report-list-card,
++.report-detail-card,
++.result-stack,
++.template-box,
++.compact-section {
++  display: grid;
++  gap: 10px;
+ }
+-.hero-brand--unidep { opacity: 0.92; }
+-.hero-logo { width: auto; object-fit: contain; }
+-.hero-logo--recalc { height: 58px; }
+-.hero-logo--unidep { height: 34px; }
+-.topbar-logo--recalc { height: 42px; width: auto; }
+-.topbar-logo--unidep { height: 26px; width: auto; }
+-.topbar-left { align-items: center; justify-content: flex-start; }
+-.topbar-session { display: grid; gap: 4px; min-width: 0; }
+-.topbar-session strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+-.sync-badge { padding: 6px 10px; font-size: 11px; color: var(--muted); box-shadow: none; }
+-.sync-badge strong { color: var(--text); font-weight: 700; }
+-.topbar-actions { justify-content: flex-end; }
+ 
+-.hero h1, .state-card h2, #auth-view h2, .app-shell h2, .app-shell h3, .app-shell h4, .report-shell h2, .report-shell h3 {
++.hero h1,
++.state-card h2,
++#auth-view h2,
++.app-shell h2,
++.app-shell h3,
++.app-shell h4,
++.report-shell h2,
++.report-shell h3 {
+   margin: 0;
+ }
+-.hero p, .state-card p, .muted, #result-summary { margin: 6px 0 0; color: var(--muted); }
+-.eyebrow, .meta-label {
++
++.hero p,
++.state-card p,
++.muted,
++#result-summary {
++  margin: 6px 0 0;
++  color: var(--muted);
++}
++
++.hero .muted,
++.hero p {
++  color: rgba(255, 255, 255, 0.78);
++}
++
++.eyebrow,
++.meta-label {
++  color: var(--brand-primary);
+   font-size: 10px;
+-  font-weight: 700;
+-  letter-spacing: 0.24em;
++  font-weight: 800;
++  letter-spacing: 0;
+   text-transform: uppercase;
+-  color: #9ab0cb;
+ }
+ 
+-.pill, .status-chip {
++.hero .eyebrow,
++.hero .meta-label {
++  color: rgba(255, 255, 255, 0.72);
++}
++
++.pill,
++.status-chip {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 26px;
+   padding: 0 10px;
+-  border-radius: 999px;
+   border: 1px solid var(--border);
+-  background: rgba(148, 163, 184, 0.08);
+-  color: #dce8f8;
++  border-radius: 999px;
++  background: var(--surface-muted);
++  color: var(--brand-deep);
+   font-size: 11px;
+-  font-weight: 700;
++  font-weight: 800;
+   white-space: nowrap;
+ }
+-.pill.success, .status-chip.sent, .status-chip.completed, .status-chip.running, .status-chip.processing {
+-  border-color: rgba(35, 208, 181, 0.34);
+-  background: rgba(35, 208, 181, 0.12);
+-}
+-.pill.warning, .status-chip.scheduled, .status-chip.claimed, .status-chip.queued, .status-chip.waiting_runner {
+-  border-color: rgba(245, 158, 11, 0.34);
+-  background: rgba(245, 158, 11, 0.12);
++
++.hero .pill,
++.hero .sync-badge {
++  border-color: rgba(255, 255, 255, 0.24);
++  background: rgba(255, 255, 255, 0.1);
++  color: #ffffff;
++}
++
++.sync-badge {
++  padding: 6px 10px;
++  color: var(--muted);
++  font-size: 11px;
++  box-shadow: none;
++}
++
++.sync-badge strong {
++  color: inherit;
++  font-weight: 800;
++}
++
++.pill.success,
++.status-chip.sent,
++.status-chip.completed,
++.status-chip.running {
++  border-color: rgba(108, 181, 20, 0.32);
++  background: var(--success-soft);
++  color: #315b16;
+ }
++
++.pill.warning,
++.status-chip.scheduled,
++.status-chip.claimed,
+ .status-chip.paused {
+-  border-color: rgba(148, 163, 184, 0.28);
+-  background: rgba(148, 163, 184, 0.12);
++  border-color: rgba(161, 92, 4, 0.26);
++  background: var(--warning-soft);
++  color: var(--warning);
+ }
+-.pill.danger, .status-chip.failed, .status-chip.blocked {
+-  border-color: rgba(251, 113, 133, 0.34);
+-  background: rgba(251, 113, 133, 0.14);
+-}
+-.status-chip.partial, .status-chip.completed_with_issues {
+-  border-color: rgba(45, 212, 191, 0.34);
+-  background: rgba(45, 212, 191, 0.14);
+-}
+-.status-chip.draft {
+-  border-color: rgba(96, 165, 250, 0.3);
+-  background: rgba(96, 165, 250, 0.12);
++
++.pill.danger,
++.status-chip.failed {
++  border-color: rgba(194, 65, 75, 0.25);
++  background: var(--danger-soft);
++  color: var(--danger);
+ }
+ 
+ .btn {
+-  min-height: 38px;
+-  border-radius: 999px;
++  min-height: 36px;
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
+   border: 1px solid transparent;
++  border-radius: var(--radius-md);
+   padding: 0 14px;
+-  font-weight: 700;
+-  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
++  color: var(--brand-deep);
++  font-weight: 800;
++  text-align: center;
++  transition:
++    transform 140ms ease,
++    background-color 140ms ease,
++    border-color 140ms ease,
++    box-shadow 140ms ease,
++    opacity 140ms ease;
++}
++
++.btn:hover {
++  transform: translateY(-1px);
++}
++
++.btn:disabled {
++  cursor: not-allowed;
++  opacity: 0.62;
++  transform: none;
++}
++
++.btn:focus-visible,
++.tab-btn:focus-visible,
++.campaign-item:focus-visible,
++.enhanced-select__trigger:focus-visible,
++.enhanced-select__option:focus-visible,
++.field input:focus,
++.field select:focus,
++.field textarea:focus,
++.template-select:focus {
++  outline: none;
++  border-color: rgba(17, 78, 109, 0.58);
++  box-shadow: 0 0 0 3px rgba(17, 78, 109, 0.16);
++}
++
++.btn-compact {
++  min-height: 30px;
++  padding: 0 10px;
++  font-size: 12px;
+ }
+-.btn:hover { transform: translateY(-1px); }
+-.btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+-.btn-compact { min-height: 32px; padding: 0 12px; font-size: 12px; }
++
+ .btn-primary {
+-  background: linear-gradient(135deg, var(--accent), #19c5af);
+-  color: #04111d;
+-  box-shadow: 0 12px 24px rgba(35, 208, 181, 0.18);
++  background: var(--brand-primary);
++  color: #ffffff;
++  box-shadow: 0 10px 20px rgba(17, 78, 109, 0.16);
++}
++
++.btn-primary:hover {
++  background: var(--brand-deep);
++}
++
++.btn-secondary {
++  border-color: rgba(17, 78, 109, 0.2);
++  background: #ffffff;
++  color: var(--brand-primary);
++}
++
++.btn-secondary:hover {
++  background: var(--surface-muted);
++}
++
++.btn-ghost {
++  border-color: rgba(255, 255, 255, 0.26);
++  background: transparent;
++  color: inherit;
++}
++
++#auth-view .btn-ghost,
++.app-shell .btn-ghost,
++.report-shell .btn-ghost,
++.campaign-stack .btn-ghost {
++  border-color: rgba(17, 78, 109, 0.18);
++  color: var(--brand-primary);
++}
++
++.state-card {
++  display: grid;
++  grid-template-columns: auto 1fr;
++  align-items: center;
++  gap: 12px;
+ }
+-.btn-secondary { background: rgba(148, 163, 184, 0.12); color: var(--text); }
+-.btn-ghost { background: transparent; border-color: rgba(148, 163, 184, 0.22); color: #dce8f8; }
+ 
+-.state-card { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+ .spinner {
+-  width: 20px;
+-  height: 20px;
+-  border: 3px solid rgba(255,255,255,0.16);
+-  border-top-color: var(--accent);
++  width: 22px;
++  height: 22px;
++  border: 3px solid rgba(17, 78, 109, 0.16);
++  border-top-color: var(--brand-primary);
+   border-radius: 999px;
+   animation: spin 0.8s linear infinite;
+ }
+-@keyframes spin { to { transform: rotate(360deg);} }
++
++@keyframes spin {
++  to {
++    transform: rotate(360deg);
++  }
++}
+ 
+ .form-grid,
+ .meta-grid,
+@@ -280,75 +498,187 @@
+ .report-grid,
+ .stats-grid,
+ .detail-grid,
+-.campaign-stack {
++.campaign-stack,
++.compact-grid {
+   display: grid;
+   gap: 10px;
+ }
+-.single-column { grid-template-columns: 1fr; }
+-.form-grid, .form-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+-.form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+-.form-grid-quote { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+-.field { display: grid; gap: 6px; min-width: 0; }
+-.field span { color: var(--muted); font-weight: 600; font-size: 12px; }
+-.field input, .field select, .field textarea, .template-select {
++
++.single-column {
++  grid-template-columns: 1fr;
++}
++
++.form-grid,
++.form-grid-2,
++.form-grid-quote {
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++.form-grid-3 {
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++}
++
++.full-width {
++  grid-column: 1 / -1;
++}
++
++.field {
++  display: grid;
++  gap: 6px;
++  min-width: 0;
++}
++
++.field span {
++  color: var(--muted);
++  font-size: 12px;
++  font-weight: 700;
++}
++
++.field input,
++.field select,
++.field textarea,
++.template-select {
+   width: 100%;
+   min-height: var(--control-height);
++  border: 1px solid var(--border);
+   border-radius: var(--radius-md);
+-  border: 1px solid rgba(148, 163, 184, 0.18);
+-  background: linear-gradient(180deg, rgba(6, 17, 28, 0.98), rgba(4, 14, 24, 0.95));
++  background: #ffffff;
+   color: var(--text);
+   padding: 10px 12px;
+   outline: none;
+-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 1px 0 rgba(2,6,23,0.22);
++  box-shadow: inset 0 1px 0 rgba(17, 78, 109, 0.03);
+ }
+-.field input:focus,
+-.field select:focus,
+-.field textarea:focus,
+-.template-select:focus {
+-  border-color: rgba(35, 208, 181, 0.44);
+-  box-shadow: 0 0 0 4px rgba(35, 208, 181, 0.12), inset 0 1px 0 rgba(255,255,255,0.03);
++
++.field input::placeholder,
++.field textarea::placeholder {
++  color: #91a6b5;
++}
++
++.field input[readonly] {
++  background: var(--surface-muted);
++  color: var(--muted);
++}
++
++.field-checkbox {
++  align-content: end;
++}
++
++.meta-grid,
++.result-grid,
++.stats-grid {
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++.meta-grid--summary {
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++}
++
++.meta-card,
++.insight-card,
++.result-line,
++.result-hero,
++.feedback,
++.stat-card,
++.upload-card,
++.template-box,
++.compact-section,
++.runner-inline {
++  padding: 10px;
++}
++
++.empty-state {
++  padding: 20px;
++  text-align: center;
++  color: var(--muted);
++}
++
++.empty-state-compact {
++  padding: 14px;
++}
++
++.feedback-error,
++.feedback.danger {
++  border-color: rgba(194, 65, 75, 0.24);
++  background: var(--danger-soft);
++  color: var(--danger);
++}
++
++.feedback.success {
++  border-color: rgba(108, 181, 20, 0.3);
++  background: var(--success-soft);
++  color: #315b16;
+ }
+-.field-checkbox { align-content: end; }
+-.field-checkbox--inline > span { display: block; }
+-.full-width { grid-column: 1 / -1; }
+-
+-.meta-grid, .result-grid, .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+-.meta-grid--summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+-.meta-card, .insight-card, .result-line, .result-hero, .feedback, .stat-card, .upload-card, .template-box, .compact-section, .runner-inline { padding: 12px; }
+-.empty-state { padding: 20px; text-align: center; color: var(--muted); }
+-.empty-state-compact { padding: 14px; }
+-.feedback-error, .feedback.danger { border-color: rgba(251,113,133,0.28); background: rgba(251,113,133,0.12); color: #ffd2da; }
+-.feedback.success { border-color: rgba(35,208,181,0.28); background: rgba(35,208,181,0.12); color: #d7fff5; }
+ 
+ .subsection {
+   display: grid;
+   gap: 8px;
+-  padding-top: 6px;
+-  border-top: 1px solid rgba(148,163,184,0.08);
++  padding-top: 8px;
++  border-top: 1px solid var(--border);
++}
++
++.toggle {
++  display: inline-flex;
++  align-items: center;
++  gap: 10px;
++  color: var(--text);
++  font-weight: 700;
++}
++
++.toggle input {
++  accent-color: var(--brand-primary);
++}
++
++.toggle-card {
++  min-height: 42px;
++  justify-content: flex-start;
++  border: 1px solid var(--border);
++  border-radius: var(--radius-md);
++  background: #ffffff;
++  padding: 10px 12px;
+ }
+-.toggle { display: inline-flex; align-items: center; gap: 10px; color: #dce8f8; }
+-.toggle input { accent-color: var(--accent); }
+ 
+ .result-hero {
+-  background: linear-gradient(180deg, rgba(35, 208, 181, 0.14), rgba(7, 18, 29, 0.7));
++  border-color: rgba(108, 181, 20, 0.28);
++  background:
++    linear-gradient(135deg, rgba(237, 247, 226, 0.95), rgba(255, 255, 255, 0.98));
+ }
++
+ .result-total {
+   margin-top: 8px;
+-  font-size: 28px;
++  color: var(--brand-deep);
++  font-size: 30px;
++  font-weight: 900;
+   line-height: 1;
+-  font-weight: 800;
+-  color: #f4fffb;
+ }
+-.result-line { display: grid; gap: 4px; }
+-.result-line span { color: var(--muted); font-size: 12px; }
+-.result-grid--summary .result-line strong { font-size: 14px; }
++
++.result-line {
++  display: grid;
++  gap: 4px;
++}
++
++.result-line span {
++  color: var(--muted);
++  font-size: 12px;
++}
++
++.result-grid--summary .result-line strong {
++  display: block;
++  font-size: 14px;
++}
++
+ .result-line--accent {
+-  border-color: rgba(35, 208, 181, 0.2);
+-  background:
+-    radial-gradient(circle at top right, rgba(35, 208, 181, 0.08), transparent 30%),
+-    linear-gradient(180deg, rgba(10, 24, 38, 0.96), rgba(7, 18, 29, 0.98));
++  border-color: rgba(108, 181, 20, 0.26);
++  background: var(--success-soft);
++}
++
++.tabs-card {
++  position: sticky;
++  top: 0;
++  z-index: 20;
++  padding: 8px;
++  background: rgba(255, 255, 255, 0.94);
++  backdrop-filter: blur(12px);
+ }
+-.template-box { display: grid; gap: 8px; }
+ 
+ .tabs-scroller {
+   display: flex;
+@@ -357,205 +687,298 @@
+   padding-bottom: 2px;
+   scrollbar-width: thin;
+ }
++
+ .tab-btn {
+   min-height: 36px;
+-  border-radius: 999px;
+-  border: 1px solid rgba(148, 163, 184, 0.18);
+-  background: rgba(148, 163, 184, 0.06);
+-  color: var(--text);
++  flex: 1 0 auto;
++  border: 1px solid var(--border);
++  border-radius: var(--radius-md);
++  background: #ffffff;
++  color: var(--brand-primary);
+   padding: 0 14px;
+-  font-weight: 700;
++  font-weight: 800;
+   white-space: nowrap;
+ }
++
+ .tab-btn.is-active {
+-  background: linear-gradient(135deg, rgba(35, 208, 181, 0.2), rgba(63, 137, 222, 0.14));
+-  border-color: rgba(35, 208, 181, 0.3);
++  border-color: var(--brand-primary);
++  background: var(--brand-primary);
++  color: #ffffff;
++  box-shadow: 0 8px 18px rgba(17, 78, 109, 0.14);
+ }
+-.tab-panel.hidden { display: none !important; }
+ 
+-.upload-card, .media-preview, .media-detail, .campaign-item, .recipient-item, .recipient-row { overflow: hidden; }
+-.media-preview, .media-detail {
+-  border-radius: var(--radius-lg);
++.tab-panel.hidden {
++  display: none !important;
++}
++
++.media-preview,
++.media-detail {
++  overflow: hidden;
+   border: 1px solid var(--border);
+-  background: rgba(4, 12, 21, 0.56);
++  border-radius: var(--radius-lg);
++  background: #ffffff;
++}
++
++.media-preview {
++  display: grid;
++  grid-template-columns: 88px 1fr;
++  gap: 10px;
++  align-items: center;
++  padding: 10px;
+ }
+-.media-preview { display: grid; grid-template-columns: 88px 1fr; gap: 10px; padding: 10px; align-items: center; }
+-.media-preview__image, .media-detail__image {
++
++.media-preview__image,
++.media-detail__image {
+   width: 100%;
+   max-height: 220px;
+-  border-radius: 14px;
++  border-radius: var(--radius-md);
+   object-fit: cover;
+ }
+-.media-preview__image { height: 72px; }
+-.media-preview__meta { display: grid; gap: 4px; }
+-.media-inline { display: grid; gap: 8px; }
+-.helper-text { color: var(--muted); font-size: 11px; }
+-.helper-stack { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
+ 
+-.campaign-list { display: grid; gap: 8px; }
++.media-preview__image {
++  height: 72px;
++}
++
++.media-preview__meta {
++  display: grid;
++  gap: 4px;
++  min-width: 0;
++  overflow-wrap: anywhere;
++}
++
++.media-inline,
++.helper-stack {
++  display: grid;
++  gap: 8px;
++}
++
++.helper-text {
++  color: var(--muted);
++  font-size: 12px;
++}
++
++.campaign-list {
++  display: grid;
++  gap: 8px;
++}
++
+ .campaign-item {
+   display: grid;
+   gap: 8px;
+   width: 100%;
+-  text-align: left;
+-  border-radius: var(--radius-xl);
++  overflow: hidden;
+   border: 1px solid var(--border);
+-  background: rgba(7, 19, 31, 0.82);
++  border-radius: var(--radius-xl);
++  background: #ffffff;
+   padding: 12px;
++  color: var(--text);
++  text-align: left;
++}
++
++.campaign-item:hover {
++  border-color: var(--border-strong);
++  box-shadow: var(--shadow-soft);
+ }
+-.campaign-item:hover { border-color: var(--border-strong); }
++
+ .campaign-item.is-selected {
+-  border-color: rgba(35, 208, 181, 0.34);
+-  background: linear-gradient(180deg, rgba(35, 208, 181, 0.12), rgba(7, 19, 31, 0.88));
++  border-color: rgba(17, 78, 109, 0.42);
++  background: linear-gradient(180deg, #ffffff, var(--surface-muted));
+ }
+-.campaign-item__head, .campaign-item__meta, .recipient-item__meta {
+-  display: flex;
+-  align-items: flex-start;
+-  justify-content: space-between;
+-  gap: 10px;
+-  flex-wrap: wrap;
++
++.campaign-item__meta,
++.campaign-item__summary,
++.recipient-item__meta {
++  color: var(--muted);
++  font-size: 12px;
+ }
+-.campaign-item__meta, .campaign-item__summary, .recipient-item__meta { color: var(--muted); font-size: 12px; }
+-.campaign-item__summary, .recipient-item__meta { display: grid; gap: 4px; }
++
++.campaign-item__summary,
++.recipient-item__meta {
++  display: grid;
++  gap: 4px;
++}
++
+ .template-preview {
+   margin: 8px 0 0;
+-  white-space: pre-wrap;
+-  overflow-wrap: anywhere;
+-  font: inherit;
+   color: var(--text);
++  font: inherit;
++  overflow-wrap: anywhere;
++  white-space: pre-wrap;
++}
++
++.recipient-list {
++  max-height: 360px;
++  overflow: auto;
+ }
+-.recipient-list { max-height: 360px; overflow: auto; }
+-.recipient-list--compact { max-height: 420px; }
++
++.recipient-list--compact {
++  max-height: 420px;
++}
++
++.recipient-list--capped {
++  max-height: 360px;
++  overflow: auto;
++  padding-right: 4px;
++}
++
+ .recipient-row {
+   display: grid;
+   grid-template-columns: minmax(0, 1.2fr) auto auto;
+   gap: 10px;
+   align-items: center;
+-  border-top: 1px solid rgba(148,163,184,0.08);
++  overflow: hidden;
++  border-top: 1px solid var(--border);
+   padding: 10px 0;
+ }
+-.recipient-row:first-child { border-top: 0; padding-top: 0; }
+-.recipient-row__meta { display: grid; gap: 3px; min-width: 0; }
+-.recipient-row__meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+-.recipient-row__sub { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+-.recipient-row__time { color: var(--muted); font-size: 11px; text-align: right; }
+ 
+-.file-btn { position: relative; overflow: hidden; }
+-.helper-row--stack {
++.recipient-row:first-child {
++  border-top: 0;
++  padding-top: 0;
++}
++
++.recipient-row__meta {
++  display: grid;
++  gap: 3px;
++  min-width: 0;
++}
++
++.recipient-row__meta strong {
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++
++.recipient-row__sub {
++  color: var(--muted);
++  font-size: 11px;
++  overflow-wrap: anywhere;
++}
++
++.recipient-row__time {
++  color: var(--muted);
++  font-size: 11px;
++  text-align: right;
++}
++
++.file-btn {
++  position: relative;
++  overflow: hidden;
++}
++
++.helper-row--stack,
++.section-head--tight,
++.section-head--stack-on-mobile,
++.runner-inline--compact {
+   align-items: flex-start;
+-  justify-content: space-between;
+ }
+-.detail-actions { align-items: stretch; }
+-.detail-actions .btn { flex: 1 1 132px; }
+-.failures-details { margin-top: 8px; }
+-.failures-details > summary {
+-  cursor: pointer;
+-  font-weight: 700;
+-  color: var(--text);
++
++.detail-actions {
++  align-items: stretch;
+ }
+-#campaign-failures-wrap .recipient-row {
+-  border-top-color: rgba(45, 212, 191, 0.2);
++
++.button-row .btn,
++.detail-actions .btn {
++  flex: 1 1 132px;
++  min-width: 0;
+ }
+-.runner-card--compact .stats-grid--runner { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+-.runner-inline { box-shadow: none; }
+-.compact-section { display: grid; gap: 10px; box-shadow: none; }
+-.templates-toolbar { align-items: stretch; }
+-.template-select { min-width: 0; min-height: 32px; padding: 0 10px; }
+-.compact-grid .field span { font-size: 11px; }
+-.report-list-card, .report-detail-card { align-content: start; }
+-.report-detail-card { min-width: 0; }
+-.recipients-panel { min-width: 0; }
+-.detail-grid--report { grid-template-columns: 1.08fr 0.92fr; }
+ 
+-@media (min-width: 980px) {
+-  .app-grid {
+-    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+-    align-items: start;
+-  }
+-  .campaign-stack { align-items: start; }
+-  .report-grid {
+-    grid-template-columns: minmax(280px, 0.86fr) minmax(0, 1.14fr);
+-    align-items: start;
+-  }
++.button-row--quote-actions {
++  display: grid;
++  grid-template-columns: minmax(74px, 0.72fr) minmax(120px, 1fr) minmax(132px, 1fr);
+ }
+ 
+-@media (max-width: 920px) {
+-  .form-grid,
+-  .form-grid-2,
+-  .form-grid-3,
+-  .form-grid-quote,
+-  .meta-grid,
+-  .meta-grid--summary,
+-  .result-grid,
+-  .stats-grid,
+-  .detail-grid,
+-  .detail-grid--report,
+-  .runner-card--compact .stats-grid--runner {
+-    grid-template-columns: 1fr;
+-  }
+-  .hero-actions .btn,
+-  .button-row .btn,
+-  .templates-toolbar,
+-  .topbar-actions .btn {
+-    width: 100%;
+-  }
+-  .media-preview { grid-template-columns: 1fr; }
+-  .recipient-row { grid-template-columns: 1fr; }
+-  .recipient-row__time { text-align: left; }
+-}
+-
+-@media (max-width: 560px) {
+-  .shell { padding: 8px; gap: 8px; }
+-  .hero, .state-card, #auth-view, .topbar-card, .tabs-card, .app-grid > .card, .campaign-stack > .card, .report-grid > .card, .report-toolbar {
+-    padding: 12px;
+-  }
+-  .hero-logo--recalc { height: 52px; }
+-  .hero-logo--unidep { height: 28px; }
+-  .topbar-logo--recalc { height: 36px; }
+-  .topbar-logo--unidep { height: 22px; }
+-  .result-total { font-size: 26px; }
+-  .recipient-list { max-height: none; }
++.button-row--quote-actions .btn,
++.button-row--campaign-actions .btn {
++  width: 100%;
+ }
+ 
++.button-row--quote-actions #reset-form,
++.button-row--campaign-actions #campaign-reset {
++  color: var(--brand-primary);
++  background: transparent;
++}
+ 
+-/* Refinamientos 3.4.2 */
+-.hero { padding-block: 12px; }
+-.hero-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+-.hero-row > * { min-width: 0; }
+-.hero-actions { justify-content:flex-start; }
+-.hero-logo--recalc { height: 52px; }
+-.hero-logo--unidep { height: 30px; }
+-.topbar-card--compact { padding-block: 12px; }
+-.topbar-logo--recalc { height: 34px; width:auto; }
+-.topbar-logo--unidep { height: 22px; width:auto; }
+-.topbar-session { gap: 3px; }
+-.topbar-session strong { font-size: 13px; }
+-.topbar-actions--tight .btn { min-width: 0; }
+-.field { position: relative; }
+-.result-grid--summary .result-line strong { display:block; }
+-.helper-text { color: var(--muted); font-size: 12px; }
+-.stat-card { min-height: 82px; display:grid; gap:6px; align-content:start; }
+-.stat-card strong { display:block; font-size:24px; line-height:1; }
+-.stat-card--compact { min-height: 74px; padding: 10px 12px; }
+-.stat-card--compact strong { font-size: 22px; }
+-.stats-grid--compact { gap: 8px; }
+-.runner-inline--compact { align-items: flex-start; }
+-.compact-grid { display:grid; gap:10px; }
+-.compact-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+-.compact-stack { gap:10px; }
+-.toggle-card {
+-  min-height: 42px;
+-  border: 1px solid rgba(148,163,184,0.18);
+-  border-radius: var(--radius-md);
++.button-row--campaign-actions {
++  display: grid;
++  grid-template-columns: minmax(74px, 0.72fr) minmax(140px, 1fr);
++}
++
++.detail-actions:empty,
++.detail-actions .hidden {
++  display: none !important;
++}
++
++.button-row--compact .btn,
++.templates-toolbar .btn {
++  flex: 0 1 auto;
++}
++
++.runner-card--compact .stats-grid--runner {
++  grid-template-columns: repeat(4, minmax(0, 1fr));
++}
++
++.runner-inline {
++  box-shadow: none;
++}
++
++.templates-toolbar {
++  align-items: stretch;
++}
++
++.template-select {
++  min-width: 0;
++  min-height: 32px;
++  padding: 0 10px;
++}
++
++.compact-grid--two {
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++.compact-grid .field span {
++  font-size: 11px;
++}
++
++.report-list-card,
++.report-detail-card {
++  align-content: start;
++}
++
++.report-detail-card,
++.recipients-panel {
++  min-width: 0;
++}
++
++.detail-grid--report {
++  grid-template-columns: 1.08fr 0.92fr;
++}
++
++.stat-card {
++  min-height: 82px;
++  display: grid;
++  align-content: start;
++  gap: 6px;
++}
++
++.stat-card strong {
++  display: block;
++  color: var(--brand-deep);
++  font-size: 24px;
++  line-height: 1;
++}
++
++.stat-card--compact {
++  min-height: 74px;
+   padding: 10px 12px;
+-  background: linear-gradient(180deg, rgba(6, 17, 28, 0.98), rgba(4, 14, 24, 0.95));
+-  justify-content: flex-start;
+ }
+-.media-inline--compact { gap: 10px; }
+-.media-inline__controls--stack { align-items: center; justify-content: space-between; flex-wrap: wrap; }
+-.section-head--stack-on-mobile { align-items:flex-start; }
+-.recipient-list--capped { max-height: 360px; overflow:auto; padding-right:4px; }
+-.media-preview__meta { padding: 0 4px 4px; overflow-wrap: anywhere; }
++
++.stat-card--compact strong {
++  font-size: 22px;
++}
++
++.stats-grid--compact {
++  gap: 8px;
++}
+ 
+ .hero-session,
+ .runner-inline,
+@@ -563,7 +986,6 @@
+ .detail-head > div,
+ .campaign-item__head > div,
+ .campaign-item__meta > div,
+-.media-preview__meta,
+ .insight-card,
+ .feedback,
+ .template-preview,
+@@ -572,11 +994,6 @@
+   overflow-wrap: anywhere;
+ }
+ 
+-.button-row--campaign-actions .btn,
+-.detail-actions .btn {
+-  min-width: 0;
+-}
+-
+ .field--enhanced select.native-select {
+   position: absolute;
+   width: 1px;
+@@ -584,29 +1001,44 @@
+   opacity: 0;
+   pointer-events: none;
+ }
+-.enhanced-select { position: relative; width: 100%; }
++
++.enhanced-select {
++  width: 100%;
++}
++
+ .enhanced-select__trigger {
+   width: 100%;
+   min-height: var(--control-height);
+-  border-radius: var(--radius-md);
+-  border: 1px solid rgba(148, 163, 184, 0.18);
+-  background: linear-gradient(180deg, rgba(6, 17, 28, 0.98), rgba(4, 14, 24, 0.95));
+-  color: var(--text);
+-  padding: 10px 12px;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
++  border: 1px solid var(--border);
++  border-radius: var(--radius-md);
++  background: #ffffff;
++  color: var(--text);
++  padding: 10px 12px;
+   text-align: left;
+-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 1px 0 rgba(2,6,23,0.22);
++  box-shadow: inset 0 1px 0 rgba(17, 78, 109, 0.03);
+ }
+-.enhanced-select__trigger:focus-visible {
+-  border-color: rgba(35, 208, 181, 0.44);
+-  box-shadow: 0 0 0 4px rgba(35, 208, 181, 0.12), inset 0 1px 0 rgba(255,255,255,0.03);
+-  outline: none;
++
++.enhanced-select__trigger[disabled] {
++  cursor: not-allowed;
++  opacity: 0.6;
++}
++
++.enhanced-select__trigger-text {
++  min-width: 0;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++
++.ui-select-icon {
++  color: var(--brand-primary);
++  font-size: 12px;
+ }
+-.enhanced-select__trigger[disabled] { opacity: 0.6; cursor: not-allowed; }
+-.enhanced-select__trigger-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++
+ .enhanced-select__menu {
+   position: absolute;
+   top: calc(100% + 6px);
+@@ -616,38 +1048,221 @@
+   display: none;
+   max-height: 280px;
+   overflow: auto;
+-  border-radius: 16px;
+-  border: 1px solid rgba(195, 215, 236, 0.12);
+-  background: rgba(5, 16, 28, 0.98);
+-  box-shadow: 0 24px 56px rgba(2, 9, 18, 0.42);
++  border: 1px solid var(--border);
++  border-radius: var(--radius-lg);
++  background: #ffffff;
++  box-shadow: var(--shadow);
+   padding: 6px;
+ }
+-.enhanced-select.is-open .enhanced-select__menu { display: grid; gap: 4px; }
++
++.enhanced-select.is-open .enhanced-select__menu {
++  display: grid;
++  gap: 4px;
++}
++
+ .enhanced-select__option {
+   width: 100%;
+   border: 0;
+-  border-radius: 12px;
++  border-radius: var(--radius-md);
+   background: transparent;
+   color: var(--text);
+-  text-align: left;
+   padding: 10px 12px;
++  text-align: left;
+ }
++
+ .enhanced-select__option:hover,
+-.enhanced-select__option:focus-visible { background: rgba(255,255,255,0.06); outline: none; }
+-.enhanced-select__option.is-selected { background: rgba(35, 208, 181, 0.14); color: #f4fffb; }
+-.enhanced-select__empty { padding: 10px 12px; color: var(--muted); font-size: 12px; }
++.enhanced-select__option:focus-visible {
++  background: var(--surface-muted);
++  outline: none;
++}
++
++.enhanced-select__option.is-selected {
++  background: var(--brand-primary);
++  color: #ffffff;
++}
++
++.enhanced-select__empty {
++  padding: 10px 12px;
++  color: var(--muted);
++  font-size: 12px;
++}
++
++.ui-scrollbar {
++  scrollbar-color: var(--border-strong) transparent;
++  scrollbar-width: thin;
++}
++
++@media (min-width: 980px) {
++  .app-grid {
++    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
++    align-items: start;
++  }
++
++  .campaign-stack {
++    align-items: start;
++  }
++
++  .report-grid {
++    grid-template-columns: minmax(280px, 0.86fr) minmax(0, 1.14fr);
++    align-items: start;
++  }
++}
++
++@media (max-width: 920px) {
++  .form-grid,
++  .form-grid-2,
++  .form-grid-3,
++  .form-grid-quote,
++  .meta-grid,
++  .meta-grid--summary,
++  .result-grid,
++  .stats-grid,
++  .detail-grid,
++  .detail-grid--report,
++  .runner-card--compact .stats-grid--runner {
++    grid-template-columns: 1fr;
++  }
++
++  .hero-actions .btn,
++  .button-row .btn,
++  .templates-toolbar,
++  .topbar-actions .btn {
++    width: 100%;
++  }
++
++  .button-row--quote-actions,
++  .button-row--campaign-actions {
++    grid-template-columns: 1fr 1fr;
++  }
++
++  .button-row--quote-actions #send-quote {
++    grid-column: 1 / -1;
++  }
++
++  .media-preview {
++    grid-template-columns: 1fr;
++  }
++
++  .recipient-row {
++    grid-template-columns: 1fr;
++  }
++
++  .recipient-row__time {
++    text-align: left;
++  }
++}
+ 
+ @media (max-width: 640px) {
+-  .hero-row { align-items: flex-start; }
+-  .topbar-left { align-items: flex-start; }
+-  .topbar-actions { justify-content: stretch; }
+-  .topbar-actions .btn { flex: 1 1 120px; }
+-  .compact-grid--two { grid-template-columns: 1fr; }
++  .hero-row {
++    align-items: flex-start;
++  }
++
++  .hero-actions {
++    align-items: stretch;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++  }
++
++  .topbar-left,
++  .section-head--stack-on-mobile {
++    align-items: flex-start;
++  }
++
++  .topbar-actions {
++    justify-content: stretch;
++  }
++
++  .topbar-actions .btn {
++    flex: 1 1 120px;
++  }
++
++  .compact-grid--two {
++    grid-template-columns: 1fr;
++  }
+ }
+ 
+ @media (max-width: 480px) {
+-  .hero-logo--recalc { height: 46px; }
+-  .hero-logo--unidep { height: 26px; }
+-  .topbar-logo--recalc { height: 28px; }
+-  .topbar-logo--unidep { height: 19px; }
++  :root {
++    --shell-pad: 8px;
++    --shell-gap: 8px;
++    --card-pad: 12px;
++  }
++
++  .hero-logo--recalc {
++    height: 42px;
++  }
++
++  .hero-logo--unidep {
++    height: 24px;
++  }
++
++  .result-total {
++    font-size: 26px;
++  }
++
++  .recipient-list {
++    max-height: none;
++  }
++}
++
++
++/* ReCalc extension release 4.6.2 hardening/UX updates */
++.hero-brand--recalc {
++  border-right: 0;
++  padding-right: 0;
++}
++.hero-logo--recalc {
++  height: 34px;
++  max-width: 170px;
++}
++.result-callout {
++  border: 1px solid rgba(108, 181, 20, 0.28);
++  border-radius: var(--radius-xl);
++  background: var(--success-soft);
++  padding: 10px;
++  box-shadow: var(--shadow-soft);
++}
++.result-callout strong {
++  display: block;
++  margin-top: 4px;
++  color: var(--brand-deep);
++  font-size: 19px;
++}
++.result-callout p {
++  margin: 4px 0 0;
++  color: var(--muted);
++  font-size: 12px;
++}
++.result-line--strong {
++  grid-column: 1 / -1;
++  border-color: rgba(17, 78, 109, 0.28);
++  background: var(--surface-muted);
++}
++.result-line--strong strong {
++  color: var(--brand-deep);
++  font-size: 16px;
++}
++.report-list-card.is-collapsed .campaign-item:not(:first-child),
++.report-detail-card.is-collapsed .detail-collapsible {
++  display: none !important;
++}
++.report-list-card.is-collapsed .campaign-list {
++  gap: 0;
++}
++.detail-actions--primary {
++  align-items: stretch;
++}
++.field small.helper-text {
++  margin-top: 5px;
++}
++.campaign-item__latest {
++  color: var(--brand-primary);
++  font-weight: 800;
++  font-size: 11px;
++  letter-spacing: .1em;
++  text-transform: uppercase;
++}
++@media (max-width: 440px) {
++  .compact-grid--two {
++    grid-template-columns: 1fr;
++  }
+ }
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.html app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.html
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.html	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.html	2026-05-07 05:38:03.480898849 +0000
+@@ -14,9 +14,7 @@
+           <div class="hero-brand hero-brand--recalc">
+             <img src="branding/logo-recalc.png" alt="ReCalc" class="hero-logo hero-logo--recalc">
+           </div>
+-          <div class="hero-brand hero-brand--unidep">
+-            <img src="branding/logo-unidep.png" alt="UNIDEP" class="hero-logo hero-logo--unidep">
+-          </div>
++          
+         </div>
+         <span id="status-pill" class="pill">Conectando</span>
+       </div>
+@@ -29,8 +27,8 @@
+       </div>
+       <div class="hero-actions">
+         <button id="open-webapp" class="btn btn-secondary btn-compact" type="button">Ir a ReCalc</button>
+-        <button id="refresh-data" class="btn btn-ghost btn-compact hidden" type="button">Sincronizar</button>
+-        <button id="open-whatsapp-direct" class="btn btn-secondary btn-compact hidden" type="button">Ir a WhatsApp</button>
++        <button id="refresh-data" class="btn btn-ghost btn-compact hidden" type="button">Sync</button>
++        <button id="open-whatsapp-direct" class="btn btn-secondary btn-compact hidden" type="button">WhatsApp</button>
+         <button id="open-webapp-inline" class="btn btn-ghost btn-compact hidden" type="button">Ir a ReCalc</button>
+         <button id="auth-logout" class="btn btn-ghost btn-compact hidden" type="button">Cerrar sesión</button>
+       </div>
+@@ -117,9 +115,9 @@
+             </div>
+ 
+             <div class="button-row button-row--quote-actions">
+-              <button id="reset-form" class="btn btn-secondary" type="button">Limpiar</button>
++              <button id="reset-form" class="btn btn-ghost" type="button">Limpiar</button>
+               <button id="calculate-btn" class="btn btn-primary" type="button">Calcular beca</button>
+-              <button id="send-quote" class="btn btn-secondary" type="button">Mandar cotización</button>
++              <button id="send-quote" class="btn btn-secondary" type="button" disabled>Mandar cotización</button>
+             </div>
+           </section>
+ 
+@@ -128,7 +126,8 @@
+             <div id="quote-error" class="feedback feedback-error hidden"></div>
+             <div id="result-empty" class="empty-state">Completa los campos para ver el resultado.</div>
+             <div id="result-panel" class="hidden result-stack">
+-              <div class="result-hero"><span class="eyebrow">Cotización actual</span><div id="result-total" class="result-total">$0.00</div><p id="result-summary"></p></div>
++              <div class="result-hero"><span class="eyebrow">Costo mensual</span><div id="result-total" class="result-total">$0.00</div><p id="result-summary"></p></div>
++              <div id="result-first-payment-card" class="result-callout hidden"><span class="eyebrow">Primer pago</span><strong id="result-first-payment-hero">$0.00</strong><p id="result-first-payment-copy"></p></div>
+               <div class="result-grid result-grid--summary">
+                 <div class="result-line"><span>Precio lista</span><strong id="result-base">$0.00</strong></div>
+                 <div class="result-line"><span>Beca</span><strong id="result-scholarship">-$0.00</strong></div>
+@@ -136,6 +135,7 @@
+                 <div class="result-line result-line--accent"><span>Beneficio adicional</span><strong id="result-benefit">-$0.00</strong></div>
+                 <div class="result-line"><span>Cargo adicional</span><strong id="result-extra">$0.00</strong></div>
+                 <div class="result-line result-line--accent"><span>Primer pago</span><strong id="result-first-payment">$0.00</strong></div>
++                <div id="result-final-total-line" class="result-line result-line--strong hidden"><span>Total ya con cargos aplicados</span><strong id="result-final-total">$0.00</strong></div>
+               </div>
+               <div id="result-meta" class="insight-card"></div>
+               <div class="template-box">
+@@ -206,16 +206,19 @@
+                 <div class="section-head section-head--tight"><div><span class="eyebrow">Programación</span><h3>Automatización</h3></div></div>
+                 <div class="form-stack compact-stack">
+                   <label class="field"><span>Nombre de campaña</span><input id="campaign-name" type="text" placeholder="Ej. Becas zona norte"></label>
+-                  <label class="field"><span>Programar para</span><input id="campaign-schedule" type="datetime-local"></label>
++                  <label class="field"><span>Programar para</span><input id="campaign-schedule" type="datetime-local"><small id="campaign-current-time" class="helper-text">Hora actual: —</small></label>
+                   <div class="compact-grid compact-grid--two">
+                     <label class="field"><span>Batch por reclamo</span><input id="campaign-batch-size" type="number" min="1" max="200" step="1" value="25"></label>
+-                    <label class="field"><span>Delay por mensaje (seg)</span><input id="campaign-delay-seconds" type="number" min="0.25" max="60" step="0.25" value="4"></label>
++                    <label class="field"><span>Delay por mensaje (seg)</span><input id="campaign-delay-seconds" type="number" min="1" max="120" step="0.5" value="4"></label>
++                    <label class="field"><span>Delay por reclamo (seg)</span><input id="campaign-batch-delay-seconds" type="number" min="0" max="1800" step="5" value="30"></label>
++                    <label class="field"><span>Variación segura (seg)</span><input id="campaign-jitter-seconds" type="number" min="0" max="60" step="1" value="3"></label>
+                   </div>
+-                  <label class="toggle toggle-card"><input id="campaign-start-now" type="checkbox" checked><span>Ejecutar ahora</span></label>
++                  <label class="toggle toggle-card"><input id="campaign-start-now" type="checkbox" checked><span>Activar automatización al crear</span></label>
++                  <p class="helper-text">La variación solo modifica pausas entre mensajes para evitar ráfagas idénticas; conserva el orden de envío y el flujo con imagen.</p>
+                 </div>
+               </section>
+               <section class="compact-section"><label class="field"><span>Notas internas</span><textarea id="campaign-notes" rows="3" placeholder="Objetivo, segmento o criterio operativo."></textarea></label></section>
+-              <div class="button-row button-row--campaign-actions"><button id="campaign-reset" class="btn btn-secondary" type="button">Limpiar</button><button id="campaign-submit" class="btn btn-primary" type="submit">Crear campaña</button><button id="campaign-start-selected" class="btn btn-secondary" type="button">Ejecutar seleccionada</button></div>
++              <div class="button-row button-row--campaign-actions"><button id="campaign-reset" class="btn btn-ghost" type="button">Limpiar</button><button id="campaign-submit" class="btn btn-primary" type="submit">Crear campaña</button><button id="campaign-start-selected" class="btn btn-secondary hidden" type="button">Ejecutar seleccionada</button></div>
+             </form>
+           </section>
+         </section>
+@@ -223,17 +226,17 @@
+ 
+       <section id="reports-panel" class="tab-panel panel-stack hidden">
+         <section class="report-shell">
+-          <div class="card report-toolbar"><div class="section-head"><div><span class="eyebrow">Reportes</span><h2>Campañas y resultados</h2></div><div class="button-row button-row--compact"><button id="campaign-refresh-list" class="btn btn-ghost btn-compact" type="button">Recargar</button></div></div></div>
++          <div class="card report-toolbar"><div class="section-head"><div><span class="eyebrow">Reportes</span><h2>Campañas y resultados</h2></div><div class="button-row button-row--compact"><button id="campaign-toggle-list" class="btn btn-ghost btn-compact" type="button">Mostrar historial</button><button id="campaign-refresh-list" class="btn btn-ghost btn-compact" type="button">Recargar</button></div></div></div>
+           <div class="report-grid">
+             <section class="card report-list-card"><div id="campaign-list-empty" class="empty-state">Aún no hay campañas creadas.</div><div id="campaign-list" class="campaign-list hidden"></div></section>
+             <aside class="card report-detail-card">
+               <div id="campaign-detail-empty" class="empty-state">Selecciona una campaña para ver su detalle.</div>
+               <div id="campaign-detail" class="detail-stack hidden">
+                 <div class="detail-head"><div><span class="eyebrow">Detalle</span><h2 id="campaign-detail-title">Campaña</h2></div><span id="campaign-detail-status" class="pill">queued</span></div>
++                <div class="button-row button-row--compact detail-actions detail-actions--primary"><button id="campaign-toggle-detail" class="btn btn-ghost btn-compact" type="button">Mostrar detalle completo</button><button id="campaign-download-results" class="btn btn-secondary btn-compact" type="button">Descargar resultados</button></div>
+                 <div class="button-row button-row--compact detail-actions">
+                   <button id="campaign-run-selected" class="btn btn-secondary btn-compact" type="button">Ejecutar</button>
+                   <button id="campaign-pause-selected" class="btn btn-ghost btn-compact" type="button">Forzar pausa</button>
+-                  <button id="campaign-auto-repair" class="btn btn-ghost btn-compact" type="button">Auto diagnosticar y reparar</button>
+                   <button id="campaign-delete-selected" class="btn btn-ghost btn-compact" type="button">Eliminar</button>
+                 </div>
+                 <div class="stats-grid stats-grid--detail stats-grid--compact">
+@@ -249,18 +252,6 @@
+                   <div class="insight-card"><div class="meta-label">Operación</div><div class="helper-stack"><div><strong id="campaign-detail-schedule">Inmediata</strong></div><div id="campaign-detail-delay">Delay: 4s</div><div id="campaign-detail-updated">Actualizada: —</div></div></div>
+                 </div>
+                 <div id="campaign-detail-media-wrap" class="media-detail hidden"><img id="campaign-detail-media" alt="Imagen de campaña" class="media-detail__image"></div>
+-                <div id="campaign-failures-wrap" class="insight-card hidden">
+-                  <div class="section-head section-head--tight">
+-                    <div>
+-                      <div class="meta-label">Completada con incidencias</div>
+-                    </div>
+-                    <button id="campaign-download-failures" class="btn btn-ghost btn-compact" type="button">Descargar CSV</button>
+-                  </div>
+-                  <details id="campaign-failures-details" class="failures-details" open>
+-                    <summary id="campaign-failures-summary">Sin errores registrados.</summary>
+-                    <div id="campaign-failures-list" class="recipient-list recipient-list--compact"></div>
+-                  </details>
+-                </div>
+                 <div class="insight-card recipients-panel"><div class="section-head section-head--tight"><div><div class="meta-label">Destinatarios</div></div></div><div id="campaign-detail-recipients" class="recipient-list recipient-list--compact recipient-list--capped"></div></div>
+               </div>
+             </aside>
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.js app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.js
+--- app_original/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.js	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.js	2026-05-07 05:48:13.268819278 +0000
+@@ -65,6 +65,11 @@
+     resultSubtotal: document.getElementById("result-subtotal"),
+     resultExtra: document.getElementById("result-extra"),
+     resultFirstPayment: document.getElementById("result-first-payment"),
++    resultFirstPaymentCard: document.getElementById("result-first-payment-card"),
++    resultFirstPaymentHero: document.getElementById("result-first-payment-hero"),
++    resultFirstPaymentCopy: document.getElementById("result-first-payment-copy"),
++    resultFinalTotalLine: document.getElementById("result-final-total-line"),
++    resultFinalTotal: document.getElementById("result-final-total"),
+     resultMeta: document.getElementById("result-meta"),
+     quoteMessagePreview: document.getElementById("quote-message-preview"),
+     quoteTemplateStatus: document.getElementById("quote-template-status"),
+@@ -98,10 +103,29 @@
+     const value = String(index + 1);
+     return { value, label: `${value} ${index === 0 ? "materia" : "materias"}` };
+   });
++  const businessLineLabels = {
++    prepa: "Prepa",
++    licenciatura: "Licenciatura",
++    maestria: "Maestría",
++    salud: "Salud",
++  };
++  const modalityLabels = {
++    presencial: "Presencial",
++    mixta: "Mixta",
++    online: "Online",
++  };
++  const businessLineOrder = ["prepa", "licenciatura", "maestria", "salud"];
++  const modalityOrder = ["presencial", "mixta", "online"];
+ 
+   const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+   const money = (value) => currency.format(Math.round((Number(value) || 0) * 100) / 100);
+   const percent = (value) => `${Number(value) || 0}%`;
++  const normalizeKey = (value) =>
++    String(value ?? "")
++      .normalize("NFD")
++      .replace(/[\u0300-\u036f]/g, "")
++      .trim()
++      .toLowerCase();
+   const normalizeSessionToken = (value) => {
+     const trimmed = String(value ?? "").trim();
+     if (!trimmed) return "";
+@@ -116,10 +140,40 @@
+     return Number.isFinite(parsed) ? parsed : null;
+   };
+   const uniq = (items) => Array.from(new Set(items.filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), "es"));
+-  const canonBusinessLine = (value) => (value === "preparatoria" ? "prepa" : value);
+-  const canonModality = (value) => (value === "ejecutivo" ? "mixta" : value);
+-  const requiresCampus = (businessLine, modality) => ["licenciatura", "salud", "preparatoria"].includes(businessLine) && modality && modality !== "online";
+-  const needsSubjects = (type, businessLine) => type === "regreso" && businessLine === "licenciatura";
++  const canonBusinessLine = (value) => {
++    const key = normalizeKey(value);
++    if (["prepa", "preparatoria", "bachillerato"].includes(key)) return "prepa";
++    if (["maestria", "maestrias", "posgrado"].includes(key)) return "maestria";
++    if (["licenciatura", "licenciaturas"].includes(key)) return "licenciatura";
++    if (key === "salud") return "salud";
++    return key;
++  };
++  const canonModality = (value) => {
++    const key = normalizeKey(value);
++    if (["ejecutivo", "mixto", "mixta"].includes(key)) return "mixta";
++    if (["en_linea", "en linea", "virtual", "online"].includes(key)) return "online";
++    if (["presencial", "escolarizado"].includes(key)) return "presencial";
++    return key;
++  };
++  const labelBusinessLine = (value) => businessLineLabels[canonBusinessLine(value)] ?? String(value ?? "");
++  const labelModality = (value) => modalityLabels[canonModality(value)] ?? String(value ?? "");
++  const compareByOrder = (order) => (a, b) => {
++    const left = order.indexOf(a);
++    const right = order.indexOf(b);
++    if (left !== -1 || right !== -1) return (left === -1 ? 99 : left) - (right === -1 ? 99 : right);
++    return String(a).localeCompare(String(b), "es");
++  };
++  const ruleMatches = (rule, programKey, businessLine, modality = null) => {
++    if (rule.programa !== programKey) return false;
++    if (businessLine && canonBusinessLine(rule.nivel) !== canonBusinessLine(businessLine)) return false;
++    if (modality && canonModality(rule.modalidad) !== canonModality(modality)) return false;
++    return true;
++  };
++  const requiresCampus = (businessLine, modality) =>
++    ["prepa", "licenciatura", "maestria", "salud"].includes(canonBusinessLine(businessLine)) &&
++    Boolean(canonModality(modality)) &&
++    canonModality(modality) !== "online";
++  const needsSubjects = (type, businessLine) => type === "regreso" && canonBusinessLine(businessLine) === "licenciatura";
+ 
+   function closeEnhancedSelect(instance) {
+     if (!instance) return;
+@@ -248,29 +302,24 @@
+   }
+ 
+   async function getStoredSessionToken() {
+-    if (canUseChromeStorage()) {
+-      const data = await chrome.storage.local.get([EXTENSION_SESSION_TOKEN_KEY]);
+-      return normalizeSessionToken(data?.[EXTENSION_SESSION_TOKEN_KEY] ?? "");
+-    }
+-    return normalizeSessionToken(window.localStorage.getItem(EXTENSION_SESSION_TOKEN_KEY) ?? "");
++    if (!canUseChromeStorage()) return "";
++    const data = await chrome.storage.local.get([EXTENSION_SESSION_TOKEN_KEY]);
++    return normalizeSessionToken(data?.[EXTENSION_SESSION_TOKEN_KEY] ?? "");
+   }
+ 
+   async function setStoredSessionToken(token) {
+     state.extensionSessionToken = normalizeSessionToken(token);
+-    if (canUseChromeStorage()) {
+-      await chrome.storage.local.set({ [EXTENSION_SESSION_TOKEN_KEY]: state.extensionSessionToken });
+-      return;
++    if (!canUseChromeStorage()) {
++      throw new Error("El almacenamiento seguro de Chrome no está disponible.");
+     }
+-    window.localStorage.setItem(EXTENSION_SESSION_TOKEN_KEY, state.extensionSessionToken);
++    await chrome.storage.local.set({ [EXTENSION_SESSION_TOKEN_KEY]: state.extensionSessionToken });
+   }
+ 
+   async function clearStoredSessionToken() {
+     state.extensionSessionToken = "";
+     if (canUseChromeStorage()) {
+       await chrome.storage.local.remove([EXTENSION_SESSION_TOKEN_KEY]);
+-      return;
+     }
+-    window.localStorage.removeItem(EXTENSION_SESSION_TOKEN_KEY);
+   }
+ 
+   function setView(name) {
+@@ -281,7 +330,7 @@
+     refs.refreshData.classList.toggle("hidden", name !== "app");
+     refs.openWebApp.classList.toggle("hidden", name === "app");
+     refs.openWhatsAppDirect?.classList.toggle("hidden", name !== "app");
+-    refs.openWebAppInline?.classList.toggle("hidden", name !== "app");
++    refs.openWebAppInline?.classList.add("hidden");
+     refs.authLogout?.classList.toggle("hidden", name !== "app");
+   }
+ 
+@@ -294,8 +343,7 @@
+ 
+   function applyPanelConfig() {
+     refs.openWebApp.textContent = state.panelConfig.openSiteLabel;
+-    if (refs.openWebAppInline) refs.openWebAppInline.textContent = "Ir a ReCalc";
+-    if (refs.openWhatsAppDirect) refs.openWhatsAppDirect.textContent = state.panelConfig.openWhatsAppLabel;
++    if (refs.openWhatsAppDirect) refs.openWhatsAppDirect.textContent = "WhatsApp";
+     if (state.statusKey === "session_required") {
+       setStatus("warning", state.panelConfig.sessionRequiredLabel, "session_required");
+     }
+@@ -331,10 +379,18 @@
+     refs.quoteTemplateStatus.textContent = label;
+   }
+ 
++  function updateSendQuoteState() {
++    if (!refs.sendQuote) return;
++    const hasQuote = Boolean(state.lastQuote);
++    const hasText = Boolean(String(refs.quoteMessagePreview?.value || state.lastDraft?.messageText || "").trim());
++    refs.sendQuote.disabled = !hasQuote || !hasText;
++  }
++
+   function resetQuoteMessagePreview(message = "") {
+     state.lastDraft = null;
+     if (refs.quoteMessagePreview) refs.quoteMessagePreview.value = message;
+     setQuoteTemplateStatus("", message ? "Editable" : "Sin preparar");
++    updateSendQuoteState();
+   }
+ 
+   function showError(element, message) {
+@@ -357,7 +413,10 @@
+     const headers = new Headers(options.headers ?? {});
+     if (state.extensionSessionToken) {
+       headers.set(EXTENSION_SESSION_TOKEN_HEADER, state.extensionSessionToken);
++      if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${state.extensionSessionToken}`);
+     }
++    headers.set("x-extension-client", "chrome-sidepanel");
++    headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
+     const response = await fetch(`${APP_BASE_URL}${path}`, {
+       ...options,
+       headers,
+@@ -429,15 +488,20 @@
+   function renderSelectors() {
+     populate(refs.tipoSelect, enrollmentOptions, "Selecciona tipo", refs.tipoSelect.value || "nuevo_ingreso");
+     const programKey = refs.tipoSelect.value === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
+-    const businessLines = uniq(state.rules.filter((rule) => rule.programa === programKey).map((rule) => rule.nivel));
++    const businessLines = uniq(state.rules
++      .filter((rule) => rule.programa === programKey)
++      .map((rule) => canonBusinessLine(rule.nivel)))
++      .sort(compareByOrder(businessLineOrder))
++      .map((value) => ({ value, label: labelBusinessLine(value) }));
+     populate(refs.nivelSelect, businessLines, "Selecciona línea");
+     const modalities = uniq(state.rules
+-      .filter((rule) => rule.programa === programKey && rule.nivel === refs.nivelSelect.value)
+-      .map((rule) => rule.modalidad))
+-      .sort((a, b) => ({ presencial: 0, mixta: 1, online: 2 }[a] ?? 9) - ({ presencial: 0, mixta: 1, online: 2 }[b] ?? 9));
++      .filter((rule) => ruleMatches(rule, programKey, refs.nivelSelect.value))
++      .map((rule) => canonModality(rule.modalidad)))
++      .sort(compareByOrder(modalityOrder))
++      .map((value) => ({ value, label: labelModality(value) }));
+     populate(refs.modalidadSelect, modalities, "Selecciona modalidad");
+     const plans = Array.from(new Set(state.rules
+-      .filter((rule) => rule.programa === programKey && rule.nivel === refs.nivelSelect.value && rule.modalidad === refs.modalidadSelect.value)
++      .filter((rule) => ruleMatches(rule, programKey, refs.nivelSelect.value, refs.modalidadSelect.value))
+       .map((rule) => Number(rule.plan)))).sort((a, b) => a - b);
+     populate(refs.planSelect, plans.map((value) => ({ value: String(value), label: `${value} cuatrimestres` })), "Selecciona plan");
+     const campusRequired = requiresCampus(refs.nivelSelect.value, refs.modalidadSelect.value);
+@@ -450,6 +514,20 @@
+     else populate(refs.materiasSelect, [], "No aplica", "");
+   }
+ 
++  function hasMatchingQuoteRule(programKey, businessLine, modality, plan) {
++    return state.rules.some((rule) =>
++      ruleMatches(rule, programKey, businessLine, modality) && Number(rule.plan) === Number(plan),
++    );
++  }
++
++  function describeQuoteSelection(businessLine, modality, plan) {
++    return [
++      labelBusinessLine(businessLine),
++      labelModality(modality),
++      plan ? `${plan} cuatrimestres` : "",
++    ].filter(Boolean).join(" · ");
++  }
++
+   function resetQuote(message = "Completa los campos para ver el resultado.", options = {}) {
+     const { preserveError = false } = options;
+     const safeMessage =
+@@ -486,7 +564,7 @@
+     const plan = refs.planSelect.value;
+     if (!businessLine || !modality || !plan) {
+       refs.benefitSummary.textContent = "Selecciona la combinación para consultar beneficios activos.";
+-    resetQuoteMessagePreview("");
++      resetQuoteMessagePreview("");
+       return;
+     }
+     if (refs.plantelSelect.value) params.set("plantel", refs.plantelSelect.value);
+@@ -534,27 +612,39 @@
+ 
+   async function calculateQuote() {
+     clearError(refs.quoteError);
+-    refs.resultEmpty.textContent = "Consultando cotización...";
+-    refs.resultEmpty.classList.remove("hidden");
+-    refs.resultPanel.classList.add("hidden");
+     const businessLine = refs.nivelSelect.value;
+     const modality = refs.modalidadSelect.value;
+     const plan = Number(refs.planSelect.value || 0);
+     const average = decimal(refs.promedioInput.value);
+     const subjects = refs.materiasSelect.value ? Number(refs.materiasSelect.value) : null;
+     const extraCharge = refs.extraEnabled.checked ? selectedFeeAmount() : 0;
++    const programKey = refs.tipoSelect.value === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
+     if (!businessLine || !modality || !plan || average === null) {
+       showError(refs.quoteError, "Completa tipo, línea, modalidad, plan y promedio.");
++      resetQuote("Completa los campos requeridos y vuelve a calcular.", { preserveError: true });
+       return;
+     }
+     if (requiresCampus(businessLine, modality) && !refs.plantelSelect.value) {
+       showError(refs.quoteError, "Selecciona el plantel.");
++      resetQuote("Selecciona el plantel para continuar.", { preserveError: true });
+       return;
+     }
+     if (needsSubjects(refs.tipoSelect.value, businessLine) && !subjects) {
+       showError(refs.quoteError, "Selecciona las materias inscritas.");
++      resetQuote("Selecciona las materias inscritas y vuelve a calcular.", { preserveError: true });
+       return;
+     }
++    if (!hasMatchingQuoteRule(programKey, businessLine, modality, plan)) {
++      showError(
++        refs.quoteError,
++        `No hay regla activa para ${describeQuoteSelection(businessLine, modality, plan)}. Cambia línea, modalidad o plan de estudios.`,
++      );
++      resetQuote("Ajusta la combinación y vuelve a calcular.", { preserveError: true });
++      return;
++    }
++    refs.resultEmpty.textContent = "Consultando cotización...";
++    refs.resultEmpty.classList.remove("hidden");
++    refs.resultPanel.classList.add("hidden");
+     refs.calculateBtn.disabled = true;
+     refs.calculateBtn.textContent = "Consultando...";
+     try {
+@@ -582,8 +672,13 @@
+         return;
+       }
+       const scholarshipPercent = Number(data.scholarshipPercent || 0);
++      const scholarshipAmount = Number(data.scholarshipAmountMxn || 0);
+       const additionalBenefitPercent = Number(data.additionalBenefitPercent || 0);
+-      refs.resultTotal.textContent = money(data.totalMxn);
++      const additionalBenefitAmount = Number(data.additionalBenefitAmountMxn || 0);
++      const subtotal = Number(data.subtotalMxn || 0);
++      const finalTotal = Number(data.totalMxn || 0);
++      const primaryTotal = extraCharge > 0 ? subtotal : finalTotal;
++      refs.resultTotal.textContent = money(primaryTotal);
+       if (data.sinAccessToScholarship) {
+         refs.resultSummary.textContent = additionalBenefitPercent > 0
+           ? `Sin acceso a beca. Sí aplica beneficio adicional de ${percent(additionalBenefitPercent)}.`
+@@ -594,12 +689,29 @@
+         refs.resultSummary.textContent = `Incluye beca de ${percent(scholarshipPercent)}.`;
+       }
+       refs.resultBase.textContent = money(data.basePriceMxn);
+-      refs.resultScholarship.textContent = `-${money(data.scholarshipAmountMxn)}`;
+-      refs.resultSubtotal.textContent = money(data.subtotalMxn);
+-      refs.resultBenefit.textContent = `-${money(data.additionalBenefitAmountMxn)}`;
++      refs.resultScholarship.textContent = `-${money(scholarshipAmount)}`;
++      refs.resultSubtotal.textContent = money(subtotal);
++      refs.resultBenefit.textContent = `-${money(additionalBenefitAmount)}`;
+       refs.resultExtra.textContent = money(extraCharge);
+       refs.resultFirstPayment.textContent = money(data.firstPaymentAmountMxn);
++      if (refs.resultFirstPaymentCard) {
++        const hasFirstPayment = Number(data.firstPaymentAmountMxn || 0) > 0;
++        refs.resultFirstPaymentCard.classList.toggle("hidden", !hasFirstPayment);
++        if (refs.resultFirstPaymentHero) refs.resultFirstPaymentHero.textContent = money(data.firstPaymentAmountMxn);
++        if (refs.resultFirstPaymentCopy) {
++          refs.resultFirstPaymentCopy.textContent = [
++            data.firstPaymentDuration ? `Vigencia: ${data.firstPaymentDuration}` : "",
++            data.firstPaymentNotes ?? "",
++          ].filter(Boolean).join(" · ");
++        }
++      }
++      if (refs.resultFinalTotalLine) {
++        refs.resultFinalTotalLine.classList.toggle("hidden", !(extraCharge > 0));
++        if (refs.resultFinalTotal) refs.resultFinalTotal.textContent = money(finalTotal);
++      }
+       refs.resultMeta.textContent = [
++        describeQuoteSelection(businessLine, modality, plan),
++        refs.plantelSelect.value || (canonModality(modality) === "online" ? "Online" : ""),
+         data.tier ? `Tier ${data.tier}` : "",
+         data.additionalBenefitDuration ? `Beneficio: ${data.additionalBenefitDuration}` : "",
+         data.firstPaymentDuration ? `Primer pago: ${data.firstPaymentDuration}` : "",
+@@ -610,10 +722,16 @@
+         modality: canonModality(modality),
+         plan,
+         campus: refs.plantelSelect.value || null,
+-        totalMxn: data.totalMxn,
++        totalMxn: finalTotal,
++        subtotalMxn: subtotal,
+         basePriceMxn: data.basePriceMxn,
+         scholarshipPercent: data.scholarshipPercent,
++        scholarshipAmountMxn: scholarshipAmount,
++        additionalBenefitPercent,
++        additionalBenefitAmountMxn: additionalBenefitAmount,
+         firstPaymentAmountMxn: data.firstPaymentAmountMxn,
++        firstPaymentDuration: data.firstPaymentDuration ?? null,
++        firstPaymentNotes: data.firstPaymentNotes ?? null,
+         additionalBenefitDuration: data.additionalBenefitDuration ?? null,
+         additionalBenefitNotes: data.additionalBenefitNotes ?? null,
+       };
+@@ -821,12 +939,14 @@
+         refs.quoteMessagePreview.value = draft.messageText || "";
+       }
+       setQuoteTemplateStatus("success", draft.template?.name ? `Template: ${draft.template.name}` : "Editable");
++      updateSendQuoteState();
+       return draft;
+     } catch (error) {
+       setQuoteTemplateStatus("danger", "Sin template");
+       if (refs.quoteMessagePreview) {
+         refs.quoteMessagePreview.value = "";
+       }
++      updateSendQuoteState();
+       throw error;
+     }
+   }
+@@ -897,7 +1017,7 @@
+           : "No fue posible mandar la cotización desde la extensión.",
+       );
+     } finally {
+-      refs.sendQuote.disabled = false;
++      updateSendQuoteState();
+       refs.sendQuote.textContent = originalLabel || "Mandar cotización";
+     }
+   }
+@@ -924,7 +1044,7 @@
+       showError(refs.quoteError, "No fue posible refrescar los datos del panel.");
+     } finally {
+       refs.refreshData.disabled = false;
+-      refs.refreshData.textContent = "Sincronizar";
++      refs.refreshData.textContent = "Sync";
+     }
+   });
+   refs.sendQuote.addEventListener("click", () => void sendQuoteToWhatsApp());
+@@ -969,9 +1089,11 @@
+   refs.quoteMessagePreview?.addEventListener("input", () => {
+     if (!refs.quoteMessagePreview.value.trim()) {
+       setQuoteTemplateStatus("warning", "Sin texto");
++      updateSendQuoteState();
+       return;
+     }
+     setQuoteTemplateStatus("success", "Editable");
++    updateSendQuoteState();
+   });
+   document.addEventListener("visibilitychange", () => {
+     if (!document.hidden) {
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/ext/campaigns/claim/route.ts app/Scholarship-main/apps/web/src/app/api/ext/campaigns/claim/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/ext/campaigns/claim/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/ext/campaigns/claim/route.ts	2026-05-07 05:43:46.779563748 +0000
+@@ -2,6 +2,7 @@
+ 
+ import { getSessionUser } from "@/lib/authz";
+ import { claimExtensionCampaignBatch } from "@/lib/extension-automation";
++import { checkRateLimit } from "@/lib/rate-limit";
+ 
+ export const dynamic = "force-dynamic";
+ 
+@@ -20,6 +21,17 @@
+     );
+   }
+ 
++  const limiter = checkRateLimit(`ext-campaign-claim:${session.user.id}`, {
++    limit: 60,
++    windowMs: 60_000,
++  });
++  if (!limiter.ok) {
++    return NextResponse.json(
++      { ok: false, error: "rate_limited", retryAfterMs: limiter.retryAfterMs },
++      { status: 429 },
++    );
++  }
++
+   const body = (await request.json().catch(() => null)) as
+     | {
+         campaignId?: string | null;
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/ext/campaigns/route.ts app/Scholarship-main/apps/web/src/app/api/ext/campaigns/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/ext/campaigns/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/ext/campaigns/route.ts	2026-05-07 05:43:46.779068751 +0000
+@@ -7,6 +7,7 @@
+   parseCampaignRecipientText,
+   type ExtensionCampaignChannel,
+ } from "@/lib/extension-automation";
++import { checkRateLimit } from "@/lib/rate-limit";
+ 
+ export const dynamic = "force-dynamic";
+ 
+@@ -16,6 +17,34 @@
+   return 403;
+ }
+ 
++function toSafeDelayMs(value: unknown, maxMs: number) {
++  const numeric = typeof value === "number" ? value : Number(value);
++  if (!Number.isFinite(numeric)) return null;
++  return Math.max(0, Math.min(maxMs, Math.round(numeric)));
++}
++
++function buildCampaignMeta(
++  meta: Record<string, unknown> | null | undefined,
++  request: Request,
++) {
++  const base = meta && typeof meta === "object" ? { ...meta } : {};
++  const metaRecord = base as Record<string, unknown>;
++  const batchDelayMs = toSafeDelayMs(metaRecord.batchDelayMs, 30 * 60_000);
++  const jitterMs = toSafeDelayMs(metaRecord.jitterMs, 60_000);
++
++  return {
++    ...base,
++    ...(batchDelayMs !== null ? { batchDelayMs } : {}),
++    ...(jitterMs !== null ? { jitterMs } : {}),
++    extensionClient:
++      request.headers.get("x-extension-client") ??
++      String(metaRecord.extensionClient ?? "chrome-sidepanel"),
++    extensionVersion:
++      request.headers.get("x-extension-version") ??
++      String(metaRecord.extensionVersion ?? "unknown"),
++  };
++}
++
+ export async function GET() {
+   const session = await getSessionUser();
+   if (session.status !== "ok") {
+@@ -40,6 +69,17 @@
+     );
+   }
+ 
++  const limiter = checkRateLimit(`ext-campaign-create:${session.user.id}`, {
++    limit: 30,
++    windowMs: 60_000,
++  });
++  if (!limiter.ok) {
++    return NextResponse.json(
++      { ok: false, error: "rate_limited", retryAfterMs: limiter.retryAfterMs },
++      { status: 429 },
++    );
++  }
++
+   const body = (await request.json().catch(() => null)) as
+     | {
+         campaignName?: string;
+@@ -94,7 +134,7 @@
+         })) ?? []),
+         ...parseCampaignRecipientText(String(body?.recipientsText ?? "")),
+       ],
+-      meta: body?.meta ?? null,
++      meta: buildCampaignMeta(body?.meta, request),
+     });
+ 
+     return NextResponse.json({ ok: true, campaign }, { status: 201 });
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/ext/campaigns/upload/route.ts app/Scholarship-main/apps/web/src/app/api/ext/campaigns/upload/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/ext/campaigns/upload/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/ext/campaigns/upload/route.ts	2026-05-07 05:43:46.783354215 +0000
+@@ -5,6 +5,7 @@
+   getCloudinaryConfigState,
+   uploadCampaignImageToCloudinary,
+ } from "@/lib/cloudinary-upload";
++import { checkRateLimit } from "@/lib/rate-limit";
+ 
+ export const dynamic = "force-dynamic";
+ 
+@@ -23,6 +24,17 @@
+     );
+   }
+ 
++  const limiter = checkRateLimit(`ext-campaign-upload:${session.user.id}`, {
++    limit: 10,
++    windowMs: 10 * 60_000,
++  });
++  if (!limiter.ok) {
++    return NextResponse.json(
++      { ok: false, error: "rate_limited", retryAfterMs: limiter.retryAfterMs },
++      { status: 429 },
++    );
++  }
++
+   const formData = await request.formData().catch(() => null);
+   const file = formData?.get("file");
+   if (!(file instanceof File)) {
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/ext/quote/route.ts app/Scholarship-main/apps/web/src/app/api/ext/quote/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/ext/quote/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/ext/quote/route.ts	2026-05-07 05:43:46.778418367 +0000
+@@ -12,6 +12,7 @@
+ } from "@/lib/pricing-normalize";
+ import { resolveScholarshipQuote } from "@/lib/scholarship-quote-service";
+ import { getQuoteMode } from "@/lib/runtime-modes";
++import { checkRateLimit } from "@/lib/rate-limit";
+ 
+ export const dynamic = "force-dynamic";
+ export const runtime = "nodejs";
+@@ -58,6 +59,17 @@
+     );
+   }
+ 
++  const quoteLimiter = checkRateLimit(`ext-quote:${session.user.id}`, {
++    limit: 60,
++    windowMs: 60_000,
++  });
++  if (!quoteLimiter.ok) {
++    return NextResponse.json(
++      { ok: false, error: "rate_limited", retryAfterMs: quoteLimiter.retryAfterMs },
++      { status: 429 },
++    );
++  }
++
+   let payload: QuotePayload;
+   try {
+     payload = (await request.json()) as QuotePayload;
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/ext/runs/[runId]/events/route.ts app/Scholarship-main/apps/web/src/app/api/ext/runs/[runId]/events/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/ext/runs/[runId]/events/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/ext/runs/[runId]/events/route.ts	2026-05-07 05:43:46.782854416 +0000
+@@ -3,6 +3,7 @@
+ 
+ import { getSessionUser } from "@/lib/authz";
+ import { writeBusinessEventSafe } from "@/lib/business-events";
++import { checkRateLimit } from "@/lib/rate-limit";
+ 
+ export const dynamic = "force-dynamic";
+ 
+@@ -24,6 +25,17 @@
+     );
+   }
+ 
++  const limiter = checkRateLimit(`ext-run-events:${session.user.id}`, {
++    limit: 120,
++    windowMs: 60_000,
++  });
++  if (!limiter.ok) {
++    return NextResponse.json(
++      { ok: false, error: "rate_limited", retryAfterMs: limiter.retryAfterMs },
++      { status: 429 },
++    );
++  }
++
+   const { runId } = await context.params;
+   const body = (await request.json().catch(() => null)) as
+     | {
+@@ -44,7 +56,8 @@
+       eventType,
+       message,
+       metaJson: body?.metaJson ?? null,
+-      clientSurface: "chrome_side_panel",
++      clientSurface: request.headers.get("x-extension-client") ?? "chrome_side_panel",
++      extensionVersion: request.headers.get("x-extension-version") ?? null,
+     },
+   });
+ 
+@@ -61,7 +74,8 @@
+         eventType,
+         message,
+         metaJson: body?.metaJson ?? null,
+-        clientSurface: "chrome_side_panel",
++        clientSurface: request.headers.get("x-extension-client") ?? "chrome_side_panel",
++      extensionVersion: request.headers.get("x-extension-version") ?? null,
+       },
+     });
+   }
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/ext/token/route.ts app/Scholarship-main/apps/web/src/app/api/ext/token/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/ext/token/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/ext/token/route.ts	2026-05-07 05:43:26.187080166 +0000
+@@ -1,32 +1,25 @@
+ import { BusinessEventType } from "@prisma/client";
+-import { cookies } from "next/headers";
+ import { NextResponse } from "next/server";
+ 
+ import { getSessionUser } from "@/lib/authz";
+-import {
+-  NEON_AUTH_SESSION_COOKIE_NAME,
+-  normalizeExtensionSessionToken,
+-} from "@/lib/extension-auth";
+ import { writeBusinessEventSafe } from "@/lib/business-events";
++import { issueExtensionSessionToken } from "@/lib/extension-session-tokens";
+ 
+ export const dynamic = "force-dynamic";
+ 
+-export async function POST() {
++export async function POST(request: Request) {
+   const session = await getSessionUser();
+   if (session.status !== "ok") {
+     return NextResponse.json({ error: "web_session_invalid" }, { status: 401 });
+   }
+ 
+-  const cookieStore = await cookies();
+-  const cookieValue = cookieStore.get(NEON_AUTH_SESSION_COOKIE_NAME)?.value?.trim() ?? "";
+-  const extensionSessionToken = normalizeExtensionSessionToken(cookieValue);
+-
+-  if (!extensionSessionToken) {
+-    return NextResponse.json(
+-      { error: "missing_extension_session_token" },
+-      { status: 401 },
+-    );
+-  }
++  const issuedToken = await issueExtensionSessionToken({
++    userId: session.user.id,
++    client: request.headers.get("x-extension-client") ?? "web_session_handoff",
++    extensionVersion: request.headers.get("x-extension-version"),
++    userAgent: request.headers.get("user-agent"),
++    scope: "extension:chrome-sidepanel",
++  });
+ 
+   await writeBusinessEventSafe({
+     type: BusinessEventType.EXTENSION_TOKEN_ISSUED,
+@@ -35,14 +28,17 @@
+     subjectId: session.user.id,
+     metadata: {
+       clientSurface: "web_session_handoff",
++      extensionTokenType: "issued",
+       role: session.user.role,
+       email: session.email,
++      expiresAt: issuedToken.expiresAt.toISOString(),
+     },
+   });
+ 
+   return NextResponse.json({
+     ok: true,
+-    token: extensionSessionToken,
++    token: issuedToken.token,
++    expiresAt: issuedToken.expiresAt.toISOString(),
+     user: {
+       id: session.user.id,
+       email: session.email,
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/extension/auth/sign-in/route.ts app/Scholarship-main/apps/web/src/app/api/extension/auth/sign-in/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/extension/auth/sign-in/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/extension/auth/sign-in/route.ts	2026-05-07 05:43:26.186412049 +0000
+@@ -1,9 +1,15 @@
+ import { NextResponse } from "next/server";
+ 
+ import { auth } from "@/lib/auth/server";
+-import { canSignInWithEmail } from "@/lib/authz";
++import { canSignInWithEmail, resolveSessionStateFromAuthUser } from "@/lib/authz";
+ import { captureException } from "@/lib/observability";
+-import { signInExtensionAuthSession } from "@/lib/extension-auth";
++import {
++  getExtensionAuthSession,
++  revokeExtensionAuthSession,
++  signInExtensionAuthSession,
++} from "@/lib/extension-auth";
++import { issueExtensionSessionToken } from "@/lib/extension-session-tokens";
++import { checkRateLimit } from "@/lib/rate-limit";
+ 
+ export const dynamic = "force-dynamic";
+ 
+@@ -56,6 +62,26 @@
+       return redirect(request, buildErrorUrl("Completa correo y contraseña."));
+     }
+ 
++    const forwardedFor = request.headers.get("x-forwarded-for");
++    const ip =
++      forwardedFor?.split(",")[0]?.trim() ??
++      request.headers.get("x-real-ip") ??
++      "unknown";
++    const limiter = checkRateLimit(`extension-signin:${ip}:${email}`, {
++      limit: 5,
++      windowMs: 10 * 60_000,
++    });
++    if (!limiter.ok) {
++      const message = "Demasiados intentos. Intenta de nuevo en unos minutos.";
++      if (jsonMode) {
++        return NextResponse.json(
++          { ok: false, error: "rate_limited", message, retryAfterMs: limiter.retryAfterMs },
++          { status: 429 },
++        );
++      }
++      return redirect(request, buildErrorUrl(message, { email }));
++    }
++
+     const signInPolicy = await canSignInWithEmail(email);
+     if (!signInPolicy.ok) {
+       if (jsonMode) {
+@@ -82,11 +108,33 @@
+         );
+       }
+ 
++      const upstreamSession = await getExtensionAuthSession(extensionSignIn.sessionToken);
++      const resolvedSession = await resolveSessionStateFromAuthUser(upstreamSession?.user);
++      if (resolvedSession.status !== "ok") {
++        await revokeExtensionAuthSession(extensionSignIn.sessionToken).catch(() => false);
++        return NextResponse.json(
++          { ok: false, error: resolvedSession.status },
++          { status: resolvedSession.status === "unauthenticated" ? 401 : 403 },
++        );
++      }
++
++      const issuedToken = await issueExtensionSessionToken({
++        userId: resolvedSession.user.id,
++        client: request.headers.get("x-extension-client") ?? "chrome-sidepanel",
++        extensionVersion: request.headers.get("x-extension-version"),
++        userAgent: request.headers.get("user-agent"),
++        scope: "extension:chrome-sidepanel",
++      });
++
++      // Do not keep a full Neon Auth session token in the extension.
++      await revokeExtensionAuthSession(extensionSignIn.sessionToken).catch(() => false);
++
+       return NextResponse.json({
+         ok: true,
+         email,
+         next: next.startsWith("/") ? next : DEFAULT_SUCCESS_PATH,
+-        extensionSessionToken: extensionSignIn.sessionToken,
++        extensionSessionToken: issuedToken.token,
++        expiresAt: issuedToken.expiresAt.toISOString(),
+       });
+     }
+ 
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/extension/auth/sign-out/route.ts app/Scholarship-main/apps/web/src/app/api/extension/auth/sign-out/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/extension/auth/sign-out/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/extension/auth/sign-out/route.ts	2026-05-07 05:43:26.186769773 +0000
+@@ -6,18 +6,32 @@
+   EXTENSION_SESSION_TOKEN_HEADER,
+   revokeExtensionAuthSession,
+ } from "@/lib/extension-auth";
++import {
++  isIssuedExtensionToken,
++  revokeIssuedExtensionSessionToken,
++} from "@/lib/extension-session-tokens";
+ 
+ export const dynamic = "force-dynamic";
+ 
++function readBearerToken(authorization: string | null) {
++  const normalized = authorization?.trim() ?? "";
++  if (!normalized.toLowerCase().startsWith("bearer ")) return "";
++  return normalized.slice(7).trim();
++}
++
+ export async function POST() {
+   let revoked = false;
+ 
+   try {
+     const requestHeaders = await headers();
+     const extensionSessionToken =
+-      requestHeaders.get(EXTENSION_SESSION_TOKEN_HEADER)?.trim() ?? "";
++      requestHeaders.get(EXTENSION_SESSION_TOKEN_HEADER)?.trim() ||
++      readBearerToken(requestHeaders.get("authorization"));
++
+     if (extensionSessionToken) {
+-      revoked = await revokeExtensionAuthSession(extensionSessionToken);
++      revoked = isIssuedExtensionToken(extensionSessionToken)
++        ? await revokeIssuedExtensionSessionToken(extensionSessionToken)
++        : await revokeExtensionAuthSession(extensionSessionToken);
+     }
+   } catch {
+     // Fall back to standard cookie-based sign out.
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/app/api/extension/panel-config/route.ts app/Scholarship-main/apps/web/src/app/api/extension/panel-config/route.ts
+--- app_original/Scholarship-main/apps/web/src/app/api/extension/panel-config/route.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/app/api/extension/panel-config/route.ts	2026-05-07 05:43:26.187902764 +0000
+@@ -6,7 +6,8 @@
+ 
+ export async function GET() {
+   const config = await getExtensionPanelConfig();
+-  return NextResponse.json(config, {
++  const { selectorPack: _selectorPack, selectorPackJson: _selectorPackJson, ...publicConfig } = config;
++  return NextResponse.json(publicConfig, {
+     headers: {
+       "Cache-Control": "no-store",
+     },
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/lib/authz.ts app/Scholarship-main/apps/web/src/lib/authz.ts
+--- app_original/Scholarship-main/apps/web/src/lib/authz.ts	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/apps/web/src/lib/authz.ts	2026-05-07 05:43:26.185976696 +0000
+@@ -24,6 +24,10 @@
+ import { isAllowedEmail } from "@/lib/domain";
+ import { normalizeEmail } from "@/lib/normalize";
+ import { captureException } from "@/lib/observability";
++import {
++  getIssuedExtensionSessionUser,
++  isIssuedExtensionToken,
++} from "@/lib/extension-session-tokens";
+ import { prisma } from "@/lib/prisma";
+ import { canAccessAdminPanel, resolveAdminCapabilities } from "@/lib/admin-capabilities";
+ 
+@@ -153,7 +157,7 @@
+   return user;
+ };
+ 
+-async function resolveSessionStateFromAuthUser(userCandidate: unknown): Promise<SessionUserState> {
++export async function resolveSessionStateFromAuthUser(userCandidate: unknown): Promise<SessionUserState> {
+   const identity = resolveSessionIdentity(userCandidate);
+   if (!identity) {
+     return { status: "forbidden", user: null, email: "" };
+@@ -191,12 +195,26 @@
+ export async function getSessionUserFromExtensionToken(
+   extensionSessionToken: string,
+ ): Promise<SessionUserState> {
+-  if (!extensionSessionToken.trim()) {
++  const normalizedToken = extensionSessionToken.trim();
++  if (!normalizedToken) {
+     return { status: "unauthenticated", user: null, email: null };
+   }
+ 
+   try {
+-    const extensionSession = await getExtensionAuthSession(extensionSessionToken);
++    if (isIssuedExtensionToken(normalizedToken)) {
++      const user = await getIssuedExtensionSessionUser(normalizedToken);
++      if (!user) {
++        return { status: "unauthenticated", user: null, email: null };
++      }
++      if (!user.isActive) {
++        return { status: "inactive", user, email: user.email };
++      }
++      return { status: "ok", user, email: user.email };
++    }
++
++    // Backward compatibility for pre-4.6.2 extension tokens while users migrate.
++    // New tokens should always use issueExtensionSessionToken().
++    const extensionSession = await getExtensionAuthSession(normalizedToken);
+     if (!extensionSession?.user) {
+       return { status: "unauthenticated", user: null, email: null };
+     }
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/apps/web/src/lib/extension-session-tokens.ts app/Scholarship-main/apps/web/src/lib/extension-session-tokens.ts
+--- app_original/Scholarship-main/apps/web/src/lib/extension-session-tokens.ts	1970-01-01 00:00:00.000000000 +0000
++++ app/Scholarship-main/apps/web/src/lib/extension-session-tokens.ts	2026-05-07 05:41:15.684628576 +0000
+@@ -0,0 +1,104 @@
++import "server-only";
++
++import crypto from "node:crypto";
++
++import type { User } from "@prisma/client";
++
++import { prisma } from "@/lib/prisma";
++
++export const EXTENSION_TOKEN_PREFIX = "rx_ext_";
++const DEFAULT_TTL_MS = 1000 * 60 * 60 * 24 * 30;
++const MAX_CLIENT_LENGTH = 80;
++const MAX_VERSION_LENGTH = 32;
++const MAX_UA_LENGTH = 240;
++
++type ExtensionSessionTokenRow = {
++  id: string;
++  userId: string;
++  expiresAt: Date;
++  revokedAt: Date | null;
++};
++
++function sha256(value: string) {
++  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
++}
++
++function trimForStorage(value: string | null | undefined, maxLength: number) {
++  const trimmed = String(value ?? "").trim();
++  return trimmed ? trimmed.slice(0, maxLength) : null;
++}
++
++function parseIssuedExtensionToken(token: string) {
++  const normalized = String(token ?? "").trim();
++  if (!normalized.startsWith(EXTENSION_TOKEN_PREFIX)) return null;
++  const rest = normalized.slice(EXTENSION_TOKEN_PREFIX.length);
++  const [id, secret] = rest.split(".");
++  if (!id || !secret) return null;
++  return { id, secret };
++}
++
++export function isIssuedExtensionToken(token: string) {
++  return Boolean(parseIssuedExtensionToken(token));
++}
++
++export async function issueExtensionSessionToken(params: {
++  userId: string;
++  client?: string | null;
++  extensionVersion?: string | null;
++  userAgent?: string | null;
++  scope?: string | null;
++  ttlMs?: number | null;
++}) {
++  const id = crypto.randomUUID();
++  const secret = crypto.randomBytes(32).toString("base64url");
++  const token = `${EXTENSION_TOKEN_PREFIX}${id}.${secret}`;
++  const tokenHash = sha256(secret);
++  const expiresAt = new Date(Date.now() + Math.max(60_000, params.ttlMs ?? DEFAULT_TTL_MS));
++
++  await prisma.$executeRaw`
++    insert into recalc_admin.extension_session_token
++      (id, "userId", "tokenHash", scope, client, "extensionVersion", "userAgent", "expiresAt", "updatedAt")
++    values
++      (${id}::uuid, ${params.userId}::uuid, ${tokenHash}, ${trimForStorage(params.scope, 120) ?? "extension:default"}, ${trimForStorage(params.client, MAX_CLIENT_LENGTH)}, ${trimForStorage(params.extensionVersion, MAX_VERSION_LENGTH)}, ${trimForStorage(params.userAgent, MAX_UA_LENGTH)}, ${expiresAt}, now())
++  `;
++
++  return { token, expiresAt };
++}
++
++export async function revokeIssuedExtensionSessionToken(token: string) {
++  const parsed = parseIssuedExtensionToken(token);
++  if (!parsed) return false;
++  const tokenHash = sha256(parsed.secret);
++  const result = await prisma.$executeRaw`
++    update recalc_admin.extension_session_token
++    set "revokedAt" = coalesce("revokedAt", now()), "updatedAt" = now()
++    where id = ${parsed.id}::uuid and "tokenHash" = ${tokenHash} and "revokedAt" is null
++  `;
++  return Number(result) > 0;
++}
++
++export async function getIssuedExtensionSessionUser(token: string): Promise<User | null> {
++  const parsed = parseIssuedExtensionToken(token);
++  if (!parsed) return null;
++  const tokenHash = sha256(parsed.secret);
++
++  const rows = await prisma.$queryRaw<ExtensionSessionTokenRow[]>`
++    select id, "userId", "expiresAt", "revokedAt"
++    from recalc_admin.extension_session_token
++    where id = ${parsed.id}::uuid
++      and "tokenHash" = ${tokenHash}
++      and "revokedAt" is null
++      and "expiresAt" > now()
++    limit 1
++  `;
++  const row = rows[0];
++  if (!row) return null;
++
++  await prisma.$executeRaw`
++    update recalc_admin.extension_session_token
++    set "lastUsedAt" = now(), "updatedAt" = now()
++    where id = ${row.id}::uuid
++  `;
++
++  return prisma.user.findUnique({ where: { id: row.userId } });
++}
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/packages/db/prisma/migrations/20260507_extension_session_tokens/migration.sql app/Scholarship-main/packages/db/prisma/migrations/20260507_extension_session_tokens/migration.sql
+--- app_original/Scholarship-main/packages/db/prisma/migrations/20260507_extension_session_tokens/migration.sql	1970-01-01 00:00:00.000000000 +0000
++++ app/Scholarship-main/packages/db/prisma/migrations/20260507_extension_session_tokens/migration.sql	2026-05-07 05:41:15.684484222 +0000
+@@ -0,0 +1,29 @@
++CREATE TABLE IF NOT EXISTS "recalc_admin"."extension_session_token" (
++    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
++    "userId" UUID NOT NULL,
++    "tokenHash" TEXT NOT NULL,
++    "scope" TEXT NOT NULL DEFAULT 'extension:default',
++    "client" TEXT,
++    "extensionVersion" TEXT,
++    "userAgent" TEXT,
++    "expiresAt" TIMESTAMP(3) NOT NULL,
++    "revokedAt" TIMESTAMP(3),
++    "lastUsedAt" TIMESTAMP(3),
++    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    CONSTRAINT "extension_session_token_pkey" PRIMARY KEY ("id")
++);
++
++CREATE UNIQUE INDEX IF NOT EXISTS "extension_session_token_tokenHash_key"
++    ON "recalc_admin"."extension_session_token"("tokenHash");
++
++CREATE INDEX IF NOT EXISTS "extension_session_token_user_valid_idx"
++    ON "recalc_admin"."extension_session_token"("userId", "revokedAt", "expiresAt");
++
++CREATE INDEX IF NOT EXISTS "extension_session_token_expires_idx"
++    ON "recalc_admin"."extension_session_token"("expiresAt");
++
++ALTER TABLE "recalc_admin"."extension_session_token"
++    ADD CONSTRAINT "extension_session_token_userId_fkey"
++    FOREIGN KEY ("userId") REFERENCES "recalc_admin"."user"("id")
++    ON DELETE CASCADE ON UPDATE CASCADE;
+diff -ruN '--exclude=node_modules' app_original/Scholarship-main/packages/db/prisma/schema.prisma app/Scholarship-main/packages/db/prisma/schema.prisma
+--- app_original/Scholarship-main/packages/db/prisma/schema.prisma	2026-05-07 02:29:06.000000000 +0000
++++ app/Scholarship-main/packages/db/prisma/schema.prisma	2026-05-07 05:41:15.684253595 +0000
+@@ -695,6 +695,7 @@
+   inboxThreadParticipants    InboxThreadParticipant[]
+   inboxMessages              InboxMessage[]
+   pushSubscriptions          UserPushSubscription[]
++  extensionSessionTokens     ExtensionSessionToken[]
+ 
+   @@index([role, isActive], map: "user_role_isActive_idx")
+   @@map("user")
+@@ -813,6 +814,29 @@
+   @@schema("recalc_admin")
+ }
+ 
++
++model ExtensionSessionToken {
++  id               String    @id @default(uuid()) @db.Uuid
++  userId           String    @db.Uuid
++  tokenHash        String    @unique
++  scope            String    @default("extension:default")
++  client           String?
++  extensionVersion String?
++  userAgent        String?
++  expiresAt        DateTime
++  revokedAt        DateTime?
++  lastUsedAt       DateTime?
++  createdAt        DateTime  @default(now())
++  updatedAt        DateTime  @updatedAt
++
++  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
++
++  @@index([userId, revokedAt, expiresAt], map: "extension_session_token_user_valid_idx")
++  @@index([expiresAt], map: "extension_session_token_expires_idx")
++  @@map("extension_session_token")
++  @@schema("recalc_admin")
++}
++
+ model UserGoogleConnection {
+   id                    String    @id @default(uuid()) @db.Uuid
+   userId                String    @unique @db.Uuid
