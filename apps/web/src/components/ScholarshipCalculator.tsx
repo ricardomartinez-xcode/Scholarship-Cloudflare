@@ -2449,6 +2449,16 @@ export default function ScholarshipCalculator({
                   className="grid gap-2"
                 />
               ) : null}
+              {ctasInsideResult.length > 0 ? (
+                <div className="mt-3">
+                  <ConfiguredCtaList
+                    ctas={ctasInsideResult}
+                    className="flex flex-wrap gap-2"
+                    appearance="pill"
+                    onCtaClick={trackConfiguredResultCta}
+                  />
+                </div>
+              ) : null}
 
               <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
                 <div className="text-xs uppercase tracking-[0.28em] text-slate-400">
@@ -2656,17 +2666,7 @@ export default function ScholarshipCalculator({
             </div>
           ) : null}
  
-          {adminUnlocked && isAdmin ? (
-            <div className="admin-panel">
-              <h3 className="admin-panel-title">Admin</h3>
-              <div className="admin-panel-meta">
-                Unlock por 3 clicks en el logo. Solo para {userEmail}.
-              </div>
-              <div className="text-xs text-slate-300">
-                Reglas cargadas: {rules?.length ?? 0}
-              </div>
-            </div>
-          ) : null}
+          {/* Admin debug panel removed — CTAs are now sourced from admin locations */}
         </section>
 
         {belowResultSlot}

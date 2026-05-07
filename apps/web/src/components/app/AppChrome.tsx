@@ -265,15 +265,6 @@ export default function AppChrome({
       ),
     [navBannerCtas, sidebarBottomCtas, sidebarTopCtas],
   );
-  const workspaceActionAnnouncements = useMemo(
-    () =>
-      dedupeAnnouncements(
-        [...navAnnouncements, ...sidebarTopAnnouncements, ...sidebarBottomAnnouncements].filter(
-          (item) => !isAdminPanelAnnouncement(item),
-        ),
-      ),
-    [navAnnouncements, sidebarBottomAnnouncements, sidebarTopAnnouncements],
-  );
 
   const ctx = useMemo<AppContextValue>(
     () => ({
@@ -406,9 +397,8 @@ export default function AppChrome({
                 {showWorkspaceLayout && workspaceNavBannerCtas.length ? (
                   <ConfiguredCtaList
                     ctas={workspaceNavBannerCtas}
-                    appearance="pill"
-                    className="ui-workspace-header__cta-strip"
-                    itemClassName="ui-workspace-header__cta"
+                    appearance="card"
+                    className="grid gap-2 md:grid-cols-2 xl:grid-cols-3"
                   />
                 ) : null}
 

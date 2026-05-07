@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import Image from "next/image";
+
 export type DashboardIconName =
   | "menu"
   | "close"
@@ -58,6 +61,35 @@ function IconWrap({
   );
 }
 
+function CalculatorIconWithImage({ className }: { className?: string }) {
+  const [showImage, setShowImage] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
+  if (showImage && !imageError) {
+    return (
+      <Image
+        src="/icons/icono-calculadora.png"
+        alt="Calculadora"
+        width={24}
+        height={24}
+        className={className}
+        onError={() => {
+          setImageError(true);
+          setShowImage(false);
+        }}
+        style={{ objectFit: "contain" }}
+      />
+    );
+  }
+
+  return (
+    <IconWrap className={className}>
+      <rect x="5" y="3.5" width="14" height="17" rx="3" />
+      <path d="M8.5 7.5h7M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01" />
+    </IconWrap>
+  );
+}
+
 export function DashboardIcon({
   name,
   className,
@@ -99,12 +131,7 @@ export function DashboardIcon({
         </IconWrap>
       );
     case "calculator":
-      return (
-        <IconWrap className={className}>
-          <rect x="5" y="3.5" width="14" height="17" rx="3" />
-          <path d="M8.5 7.5h7M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01" />
-        </IconWrap>
-      );
+      return <CalculatorIconWithImage className={className} />;
     case "whatsapp":
       return (
         <IconWrap className={className}>
