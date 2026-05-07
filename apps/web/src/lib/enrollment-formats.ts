@@ -13,10 +13,16 @@ export type EnrollmentFormatRecord = {
   sortOrder: number;
 };
 
+function normalizeEnrollmentFormatSourceType(
+  value: string,
+): EnrollmentFormatRecord["sourceType"] {
+  return value === "upload" ? "upload" : "link";
+}
+
 export async function listEnrollmentFormats(options?: {
   includeInactive?: boolean;
   query?: string;
-}) {
+}): Promise<EnrollmentFormatRecord[]> {
   const query = options?.query?.trim() ?? "";
   const formats = await prisma.enrollmentFormat.findMany({
     where: {
@@ -36,11 +42,13 @@ export async function listEnrollmentFormats(options?: {
 
   return formats.map((format) => ({
     ...format,
-    sourceType: format.sourceType === "upload" ? "upload" : "link",
+    sourceType: normalizeEnrollmentFormatSourceType(format.sourceType),
   }));
 }
 
-export async function getEnrollmentFormat(id: string) {
+export async function getEnrollmentFormat(
+  id: string,
+): Promise<EnrollmentFormatRecord | null> {
   const format = await prisma.enrollmentFormat.findUnique({
     where: { id },
   });
@@ -48,7 +56,7 @@ export async function getEnrollmentFormat(id: string) {
   if (!format) return null;
   return {
     ...format,
-    sourceType: format.sourceType === "upload" ? "upload" : "link",
+    sourceType: normalizeEnrollmentFormatSourceType(format.sourceType),
   };
 }
 
