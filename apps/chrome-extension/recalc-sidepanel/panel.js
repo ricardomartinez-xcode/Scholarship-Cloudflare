@@ -90,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
     extensionBootstrap: null,
     lastQuote: null,
     lastDraft: null,
+    currentBenefits: { benefit: null, firstPaymentBenefit: null },
   };
   const enhancedSelects = new Map();
   let openEnhancedSelect = null;
@@ -563,6 +564,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const modality = refs.modalidadSelect.value;
     const plan = refs.planSelect.value;
     if (!businessLine || !modality || !plan) {
+      state.currentBenefits = { benefit: null, firstPaymentBenefit: null };
       refs.benefitSummary.textContent = "Selecciona la combinación para consultar beneficios activos.";
       resetQuoteMessagePreview("");
       return;
@@ -574,17 +576,20 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const { response, data } = await fetchJson(`/api/data/benefits?${params.toString()}`);
       if (!response.ok) {
+        state.currentBenefits = { benefit: null, firstPaymentBenefit: null };
         refs.benefitSummary.textContent = "No fue posible consultar beneficios para esta combinación.";
         return;
       }
       const benefit = data?.benefit ?? null;
       const firstPayment = data?.firstPaymentBenefit ?? null;
+      state.currentBenefits = { benefit, firstPaymentBenefit: firstPayment };
       const parts = [];
       if (benefit?.extraPercent) parts.push(`Aplica ${percent(benefit.extraPercent)} adicional.`);
       if (benefit?.duration) parts.push(`Duración: ${benefit.duration}.`);
       if (firstPayment?.firstPaymentAmount) parts.push(`Primer pago: ${money(firstPayment.firstPaymentAmount)}.`);
       refs.benefitSummary.textContent = parts.length ? parts.join(" ") : "No hay beneficios adicionales activos.";
     } catch {
+      state.currentBenefits = { benefit: null, firstPaymentBenefit: null };
       refs.benefitSummary.textContent = "No fue posible consultar beneficios para esta combinación.";
     }
   }
@@ -608,6 +613,164 @@ document.addEventListener("DOMContentLoaded", () => {
   function selectedFeeAmount() {
     const fee = state.fees.find((item) => item.id === refs.feeSelect.value);
     return fee ? Number(fee.costMxn) : 0;
+  }
+
+  function getRuleMin(rule) {
+    const min = Number(rule?.rango?.min);
+    return Number.isFinite(min) ? min : null;
+  }
+
+  function getRuleMax(rule) {
+    const max = Number(rule?.rango?.max);
+    return Number.isFinite(max) ? max : null;
+  }
+
+  function ruleContainsAverage(rule, average) {
+    const min = getRuleMin(rule);
+    const max = getRuleMax(rule);
+    if (min === null || max === null) return false;
+    return average >= min - 1e-6 && average <= max + 1e-6;
+  }
+
+  function nearestRuleForAverage(rules, average) {
+    let best = null;
+    for (const rule of rules) {
+      const min = getRuleMin(rule);
+      const max = getRuleMax(rule);
+      if (min === null || max === null) continue;
+      const distance = average < min ? min - average : average > max ? average - max : 0;
+      if (!best || distance < best.distance) best = { rule, distance };
+    }
+    return best?.rule ?? null;
+  }
+
+  function listRuleRanges(rules) {
+    return Array.from(new Set(rules.map((rule) => {
+      const min = getRuleMin(rule);
+      const max = getRuleMax(rule);
+      if (min === null || max === null) return null;
+      return `${min.toFixed(1)}-${max.toFixed(1)}`;
+    }).filter(Boolean)));
+  }
+
+  function basePriceFromRule(rule) {
+    if (!rule) return null;
+    const discountedPrice = Number(rule.monto);
+    const scholarshipPercent = Number(rule.porcentaje);
+    if (!Number.isFinite(discountedPrice) || !Number.isFinite(scholarshipPercent) || scholarshipPercent >= 100) return null;
+    return discountedPrice / (1 - scholarshipPercent / 100);
+  }
+
+  function shouldUseLocalMaestriaFallback(payload, quoteResult) {
+    const message = normalizeKey([quoteResult?.error, quoteResult?.hint].filter(Boolean).join(" "));
+    return (
+      canonBusinessLine(payload?.businessLine) === "maestria" &&
+      canonModality(payload?.modality) === "online" &&
+      Number(payload?.plan) === 4 &&
+      (message.includes("no hay reglas") || message.includes("combinacion") || !quoteResult?.ok)
+    );
+  }
+
+  function calculateLocalLegacyQuote(payload) {
+    const programKey = payload.enrollmentType === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
+    const businessLine = canonBusinessLine(payload.businessLine);
+    const modality = canonModality(payload.modality);
+    const plan = Number(payload.plan);
+    const average = Math.round(Number(payload.average) * 10) / 10;
+    const extraCharge = Number(payload.extraCharge || 0);
+    const candidateRules = state.rules.filter((rule) =>
+      ruleMatches(rule, programKey, businessLine, modality) && Number(rule.plan) === plan,
+    );
+
+    if (!candidateRules.length) {
+      return null;
+    }
+
+    const sinAccessToScholarship = average < 7;
+    let matchedRule = sinAccessToScholarship ? null : candidateRules.find((rule) => ruleContainsAverage(rule, average));
+    if (!sinAccessToScholarship && !matchedRule) {
+      const nearest = nearestRuleForAverage(candidateRules, average);
+      if (nearest) {
+        const min = getRuleMin(nearest);
+        const max = getRuleMax(nearest);
+        if (min !== null && max !== null && average >= min - 0.05 && average <= max + 0.05) {
+          matchedRule = nearest;
+        }
+      }
+    }
+
+    if (!sinAccessToScholarship && !matchedRule) {
+      return {
+        ok: false,
+        error: "No se encontró costo para ese promedio en esta combinación.",
+        hint: "Revisa el promedio o elige otra combinación. Abajo se muestran rangos válidos.",
+        ranges: listRuleRanges(candidateRules),
+        source: "extension_local_legacy",
+      };
+    }
+
+    const referenceRule = matchedRule || candidateRules[0];
+    const basePriceMxn = basePriceFromRule(referenceRule);
+    if (basePriceMxn === null) {
+      return null;
+    }
+
+    const scholarshipPercent = sinAccessToScholarship ? 0 : Number(referenceRule.porcentaje || 0);
+    const percentageBenefit = payload.enrollmentType === "regreso" ? null : state.currentBenefits?.benefit;
+    const firstPaymentBenefit = state.currentBenefits?.firstPaymentBenefit;
+    const additionalBenefitPercent = Number(percentageBenefit?.extraPercent || 0);
+    const scholarshipAmountMxn = sinAccessToScholarship ? 0 : basePriceMxn * (scholarshipPercent / 100);
+    const additionalBenefitAmountMxn = basePriceMxn * (additionalBenefitPercent / 100);
+    const subtotalMxn = basePriceMxn - scholarshipAmountMxn - additionalBenefitAmountMxn;
+    const totalMxn = subtotalMxn + extraCharge;
+
+    return {
+      ok: true,
+      basePriceMxn,
+      scholarshipPercent,
+      scholarshipAmountMxn,
+      additionalBenefitPercent,
+      additionalBenefitNotes: percentageBenefit?.notes ?? null,
+      additionalBenefitDuration: percentageBenefit?.duration ?? null,
+      additionalBenefitAmountMxn,
+      firstPaymentAmountMxn: Number(firstPaymentBenefit?.firstPaymentAmount || 0),
+      firstPaymentNotes: firstPaymentBenefit?.notes ?? null,
+      firstPaymentDuration: firstPaymentBenefit?.duration ?? null,
+      subtotalMxn,
+      totalMxn,
+      tier: null,
+      source: "extension_local_legacy",
+      modeUsed: "extension_local_legacy",
+      sinAccessToScholarship,
+    };
+  }
+
+  async function resolveQuoteWithFallback(payload) {
+    const primary = await fetchJson("/api/ext/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (primary.response.ok && primary.data?.ok) return primary.data;
+
+    if (shouldUseLocalMaestriaFallback(payload, primary.data)) {
+      try {
+        const canonical = await fetchJson("/api/data/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, clientSurface: "chrome_side_panel_fallback" }),
+        });
+        if (canonical.response.ok && canonical.data?.ok) return canonical.data;
+      } catch {
+        // Continúa al fallback local si la ruta canónica aún no acepta el token de extensión.
+      }
+
+      const localResult = calculateLocalLegacyQuote(payload);
+      if (localResult?.ok) return localResult;
+      if (localResult) return localResult;
+    }
+
+    return primary.data ?? { ok: false, error: "No fue posible calcular la cotización." };
   }
 
   async function calculateQuote() {
@@ -648,22 +811,19 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.calculateBtn.disabled = true;
     refs.calculateBtn.textContent = "Consultando...";
     try {
-      const { response, data } = await fetchJson("/api/ext/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrollmentType: refs.tipoSelect.value,
-          businessLine: canonBusinessLine(businessLine),
-          modality: canonModality(modality),
-          plan,
-          campus: refs.plantelSelect.value || null,
-          average,
-          subjectCount: subjects,
-          extraCharge,
-          clientSurface: "chrome_side_panel",
-        }),
-      });
-      if (!response.ok || !data?.ok) {
+      const quotePayload = {
+        enrollmentType: refs.tipoSelect.value,
+        businessLine: canonBusinessLine(businessLine),
+        modality: canonModality(modality),
+        plan,
+        campus: refs.plantelSelect.value || null,
+        average,
+        subjectCount: subjects,
+        extraCharge,
+        clientSurface: "chrome_side_panel",
+      };
+      const data = await resolveQuoteWithFallback(quotePayload);
+      if (!data?.ok) {
         const backendMessage = [data?.error, data?.hint, Array.isArray(data?.ranges) ? `Rangos válidos: ${data.ranges.join(", ")}` : ""]
           .filter(Boolean)
           .join(" ");
@@ -700,7 +860,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (refs.resultFirstPaymentHero) refs.resultFirstPaymentHero.textContent = money(data.firstPaymentAmountMxn);
         if (refs.resultFirstPaymentCopy) {
           refs.resultFirstPaymentCopy.textContent = [
-            data.firstPaymentDuration ? `Vigencia: ${data.firstPaymentDuration}` : "",
             data.firstPaymentNotes ?? "",
           ].filter(Boolean).join(" · ");
         }

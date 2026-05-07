@@ -111,7 +111,9 @@ export type LegacyScholarshipQuoteResult =
     };
 
 function toLegacyBusinessLine(businessLine: CanonicalBusinessLine) {
-  return businessLine === "prepa" ? "preparatoria" : businessLine;
+  if (businessLine === "prepa") return "preparatoria";
+  if (businessLine === "posgrado") return "maestria";
+  return businessLine;
 }
 
 function getTierForPlantel(meta: LegacyMetaPayload, plantelKey: string) {
