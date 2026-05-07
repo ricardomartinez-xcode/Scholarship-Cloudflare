@@ -1,0 +1,23 @@
+diff -ruN ./apps/chrome-extension/recalc-sidepanel/manifest.json /mnt/data/repo_fix_464/Scholarship-main/apps/chrome-extension/recalc-sidepanel/manifest.json
+--- ./apps/chrome-extension/recalc-sidepanel/manifest.json	2026-05-07 06:08:53.000000000 +0000
++++ /mnt/data/repo_fix_464/Scholarship-main/apps/chrome-extension/recalc-sidepanel/manifest.json	2026-05-07 06:17:41.570699504 +0000
+@@ -2,7 +2,7 @@
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "manifest_version": 3,
+   "name": "ReCalc",
+-  "version": "4.6.3",
++  "version": "4.6.4",
+   "description": "Panel lateral de ReCalc para acceso, campañas y automatización de WhatsApp Web con la app oficial.",
+   "minimum_chrome_version": "114",
+   "icons": {
+diff -ruN ./apps/chrome-extension/recalc-sidepanel/panel.js /mnt/data/repo_fix_464/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.js
+--- ./apps/chrome-extension/recalc-sidepanel/panel.js	2026-05-07 06:08:53.000000000 +0000
++++ /mnt/data/repo_fix_464/Scholarship-main/apps/chrome-extension/recalc-sidepanel/panel.js	2026-05-07 06:17:35.368543181 +0000
+@@ -860,7 +860,6 @@
+         if (refs.resultFirstPaymentHero) refs.resultFirstPaymentHero.textContent = money(data.firstPaymentAmountMxn);
+         if (refs.resultFirstPaymentCopy) {
+           refs.resultFirstPaymentCopy.textContent = [
+-            data.firstPaymentDuration ? `Vigencia: ${data.firstPaymentDuration}` : "",
+             data.firstPaymentNotes ?? "",
+           ].filter(Boolean).join(" · ");
+         }
