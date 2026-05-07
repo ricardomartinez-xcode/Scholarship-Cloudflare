@@ -256,34 +256,6 @@ export default function AppChrome({
   const pageTitle = showWorkspaceLayout
     ? currentWorkspaceItem.label
     : resolveDashboardTitle(pathname);
-  const adminAccessCtas = useMemo<PublicCta[]>(() => {
-    if (!isAdmin || !showWorkspaceLayout) return [];
-
-    const configuredAdminCtas = dedupeCtas(
-      [...navBannerCtas, ...sidebarTopCtas, ...sidebarBottomCtas].filter(
-        isAdminPanelCta,
-      ),
-    );
-
-    if (configuredAdminCtas.length) return configuredAdminCtas;
-
-    return [
-      {
-        id: "workspace-admin-access",
-        label: "Panel admin",
-        kind: "link",
-        url: "/admin",
-        variant: "secondary",
-        placement: "workspace_header",
-      },
-    ];
-  }, [
-    isAdmin,
-    navBannerCtas,
-    showWorkspaceLayout,
-    sidebarBottomCtas,
-    sidebarTopCtas,
-  ]);
   const workspaceNavBannerCtas = useMemo(
     () =>
       dedupeCtas(
@@ -441,15 +413,6 @@ export default function AppChrome({
                 ) : null}
 
                 <div className="ui-workspace-header__account flex min-w-0 items-center gap-2.5">
-                  {adminAccessCtas.length ? (
-                    <ConfiguredCtaList
-                      ctas={adminAccessCtas}
-                      appearance="pill"
-                      className="ui-admin-access-strip"
-                      itemClassName="ui-admin-access-cta"
-                    />
-                  ) : null}
-
                   <div className="hidden text-right sm:block">
                     <div className="ui-workspace-header__email max-w-[260px] truncate text-sm font-semibold text-[color:var(--ui-text-primary)]">
                       {userEmail ?? "n/a"}
