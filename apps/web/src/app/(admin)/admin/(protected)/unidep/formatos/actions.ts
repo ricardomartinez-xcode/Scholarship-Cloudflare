@@ -20,6 +20,14 @@ import {
 
 const FORMATS_WRITE_CAPABILITY = AdminCapability.manage_offers;
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
+type FormatFilePayload = {
+  fileName: string | null;
+  fileUrl: string;
+  fileMimeType: string | null;
+  fileSizeBytes: number | null;
+  sourceType: "upload" | "link";
+};
+
 const ALLOWED_FORMATS = [
   {
     extensions: [".pdf"],
@@ -64,7 +72,7 @@ function getAllowedFileInfo(file: File) {
   return { originalName, extension, mimeType: file.type || "application/octet-stream" };
 }
 
-async function persistUpload(file: File) {
+async function persistUpload(file: File): Promise<FormatFilePayload | null> {
   if (file.size <= 0) return null;
   if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new Error("El archivo no puede pesar más de 15 MB.");
@@ -112,21 +120,21 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
     const linkUrlRaw = String(formData.get("fileUrl") ?? "").trim() || null;
     const file = formData.get("file");
 
-    if (!title) return { ok: false, error: "El título es requerido." };
+    if (!title) throw new Error("El título es requerido.");
 
     const upload =
       file instanceof File && file.size > 0 ? await persistUpload(file) : null;
     const linkUrl = validateUrl(linkUrlRaw);
 
     if (!upload && linkUrlRaw && !linkUrl) {
-      return { ok: false, error: "El link debe ser una URL http/https válida." };
+      throw new Error("El link debe ser una URL http/https válida.");
     }
 
     if (!current && !upload && !linkUrl) {
-      return { ok: false, error: "Sube un archivo o captura un link de descarga." };
+      throw new Error("Sube un archivo o captura un link de descarga.");
     }
 
-    const nextFile = upload
+    const nextFile: FormatFilePayload | null = upload
       ? {
           fileName: upload.fileName,
           fileUrl: upload.fileUrl,
@@ -153,7 +161,7 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
           : null;
 
     if (!nextFile) {
-      return { ok: false, error: "Sube un archivo o captura un link de descarga." };
+      throw new Error("Sube un archivo o captura un link de descarga.");
     }
 
     await upsertEnrollmentFormat({
@@ -170,15 +178,10 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
     });
 
     revalidateFormats();
-    return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "No fue posible guardar el formato.",
-    };
+    throw new Error(
+      error instanceof Error ? error.message : "No fue posible guardar el formato.",
+    );
   }
 }
 
@@ -186,11 +189,10 @@ export async function deleteEnrollmentFormatAction(formData: FormData) {
   try {
     await requireAdminCapabilityUser(FORMATS_WRITE_CAPABILITY);
     const id = String(formData.get("id") ?? "").trim();
-    if (!id) return { ok: false, error: "ID requerido." };
+    if (!id) throw new Error("ID requerido.");
     await deleteEnrollmentFormat(id);
     revalidateFormats();
-    return { ok: true };
   } catch {
-    return { ok: false, error: "No fue posible eliminar el formato." };
+    throw new Error("No fue posible eliminar el formato.");
   }
 }
