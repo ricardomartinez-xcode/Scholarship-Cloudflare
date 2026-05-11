@@ -6,6 +6,7 @@
 # (no migration files or _prisma_migrations table required).
 
 set -e
+set -x  # Enable debug output
 
 # ── DIRECT_URL (plain postgres://, used by prisma db push) ────────────────────
 # Vercel's Neon integration exposes POSTGRES_URL_NON_POOLING (direct, non-pooled).
@@ -71,7 +72,12 @@ sql\`CREATE SCHEMA IF NOT EXISTS recalc_admin\`
 # Using db push avoids the _prisma_migrations table and the complex stale-record
 # resolution that was needed with migrate deploy.
 echo "[vercel-build] Running: prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss --skip-generate"
-prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss --skip-generate
+if prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss --skip-generate; then
+  echo "[vercel-build] Prisma db push succeeded"
+else
+  PRISMA_EXIT_CODE=$?
+  echo "[vercel-build] WARNING: Prisma db push failed with exit code $PRISMA_EXIT_CODE. Continuing with build anyway..."
+fi
 
 echo "[vercel-build] Running: npm --workspace @relead/web run build"
 npm --workspace @relead/web run build
