@@ -30,6 +30,11 @@ export async function POST(
           recipientId?: string;
           status?: "sent" | "failed" | "queued";
           error?: string | null;
+          step?: string | null;
+          delayMs?: number | null;
+          mediaInsertionStrategy?: string | null;
+          attachmentSummary?: unknown;
+          metaJson?: unknown;
         }>;
       }
     | null;
@@ -42,6 +47,11 @@ export async function POST(
         recipientId: String(result.recipientId ?? ""),
         status: result.status ?? "queued",
         error: result.error ?? null,
+        step: result.step ?? null,
+        delayMs: result.delayMs ?? null,
+        mediaInsertionStrategy: result.mediaInsertionStrategy ?? null,
+        attachmentSummary: result.attachmentSummary ?? null,
+        metaJson: result.metaJson ?? null,
       })) ?? [],
   });
 

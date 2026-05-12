@@ -1035,6 +1035,23 @@ export async function claimExtensionCampaignBatch(params: {
   };
 }
 
+function normalizeDispatchStep(value: unknown) {
+  const normalized = normalizeText(typeof value === "string" ? value : String(value ?? ""));
+  return normalized ? normalized.slice(0, 80) : null;
+}
+
+function normalizeDispatchDelayMs(value: unknown) {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.max(0, Math.min(10 * 60_000, Math.round(numeric)));
+}
+
+function normalizeMediaInsertionStrategy(value: unknown) {
+  const normalized = normalizeText(typeof value === "string" ? value : String(value ?? ""));
+  if (normalized === "preview_first" || normalized === "composer_first") return normalized;
+  return normalized ? normalized.slice(0, 60) : null;
+}
+
 export async function recordExtensionCampaignDispatch(params: {
   userId: string;
   campaignId: string;
@@ -1042,6 +1059,11 @@ export async function recordExtensionCampaignDispatch(params: {
     recipientId: string;
     status: "sent" | "failed" | "queued";
     error?: string | null;
+    step?: string | null;
+    delayMs?: number | null;
+    mediaInsertionStrategy?: string | null;
+    attachmentSummary?: unknown;
+    metaJson?: unknown;
   }>;
 }) {
   if (!params.results.length) {
@@ -1129,8 +1151,41 @@ export async function recordExtensionCampaignDispatch(params: {
       status: nextStatus,
       sentCount: params.results.filter((item) => item.status === "sent").length,
       failedCount: params.results.filter((item) => item.status === "failed").length,
+      results: params.results.map((item) => ({
+        recipientId: item.recipientId,
+        status: item.status,
+        error: item.error ?? null,
+        step: normalizeDispatchStep(item.step),
+        delayMs: normalizeDispatchDelayMs(item.delayMs),
+        mediaInsertionStrategy: normalizeMediaInsertionStrategy(item.mediaInsertionStrategy),
+        attachmentSummary: item.attachmentSummary ?? null,
+        metaJson: item.metaJson ?? null,
+      })),
     },
   });
+
+  await Promise.all(
+    params.results.map((item) =>
+      writeBusinessEventSafe({
+        type: "EXTENSION_RUN_EVENT",
+        userId: params.userId,
+        subjectType: "extension_campaign_recipient",
+        subjectId: item.recipientId,
+        metadata: {
+          eventType: "campaign_dispatch_result",
+          campaignId: params.campaignId,
+          campaignName: campaign.campaignName,
+          status: item.status,
+          error: item.error ?? null,
+          step: normalizeDispatchStep(item.step),
+          delayMs: normalizeDispatchDelayMs(item.delayMs),
+          mediaInsertionStrategy: normalizeMediaInsertionStrategy(item.mediaInsertionStrategy),
+          attachmentSummary: item.attachmentSummary ?? null,
+          metaJson: item.metaJson ?? null,
+        },
+      }),
+    ),
+  );
 
   await recordCampaignDispatchForContacts({
     userId: params.userId,

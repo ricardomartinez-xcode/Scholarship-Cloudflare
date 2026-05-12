@@ -11,6 +11,45 @@ function statusCodeForSessionState(status: "unauthenticated" | "forbidden" | "in
   return 403;
 }
 
+
+function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: string | null) {
+  const raw = String(value ?? "").split(";")[0].trim().toLowerCase();
+  if (raw === "image/jpg" || raw === "image/pjpeg" || raw === "image/jfif") return "image/jpeg";
+  if (raw.startsWith("image/")) return raw;
+
+  const pathname = (() => {
+    try {
+      return new URL(String(mediaUrl ?? "")).pathname.toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+
+  if (pathname.endsWith(".png")) return "image/png";
+  if (pathname.endsWith(".webp")) return "image/webp";
+  if (pathname.endsWith(".gif")) return "image/gif";
+  if (pathname.endsWith(".bmp")) return "image/bmp";
+  if (pathname.endsWith(".jfif") || pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+
+  return "application/octet-stream";
+}
+
+function isSupportedExtensionMediaContentType(contentType: string) {
+  if (!contentType.startsWith("image/")) return false;
+  return contentType !== "image/x-icon" && contentType !== "image/vnd.microsoft.icon";
+}
+
+function extensionFromContentType(contentType: string) {
+  if (contentType === "image/png") return "png";
+  if (contentType === "image/webp") return "webp";
+  if (contentType === "image/gif") return "gif";
+  if (contentType === "image/bmp") return "bmp";
+  if (contentType === "image/svg+xml") return "svg";
+  return "jpg";
+}
+
 export async function GET(request: Request) {
   const session = await getSessionUser();
   if (session.status !== "ok") {
@@ -59,15 +98,20 @@ export async function GET(request: Request) {
       );
     }
 
-    const contentType = upstream.headers.get("content-type") || "application/octet-stream";
-    const extension =
-      contentType.includes("png")
-        ? "png"
-        : contentType.includes("webp")
-          ? "webp"
-          : contentType.includes("gif")
-            ? "gif"
-            : "jpg";
+    const contentType = normalizeMediaContentType(
+      upstream.headers.get("content-type"),
+      campaign.mediaUrl,
+    );
+    if (!isSupportedExtensionMediaContentType(contentType)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `La imagen de campaña debe devolver un Content-Type image/* compatible. Se recibió: ${contentType}.`,
+        },
+        { status: 415 },
+      );
+    }
+    const extension = extensionFromContentType(contentType);
 
     const safeName = campaign.campaignName
       .toLowerCase()
@@ -81,6 +125,9 @@ export async function GET(request: Request) {
         "content-type": contentType,
         "cache-control": "private, no-store, max-age=0",
         "content-disposition": `inline; filename="${safeName}.${extension}"`,
+        ...(upstream.headers.get("content-length")
+          ? { "content-length": upstream.headers.get("content-length") as string }
+          : {}),
       },
     });
   } catch (error) {
