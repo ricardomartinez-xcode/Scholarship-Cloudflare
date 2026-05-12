@@ -10,7 +10,7 @@
       sendButton:
         "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], button[aria-label='Enviar'], button[aria-label='Send'], span[data-testid='wds-ic-send-filled'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
       attachButton:
-        "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus'], span[data-icon='plus-rounded']",
+  "button[aria-label='Adjuntar'], button[aria-label='Attach'], [role='button'][aria-label='Adjuntar'], [role='button'][aria-label='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], [role='button'][aria-label*='Adjuntar'], [role='button'][aria-label*='Attach'], button[title*='Adjuntar'], button[title*='Attach'], span[data-testid='plus-rounded'], span[data-icon='plus-rounded'], span[data-icon='plus']",
       mediaCaptionInput:
         // Incluimos 'p.copyable-text' como alternativa, ya que en algunas
         // versiones la zona de caption se renderiza como <p> en lugar de
@@ -167,8 +167,35 @@ function normalizeSelectorPack(pack) {
   }
 
   function findAttachButton(pack) {
-    return firstVisible(getSelector("attachButton", pack));
+  const fromSelectors = firstVisible(getSelector("attachButton", pack));
+  if (fromSelectors) {
+    const clickable =
+      fromSelectors.closest?.("button, [role='button']") ||
+      fromSelectors;
+    if (clickable) return clickable;
   }
+
+  const candidates = Array.from(document.querySelectorAll("button, [role='button']"))
+    .filter((node) => isVisible(node))
+    .filter((node) => {
+      const icon =
+        node.querySelector("[data-icon='plus-rounded'], [data-testid='plus-rounded'], [data-icon='plus']");
+      const label = String(
+        node.getAttribute("aria-label") ||
+        node.getAttribute("title") ||
+        node.textContent ||
+        "",
+      ).toLowerCase();
+
+      return (
+        icon ||
+        label.includes("adjuntar") ||
+        label.includes("attach")
+      );
+    });
+
+  return candidates[0] || null;
+}
 
   function findConversationReady(pack) {
     return firstVisible(getSelector("conversationReady", pack));
