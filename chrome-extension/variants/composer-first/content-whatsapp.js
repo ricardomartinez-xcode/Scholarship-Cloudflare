@@ -3,19 +3,19 @@ const DEFAULT_SELECTOR_PACK = {
   selectors: {
     messageInput:
       "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
+
     sendButton:
-      "button[aria-label='Enviar'], button[aria-label='Send'], span[data-icon='send']",
+      "button[aria-label='Enviar'], button[aria-label='Send'], div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], div[role='button'][aria-label*='Send'][aria-label*='selected'], div[role='button'][aria-label*='Enviar'][aria-label*='seleccionado'], span[data-icon='wds-ic-send-filled'], span[data-testid='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
+
     attachButton:
-      "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus'], span[data-icon='plus-rounded']",
+      "button[aria-label='Adjuntar'], button[aria-label='Attach'], [role='button'][aria-label='Adjuntar'], [role='button'][aria-label='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], [role='button'][aria-label*='Adjuntar'], [role='button'][aria-label*='Attach'], button[title*='Adjuntar'], button[title*='Attach'], span[data-testid='plus-rounded'], span[data-icon='plus-rounded'], span[data-icon='plus']",
+
     fileInput:
       "input[type='file'][accept*='image'], input[type='file'][accept*='video'], input[type='file']",
+
     mediaCaptionInput:
-      // Añadimos p.copyable-text como alternativa a los selectores
-      // tradicionales de caption. En algunas versiones de WhatsApp el
-      // campo de caption no es un div editable sino un <p> con la
-      // clase 'copyable-text'. Conservamos los selectores anteriores
-      // como primera opción para mantener compatibilidad.
       "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], p.copyable-text",
+
     conversationReady:
       "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
   },
@@ -24,6 +24,21 @@ const DEFAULT_SELECTOR_PACK = {
 let awaitingChatNotified = false;
 let observer = null;
 let applyingDraft = false;
+
+function mergeSelector(defaultSelector, overrideSelector) {
+  const pieces = [
+    String(overrideSelector || "").trim(),
+    String(defaultSelector || "").trim(),
+  ].filter(Boolean);
+
+  return pieces
+    .join(", ")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item, index, list) => list.indexOf(item) === index)
+    .join(", ");
+}
 
 function normalizeSelectorPack(pack) {
   const selectors =
@@ -34,29 +49,40 @@ function normalizeSelectorPack(pack) {
   return {
     selectors: {
       messageInput:
-        typeof selectors.messageInput === "string" && selectors.messageInput.trim()
-          ? selectors.messageInput.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.messageInput,
+        mergeSelector(
+          DEFAULT_SELECTOR_PACK.selectors.messageInput,
+          typeof selectors.messageInput === "string" ? selectors.messageInput : "",
+        ),
+
       sendButton:
-        typeof selectors.sendButton === "string" && selectors.sendButton.trim()
-          ? selectors.sendButton.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.sendButton,
+        mergeSelector(
+          DEFAULT_SELECTOR_PACK.selectors.sendButton,
+          typeof selectors.sendButton === "string" ? selectors.sendButton : "",
+        ),
+
       attachButton:
-        typeof selectors.attachButton === "string" && selectors.attachButton.trim()
-          ? selectors.attachButton.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.attachButton,
+        mergeSelector(
+          DEFAULT_SELECTOR_PACK.selectors.attachButton,
+          typeof selectors.attachButton === "string" ? selectors.attachButton : "",
+        ),
+
       fileInput:
-        typeof selectors.fileInput === "string" && selectors.fileInput.trim()
-          ? selectors.fileInput.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.fileInput,
+        mergeSelector(
+          DEFAULT_SELECTOR_PACK.selectors.fileInput,
+          typeof selectors.fileInput === "string" ? selectors.fileInput : "",
+        ),
+
       mediaCaptionInput:
-        typeof selectors.mediaCaptionInput === "string" && selectors.mediaCaptionInput.trim()
-          ? selectors.mediaCaptionInput.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.mediaCaptionInput,
+        mergeSelector(
+          DEFAULT_SELECTOR_PACK.selectors.mediaCaptionInput,
+          typeof selectors.mediaCaptionInput === "string" ? selectors.mediaCaptionInput : "",
+        ),
+
       conversationReady:
-        typeof selectors.conversationReady === "string" && selectors.conversationReady.trim()
-          ? selectors.conversationReady.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.conversationReady,
+        mergeSelector(
+          DEFAULT_SELECTOR_PACK.selectors.conversationReady,
+          typeof selectors.conversationReady === "string" ? selectors.conversationReady : "",
+        ),
     },
   };
 }
@@ -109,19 +135,99 @@ function findComposer(selectorPack) {
 function findSendButton(selectorPack) {
   const selectors = normalizeSelectorPack(selectorPack).selectors.sendButton;
   const footer = document.querySelector("footer");
+
   if (footer) {
     for (const selector of parseSelectorList(selectors)) {
-      const nodes = Array.from(footer.querySelectorAll(selector));
+      let nodes = [];
+
+      try {
+        nodes = Array.from(footer.querySelectorAll(selector));
+      } catch {
+        continue;
+      }
+
       const visible = nodes.find((node) => isVisible(node));
-      if (visible) return visible;
-      if (nodes[0]) return nodes[0];
+      if (visible) {
+        return visible.closest?.("button, [role='button']") || visible;
+      }
+
+      if (nodes[0]) {
+        return nodes[0].closest?.("button, [role='button']") || nodes[0];
+      }
     }
   }
-  return findFirstVisible(selectors);
+
+  const fromSelectors = findFirstVisible(selectors);
+
+  if (fromSelectors) {
+    return fromSelectors.closest?.("button, [role='button']") || fromSelectors;
+  }
+
+  const candidates = Array.from(document.querySelectorAll("button, [role='button']"))
+    .filter((node) => isVisible(node))
+    .filter((node) => {
+      const icon = node.querySelector(
+        "[data-icon='wds-ic-send-filled'], [data-testid='wds-ic-send-filled'], [data-icon='send-filled'], [data-icon='send']",
+      );
+
+      const label = String(
+        node.getAttribute("aria-label") ||
+          node.getAttribute("title") ||
+          node.textContent ||
+          "",
+      ).toLowerCase();
+
+      return (
+        icon ||
+        label === "send" ||
+        label === "enviar" ||
+        (label.includes("send") && label.includes("selected")) ||
+        (label.includes("enviar") && label.includes("seleccion"))
+      );
+    });
+
+  return candidates[0] || null;
 }
 
 function findAttachButton(selectorPack) {
-  return findFirstVisible(normalizeSelectorPack(selectorPack).selectors.attachButton);
+  const fromSelectors = findFirstVisible(
+    normalizeSelectorPack(selectorPack).selectors.attachButton,
+  );
+
+  if (fromSelectors) {
+    const clickable =
+      fromSelectors.closest?.("button, [role='button']") ||
+      fromSelectors;
+
+    if (clickable instanceof Element && isVisible(clickable)) {
+      return clickable;
+    }
+  }
+
+  const candidates = Array.from(
+    document.querySelectorAll("button, [role='button']"),
+  )
+    .filter((node) => isVisible(node))
+    .filter((node) => {
+      const icon = node.querySelector(
+        "[data-icon='plus-rounded'], [data-testid='plus-rounded'], [data-icon='plus']",
+      );
+
+      const label = String(
+        node.getAttribute("aria-label") ||
+          node.getAttribute("title") ||
+          node.textContent ||
+          "",
+      ).toLowerCase();
+
+      return (
+        icon ||
+        label.includes("adjuntar") ||
+        label.includes("attach")
+      );
+    });
+
+  return candidates[0] || null;
 }
 
 function findFileInput(selectorPack) {
