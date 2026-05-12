@@ -150,33 +150,133 @@ async function ensureWhatsAppTab({ phone, text } = {}) {
 }
 
 async function ensureWhatsAppBridge(tabId) {
-  await chrome.scripting.executeScript({
-    target: { tabId },
+  console.log("[ReCalc][BG] Inyectando bridge de WhatsApp.", {
+    tabId,
     files: mainWorldFiles,
-    world: "MAIN",
-  }).catch(() => null);
+  });
+
+  try {
+    const injectionResult = await chrome.scripting.executeScript({
+      target: { tabId },
+      files: mainWorldFiles,
+      world: "MAIN",
+    });
+
+    console.log("[ReCalc][BG] Bridge de WhatsApp inyectado.", {
+      tabId,
+      resultCount: Array.isArray(injectionResult) ? injectionResult.length : 0,
+    });
+  } catch (error) {
+    console.error("[ReCalc][BG] Falló la inyección del bridge de WhatsApp.", error);
+
+    throw new Error(
+      `No fue posible inyectar los scripts de WhatsApp: ${error?.message || String(error)}`,
+    );
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  try {
+    const [probeResult] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: () => ({
+        href: window.location.href,
+        readyState: document.readyState,
+        hasSelectors: Boolean(window.RecalcWaSelectors),
+        hasText: Boolean(window.RecalcWaText),
+        hasChat: Boolean(window.RecalcWaChat),
+        hasAttachments: Boolean(window.RecalcWaAttachments),
+        hasRunner: Boolean(window.RecalcWaRunner),
+        attachButtonFound: Boolean(
+          document.querySelector(
+            "button[aria-label='Adjuntar'], button[aria-label='Attach'], [role='button'][aria-label='Adjuntar'], [role='button'][aria-label='Attach'], span[data-icon='plus-rounded'], span[data-testid='plus-rounded'], span[data-icon='plus']",
+          ),
+        ),
+      }),
+    });
+
+    const probe = probeResult?.result || null;
+
+    console.log("[ReCalc][BG] Diagnóstico del bridge de WhatsApp.", probe);
+
+    if (!probe?.hasSelectors || !probe?.hasText || !probe?.hasChat || !probe?.hasAttachments || !probe?.hasRunner) {
+      throw new Error(
+        `Bridge incompleto. Estado: ${JSON.stringify(probe)}`,
+      );
+    }
+
+    if (!probe?.attachButtonFound) {
+      console.warn("[ReCalc][BG] Bridge cargado, pero no se detectó el botón Adjuntar en el DOM actual.", probe);
+    }
+
+    return probe;
+  } catch (error) {
+    console.error("[ReCalc][BG] Falló el diagnóstico del bridge de WhatsApp.", error);
+
+    throw new Error(
+      `No fue posible validar el bridge de WhatsApp: ${error?.message || String(error)}`,
+    );
+  }
 }
 
 async function sendMessageToTab(tabId, message, { retries = 10, delayMs = 700 } = {}) {
+  let lastTransportError = null;
+
   for (let attempt = 0; attempt < retries; attempt += 1) {
+    console.log("[ReCalc][BG] Enviando mensaje a WhatsApp.", {
+      tabId,
+      type: message?.type,
+      attempt: attempt + 1,
+      retries,
+    });
+
     const response = await new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, message, (result) => {
         const lastError = chrome.runtime.lastError;
+
         if (lastError) {
-          resolve({ transportError: true, error: lastError.message });
+          resolve({
+            transportError: true,
+            error: lastError.message,
+          });
           return;
         }
+
         if (typeof result === "undefined") {
-          resolve({ transportError: true, error: "Sin respuesta del content script." });
+          resolve({
+            transportError: true,
+            error: "Sin respuesta del content script.",
+          });
           return;
         }
+
         resolve(result);
       });
     });
-    if (!response?.transportError) return response;
+
+    console.log("[ReCalc][BG] Respuesta de WhatsApp/content script.", {
+      attempt: attempt + 1,
+      response,
+    });
+
+    if (!response?.transportError) {
+      return response;
+    }
+
+    lastTransportError = response?.error || "Error de transporte desconocido.";
+
+    console.warn("[ReCalc][BG] No hubo respuesta válida del content script. Reintentando.", {
+      attempt: attempt + 1,
+      error: lastTransportError,
+    });
+
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-  throw new Error("No fue posible comunicarse con WhatsApp Web desde la extensión.");
+
+  throw new Error(
+    `No fue posible comunicarse con WhatsApp Web desde la extensión. Último error: ${lastTransportError || "sin detalle"}`,
+  );
 }
 
 async function loadCampaignById(runnerState) {
