@@ -25,17 +25,41 @@
     },
   };
 
-  function normalizeSelectorPack(pack) {
-    const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
-      ? pack.selectors
-      : {};
-    return {
-      selectors: {
-        ...DEFAULT_SELECTOR_PACK.selectors,
-        ...selectors,
-      },
-    };
-  }
+function mergeSelector(defaultSelector, overrideSelector) {
+  const pieces = [
+    String(overrideSelector || "").trim(),
+    String(defaultSelector || "").trim(),
+  ].filter(Boolean);
+
+  return pieces
+    .join(", ")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item, index, list) => list.indexOf(item) === index)
+    .join(", ");
+}
+
+function normalizeSelectorPack(pack) {
+  const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
+    ? pack.selectors
+    : {};
+
+  const defaults = DEFAULT_SELECTOR_PACK.selectors;
+  const merged = {};
+
+  Object.keys(defaults).forEach((key) => {
+    merged[key] = mergeSelector(defaults[key], selectors[key]);
+  });
+
+  Object.keys(selectors).forEach((key) => {
+    if (!merged[key]) {
+      merged[key] = String(selectors[key] || "").trim();
+    }
+  });
+
+  return { selectors: merged };
+}
 
   function parseSelectorList(value) {
     return String(value || "")
