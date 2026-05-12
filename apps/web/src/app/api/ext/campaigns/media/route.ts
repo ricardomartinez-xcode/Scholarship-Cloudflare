@@ -125,9 +125,6 @@ export async function GET(request: Request) {
         "content-type": contentType,
         "cache-control": "private, no-store, max-age=0",
         "content-disposition": `inline; filename="${safeName}.${extension}"`,
-        ...(upstream.headers.get("content-length")
-          ? { "content-length": upstream.headers.get("content-length") as string }
-          : {}),
       },
     });
   } catch (error) {
