@@ -105,14 +105,30 @@ function buildWhatsAppUrl({ phone, text }) {
   return url.toString();
 }
 
-function waitForTabComplete(tabId) {
+function waitForTabComplete(tabId, { timeoutMs = 15000 } = {}) {
   return new Promise((resolve) => {
+    let settled = false;
     const listener = (updatedTabId, changeInfo) => {
       if (updatedTabId !== tabId || changeInfo.status !== "complete") return;
-      chrome.tabs.onUpdated.removeListener(listener);
-      resolve();
+      done();
     };
+    const timeoutId = setTimeout(() => done(), timeoutMs);
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      chrome.tabs.onUpdated.removeListener(listener);
+    };
+    function done() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    }
+
     chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError) return;
+      if (tab?.status === "complete") done();
+    });
   });
 }
 
