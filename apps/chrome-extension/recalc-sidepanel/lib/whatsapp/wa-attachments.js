@@ -336,6 +336,7 @@
             ...captionResult,
             via: "preview",
           };
+          await clearComposerDraft(pack);
         }
       }
       captionApplied = captionApplied || captionResult.applied;

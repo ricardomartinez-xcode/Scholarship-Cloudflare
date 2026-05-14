@@ -218,6 +218,27 @@ function resolveMessage(working, recipient) {
   );
 }
 
+const SUPPORTED_CAMPAIGN_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function normalizeContentType(value) {
+  const normalized = String(value || "").split(";")[0].trim().toLowerCase();
+  if (normalized === "image/jpg" || normalized === "image/pjpeg" || normalized === "image/jfif") {
+    return "image/jpeg";
+  }
+  return normalized;
+}
+
+function isSupportedCampaignImageType(value) {
+  return SUPPORTED_CAMPAIGN_IMAGE_TYPES.has(normalizeContentType(value));
+}
+
+function extensionForCampaignImageType(contentType) {
+  const normalized = normalizeContentType(contentType);
+  if (normalized === "image/png") return "png";
+  if (normalized === "image/webp") return "webp";
+  return "jpg";
+}
+
 function filenameFromDisposition(headerValue) {
   const normalized = String(headerValue || "");
   const utf8Match = normalized.match(/filename\*=UTF-8''([^;]+)/i);
@@ -259,10 +280,19 @@ async function getAttachmentsForCampaign(working) {
   const blob = await response.blob();
   const buffer = await blob.arrayBuffer();
   const bytes = Array.from(new Uint8Array(buffer));
-  const contentType = blob.type || response.headers.get("content-type") || "application/octet-stream";
+  const contentType = normalizeContentType(
+    blob.type || response.headers.get("content-type") || "application/octet-stream",
+  );
+
+  if (!isSupportedCampaignImageType(contentType)) {
+    throw new Error(
+      `La imagen de campaña debe ser PNG, JPG o WEBP. El backend entregó: ${contentType || "desconocido"}.`,
+    );
+  }
+
   const fileName =
     filenameFromDisposition(response.headers.get("content-disposition")) ||
-    `campaign-media.${contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : contentType.includes("gif") ? "gif" : "jpg"}`;
+    `campaign-media.${extensionForCampaignImageType(contentType)}`;
 
   const payload = [{
     name: fileName,

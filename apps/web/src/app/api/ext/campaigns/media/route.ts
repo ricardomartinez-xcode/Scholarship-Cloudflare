@@ -15,7 +15,7 @@ function statusCodeForSessionState(status: "unauthenticated" | "forbidden" | "in
 function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: string | null) {
   const raw = String(value ?? "").split(";")[0].trim().toLowerCase();
   if (raw === "image/jpg" || raw === "image/pjpeg" || raw === "image/jfif") return "image/jpeg";
-  if (raw.startsWith("image/")) return raw;
+  if (raw === "image/jpeg" || raw === "image/png" || raw === "image/webp") return raw;
 
   const pathname = (() => {
     try {
@@ -27,8 +27,6 @@ function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: 
 
   if (pathname.endsWith(".png")) return "image/png";
   if (pathname.endsWith(".webp")) return "image/webp";
-  if (pathname.endsWith(".gif")) return "image/gif";
-  if (pathname.endsWith(".bmp")) return "image/bmp";
   if (pathname.endsWith(".jfif") || pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) {
     return "image/jpeg";
   }
@@ -37,16 +35,12 @@ function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: 
 }
 
 function isSupportedExtensionMediaContentType(contentType: string) {
-  if (!contentType.startsWith("image/")) return false;
-  return contentType !== "image/x-icon" && contentType !== "image/vnd.microsoft.icon";
+  return contentType === "image/jpeg" || contentType === "image/png" || contentType === "image/webp";
 }
 
 function extensionFromContentType(contentType: string) {
   if (contentType === "image/png") return "png";
   if (contentType === "image/webp") return "webp";
-  if (contentType === "image/gif") return "gif";
-  if (contentType === "image/bmp") return "bmp";
-  if (contentType === "image/svg+xml") return "svg";
   return "jpg";
 }
 
@@ -106,7 +100,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: `La imagen de campaña debe devolver un Content-Type image/* compatible. Se recibió: ${contentType}.`,
+          error: `La imagen de campaña debe ser PNG, JPG o WEBP. Se recibió: ${contentType}.`,
         },
         { status: 415 },
       );

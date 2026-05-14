@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import type { DashboardNavGroup, DashboardNavItem } from "@/config/dashboard-navigation";
@@ -104,21 +104,16 @@ export default function DashboardSidebarNav({
       ),
     [activeKey, groups, pathname],
   );
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(
-    () => new Set(activeParentKeys),
+  const [manualExpandedKeys, setManualExpandedKeys] = useState<Set<string>>(
+    () => new Set<string>(),
+  );
+  const expandedKeys = useMemo(
+    () => new Set([...manualExpandedKeys, ...activeParentKeys]),
+    [activeParentKeys, manualExpandedKeys],
   );
 
-  useEffect(() => {
-    if (!activeParentKeys.length) return;
-    setExpandedKeys((current) => {
-      const next = new Set(current);
-      activeParentKeys.forEach((key) => next.add(key));
-      return next;
-    });
-  }, [activeParentKeys]);
-
   const toggleExpanded = (key: string) => {
-    setExpandedKeys((current) => {
+    setManualExpandedKeys((current) => {
       const next = new Set(current);
       if (next.has(key)) next.delete(key);
       else next.add(key);

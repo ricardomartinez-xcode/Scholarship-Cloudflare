@@ -8,6 +8,23 @@ type CloudinaryUploadResult = {
   resourceType: string | null;
 };
 
+const SUPPORTED_CAMPAIGN_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/jpg",
+  "image/pjpeg",
+  "image/jfif",
+]);
+
+function normalizeCampaignImageType(value: string) {
+  const normalized = String(value || "").split(";")[0].trim().toLowerCase();
+  if (normalized === "image/jpg" || normalized === "image/pjpeg" || normalized === "image/jfif") {
+    return "image/jpeg";
+  }
+  return normalized;
+}
+
 function getCloudinaryEnv() {
   return {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "",
@@ -54,8 +71,9 @@ export async function uploadCampaignImageToCloudinary(params: {
     );
   }
 
-  if (!params.file.type.startsWith("image/")) {
-    throw new Error("Solo se permiten archivos de imagen.");
+  const normalizedFileType = normalizeCampaignImageType(params.file.type);
+  if (!SUPPORTED_CAMPAIGN_IMAGE_TYPES.has(normalizedFileType)) {
+    throw new Error("Solo se permiten imágenes PNG, JPG o WEBP para campañas de WhatsApp.");
   }
 
   const timestamp = String(Math.floor(Date.now() / 1000));

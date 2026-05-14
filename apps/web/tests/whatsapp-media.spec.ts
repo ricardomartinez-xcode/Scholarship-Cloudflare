@@ -90,6 +90,7 @@ function attachmentFixture() {
     <input id="generic-input" type="file" />
 
     <div id="preview-modal" role="dialog">
+      <div id="remove-attachment" role="button" aria-label="Quitar archivo adjunto"></div>
       <div id="modal-caption" role="textbox" contenteditable="true" data-tab="10"></div>
       <button id="modal-send-button" aria-label="Enviar">
         <span id="modal-send-icon" data-icon="send"></span>
@@ -148,6 +149,31 @@ function attachmentFixture() {
         window.fixtureState.modalSendIconClicks += 1;
       });
     </script>
+  `;
+}
+
+function stickerOnlyAttachmentFixture() {
+  return `
+    <style>
+      body { font-family: sans-serif; }
+      button, [role="menuitem"], input[type="file"] {
+        min-width: 48px;
+        min-height: 24px;
+      }
+      #attachment-menu {
+        display: block;
+      }
+    </style>
+
+    <button id="attach-button" aria-label="Adjuntar">
+      <span id="attach-icon" data-icon="plus"></span>
+    </button>
+
+    <div id="attachment-menu" role="menu">
+      <div id="sticker-option" role="menuitem">Sticker</div>
+    </div>
+
+    <input id="sticker-input" type="file" accept="image/*" />
   `;
 }
 
@@ -230,6 +256,21 @@ test.describe("WhatsApp media automation", () => {
     } finally {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
+  });
+
+  test("no usa el input image/* simple que dispara Sticker Maker", async ({ page }) => {
+    await setFixture(page, stickerOnlyAttachmentFixture());
+
+    const inputId = await page.evaluate(() => {
+      const win = window as typeof window & {
+        RecalcWaSelectors: {
+          findAttachmentInput: (kind: string, pack: unknown) => HTMLInputElement | null;
+        };
+      };
+      return win.RecalcWaSelectors.findAttachmentInput("media", null)?.id ?? null;
+    });
+
+    expect(inputId).toBeNull();
   });
 
   test("usa el botón contenedor real para adjuntar y escribe el caption dentro del modal", async ({ page }) => {

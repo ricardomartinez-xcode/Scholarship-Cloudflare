@@ -286,14 +286,15 @@ function clickElement(target) {
 
   clickable.scrollIntoView?.({ block: "center", inline: "center" });
   clickable.focus?.();
-  ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((eventName) => {
-    clickable.dispatchEvent(new MouseEvent(eventName, {
+  try {
+    clickable.click();
+  } catch {
+    clickable.dispatchEvent(new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
       composed: true,
     }));
-  });
-  clickable.click();
+  }
   return true;
 }
 
