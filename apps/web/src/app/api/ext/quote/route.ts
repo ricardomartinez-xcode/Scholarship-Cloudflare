@@ -160,12 +160,12 @@ export async function POST(request: Request) {
 
   const quoteMode = getQuoteMode();
 
-  if (quoteMode === "canonical") {
+  if (quoteMode !== "legacy") {
     const result = await resolveScholarshipQuote(input);
     return NextResponse.json(
       {
         ...result,
-        modeUsed: "canonical",
+        modeUsed: quoteMode,
       },
       { status: result.ok ? 200 : 422 },
     );

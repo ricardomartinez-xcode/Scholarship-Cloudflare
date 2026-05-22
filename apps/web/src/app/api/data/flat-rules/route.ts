@@ -100,9 +100,9 @@ export async function GET() {
 
   try {
     const pricingReadMode = getPricingReadMode();
-    const canonical = await loadCanonicalFlatRulesPayload();
 
     if (pricingReadMode === "canonical") {
+      const canonical = await loadCanonicalFlatRulesPayload();
       return NextResponse.json(canonical);
     }
 
@@ -110,6 +110,7 @@ export async function GET() {
     const legacy = legacySnapshot.flatRules;
 
     if (pricingReadMode === "compare") {
+      const canonical = await loadCanonicalFlatRulesPayload();
       const mismatches = compareFlatRules(legacy, canonical);
       logComparisonReport({
         channel: "flat-rules",

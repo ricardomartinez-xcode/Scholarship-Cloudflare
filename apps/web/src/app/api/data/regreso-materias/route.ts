@@ -94,10 +94,10 @@ export async function GET() {
 
   try {
     const pricingReadMode = getPricingReadMode();
-    const campuses = await listCampusCatalog();
-    const canonical = await loadCanonicalReturnSubjectPayload(campuses);
 
     if (pricingReadMode === "canonical") {
+      const campuses = await listCampusCatalog();
+      const canonical = await loadCanonicalReturnSubjectPayload(campuses);
       return NextResponse.json(canonical);
     }
 
@@ -108,6 +108,8 @@ export async function GET() {
     };
 
     if (pricingReadMode === "compare") {
+      const campuses = await listCampusCatalog();
+      const canonical = await loadCanonicalReturnSubjectPayload(campuses);
       const mismatches = compareReturnPayloads(legacy, canonical);
       logComparisonReport({
         channel: "regreso-materias",

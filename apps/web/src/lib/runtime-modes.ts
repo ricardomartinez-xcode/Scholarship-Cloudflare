@@ -4,14 +4,14 @@
  * Soporta migración gradual de la fuente de datos legacy (tablas `recalc_*`)
  * a la implementación canónica (Prisma ORM con esquema normalizado):
  *
- *  - "legacy"    Usa solo la implementación legacy. Valor por defecto.
+ *  - "legacy"    Usa solo la implementación legacy. Solo para ventanas de auditoría.
  *  - "compare"   Ejecuta ambas implementaciones, registra diferencias en logs
  *                (prefijo `[canonical-compare]`) y, en la mayoría de subsistemas,
  *                devuelve el resultado legacy. En subsistemas canonical-first
  *                (por ejemplo QUOTE_MODE para /api/data/quote) devuelve el resultado
  *                canónico y usa legacy solo para auditoría/comparación.
  *                Sirve para validar paridad antes de promover a canonical.
- *  - "canonical" Usa solo la implementación canónica. Destino final de la migración.
+ *  - "canonical" Usa solo la implementación canónica. Valor por defecto.
  *
  * Variables de entorno asociadas:
  *  - PRICING_READ_MODE      → reglas de beca, precios por materia, meta
@@ -34,7 +34,7 @@ const VALID_RUNTIME_MODES = new Set<RuntimeMode>([
 
 function readRuntimeMode(
   value: string | undefined,
-  fallback: RuntimeMode = "legacy",
+  fallback: RuntimeMode = "canonical",
 ): RuntimeMode {
   const normalized = String(value ?? "").trim().toLowerCase();
   return VALID_RUNTIME_MODES.has(normalized as RuntimeMode)

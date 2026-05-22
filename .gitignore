@@ -49,6 +49,8 @@ next-env.d.ts
 code-review-local.md
 eslint-results.json
 typescript-errors.txt
+neon-data-audit*.json
+neon-cleanup-backups/
 .codex-lock
 .env*.local
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/runtime-comparison";
 import { getPricingReadMode } from "@/lib/runtime-modes";
 import { normalizeKey } from "@/lib/text-normalize";
+import staticPricingMeta from "../../../../../public/data/costos_2026_meta.json";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,15 @@ export async function GET() {
   }
 
   try {
-    // Nota: este endpoint no tiene implementación canónica (no hay equivalente
-    // de recalc_meta en Prisma). En modo "compare" solo se comparan los tiers
-    // de planteles como validación auxiliar; los datos siempre se leen de legacy.
-    // Migración pendiente: ver docs/ROUTING_MODES_REFERENCE.md §5.
+    const pricingReadMode = getPricingReadMode();
+
+    if (pricingReadMode === "canonical") {
+      return NextResponse.json(staticPricingMeta);
+    }
+
+    // Nota: este endpoint no tiene implementación canónica en Prisma. En modo
+    // canónico usa el JSON versionado del repo para no transferir recalc_meta.
+    // Solo los modos legacy/compare leen Neon.
     const sql = getSql();
     const rows = await sql`
       select *
@@ -42,7 +48,7 @@ export async function GET() {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    if (getPricingReadMode() === "compare") {
+    if (pricingReadMode === "compare") {
       const campuses = await listCampusCatalog();
       const mismatches: ComparisonMismatch[] = [];
       const metaPlanteles = row.planteles ?? {};
