@@ -17,6 +17,7 @@ const POSITION_STORAGE_KEY = "recalc:floating-calculator-position";
 const VIEWPORT_MARGIN = 10;
 const DEFAULT_TOP_OFFSET = 176;
 const DEFAULT_RIGHT_OFFSET = 58;
+const DEFAULT_RAIL_WIDTH = 74;
 const LEGACY_DEFAULT_LEFT = 16;
 const LEGACY_DEFAULT_BOTTOM_OFFSET = 68;
 
@@ -66,7 +67,7 @@ export default function FloatingCalculator() {
 
   const getDefaultPosition = useCallback(() => {
     const rect = rootRef.current?.getBoundingClientRect();
-    const width = rect?.width ?? 132;
+    const width = rect?.width ?? DEFAULT_RAIL_WIDTH;
 
     return clampPosition({
       x: window.innerWidth - width - DEFAULT_RIGHT_OFFSET,
