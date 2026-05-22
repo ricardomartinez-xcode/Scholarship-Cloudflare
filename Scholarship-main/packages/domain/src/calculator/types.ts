@@ -1,0 +1,40 @@
+export type EnrollmentType = "nuevo_ingreso" | "reingreso" | "regreso";
+
+export type QuoteCalculationInput = {
+  enrollmentType: EnrollmentType;
+  businessLine: string;
+  modality: string;
+  plan: number;
+  campus?: string | null;
+  average: number;
+  basePriceMxn: number;
+  scholarshipPercent: number;
+  fixedScholarshipPercent?: number;
+  additionalBenefitPercent?: number;
+  extraChargeAmount?: number;
+};
+
+export type QuoteCalculationResult = {
+  basePriceMxn: number;
+  scholarshipPercent: number;
+  scholarshipAmountMxn: number;
+  additionalBenefitPercent: number;
+  additionalBenefitAmountMxn: number;
+  fixedScholarshipPercent: number;
+  scholarshipSource: "average" | "fixed" | "none";
+  subtotalMxn: number;
+  totalMxn: number;
+  sinAccessToScholarship: boolean;
+};
+
+export type CanonicalQuoteRequest = {
+  enrollmentType: EnrollmentType;
+  businessLine: string;
+  modality: string;
+  plan: number;
+  campus?: string | null;
+  average: number;
+  subjectCount?: number | null;
+  extraChargeAmount?: number;
+  sourceVersion?: string;
+};

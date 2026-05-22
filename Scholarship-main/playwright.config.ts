@@ -1,0 +1,6 @@
+import { defineConfig, devices } from "@playwright/test";
+const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const shouldStartServer = !process.env.E2E_BASE_URL;
+const serverMode = process.env.E2E_SERVER_MODE === "prod" ? "prod" : "dev";
+const webServerCommand = serverMode === "prod" ? "npm --workspace @relead/web run start -- --hostname 127.0.0.1 --port 3000" : "npm --workspace @relead/web run dev -- --port 3000";
+export default defineConfig({testDir:"./apps/web/tests",testMatch:["**/*.spec.ts"],outputDir:"meta-review-audit/logs/playwright-results",timeout:60000,reporter:[["list"],["html",{outputFolder:"meta-review-audit/logs/playwright-html",open:"never"}],["json",{outputFile:"meta-review-audit/logs/playwright-report.json"}]],expect:{timeout:10000,toHaveScreenshot:{animations:"disabled",caret:"hide",maxDiffPixelRatio:0.01}},retries:process.env.CI?1:0,use:{baseURL,locale:"en-US",timezoneId:"America/Mexico_City",viewport:{width:1600,height:960},trace:"retain-on-failure",screenshot:"on",video:"on",ignoreHTTPSErrors:true,headless:process.env.PW_HEADLESS==="0"?false:true},webServer:shouldStartServer?{command:webServerCommand,url:baseURL,reuseExistingServer:!process.env.CI}:undefined,projects:[{name:"chromium",use:{...devices["Desktop Chrome"]}}]});

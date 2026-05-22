@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Identity = {
   userId: string;
@@ -15,6 +15,7 @@ type ThreadSummary = {
   updatedAt: string;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  lastMessageSender: Identity | null;
   participants: Identity[];
 };
 
@@ -23,11 +24,11 @@ type InboxThreadsPayload = {
   viewer?: Identity;
 };
 
-class QuickMessageRequestError extends Error {
+class InboxNotificationRequestError extends Error {
   status: number;
 
   constructor(status: number) {
-    super("quick_message_request_failed");
+    super("inbox_notification_request_failed");
     this.status = status;
   }
 }
@@ -50,6 +51,15 @@ function threadTitle(thread: ThreadSummary, viewer?: Identity | null) {
   return thread.subject || peerNames.join(" • ") || "Conversación interna";
 }
 
+function notificationTitle(thread: ThreadSummary, viewer?: Identity | null) {
+  const sender = thread.lastMessageSender;
+  if (sender && sender.userId !== viewer?.userId) {
+    return `Mensaje nuevo de ${sender.displayName}`;
+  }
+
+  return "Nueva notificación";
+}
+
 function formatTime(value: string | null) {
   if (!value) return "";
   return new Date(value).toLocaleTimeString("es-MX", {
@@ -63,7 +73,7 @@ async function fetchInboxThreads() {
     cache: "no-store",
   });
 
-  if (!response.ok) throw new QuickMessageRequestError(response.status);
+  if (!response.ok) throw new InboxNotificationRequestError(response.status);
   return (await response.json()) as InboxThreadsPayload;
 }
 
@@ -71,22 +81,13 @@ export default function InboxDock() {
   const [isOpen, setIsOpen] = useState(false);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [viewer, setViewer] = useState<Identity | null>(null);
-  const [selectedThreadId, setSelectedThreadId] = useState("");
-  const [quickMessage, setQuickMessage] = useState("");
-  const [isSendingQuickMessage, setIsSendingQuickMessage] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">(
     "idle",
   );
-  const quickReplyRef = useRef<HTMLTextAreaElement | null>(null);
 
   const applyThreadsPayload = useCallback((payload: InboxThreadsPayload) => {
     setThreads(payload.threads ?? []);
     setViewer(payload.viewer ?? null);
-    setSelectedThreadId((current) =>
-      current && (payload.threads ?? []).some((thread) => thread.id === current)
-        ? current
-        : payload.threads?.[0]?.id ?? "",
-    );
     setStatus("ready");
   }, []);
 
@@ -135,81 +136,33 @@ export default function InboxDock() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    window.requestAnimationFrame(() => {
-      quickReplyRef.current?.focus();
-    });
-  }, [isOpen]);
-
-  const visibleThreads = useMemo(
+  const notifications = useMemo(
     () =>
       [...threads]
+        .filter((thread) => {
+          if (!thread.lastMessagePreview || !thread.lastMessageSender) return false;
+          return thread.lastMessageSender.userId !== viewer?.userId;
+        })
         .sort((left, right) => {
           const leftTime = left.lastMessageAt ?? left.updatedAt;
           const rightTime = right.lastMessageAt ?? right.updatedAt;
           return new Date(rightTime).getTime() - new Date(leftTime).getTime();
         })
         .slice(0, 4),
-    [threads],
+    [threads, viewer?.userId],
   );
-  const selectedThread =
-    visibleThreads.find((thread) => thread.id === selectedThreadId) ??
-    visibleThreads[0] ??
-    null;
-
-  async function sendQuickMessage() {
-    const content = quickMessage.trim();
-    const threadId = selectedThread?.id;
-    if (!content || !threadId || isSendingQuickMessage) return;
-
-    const createdAt = new Date().toISOString();
-    setIsSendingQuickMessage(true);
-    setQuickMessage("");
-    setThreads((current) =>
-      current.map((thread) =>
-        thread.id === threadId
-          ? {
-              ...thread,
-              lastMessageAt: createdAt,
-              lastMessagePreview: content,
-              updatedAt: createdAt,
-            }
-          : thread,
-      ),
-    );
-
-    try {
-      const response = await fetch(`/api/unidep/inbox/threads/${threadId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (!response.ok) throw new QuickMessageRequestError(response.status);
-      void refreshThreads();
-    } catch (sendError) {
-      if (sendError instanceof QuickMessageRequestError && sendError.status < 500) {
-        setQuickMessage(content);
-      } else {
-        void refreshThreads().catch(() => undefined);
-      }
-      setStatus("error");
-    } finally {
-      setIsSendingQuickMessage(false);
-    }
-  }
 
   return (
-    <aside className="ui-inbox-dock" aria-label="Inbox flotante">
+    <aside className="ui-inbox-dock" aria-label="Notificaciones flotantes">
       {isOpen ? (
         <div className="ui-inbox-dock__panel">
           <div className="ui-inbox-dock__head">
             <div>
-              <div className="ui-inbox-dock__title">Inbox</div>
+              <div className="ui-inbox-dock__title">Notificaciones</div>
               <div className="ui-inbox-dock__copy">
                 {status === "loading"
-                  ? "Actualizando conversaciones"
-                  : `${visibleThreads.length} conversaciones rápidas`}
+                  ? "Actualizando notificaciones"
+                  : `${notifications.length} notificaciones`}
               </div>
             </div>
             <button
@@ -223,82 +176,39 @@ export default function InboxDock() {
           </div>
 
           <div className="ui-inbox-dock__threads">
-            {visibleThreads.length ? (
-              visibleThreads.map((thread) => {
-                const title = threadTitle(thread, viewer);
+            {notifications.length ? (
+              notifications.map((thread) => {
+                const title = notificationTitle(thread, viewer);
                 return (
-                  <button
+                  <Link
                     key={thread.id}
-                    type="button"
-                    onClick={() => setSelectedThreadId(thread.id)}
-                    className={[
-                      "ui-inbox-dock__thread",
-                      thread.id === selectedThread?.id
-                        ? "ui-inbox-dock__thread--active"
-                        : "",
-                    ].join(" ")}
+                    href={`/unidep/inbox/${thread.id}`}
+                    className="ui-inbox-dock__thread"
                   >
                     <span className="ui-inbox-dock__avatar">{avatarLabel(title)}</span>
                     <span className="ui-inbox-dock__thread-main">
                       <span className="ui-inbox-dock__thread-title">{title}</span>
                       <span className="ui-inbox-dock__thread-preview">
-                        {thread.lastMessagePreview || "Abrir conversación"}
+                        {thread.lastMessagePreview}
+                      </span>
+                      <span className="ui-inbox-dock__thread-preview">
+                        {threadTitle(thread, viewer)}
                       </span>
                     </span>
                     <span className="ui-inbox-dock__time">
                       {formatTime(thread.lastMessageAt)}
                     </span>
-                  </button>
+                  </Link>
                 );
               })
             ) : (
               <div className="ui-inbox-dock__empty">
                 {status === "error"
                   ? "Inbox no disponible en este momento."
-                  : "No hay conversaciones recientes."}
+                  : "No tienes notificaciones pendientes."}
               </div>
             )}
           </div>
-
-          {selectedThread ? (
-            <div className="ui-inbox-dock__quick-reply">
-              <textarea
-                ref={quickReplyRef}
-                value={quickMessage}
-                onChange={(event) => setQuickMessage(event.target.value)}
-                onKeyDown={(event) => {
-                  if (
-                    event.key === "Enter" &&
-                    (!event.shiftKey || event.ctrlKey || event.metaKey) &&
-                    !event.nativeEvent.isComposing
-                  ) {
-                    event.preventDefault();
-                    void sendQuickMessage();
-                  }
-                }}
-                placeholder="Responder rápido..."
-                className="ui-inbox-dock__textarea"
-                aria-keyshortcuts="Enter Control+Enter Meta+Enter Shift+Enter"
-              />
-              <div className="ui-inbox-dock__quick-actions">
-                <Link
-                  href={`/unidep/inbox/${selectedThread.id}`}
-                  className="ui-inbox-dock__secondary"
-                >
-                  Abrir chat
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => void sendQuickMessage()}
-                  disabled={!quickMessage.trim() || isSendingQuickMessage}
-                  className="ui-inbox-dock__send"
-                  aria-keyshortcuts="Enter Control+Enter Meta+Enter"
-                >
-                  {isSendingQuickMessage ? "Enviando..." : "Enviar"}
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           <Link href="/unidep/inbox" className="ui-inbox-dock__primary">
             Abrir Inbox completo
@@ -311,12 +221,12 @@ export default function InboxDock() {
         className="ui-inbox-dock__rail"
         onClick={() => setIsOpen((value) => !value)}
         aria-expanded={isOpen}
-        aria-label="Abrir Inbox flotante"
+        aria-label="Abrir notificaciones flotantes"
         aria-keyshortcuts="Control+I Meta+I Escape"
       >
         <span>Inbox</span>
-        {visibleThreads.length ? (
-          <span className="ui-inbox-dock__badge">{visibleThreads.length}</span>
+        {notifications.length ? (
+          <span className="ui-inbox-dock__badge">{notifications.length}</span>
         ) : null}
       </button>
     </aside>

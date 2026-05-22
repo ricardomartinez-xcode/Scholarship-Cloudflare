@@ -6,12 +6,31 @@ import {
   workspaceFooterNavItems,
   workspaceNavGroups,
 } from "@/config/dashboard-navigation";
+import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
+
+function filterWorkspaceNavItems(items: DashboardNavItem[], userEmail: string | null) {
+  const showWorkspaceWhatsapp = canAccessWorkspaceWhatsapp(userEmail);
+
+  return items
+    .map((item) => {
+      const children = item.children
+        ?.filter((child) => showWorkspaceWhatsapp || child.key !== "waba")
+        .map((child) => ({ ...child }));
+
+      return {
+        ...item,
+        ...(children ? { children } : {}),
+      };
+    })
+    .filter((item) => showWorkspaceWhatsapp || item.key !== "waba");
+}
 
 export default function AppSidebar({
   activeKey,
   onSelect,
   onNavigate,
   collapsed = false,
+  userEmail,
 }: {
   /**
    * Currently active section key. When provided, the matching navigation item
@@ -25,11 +44,17 @@ export default function AppSidebar({
   onSelect?: (item: DashboardNavItem) => void;
   onNavigate?: () => void;
   collapsed?: boolean;
+  userEmail?: string | null;
 }) {
+  const filteredWorkspaceNavGroups = workspaceNavGroups.map((group) => ({
+    ...group,
+    items: filterWorkspaceNavItems(group.items, userEmail ?? null),
+  }));
+
   return (
     <div className="ui-shell-nav-layout">
       <DashboardSidebarNav
-        groups={workspaceNavGroups}
+        groups={filteredWorkspaceNavGroups}
         activeKey={activeKey ?? "becas"}
         collapsed={collapsed}
         onItemSelect={onSelect}

@@ -19,6 +19,7 @@ import SimulatorSidebarPanel from "@/components/simulator/SimulatorSidebarPanel"
 import SmartSelect from "@/components/SmartSelect";
 import { useAppContext } from "@/components/app/AppChrome";
 import type { AcademicOfferCycle } from "@/config/academicOffer";
+import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
 import type { WhatsappTemplateCollection } from "@/lib/whatsapp-templates";
 import { type WorkspaceSectionKey } from "@/lib/unidep-navigation";
 
@@ -1094,7 +1095,7 @@ export default function UnidepWorkspace({
   visibleOfferCycles?: AcademicOfferCycle[];
   forcedSection?: WorkspaceSectionKey;
 }) {
-  const { activeSection, setActiveSection } = useAppContext();
+  const { activeSection, setActiveSection, userEmail } = useAppContext();
   const sectionToRender = forcedSection ?? (activeSection as WorkspaceSectionKey);
   const workspacePrimaryCtas = ctasUnidepPrimary.filter((cta) => !isAdminPanelCta(cta));
   const authWelcomePrimaryCtas = ctasAuthWelcome.filter((cta) => !isAdminPanelCta(cta));
@@ -1127,7 +1128,11 @@ export default function UnidepWorkspace({
     return <WebCampaignsPanel />;
   }
   if (sectionToRender === "waba") {
-    return <WabaEmbeddedSignupSection surface="workspace" />;
+    return canAccessWorkspaceWhatsapp(userEmail) ? (
+      <WabaEmbeddedSignupSection surface="workspace" />
+    ) : (
+      <WebCampaignsPanel />
+    );
   }
 
   if (sectionToRender === "historial") {

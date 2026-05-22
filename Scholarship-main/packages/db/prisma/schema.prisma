@@ -1,0 +1,1805 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Runtime URL — can be the Prisma Accelerate URL (prisma+postgres://) or a
+  // direct postgres:// URL. Set DATABASE_URL in .env.local / Vercel env vars.
+  url       = env("DATABASE_URL")
+  // Direct URL used by `prisma migrate deploy` (must be a plain postgres:// URL,
+  // not the Accelerate URL). In Vercel set DIRECT_URL = DATA_PRISMA_DATABASE_URL.
+  directUrl = env("DIRECT_URL")
+  schemas   = ["recalc_admin"]
+}
+
+enum AdminPublicCtaKind {
+  link
+  action
+
+  @@schema("recalc_admin")
+}
+
+enum AdminAnnouncementDisplay {
+  banner
+  popout
+
+  @@schema("recalc_admin")
+}
+
+enum AdminPublicCtaLocation {
+  HOME_PRIMARY
+  HOME_PRIMARY_INSIDE
+  HOME_SECONDARY
+  APP_RESULTS_BELOW
+  APP_RESULTS_ABOVE
+  APP_RESULTS_INSIDE
+  UNIDEP_PRIMARY
+  CALCULATOR_FOOTER
+  NAV_BANNER
+  SIDEBAR_TOP
+  SIDEBAR_BOTTOM
+  SIMULATOR_TOP
+  SIMULATOR_BOTTOM
+  AUTH_WELCOME
+  AUTH_WELCOME_INSIDE
+  ADMIN_HEADER_BANNER
+  ADMIN_SIDEBAR_TOP
+  ADMIN_SIDEBAR_BOTTOM
+  ADMIN_CONTENT_TOP
+  ADMIN_CONTENT_INSIDE
+
+  @@schema("recalc_admin")
+}
+
+enum AdminConfigModule {
+  ACCESS
+  BENEFITS
+  PRICES
+  CTAS
+  SIDEBAR
+  DIRECTORY
+  OFFER
+
+  @@schema("recalc_admin")
+}
+
+enum AdminCapability {
+  view_admin
+  manage_benefits
+  manage_prices
+  manage_ctas
+  manage_sidebar
+  manage_offers
+  manage_directory
+  view_users
+  manage_users
+  view_invites
+  manage_invites
+  view_org_members
+  manage_org_members
+  view_reports
+  view_admin_operations
+  publish_config
+
+  @@schema("recalc_admin")
+}
+
+enum UserCapability {
+  access_admin_cta
+  user_vip
+  view_audit
+  manage_templates
+  manage_communications
+  owner_permissions
+
+  @@schema("recalc_admin")
+}
+
+enum UserAgendaItemType {
+  recordatorio
+  pago
+  pendiente
+
+  @@schema("recalc_admin")
+}
+
+enum UserAgendaItemStatus {
+  abierto
+  hecho
+  cancelado
+
+  @@schema("recalc_admin")
+}
+
+enum AdminUiModule {
+  ADMIN_HOME
+  USERS
+  INVITATIONS
+  ORGANIZATIONS
+  AUDIT
+  BENEFITS
+  PRICES
+  CTAS
+  SIDEBAR
+  OFFER
+  DIRECTORY
+  CAMPUSES
+  FEES
+  PROGRAMS
+
+  @@schema("recalc_admin")
+}
+
+enum WhatsappTemplateStatus {
+  personal
+  submitted_for_review
+  approved
+  rejected
+  official
+  archived
+
+  @@schema("recalc_admin")
+}
+
+enum WhatsappTemplateKind {
+  summary
+  detailed
+
+  @@schema("recalc_admin")
+}
+
+enum AdminAuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  ROLLBACK
+  IMPORT_VALIDATE
+  IMPORT_APPLY
+  IMPORT_ROLLBACK
+
+  @@schema("recalc_admin")
+}
+
+enum AdminChangeSource {
+  UI
+  IMPORT
+  SYSTEM
+
+  @@schema("recalc_admin")
+}
+
+enum AdminImportSessionStatus {
+  preview
+  applied
+  rolled_back
+  failed
+
+  @@schema("recalc_admin")
+}
+
+enum CampusKind {
+  campus
+  online
+
+  @@schema("recalc_admin")
+}
+
+enum ProgramOfferingDelivery {
+  CAMPUS
+  ONLINE
+
+  @@schema("recalc_admin")
+}
+
+enum BenefitBusinessLine {
+  salud
+  licenciatura
+  prepa
+  posgrado
+
+  @@schema("recalc_admin")
+}
+
+enum AcademicFeeSection {
+  EXAMENES
+  TRAMITES
+  DIVERSOS
+
+  @@schema("recalc_admin")
+}
+
+enum BenefitModality {
+  presencial
+  mixta
+  online
+
+  @@schema("recalc_admin")
+}
+
+enum BenefitDuration {
+  primer_cuatrimestre
+  toda_la_carrera
+  pago_inicial
+
+  @@schema("recalc_admin")
+}
+
+enum AdminPlacementPage {
+  public_home
+  app_unidep
+  admin
+  auth
+
+  @@schema("recalc_admin")
+}
+
+enum AdminPlacementSection {
+  navigation
+  hero
+  welcome
+  results
+  simulator
+  sidebar
+  content
+  module
+
+  @@schema("recalc_admin")
+}
+
+enum AdminPlacementPanel {
+  banner
+  primary
+  secondary
+  results
+  sidebar
+  header
+  content
+
+  @@schema("recalc_admin")
+}
+
+enum AdminPlacementSlot {
+  top
+  inside
+  bottom
+  primary
+  secondary
+  footer
+  actions
+
+  @@schema("recalc_admin")
+}
+
+enum AdminPlacementBreakpoint {
+  all
+  mobile
+  desktop
+
+  @@schema("recalc_admin")
+}
+
+enum AdminAdditionalBenefitType {
+  percentage
+  fixed_scholarship
+  first_payment
+
+  @@schema("recalc_admin")
+}
+
+enum EnrollmentType {
+  nuevo_ingreso
+  regreso
+  reingreso
+
+  @@schema("recalc_admin")
+}
+
+enum CanonicalModality {
+  presencial
+  mixta
+  online
+
+  @@schema("recalc_admin")
+}
+
+enum QuoteScenarioKind {
+  DRAFT
+  SAVED
+
+  @@schema("recalc_admin")
+}
+
+enum BusinessEventType {
+  QUOTE_GENERATED
+  QUOTE_SIMULATED
+  QUOTE_SCENARIO_SAVED
+  QUOTE_SCENARIO_LOADED
+  QUOTE_COMPARISON_VIEWED
+  CTA_CLICKED
+  BENEFIT_APPLIED
+  INVITE_CREATED
+  INVITE_RESENT
+  OFFER_PUBLISHED
+  IMPORT_VALIDATED
+  IMPORT_APPLIED
+  IMPORT_ROLLED_BACK
+  IMPORT_FAILED
+  EXTENSION_TOKEN_ISSUED
+  EXTENSION_RUN_CREATED
+  EXTENSION_RUN_EVENT
+  WHATSAPP_WEB_OPENED
+
+  @@schema("recalc_admin")
+}
+
+enum ProgramAssetType {
+  PLAN_PDF
+  BROCHURE_PDF
+  PLAN_URL
+  PLAN_DRIVE_LINK
+
+  @@schema("recalc_admin")
+}
+
+enum ProgramAssetStatus {
+  healthy
+  broken
+  timeout
+  unauthorized
+  skipped
+
+  @@schema("recalc_admin")
+}
+
+enum DirectoryContactMethodType {
+  EMAIL
+  PHONE
+  WHATSAPP
+  URL
+  OTHER
+
+  @@schema("recalc_admin")
+}
+
+enum Role {
+  owner
+  admin_operativo
+  editor_operativo
+  user
+
+  @@schema("recalc_admin")
+}
+
+enum OrgRole {
+  owner
+  admin
+  member
+
+  @@schema("recalc_admin")
+}
+
+enum TrainingAccessRole {
+  user
+  moderator
+  admin
+  owner
+
+  @@schema("recalc_admin")
+}
+
+enum TrainingChatStatus {
+  open
+  closed
+  archived
+
+  @@schema("recalc_admin")
+}
+
+enum InboxThreadStatus {
+  active
+  archived
+
+  @@schema("recalc_admin")
+}
+
+model Campus {
+  id        String     @id @default(uuid()) @db.Uuid
+  code      String     @unique
+  metaKey   String     @unique
+  name      String
+  slug      String     @unique
+  tier      String?
+  kind      CampusKind
+  isActive  Boolean    @default(true)
+  sortOrder Int        @default(0)
+  address   String?
+  phone     String?
+  whatsapp  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  benefitLinks        AdminAdditionalBenefitCampus[]
+  offerings           ProgramOffering[]
+  contacts            DirectoryContact[]
+  bulletins           Bulletin[]
+  academicFees        CampusAcademicFee[]
+  regresoMaterias     RegresoMaterias[]
+  returnSubjectPrices ReturnSubjectPrice[]
+  quoteScenarios      QuoteScenario[]
+
+  @@map("campus")
+  @@schema("recalc_admin")
+}
+
+model Program {
+  id              String               @id @default(uuid()) @db.Uuid
+  name            String
+  nameNormalized  String               @unique
+  level           String?
+  category        String?
+  planDriveFileId String?
+  planDriveLink   String?
+  planUrl         String?
+  businessLine    BenefitBusinessLine?
+  planPdfUrl      String?
+  brochurePdfUrl  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  offerings      ProgramOffering[]
+  quoteScenarios QuoteScenario[]
+  assetChecks    ProgramAssetCheck[]
+
+  @@map("program")
+  @@schema("recalc_admin")
+}
+
+model EnrollmentFormat {
+  id            String   @id @default(uuid()) @db.Uuid
+  title         String
+  description   String?
+  fileName      String?
+  fileUrl       String
+  fileMimeType  String?
+  fileSizeBytes Int?
+  sourceType    String   @default("link")
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive, sortOrder], map: "enrollment_format_active_sort_idx")
+  @@map("enrollment_format")
+  @@schema("recalc_admin")
+}
+
+model QuoteSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  publicId     String    @unique @default(cuid())
+  ownerUserId  String    @db.Uuid
+  quoteMode    String
+  lastOpenedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  owner     User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  scenarios QuoteScenario[]
+  events    BusinessEvent[]
+
+  @@index([ownerUserId, updatedAt], map: "quote_session_owner_updated_idx")
+  @@map("quote_session")
+  @@schema("recalc_admin")
+}
+
+model QuoteScenario {
+  id                         String              @id @default(uuid()) @db.Uuid
+  quoteSessionId             String              @db.Uuid
+  /// A SQL partial unique index enforces a single DRAFT per session.
+  kind                       QuoteScenarioKind   @default(DRAFT)
+  label                      String
+  inputFingerprint           String
+  inputJson                  Json
+  resultJson                 Json
+  enrollmentType             EnrollmentType
+  businessLine               BenefitBusinessLine
+  modality                   CanonicalModality
+  plan                       Int
+  campusId                   String?             @db.Uuid
+  campusNameSnapshot         String?
+  programId                  String?             @db.Uuid
+  programNameSnapshot        String?
+  average                    Decimal             @db.Decimal(4, 2)
+  subjectCount               Int?
+  extraChargeAmount          Decimal             @default(0) @db.Decimal(12, 2)
+  basePriceMxn               Decimal             @db.Decimal(12, 2)
+  scholarshipPercent         Decimal             @db.Decimal(5, 2)
+  scholarshipAmountMxn       Decimal             @db.Decimal(12, 2)
+  additionalBenefitPercent   Decimal             @db.Decimal(5, 2)
+  additionalBenefitAmountMxn Decimal             @db.Decimal(12, 2)
+  firstPaymentAmountMxn      Decimal             @default(0) @db.Decimal(12, 2)
+  subtotalMxn                Decimal             @db.Decimal(12, 2)
+  totalMxn                   Decimal             @db.Decimal(12, 2)
+  sinAccessToScholarship     Boolean             @default(false)
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+
+  quoteSession QuoteSession    @relation(fields: [quoteSessionId], references: [id], onDelete: Cascade)
+  campus       Campus?         @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  program      Program?        @relation(fields: [programId], references: [id], onDelete: SetNull)
+  events       BusinessEvent[]
+
+  @@index([quoteSessionId, kind, updatedAt], map: "quote_scenario_session_kind_updated_idx")
+  @@index([campusId, updatedAt], map: "quote_scenario_campus_updated_idx")
+  @@index([programId, updatedAt], map: "quote_scenario_program_updated_idx")
+  @@index([inputFingerprint], map: "quote_scenario_fingerprint_idx")
+  @@map("quote_scenario")
+  @@schema("recalc_admin")
+}
+
+model BusinessEvent {
+  id              String            @id @default(uuid()) @db.Uuid
+  type            BusinessEventType
+  userId          String?           @db.Uuid
+  quoteSessionId  String?           @db.Uuid
+  quoteScenarioId String?           @db.Uuid
+  subjectType     String?
+  subjectId       String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+
+  quoteSession  QuoteSession?  @relation(fields: [quoteSessionId], references: [id], onDelete: Cascade)
+  quoteScenario QuoteScenario? @relation(fields: [quoteScenarioId], references: [id], onDelete: Cascade)
+
+  @@index([type, createdAt], map: "business_event_type_created_idx")
+  @@index([quoteSessionId, createdAt], map: "business_event_session_created_idx")
+  @@index([quoteScenarioId, createdAt], map: "business_event_scenario_created_idx")
+  @@index([subjectType, subjectId, createdAt], map: "business_event_subject_created_idx")
+  @@index([userId, createdAt], map: "business_event_user_created_idx")
+  @@map("business_event")
+  @@schema("recalc_admin")
+}
+
+model ProgramAssetCheck {
+  id          String             @id @default(uuid()) @db.Uuid
+  programId   String             @db.Uuid
+  assetType   ProgramAssetType
+  url         String
+  status      ProgramAssetStatus
+  httpStatus  Int?
+  contentType String?
+  error       String?
+  checkedAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, assetType], map: "program_asset_check_program_asset_type_key")
+  @@index([status, checkedAt], map: "program_asset_check_status_checked_idx")
+  @@map("program_asset_check")
+  @@schema("recalc_admin")
+}
+
+model ProgramOffering {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  campusId             String                  @db.Uuid
+  programId            String                  @db.Uuid
+  cycle                String
+  track                String?
+  delivery             ProgramOfferingDelivery @default(CAMPUS)
+  escolarizado         Boolean                 @default(false)
+  ejecutivo            Boolean                 @default(false)
+  escolarizadoSchedule String?
+  ejecutivoSchedule    String?
+  lineOfBusiness       String?
+  isActive             Boolean                 @default(true)
+  archivedAt           DateTime?
+  archivedReason       String?
+  updatedBy            String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  campus  Campus  @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([campusId, programId, cycle])
+  @@index([campusId, cycle])
+  @@index([cycle, isActive])
+  @@map("program_offering")
+  @@schema("recalc_admin")
+}
+
+model DirectoryContact {
+  id           String   @id @default(uuid()) @db.Uuid
+  campusId     String   @db.Uuid
+  zone         String?
+  role         String?
+  name         String?
+  email        String?
+  phone        String?
+  contactLabel String?
+  source       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campus  Campus                   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  methods DirectoryContactMethod[]
+
+  @@index([campusId, role], map: "directory_contact_campus_role_idx")
+  @@map("directory_contact")
+  @@schema("recalc_admin")
+}
+
+model DirectoryContactMethod {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  directoryContactId String                     @db.Uuid
+  type               DirectoryContactMethodType
+  value              String
+  normalizedValue    String
+  isPrimary          Boolean                    @default(false)
+  sortOrder          Int                        @default(0)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  directoryContact DirectoryContact @relation(fields: [directoryContactId], references: [id], onDelete: Cascade)
+
+  @@unique([directoryContactId, type, normalizedValue], map: "directory_contact_method_unique_value_idx")
+  @@index([directoryContactId, sortOrder], map: "directory_contact_method_contact_sort_idx")
+  @@index([type, normalizedValue], map: "directory_contact_method_type_normalized_idx")
+  @@map("directory_contact_method")
+  @@schema("recalc_admin")
+}
+
+model Bulletin {
+  id        String   @id @default(uuid()) @db.Uuid
+  campusId  String   @db.Uuid
+  cycle     String?
+  fileName  String
+  filePath  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@index([campusId, cycle], map: "bulletin_campus_cycle_idx")
+  @@map("bulletin")
+  @@schema("recalc_admin")
+}
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  authUserId  String?   @unique
+  email       String    @unique
+  role        Role      @default(user)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  invitesCreated             Invite[]                    @relation("InviteCreatedBy")
+  invitesCancelled           Invite[]                    @relation("InviteCancelledBy")
+  orgMemberships             OrganizationMember[]
+  quoteSessions              QuoteSession[]
+  capabilityOverrides        AdminUserCapability[]
+  userCapabilities           UserCapabilityAssignment[]
+  uiPreferences              AdminUiPreference[]
+  ownedWhatsappTemplates     WhatsappTemplate[]          @relation("WhatsappTemplateOwner")
+  authoredWhatsappTemplates  WhatsappTemplate[]          @relation("WhatsappTemplateAuthor")
+  reviewedWhatsappTemplates  WhatsappTemplate[]          @relation("WhatsappTemplateReviewedBy")
+  whatsappTemplatePreference WhatsappTemplatePreference?
+  agendaItems                UserAgendaItem[]
+  contacts                   UserContact[]
+  extensionCampaigns         ExtensionCampaign[]
+  googleConnection           UserGoogleConnection?
+  metaWhatsappConnection     UserMetaWhatsappConnection?
+  metaWhatsappMessages       MetaWhatsappMessage[]
+  metaWhatsappMessageEvents  MetaWhatsappMessageEvent[]
+  metaEmbeddedSignupSessions MetaEmbeddedSignupSession[]
+  agendaSyncPreference       AgendaSyncPreference?
+  trainingRoomsCreated       TrainingRoom[]
+  trainingRoomMemberships    TrainingRoomMember[]
+  trainingMessages           TrainingMessage[]
+  trainingPermissions        TrainingRoomPermission[]
+  trainingChatsCreated       TrainingChat[]             @relation("TrainingChatCreatedBy")
+  trainingChatParticipants   TrainingChatParticipant[]
+  trainingFeedbackAuthored   TrainingFeedback[]         @relation("TrainingFeedbackAuthor")
+  trainingFeedbackReceived   TrainingFeedback[]         @relation("TrainingFeedbackTarget")
+  inboxThreadsCreated        InboxThread[]              @relation("InboxThreadCreatedBy")
+  inboxThreadParticipants    InboxThreadParticipant[]
+  inboxMessages              InboxMessage[]
+  pushSubscriptions          UserPushSubscription[]
+  extensionSessionTokens     ExtensionSessionToken[]
+
+  @@index([role, isActive], map: "user_role_isActive_idx")
+  @@map("user")
+  @@schema("recalc_admin")
+}
+
+model UserAgendaItem {
+  id        String               @id @default(uuid()) @db.Uuid
+  userId    String               @db.Uuid
+  type      UserAgendaItemType
+  status    UserAgendaItemStatus @default(abierto)
+  title     String
+  notes     String?
+  dueAt     DateTime?
+  sortOrder Int                  @default(0)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalSyncs AgendaExternalSync[]
+
+  @@index([userId, status, updatedAt], map: "user_agenda_item_user_status_updated_idx")
+  @@index([userId, type, updatedAt], map: "user_agenda_item_user_type_updated_idx")
+  @@map("user_agenda_item")
+  @@schema("recalc_admin")
+}
+
+model UserContact {
+  id                           String    @id @default(uuid()) @db.Uuid
+  ownerUserId                  String    @db.Uuid
+  contactName                  String
+  phone                        String
+  normalizedPhone              String
+  waId                         String?
+  bsuid                        String?
+  parentBsuid                  String?
+  whatsappUsername             String?
+  profilePictureUrl            String?
+  profileSource                String?
+  lastProfileSyncAt            DateTime?
+  lastIdentitySyncAt           DateTime?
+  email                        String?
+  tags                         Json?
+  personalData                 String?
+  notes                        String?
+  lastWhatsappMessageAt        DateTime?
+  lastWhatsappMessageText      String?
+  campaignMessageCount         Int       @default(0)
+  assignedQuoteSessionPublicId String?
+  assignedScenarioId           String?
+  source                       String    @default("manual")
+  sheetSyncedAt                DateTime?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+
+  owner                     User                       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  metaWhatsappMessages      MetaWhatsappMessage[]
+  metaWhatsappMessageEvents MetaWhatsappMessageEvent[]
+
+  @@unique([ownerUserId, normalizedPhone], map: "user_contact_owner_phone_key")
+  @@unique([ownerUserId, waId], map: "user_contact_owner_waid_key")
+  @@unique([ownerUserId, bsuid], map: "user_contact_owner_bsuid_key")
+  @@index([ownerUserId, updatedAt], map: "user_contact_owner_updated_idx")
+  @@index([ownerUserId, assignedQuoteSessionPublicId], map: "user_contact_owner_session_idx")
+  @@index([ownerUserId, lastIdentitySyncAt], map: "user_contact_owner_identity_sync_idx")
+  @@map("user_contact")
+  @@schema("recalc_admin")
+}
+
+model ExtensionCampaign {
+  id              String    @id @default(uuid()) @db.Uuid
+  ownerUserId     String    @db.Uuid
+  campaignName    String
+  channel         String    @default("whatsapp_web")
+  status          String    @default("queued")
+  scheduleAt      DateTime?
+  batchSize       Int       @default(25)
+  messageTemplate String?
+  messageDelayMs  Int       @default(4000)
+  mediaUrl        String?
+  notes           String?
+  meta            Json?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  owner      User                         @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  recipients ExtensionCampaignRecipient[]
+
+  @@index([ownerUserId, updatedAt], map: "extension_campaign_owner_updated_idx")
+  @@index([status, scheduleAt], map: "extension_campaign_status_schedule_idx")
+  @@map("extension_campaign")
+  @@schema("recalc_admin")
+}
+
+model ExtensionCampaignRecipient {
+  id           String    @id @default(uuid()) @db.Uuid
+  campaignId   String    @db.Uuid
+  externalKey  String?
+  contactValue String
+  contactName  String?
+  payload      Json?
+  scheduledFor DateTime?
+  status       String    @default("queued")
+  attemptedAt  DateTime?
+  sentAt       DateTime?
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  campaign ExtensionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactValue], map: "extension_campaign_recipient_campaign_contact_key")
+  @@index([campaignId, status, scheduledFor], map: "extension_campaign_recipient_claim_idx")
+  @@map("extension_campaign_recipient")
+  @@schema("recalc_admin")
+}
+
+
+model ExtensionSessionToken {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  tokenHash        String    @unique
+  scope            String    @default("extension:default")
+  client           String?
+  extensionVersion String?
+  userAgent        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt], map: "extension_session_token_user_valid_idx")
+  @@index([expiresAt], map: "extension_session_token_expires_idx")
+  @@map("extension_session_token")
+  @@schema("recalc_admin")
+}
+
+model UserGoogleConnection {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @unique @db.Uuid
+  provider              String    @default("google")
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  accessTokenExpiresAt  DateTime?
+  scopes                Json?
+  status                String    @default("pending")
+  calendarConnected     Boolean   @default(false)
+  tasksConnected        Boolean   @default(false)
+  sheetsConnected       Boolean   @default(false)
+  lastSyncError         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agendaPreference AgendaSyncPreference?
+
+  @@map("user_google_connection")
+  @@schema("recalc_admin")
+}
+
+model UserPushSubscription {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  endpoint       String    @unique
+  expirationTime DateTime?
+  publicKey      String
+  authToken      String
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt], map: "user_push_subscription_user_updated_idx")
+  @@map("user_push_subscription")
+  @@schema("recalc_admin")
+}
+
+model UserMetaWhatsappConnection {
+  id                          String    @id @default(uuid()) @db.Uuid
+  userId                      String    @unique @db.Uuid
+  provider                    String    @default("meta_whatsapp")
+  encryptedMetaAccessToken    String?
+  encryptedSystemUserToken    String?
+  graphApiVersion             String    @default("v25.0")
+  wabaId                      String?
+  phoneNumberId               String?
+  businessAccountId           String?
+  businessManagerId           String?
+  businessName                String?
+  wabaName                    String?
+  wabaCurrency                String?
+  wabaTimezoneId              String?
+  phoneDisplayNumber          String?
+  phoneVerifiedName           String?
+  phoneQualityRating          String?
+  phoneCodeVerificationStatus String?
+  accessTokenExpiresAt        DateTime?
+  connectedAt                 DateTime?
+  lastAssetSyncAt             DateTime?
+  lastTemplateSyncAt          DateTime?
+  lastWebhookAt               DateTime?
+  status                      String    @default("pending")
+  lastSyncError               String?
+  grantedScopes               Json?
+  accountReviewSnapshot       Json?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  user     User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages MetaWhatsappMessage[]
+  events   MetaWhatsappMessageEvent[]
+  embeddedSignupSessions MetaEmbeddedSignupSession[]
+
+  @@index([status, updatedAt], map: "user_meta_whatsapp_connection_status_updated_idx")
+  @@index([wabaId], map: "user_meta_whatsapp_connection_waba_idx")
+  @@index([phoneNumberId], map: "user_meta_whatsapp_connection_phone_idx")
+  @@map("user_meta_whatsapp_connection")
+  @@schema("recalc_admin")
+}
+
+model MetaEmbeddedSignupSession {
+  id                        String    @id @default(uuid()) @db.Uuid
+  ownerUserId               String    @db.Uuid
+  connectionId              String?   @db.Uuid
+  clientSessionId           String    @unique
+  status                    String    @default("started")
+  flowType                  String?
+  appId                     String?
+  configId                  String?
+  sessionInfoVersion        Int?
+  graphApiVersion           String?   @default("v25.0")
+  facebookUserId            String?
+  facebookLoginStatus       String?
+  encryptedAuthorizationCode String?
+  authorizationCodeReceivedAt DateTime?
+  wabaId                    String?
+  phoneNumberId             String?
+  businessAccountId         String?
+  cancelRedirectUrl         String?
+  dataDeletionRequestUrl    String?
+  dataDeletionCallbackUrl   String?
+  errorMessage              String?
+  payload                   Json?
+  finishedAt                DateTime?
+  cancelledAt               DateTime?
+  exchangedAt               DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  owner      User                       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  connection UserMetaWhatsappConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, createdAt], map: "meta_embedded_signup_session_owner_created_idx")
+  @@index([connectionId, createdAt], map: "meta_embedded_signup_session_connection_created_idx")
+  @@index([ownerUserId, status, updatedAt], map: "meta_embedded_signup_session_owner_status_updated_idx")
+  @@map("meta_embedded_signup_session")
+  @@schema("recalc_admin")
+}
+
+model MetaWhatsappMessage {
+  id               String    @id @default(uuid()) @db.Uuid
+  ownerUserId      String    @db.Uuid
+  connectionId     String?   @db.Uuid
+  contactId        String?   @db.Uuid
+  metaMessageId    String?
+  direction        String
+  messageType      String
+  templateName     String?
+  templateLanguage String?
+  textBody         String?
+  mediaId          String?
+  mediaMimeType    String?
+  mediaSha256      String?
+  mediaCaption     String?
+  externalStatus   String?
+  conversationId   String?
+  pricingCategory  String?
+  errorCode        String?
+  errorTitle       String?
+  errorMessage     String?
+  requestPayload   Json?
+  responsePayload  Json?
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  readAt           DateTime?
+  failedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  owner      User                        @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  connection UserMetaWhatsappConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  contact    UserContact?                @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  events     MetaWhatsappMessageEvent[]
+
+  @@unique([ownerUserId, metaMessageId], map: "meta_whatsapp_message_owner_meta_message_key")
+  @@index([ownerUserId, createdAt], map: "meta_whatsapp_message_owner_created_idx")
+  @@index([connectionId, createdAt], map: "meta_whatsapp_message_connection_created_idx")
+  @@index([contactId, createdAt], map: "meta_whatsapp_message_contact_created_idx")
+  @@map("meta_whatsapp_message")
+  @@schema("recalc_admin")
+}
+
+model MetaWhatsappMessageEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerUserId    String   @db.Uuid
+  connectionId   String?  @db.Uuid
+  contactId      String?  @db.Uuid
+  messageId      String?  @db.Uuid
+  metaMessageId  String?
+  eventType      String
+  deliveryStatus String?
+  payload        Json?
+  eventAt        DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  owner      User                        @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  connection UserMetaWhatsappConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  contact    UserContact?                @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  message    MetaWhatsappMessage?        @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, eventAt], map: "meta_whatsapp_message_event_owner_event_idx")
+  @@index([connectionId, eventAt], map: "meta_whatsapp_message_event_connection_event_idx")
+  @@index([contactId, eventAt], map: "meta_whatsapp_message_event_contact_event_idx")
+  @@index([metaMessageId], map: "meta_whatsapp_message_event_meta_message_idx")
+  @@map("meta_whatsapp_message_event")
+  @@schema("recalc_admin")
+}
+
+model AgendaSyncPreference {
+  id                  String    @id @default(uuid()) @db.Uuid
+  userId              String    @unique @db.Uuid
+  googleConnectionId  String?   @unique @db.Uuid
+  syncCalendarEnabled Boolean   @default(false)
+  syncTasksEnabled    Boolean   @default(false)
+  syncSheetsEnabled   Boolean   @default(false)
+  calendarId          String?
+  tasklistId          String?
+  spreadsheetId       String?
+  worksheetName       String?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleConnection UserGoogleConnection? @relation(fields: [googleConnectionId], references: [id], onDelete: SetNull)
+
+  @@map("agenda_sync_preference")
+  @@schema("recalc_admin")
+}
+
+model AgendaExternalSync {
+  id           String   @id @default(uuid()) @db.Uuid
+  agendaItemId String   @db.Uuid
+  provider     String
+  targetKind   String
+  externalId   String
+  syncedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agendaItem UserAgendaItem @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([agendaItemId, provider, targetKind], map: "agenda_external_sync_item_provider_target_key")
+  @@index([provider, targetKind, syncedAt], map: "agenda_external_sync_provider_target_idx")
+  @@map("agenda_external_sync")
+  @@schema("recalc_admin")
+}
+
+model AdminUserCapability {
+  id              String          @id @default(uuid()) @db.Uuid
+  userId          String          @db.Uuid
+  capability      AdminCapability
+  enabled         Boolean         @default(true)
+  updatedByUserId String?         @db.Uuid
+  updatedByEmail  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, capability], map: "admin_user_capability_user_capability_key")
+  @@index([capability, enabled], map: "admin_user_capability_capability_enabled_idx")
+  @@map("admin_user_capability")
+  @@schema("recalc_admin")
+}
+
+model UserCapabilityAssignment {
+  id         String         @id @default(uuid()) @db.Uuid
+  userId     String         @db.Uuid
+  capability UserCapability
+  grantedBy  String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, capability], map: "user_capability_assignment_user_capability_key")
+  @@index([capability], map: "user_capability_assignment_capability_idx")
+  @@map("user_capability_assignment")
+  @@schema("recalc_admin")
+}
+
+model AdminUiPreference {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  module    AdminUiModule
+  state     Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module], map: "admin_ui_preference_user_module_key")
+  @@index([module, updatedAt], map: "admin_ui_preference_module_updated_idx")
+  @@map("admin_ui_preference")
+  @@schema("recalc_admin")
+}
+
+model WhatsappTemplate {
+  id                String                 @id @default(uuid()) @db.Uuid
+  systemKey         String?                @unique
+  name              String
+  kind              WhatsappTemplateKind   @default(detailed)
+  status            WhatsappTemplateStatus @default(personal)
+  ownerUserId       String?                @db.Uuid
+  authorUserId      String?                @db.Uuid
+  sourceTemplateId  String?                @db.Uuid
+  isDefaultOfficial Boolean                @default(false)
+  baseText          String?
+  fieldOrder        Json
+  reviewNotes       String?
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedByUserId  String?                @db.Uuid
+  reviewedByEmail   String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  owner            User?                        @relation("WhatsappTemplateOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  author           User?                        @relation("WhatsappTemplateAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  reviewedBy       User?                        @relation("WhatsappTemplateReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  sourceTemplate   WhatsappTemplate?            @relation("WhatsappTemplateSource", fields: [sourceTemplateId], references: [id], onDelete: SetNull)
+  derivedTemplates WhatsappTemplate[]           @relation("WhatsappTemplateSource")
+  activeForUsers   WhatsappTemplatePreference[] @relation("WhatsappTemplatePreferenceActiveTemplate")
+
+  @@index([status, updatedAt], map: "whatsapp_template_status_updated_idx")
+  @@index([ownerUserId, updatedAt], map: "whatsapp_template_owner_updated_idx")
+  @@index([sourceTemplateId], map: "whatsapp_template_source_idx")
+  @@map("whatsapp_template")
+  @@schema("recalc_admin")
+}
+
+model WhatsappTemplatePreference {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @unique @db.Uuid
+  activeTemplateId String?  @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeTemplate WhatsappTemplate? @relation("WhatsappTemplatePreferenceActiveTemplate", fields: [activeTemplateId], references: [id], onDelete: SetNull)
+
+  @@index([activeTemplateId], map: "whatsapp_template_preference_active_idx")
+  @@map("whatsapp_template_preference")
+  @@schema("recalc_admin")
+}
+
+model Invite {
+  id             String    @id @default(uuid()) @db.Uuid
+  email          String
+  role           Role      @default(user)
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  cancelledAt    DateTime?
+  cancelledById  String?   @db.Uuid
+  lastSentAt     DateTime?
+  resentCount    Int       @default(0)
+  createdById    String    @db.Uuid
+  organizationId String?   @db.Uuid
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  createdBy    User          @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  cancelledBy  User?         @relation("InviteCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([email, usedAt, expiresAt], map: "invite_email_used_expires_idx")
+  @@index([createdById, createdAt], map: "invite_creator_created_idx")
+  @@index([organizationId], map: "invite_organization_idx")
+  @@map("invite")
+  @@schema("recalc_admin")
+}
+
+model AdminAdditionalBenefit {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  appliesToAll       Boolean                    @default(false)
+  benefitType        AdminAdditionalBenefitType @default(percentage)
+  enrollmentType     EnrollmentType?
+  extraPercent       Int
+  firstPaymentAmount Decimal                    @default(0) @db.Decimal(12, 2)
+  isActive           Boolean                    @default(true)
+  notes              String?
+  businessLine       BenefitBusinessLine?
+  modality           BenefitModality?
+  duration           BenefitDuration?
+  updatedBy          String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  campuses AdminAdditionalBenefitCampus[]
+
+  @@map("admin_additional_benefit")
+  @@schema("recalc_admin")
+}
+
+model AdminAdditionalBenefitCampus {
+  benefitId String @db.Uuid
+  campusId  String @db.Uuid
+
+  benefit AdminAdditionalBenefit @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+  campus  Campus                 @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@id([benefitId, campusId])
+  @@map("admin_additional_benefit_campus")
+  @@schema("recalc_admin")
+}
+
+model AdminPriceOverride {
+  id         String   @id @default(uuid()) @db.Uuid
+  scope      String
+  targetKeys Json
+  newPrice   Decimal  @db.Decimal(12, 2)
+  isActive   Boolean  @default(true)
+  notes      String?
+  updatedBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("admin_price_override")
+  @@schema("recalc_admin")
+}
+
+model AdminPublicCta {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  label               String
+  kind                AdminPublicCtaKind
+  location            AdminPublicCtaLocation   @default(HOME_PRIMARY)
+  placementPage       AdminPlacementPage       @default(public_home)
+  placementSection    AdminPlacementSection    @default(hero)
+  placementPanel      AdminPlacementPanel      @default(primary)
+  placementSlot       AdminPlacementSlot       @default(primary)
+  placementBreakpoint AdminPlacementBreakpoint @default(all)
+  placementOrder      Int                      @default(0)
+  url                 String?
+  isActive            Boolean                  @default(true)
+  sortOrder           Int                      @default(0)
+  variant             String?
+  organizationId      String?                  @db.Uuid
+  onlyNewUsers        Boolean                  @default(false)
+  requiredCapability  UserCapability?
+  visibilityRule      Json?
+  updatedBy           String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([location, sortOrder], map: "admin_public_cta_location_sortOrder_idx")
+  @@index([placementPage, placementSection, placementPanel, placementSlot, placementBreakpoint, placementOrder], map: "admin_public_cta_placement_idx")
+  @@index([organizationId], map: "admin_public_cta_organization_idx")
+  @@map("admin_public_cta")
+  @@schema("recalc_admin")
+}
+
+model AdminAnnouncement {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  title               String
+  message             String
+  display             AdminAnnouncementDisplay @default(banner)
+  location            AdminPublicCtaLocation   @default(HOME_PRIMARY)
+  placementPage       AdminPlacementPage       @default(public_home)
+  placementSection    AdminPlacementSection    @default(hero)
+  placementPanel      AdminPlacementPanel      @default(primary)
+  placementSlot       AdminPlacementSlot       @default(primary)
+  placementBreakpoint AdminPlacementBreakpoint @default(all)
+  placementOrder      Int                      @default(0)
+  organizationId      String?                  @db.Uuid
+  onlyNewUsers        Boolean                  @default(false)
+  url                 String?
+  buttonLabel         String?
+  isActive            Boolean                  @default(true)
+  sortOrder           Int                      @default(0)
+  variant             String?
+  visibilityRule      Json?
+  updatedBy           String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([location, sortOrder], map: "admin_announcement_location_sortOrder_idx")
+  @@index([placementPage, placementSection, placementPanel, placementSlot, placementBreakpoint, placementOrder], map: "admin_announcement_placement_idx")
+  @@index([organizationId], map: "admin_announcement_organization_idx")
+  @@map("admin_announcement")
+  @@schema("recalc_admin")
+}
+
+model AdminSidebarInfo {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     String
+  isActive  Boolean  @default(true)
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_sidebar_info")
+  @@schema("recalc_admin")
+}
+
+model AdminAuditLog {
+  id              String            @id @default(uuid()) @db.Uuid
+  module          AdminConfigModule
+  action          AdminAuditAction
+  source          AdminChangeSource @default(UI)
+  actorUserId     String?           @db.Uuid
+  actorEmail      String?
+  entityType      String?
+  entityId        String?
+  requestId       String?
+  beforeJson      Json?
+  afterJson       Json?
+  diffSummary     Json?
+  message         String?
+  importSessionId String?           @db.Uuid
+  versionId       String?           @db.Uuid
+  createdAt       DateTime          @default(now())
+
+  @@index([module, createdAt], map: "admin_audit_log_module_created_idx")
+  @@index([actorEmail, createdAt], map: "admin_audit_log_actor_created_idx")
+  @@index([requestId], map: "admin_audit_log_request_idx")
+  @@map("admin_audit_log")
+  @@schema("recalc_admin")
+}
+
+// ============================================================================
+// TRAINING / CAPACITACION MODELS
+// ============================================================================
+// These models support the new /capacitacion/rolplay feature.
+// They integrate with Supabase Realtime for real-time chat and presence.
+// Persistence is in Neon (Prisma), Realtime layer is Supabase.
+
+model TrainingRoom {
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @db.Uuid
+  name            String
+  description     String?
+  scenario        String? // e.g., "customer_service", "sales_b2b"
+  visibility      TrainingRoomVisibility   @default(org)
+  createdBy       String                   @db.Uuid
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  // Relations
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator         User                     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  members         TrainingRoomMember[]
+  messages        TrainingMessage[]
+  chats           TrainingChat[]
+  feedbackEntries TrainingFeedback[]
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@schema("recalc_admin")
+}
+
+enum TrainingRoomVisibility {
+  private // Only invited members
+  org     // All org members
+  public  // All platform users
+
+  @@schema("recalc_admin")
+}
+
+model TrainingRoomMember {
+  id               String           @id @default(uuid()) @db.Uuid
+  roomId           String           @db.Uuid
+  userId           String           @db.Uuid
+  role             TrainingRoomRole @default(participant)
+  accessRole       TrainingAccessRole @default(user)
+  isAnonymous      Boolean          @default(true)
+  anonymousAlias   String? // e.g., "Participante 01", "Asesor anónimo"
+  joinedAt         DateTime         @default(now())
+  leftAt           DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  room             TrainingRoom     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatParticipants TrainingChatParticipant[]
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+  @@index([joinedAt])
+  @@schema("recalc_admin")
+}
+
+enum TrainingRoomRole {
+  participant
+  trainer
+  facilitator
+
+  @@schema("recalc_admin")
+}
+
+model TrainingMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  roomId    String   @db.Uuid
+  chatId    String?  @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  room      TrainingRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  chat      TrainingChat? @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([chatId])
+  @@index([userId])
+  @@index([createdAt])
+  @@schema("recalc_admin")
+}
+
+model TrainingChat {
+  id            String             @id @default(uuid()) @db.Uuid
+  roomId        String             @db.Uuid
+  title         String?
+  status        TrainingChatStatus @default(open)
+  createdBy     String             @db.Uuid
+  closedAt      DateTime?
+  lastMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  room            TrainingRoom            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  creator         User                    @relation("TrainingChatCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  participants    TrainingChatParticipant[]
+  messages        TrainingMessage[]
+  feedbackEntries TrainingFeedback[]
+
+  @@index([roomId, updatedAt], map: "training_chat_room_updated_idx")
+  @@index([status, lastMessageAt], map: "training_chat_status_last_message_idx")
+  @@map("training_chat")
+  @@schema("recalc_admin")
+}
+
+model TrainingChatParticipant {
+  id           String             @id @default(uuid()) @db.Uuid
+  chatId       String             @db.Uuid
+  roomMemberId String?            @db.Uuid
+  userId       String             @db.Uuid
+  role         TrainingAccessRole @default(user)
+  joinedAt     DateTime           @default(now())
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  chat       TrainingChat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  roomMember TrainingRoomMember? @relation(fields: [roomMemberId], references: [id], onDelete: SetNull)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@index([roomMemberId], map: "training_chat_participant_room_member_idx")
+  @@index([userId, joinedAt], map: "training_chat_participant_user_joined_idx")
+  @@map("training_chat_participant")
+  @@schema("recalc_admin")
+}
+
+model TrainingFeedback {
+  id           String   @id @default(uuid()) @db.Uuid
+  roomId       String   @db.Uuid
+  chatId       String   @db.Uuid
+  authorUserId String   @db.Uuid
+  targetUserId String   @db.Uuid
+  rating       Int?
+  summary      String
+  strengths    String?
+  improvements String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  room       TrainingRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  chat       TrainingChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  authorUser User         @relation("TrainingFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: Cascade)
+  targetUser User         @relation("TrainingFeedbackTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt], map: "training_feedback_chat_created_idx")
+  @@index([targetUserId, createdAt], map: "training_feedback_target_created_idx")
+  @@map("training_feedback")
+  @@schema("recalc_admin")
+}
+
+model TrainingRoomPermission {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  organizationId String   @db.Uuid
+  canViewRolplay Boolean  @default(false)
+  canJoinRolplay Boolean  @default(false)
+  canCreateRoom  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@schema("recalc_admin")
+}
+
+model AdminConfigVersion {
+  id                    String                @id @default(uuid()) @db.Uuid
+  module                AdminConfigModule
+  source                AdminChangeSource     @default(UI)
+  snapshot              Json
+  diffSummary           Json?
+  summary               Json?
+  notes                 String?
+  createdByUserId       String?               @db.Uuid
+  createdByEmail        String?
+  publishedAt           DateTime?
+  publishedByUserId     String?               @db.Uuid
+  publishedByEmail      String?
+  importSessionId       String?               @db.Uuid
+  restoredFromVersionId String?               @db.Uuid
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  publishedState        AdminPublishedConfig?
+
+  @@index([module, createdAt], map: "admin_config_version_module_created_idx")
+  @@index([module, publishedAt], map: "admin_config_version_module_published_idx")
+  @@index([importSessionId], map: "admin_config_version_import_session_idx")
+  @@map("admin_config_version")
+  @@schema("recalc_admin")
+}
+
+model AdminPublishedConfig {
+  module          AdminConfigModule  @id
+  versionId       String             @unique @db.Uuid
+  updatedAt       DateTime           @updatedAt
+  updatedByUserId String?            @db.Uuid
+  updatedByEmail  String?
+  version         AdminConfigVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@map("admin_published_config")
+  @@schema("recalc_admin")
+}
+
+model AdminImportSession {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  module              AdminConfigModule
+  status              AdminImportSessionStatus @default(preview)
+  source              AdminChangeSource        @default(IMPORT)
+  fileName            String?
+  fileChecksum        String?
+  preview             Json?
+  payload             Json?
+  warnings            Json?
+  errors              Json?
+  result              Json?
+  beforeSnapshot      Json?
+  afterSnapshot       Json?
+  summary             Json?
+  createdByUserId     String?                  @db.Uuid
+  createdByEmail      String?
+  appliedByUserId     String?                  @db.Uuid
+  appliedByEmail      String?
+  appliedVersionId    String?                  @db.Uuid
+  rolledBackVersionId String?                  @db.Uuid
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  appliedAt           DateTime?
+  rolledBackAt        DateTime?
+
+  @@index([module, status, createdAt], map: "admin_import_session_module_status_created_idx")
+  @@index([createdByEmail, createdAt], map: "admin_import_session_creator_created_idx")
+  @@map("admin_import_session")
+  @@schema("recalc_admin")
+}
+
+model Organization {
+  id          String   @id @default(uuid()) @db.Uuid
+  displayName String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members           OrganizationMember[]
+  invites           Invite[]
+  announcements     AdminAnnouncement[]
+  publicCtas        AdminPublicCta[]
+  trainingRooms     TrainingRoom[]
+  trainingPermissions TrainingRoomPermission[]
+  inboxThreads      InboxThread[]
+
+  @@map("organization")
+  @@schema("recalc_admin")
+}
+
+model OrganizationMember {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
+  role           OrgRole  @default(member)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_member")
+  @@schema("recalc_admin")
+}
+
+model InboxThread {
+  id            String            @id @default(uuid()) @db.Uuid
+  organizationId String?          @db.Uuid
+  subject       String?
+  status        InboxThreadStatus @default(active)
+  createdBy     String            @db.Uuid
+  lastMessageAt DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  organization Organization?          @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creator      User                   @relation("InboxThreadCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  participants InboxThreadParticipant[]
+  messages     InboxMessage[]
+
+  @@index([organizationId, updatedAt], map: "inbox_thread_org_updated_idx")
+  @@index([status, lastMessageAt], map: "inbox_thread_status_last_message_idx")
+  @@map("inbox_thread")
+  @@schema("recalc_admin")
+}
+
+model InboxThreadParticipant {
+  id         String   @id @default(uuid()) @db.Uuid
+  threadId   String   @db.Uuid
+  userId     String   @db.Uuid
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  thread InboxThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([userId, updatedAt], map: "inbox_thread_participant_user_updated_idx")
+  @@map("inbox_thread_participant")
+  @@schema("recalc_admin")
+}
+
+model InboxMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  threadId  String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  thread InboxThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt], map: "inbox_message_thread_created_idx")
+  @@index([userId, createdAt], map: "inbox_message_user_created_idx")
+  @@map("inbox_message")
+  @@schema("recalc_admin")
+}
+
+model AcademicFee {
+  id        String             @id @default(uuid()) @db.Uuid
+  code      String             @unique
+  concept   String
+  costMxn   Int
+  section   AcademicFeeSection
+  isActive  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  campusLinks CampusAcademicFee[]
+
+  @@map("academic_fee")
+  @@schema("recalc_admin")
+}
+
+model CampusAcademicFee {
+  id              String   @id @default(uuid()) @db.Uuid
+  campusId        String   @db.Uuid
+  academicFeeId   String   @db.Uuid
+  isActive        Boolean  @default(true)
+  overrideCostMxn Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  campus Campus      @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  fee    AcademicFee @relation(fields: [academicFeeId], references: [id], onDelete: Cascade)
+
+  @@unique([campusId, academicFeeId])
+  @@index([campusId])
+  @@map("campus_academic_fee")
+  @@schema("recalc_admin")
+}
+
+model ScholarshipRule {
+  id                 String              @id @default(uuid()) @db.Uuid
+  enrollmentType     EnrollmentType
+  businessLine       BenefitBusinessLine
+  modality           CanonicalModality
+  plan               Int
+  campusTier         String              @default("ANY")
+  minAverage         Decimal?            @db.Decimal(4, 2)
+  maxAverage         Decimal?            @db.Decimal(4, 2)
+  scholarshipPercent Decimal?            @db.Decimal(5, 2)
+  discountedPriceMxn Decimal?            @db.Decimal(12, 2)
+  origin             String?
+  legacyRowId        BigInt?             @unique @db.BigInt
+  sourceVersion      String              @default("legacy")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([enrollmentType, businessLine, modality, plan, campusTier, minAverage, maxAverage, sourceVersion], map: "scholarship_rule_runtime_key")
+  @@index([businessLine, modality, plan], map: "scholarship_rule_lookup_idx")
+  @@index([sourceVersion, enrollmentType], map: "scholarship_rule_source_enrollment_idx")
+  @@map("scholarship_rule")
+  @@schema("recalc_admin")
+}
+
+model ReturnSubjectPrice {
+  id                String            @id @default(uuid()) @db.Uuid
+  campusId          String            @db.Uuid
+  modality          CanonicalModality
+  subjectCount      Int
+  priceMxn          Decimal           @db.Decimal(12, 2)
+  legacyPlantelRaw  String?
+  legacyModalityRaw String?
+  sourceVersion     String            @default("legacy")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([campusId, modality, subjectCount, sourceVersion], map: "return_subject_price_runtime_key")
+  @@index([campusId, modality], map: "return_subject_price_lookup_idx")
+  @@map("return_subject_price")
+  @@schema("recalc_admin")
+}
+
+model RegresoMaterias {
+  id            String          @id @default(uuid()) @db.Uuid
+  campusId      String          @db.Uuid
+  modalidad     BenefitModality
+  materiasCount Int
+  costo         Int
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([campusId, modalidad, materiasCount])
+  @@map("regreso_materias")
+  @@schema("recalc_admin")
+}

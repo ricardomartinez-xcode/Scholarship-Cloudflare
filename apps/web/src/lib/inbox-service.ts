@@ -21,6 +21,7 @@ export type InboxThreadSummary = {
   updatedAt: string;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  lastMessageSender: InboxParticipantIdentity | null;
   participantCount: number;
   participants: InboxParticipantIdentity[];
 };
@@ -80,6 +81,13 @@ export async function listInboxThreadsForUser(userId: string) {
         take: 1,
         select: {
           content: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
         },
       },
       _count: {
@@ -136,6 +144,9 @@ export async function listInboxThreadsForUser(userId: string) {
       updatedAt: thread.updatedAt.toISOString(),
       lastMessageAt: thread.lastMessageAt?.toISOString() ?? null,
       lastMessagePreview: thread.messages[0]?.content ?? null,
+      lastMessageSender: thread.messages[0]?.user
+        ? serializeInboxIdentity(thread.messages[0].user)
+        : null,
       participantCount: thread._count.participants,
       participants: thread.participants.map((participant) =>
         serializeInboxIdentity(participant.user),

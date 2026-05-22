@@ -1,0 +1,103 @@
+import { NextResponse } from "next/server";
+
+import { auth } from "@/lib/auth/server";
+import { canSignUpWithEmail } from "@/lib/authz";
+
+export const dynamic = "force-dynamic";
+
+const buildErrorUrl = (message: string, token?: string) => {
+  const base = `/auth/sign-up?error=${encodeURIComponent(message)}`;
+  return token ? `${base}&token=${encodeURIComponent(token)}` : base;
+};
+
+function buildInviteSignInUrl(params: {
+  token: string;
+  email: string;
+  success?: string;
+  error?: string;
+}) {
+  const next = `/invite/accept?token=${params.token}`;
+  const search = new URLSearchParams({
+    fromInvite: "1",
+    next,
+    email: params.email,
+  });
+
+  if (params.success) search.set("success", params.success);
+  if (params.error) search.set("error", params.error);
+
+  return `/auth/sign-in?${search.toString()}`;
+}
+
+function redirect(request: Request, path: string) {
+  return NextResponse.redirect(new URL(path, request.url), { status: 303 });
+}
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const token = String(formData.get("token") ?? "").trim();
+
+  if (!email || !password) {
+    return redirect(request, buildErrorUrl("Completa correo y contraseña.", token));
+  }
+
+  if (!(await canSignUpWithEmail(email))) {
+    return redirect(
+      request,
+      buildErrorUrl(
+        "Correo no autorizado. Necesitas invitación o dominio @unidep.edu.mx.",
+        token
+      )
+    );
+  }
+
+  const name = email.split("@")[0] || "Usuario";
+  const origin = new URL(request.url).origin;
+  const result = await auth.signUp.email({
+    email,
+    name,
+    password,
+    callbackURL: origin,
+  });
+
+  if (result?.error) {
+    const message = result.error.message ?? "No fue posible crear la cuenta.";
+    if (
+      token &&
+      /already|exist|registered|duplicate|user already/i.test(message)
+    ) {
+      return redirect(
+        request,
+        buildInviteSignInUrl({
+          token,
+          email,
+          error: "Ya existe una cuenta con este correo. Inicia sesión para aceptar la invitación.",
+        }),
+      );
+    }
+
+    return redirect(
+      request,
+      buildErrorUrl(message, token)
+    );
+  }
+
+  if (token) {
+    return redirect(
+      request,
+      buildInviteSignInUrl({
+        token,
+        email,
+        success:
+          "Cuenta creada. Revisa tu correo para verificar y luego inicia sesión.",
+      }),
+    );
+  }
+
+  return redirect(
+    request,
+    "/auth/sign-in?success=Cuenta%20creada.%20Revisa%20tu%20correo%20para%20verificar%20y%20luego%20inicia%20sesión."
+  );
+}

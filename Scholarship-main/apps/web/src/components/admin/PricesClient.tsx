@@ -1,0 +1,612 @@
+"use client";
+
+import { useEffect, useRef, useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import AdminDialogShell from "@/components/admin/AdminDialogShell";
+import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
+
+type BecaRule = {
+  id: string;
+  programa_key: string;
+  nivel_key: string;
+  modalidad_key: string;
+  plan: string;
+  tier: string | null;
+  rango_min: number | null;
+  rango_max: number | null;
+  porcentaje: number | null;
+  monto: number | null;
+  origen: string | null;
+};
+
+type MontoOverride = {
+  id: string;
+  targetKeys: unknown;
+  newPrice: unknown;
+  isActive: boolean;
+};
+
+type ActionResult = { ok: boolean; error?: string };
+
+type PriceImportPreviewRow = {
+  rowNumber: number;
+  action: "create" | "update" | "noop";
+  programaKey: string;
+  nivelKey: string;
+  modalidadKey: string;
+  plan: string;
+  tier: string | null;
+  newPrice: number;
+  isActive: boolean;
+  notes: string | null;
+};
+
+type PriceImportSummary = {
+  ok: true;
+  sessionId: string;
+  processed: number;
+  ready: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  warnings: string[];
+  errors: string[];
+  previewRows?: PriceImportPreviewRow[];
+  applied?: boolean;
+  rolledBack?: boolean;
+};
+
+type ApiError = { ok: false; error: string };
+
+const PAGE_SIZE = 20;
+
+function findOverride(rule: BecaRule, overrides: MontoOverride[]): MontoOverride | null {
+  return (
+    overrides.find((o) => {
+      const keys = o.targetKeys as Record<string, string>;
+      return (
+        keys.nivel_key === rule.nivel_key &&
+        keys.modalidad_key === rule.modalidad_key &&
+        keys.plan === rule.plan &&
+        keys.tier === rule.tier
+      );
+    }) ?? null
+  );
+}
+
+function fmt(v: number | null | undefined) {
+  if (v === null || v === undefined) return "—";
+  return `$${Number(v).toLocaleString("es-MX")}`;
+}
+
+export default function PricesClient({
+  becaRules,
+  montoOverrides,
+  upsertMontoOverrideAction,
+  deletePriceOverrideAction,
+}: {
+  becaRules: BecaRule[];
+  montoOverrides: MontoOverride[];
+  upsertMontoOverrideAction: (fd: FormData) => Promise<ActionResult>;
+  deletePriceOverrideAction: (fd: FormData) => Promise<void>;
+}) {
+  const router = useRouter();
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+  const uniqueProgramas = [...new Set(becaRules.map((r) => r.programa_key))].sort();
+
+  const [filterPrograma, setFilterPrograma] = useState("");
+  const [filterNivel, setFilterNivel] = useState("");
+  const [page, setPage] = useState(0);
+
+  const [open, setOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<BecaRule | null>(null);
+  const [editingOverride, setEditingOverride] = useState<MontoOverride | null>(null);
+  const [newPrice, setNewPrice] = useState("");
+
+  const [deleteTransition, startDeleteTransition] = useTransition();
+  const [importLoading, setImportLoading] = useState(false);
+  const [applyImportLoading, setApplyImportLoading] = useState(false);
+  const [rollbackImportLoading, setRollbackImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSummary, setImportSummary] = useState<PriceImportSummary | null>(null);
+  const [importPreviewRows, setImportPreviewRows] = useState<PriceImportPreviewRow[]>([]);
+  const [importSessionId, setImportSessionId] = useState<string | null>(null);
+  const [importApplied, setImportApplied] = useState(false);
+  const [importRolledBack, setImportRolledBack] = useState(false);
+
+  const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
+    upsertMontoOverrideAction,
+    "No fue posible guardar el ajuste."
+  );
+
+  useEffect(() => {
+    if (!saveState?.ok) return;
+    const timer = window.setTimeout(() => {
+      setOpen(false);
+      setEditingRule(null);
+      setEditingOverride(null);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [saveState?.ok]);
+
+  const uniqueNiveles = [
+    ...new Set(
+      becaRules
+        .filter((r) => !filterPrograma || r.programa_key === filterPrograma)
+        .map((r) => r.nivel_key),
+    ),
+  ].sort();
+
+  const filtered = becaRules.filter((r) => {
+    if (filterPrograma && r.programa_key !== filterPrograma) return false;
+    if (filterNivel && r.nivel_key !== filterNivel) return false;
+    return true;
+  });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  function openEdit(rule: BecaRule) {
+    clearSaveState();
+    const override = findOverride(rule, montoOverrides);
+    setEditingRule(rule);
+    setEditingOverride(override);
+    setNewPrice(override ? String(override.newPrice) : String(rule.monto ?? ""));
+    setOpen(true);
+  }
+
+  function removeOverride(override: MontoOverride) {
+    if (!window.confirm("¿Quitar el ajuste y volver al precio base?")) return;
+    startDeleteTransition(async () => {
+      const fd = new FormData();
+      fd.set("id", override.id);
+      await deletePriceOverrideAction(fd);
+    });
+  }
+
+  async function validateImportCsv() {
+    setImportLoading(true);
+    setImportError(null);
+    setImportApplied(false);
+    setImportRolledBack(false);
+    setImportSummary(null);
+    try {
+      const file = importFileRef.current?.files?.[0] ?? null;
+      if (!file) {
+        throw new Error("Selecciona un archivo CSV de precios.");
+      }
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch("/api/admin/prices/import", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as PriceImportSummary | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible validar el CSV.");
+      }
+      setImportSummary(payload);
+      setImportPreviewRows(payload.previewRows ?? []);
+      setImportSessionId(payload.sessionId);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "No fue posible validar el CSV.");
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  async function applyImportSession() {
+    if (!importSessionId) return;
+    setApplyImportLoading(true);
+    setImportError(null);
+    try {
+      const response = await fetch(`/api/admin/prices/import/${importSessionId}/apply`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as PriceImportSummary | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible aplicar la sesión.");
+      }
+      setImportSummary((previous) =>
+        previous
+          ? { ...previous, ...payload, applied: true }
+          : { ...payload, applied: true },
+      );
+      setImportApplied(true);
+      setImportRolledBack(false);
+      router.refresh();
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "No fue posible aplicar la importación.",
+      );
+    } finally {
+      setApplyImportLoading(false);
+    }
+  }
+
+  async function rollbackImportSession() {
+    if (!importSessionId) return;
+    setRollbackImportLoading(true);
+    setImportError(null);
+    try {
+      const response = await fetch(`/api/admin/prices/import/${importSessionId}/rollback`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { ok: true } | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible revertir la sesión.");
+      }
+      setImportRolledBack(true);
+      setImportApplied(false);
+      router.refresh();
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "No fue posible ejecutar rollback.",
+      );
+    } finally {
+      setRollbackImportLoading(false);
+    }
+  }
+
+  return (
+    <section className="ui-card ui-card-pad">
+      <div className="ui-toolbar">
+        <div>
+          <h1 className="mt-1 text-lg font-semibold">Precios base sin beca</h1>
+          <p className="mt-1 text-sm text-slate-300">
+            Configura el precio de lista por línea, modalidad, plan y tier/online. Usa{" "}
+            <strong className="text-slate-100">Editar</strong> para ajustar el
+            precio base sin beca. El badge{" "}
+            <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+              Editado
+            </span>{" "}
+            indica que la calculadora usará el precio ajustado.
+          </p>
+        </div>
+      </div>
+
+      <section className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
+              Import CSV
+            </div>
+            <p className="mt-1 text-sm text-slate-300">
+              Importa precios base sin beca con preview de diff, aplicación y rollback lógico.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={validateImportCsv}
+              disabled={importLoading || applyImportLoading || rollbackImportLoading}
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60"
+            >
+              {importLoading ? "Analizando..." : "Validar CSV"}
+            </button>
+            <button
+              type="button"
+              onClick={applyImportSession}
+              disabled={Boolean(
+                !importSessionId || applyImportLoading || importSummary?.errors?.length,
+              )}
+              className="rounded-xl border border-emerald-500/40 bg-blue-950/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-blue-950/25 disabled:opacity-60"
+            >
+              {applyImportLoading ? "Aplicando..." : "Aplicar"}
+            </button>
+            <button
+              type="button"
+              onClick={rollbackImportSession}
+              disabled={!importSessionId || !importApplied || rollbackImportLoading}
+              className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60"
+            >
+              {rollbackImportLoading ? "Revirtiendo..." : "Rollback"}
+            </button>
+          </div>
+        </div>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="ui-control max-w-full text-sm"
+        />
+        {importError ? (
+          <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {importError}
+          </div>
+        ) : null}
+        {importSummary ? (
+          <div className="grid gap-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-2 text-xs text-slate-300">
+                Procesadas: <strong className="text-slate-100">{importSummary.processed}</strong>
+              </div>
+              <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-xs text-cyan-100">
+                Crear: <strong>{importSummary.created}</strong>
+              </div>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-100">
+                Actualizar: <strong>{importSummary.updated}</strong>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-2 text-xs text-slate-300">
+                Sin cambios: <strong className="text-slate-100">{importSummary.unchanged}</strong>
+              </div>
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-100">
+                Errores: <strong>{importSummary.errors.length}</strong>
+              </div>
+            </div>
+            {importSummary.warnings.length ? (
+              <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                {importSummary.warnings[0]}
+              </div>
+            ) : null}
+            {importSummary.errors.length ? (
+              <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+                {importSummary.errors[0]}
+              </div>
+            ) : null}
+            {importRolledBack ? (
+              <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                Rollback ejecutado para la sesión actual.
+              </div>
+            ) : null}
+            {importPreviewRows.length ? (
+              <div className="ui-table-wrap ui-scrollbar">
+                <table className="ui-table min-w-[900px]">
+                  <thead>
+                    <tr>
+                      <th className="ui-cell-nowrap text-left">Fila</th>
+                      <th className="ui-cell-nowrap text-left">Acción</th>
+                      <th className="text-left">Scope</th>
+                      <th className="ui-cell-nowrap text-right">Precio</th>
+                      <th className="ui-cell-nowrap text-left">Activo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importPreviewRows.slice(0, 40).map((row) => (
+                      <tr key={`${row.rowNumber}-${row.programaKey}-${row.plan}`}>
+                        <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
+                        <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
+                        <td className="text-slate-200">
+                          {row.programaKey} · {row.nivelKey} · {row.modalidadKey} · {row.plan}/
+                          {row.tier ?? "ANY"}
+                        </td>
+                        <td className="ui-cell-nowrap text-right font-mono text-slate-100">
+                          {fmt(row.newPrice)}
+                        </td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {row.isActive ? "Sí" : "No"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      {/* Filters */}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <select
+          value={filterPrograma}
+          onChange={(e) => {
+            setFilterPrograma(e.target.value);
+            setFilterNivel("");
+            setPage(0);
+          }}
+          className="ui-control w-full min-w-0 sm:w-auto sm:min-w-[180px] text-sm"
+        >
+          <option value="">Todos los programas</option>
+          {uniqueProgramas.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterNivel}
+          onChange={(e) => {
+            setFilterNivel(e.target.value);
+            setPage(0);
+          }}
+          className="ui-control w-full min-w-0 sm:w-auto sm:min-w-[170px] text-sm"
+        >
+          <option value="">Todos los niveles</option>
+          {uniqueNiveles.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-slate-400 sm:ml-auto">
+          {filtered.length} regla{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="ui-table-wrap ui-scrollbar mt-4">
+        <table className="ui-table min-w-[940px]">
+          <thead>
+            <tr>
+              <th className="min-w-[200px] text-left whitespace-nowrap">Programa</th>
+              <th className="ui-cell-nowrap text-left">Nivel</th>
+              <th className="ui-cell-nowrap text-left">Modalidad</th>
+              <th className="ui-cell-nowrap text-left">Plan / Tier</th>
+              <th className="ui-cell-nowrap text-right">% Beca</th>
+              <th className="ui-cell-nowrap text-right">Precio inferido</th>
+              <th className="ui-cell-nowrap text-right">Ajuste activo</th>
+              <th className="ui-cell-nowrap text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.length ? (
+              pageRows.map((rule) => {
+                const override = findOverride(rule, montoOverrides);
+                return (
+                  <tr key={rule.id}>
+                    <td className="text-slate-100" title={rule.programa_key}>
+                      <span className="ui-cell-truncate">{rule.programa_key}</span>
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-200">{rule.nivel_key}</td>
+                    <td className="ui-cell-nowrap text-slate-200">{rule.modalidad_key}</td>
+                    <td className="ui-cell-nowrap text-xs text-slate-300">
+                      {rule.plan} / {rule.tier}
+                    </td>
+                    <td className="ui-cell-nowrap text-right text-slate-300">
+                      {rule.porcentaje !== null ? `${rule.porcentaje}%` : "—"}
+                    </td>
+                    <td className="ui-cell-nowrap text-right font-mono text-slate-100">
+                      {fmt(rule.monto)}
+                    </td>
+                    <td className="ui-cell-nowrap text-right">
+                      {override ? (
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="font-mono text-emerald-300">
+                            {fmt(Number(override.newPrice))}
+                          </span>
+                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                            Editado
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 whitespace-nowrap">—</span>
+                      )}
+                    </td>
+                    <td className="ui-cell-nowrap text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(rule)}
+                          className="rounded-xl border border-white/10 bg-white/0 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 whitespace-nowrap"
+                        >
+                          Editar
+                        </button>
+                        {override && (
+                          <button
+                            type="button"
+                            disabled={deleteTransition}
+                            onClick={() => removeOverride(override)}
+                            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 whitespace-nowrap"
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td className="text-slate-400" colSpan={8}>
+                  No hay reglas con los filtros seleccionados.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between gap-4 text-sm">
+          <button
+            type="button"
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+            className="rounded-xl border border-white/10 bg-white/0 px-4 py-2 text-slate-200 transition hover:bg-white/5 disabled:opacity-40"
+          >
+            ← Anterior
+          </button>
+          <span className="text-slate-400">
+            Página {page + 1} de {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-xl border border-white/10 bg-white/0 px-4 py-2 text-slate-200 transition hover:bg-white/5 disabled:opacity-40"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
+      {/* Edit / Create Override Dialog */}
+      <AdminDialogShell
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) {
+            clearSaveState();
+          }
+        }}
+        kicker={editingOverride ? "Modificar ajuste" : "Nuevo ajuste"}
+        title={editingRule?.programa_key ?? "Ajuste de precio"}
+        description={
+          editingRule
+            ? `${editingRule.nivel_key} · ${editingRule.modalidad_key} · ${editingRule.plan}/${editingRule.tier}`
+            : "Actualiza el precio base sin beca que usará la calculadora."
+        }
+        size="md"
+      >
+        {editingRule && (
+          <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
+            <span className="text-slate-400">Precio inferido actual: </span>
+            <span className="font-mono font-semibold text-slate-100">
+              {fmt(editingRule.monto)}
+            </span>
+            {editingRule.porcentaje !== null && (
+              <span className="ml-3 text-slate-400">{editingRule.porcentaje}% beca</span>
+            )}
+          </div>
+        )}
+
+        {saveState?.ok === false && saveState.error ? (
+          <div className="mb-4 rounded-2xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {saveState.error}
+          </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit} className="grid gap-4">
+              <input type="hidden" name="programa_key" value={editingRule?.programa_key ?? ""} />
+              <input type="hidden" name="nivel_key" value={editingRule?.nivel_key ?? ""} />
+              <input
+                type="hidden"
+                name="modalidad_key"
+                value={editingRule?.modalidad_key ?? ""}
+              />
+              <input type="hidden" name="plan" value={editingRule?.plan ?? ""} />
+              <input type="hidden" name="tier" value={editingRule?.tier ?? ""} />
+              <input type="hidden" name="existingId" value={editingOverride?.id ?? ""} />
+
+              <label className="grid gap-2 text-sm">
+                Nuevo precio base sin beca (MXN)
+                <input
+                  name="newPrice"
+                  type="number"
+                  step="0.01"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  className="ui-control"
+                  placeholder="0.00"
+                  required
+                />
+              </label>
+
+              <div className="sticky bottom-0 z-10 -mx-1 bg-slate-950/95 px-1 pt-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full rounded-2xl bg-blue-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 disabled:opacity-60"
+                >
+                  {saving ? "Guardando..." : "Guardar ajuste"}
+                </button>
+              </div>
+        </form>
+      </AdminDialogShell>
+    </section>
+  );
+}

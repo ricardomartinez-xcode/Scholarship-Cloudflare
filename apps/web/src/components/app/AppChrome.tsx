@@ -27,6 +27,7 @@ import {
   resolveWorkspaceSectionFromLegacy,
   resolveWorkspaceSectionFromPath,
 } from "@/lib/unidep-navigation";
+import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
 
 type AppContextValue = {
   userEmail: string | null;
@@ -138,11 +139,13 @@ function WorkspaceSidebarNav({
   onNavigate,
   sidebarTopAnnouncements,
   sidebarBottomAnnouncements,
+  userEmail,
 }: {
   activeSection: string;
   onNavigate?: () => void;
   sidebarTopAnnouncements: Announcement[];
   sidebarBottomAnnouncements: Announcement[];
+  userEmail: string | null;
 }) {
   const appTopAnnouncements = sidebarTopAnnouncements.filter(
     (item) => !isAdminPanelAnnouncement(item),
@@ -177,7 +180,7 @@ function WorkspaceSidebarNav({
         className="grid gap-2"
       />
 
-      <AppSidebar activeKey={activeSection} onNavigate={onNavigate} />
+      <AppSidebar activeKey={activeSection} onNavigate={onNavigate} userEmail={userEmail} />
 
       <AnnouncementOutlet
         announcements={appBottomAnnouncements}
@@ -246,7 +249,12 @@ export default function AppChrome({
   const workspaceActiveSection = pathWorkspaceSection ?? legacyWorkspaceSection;
   const effectiveWorkspaceSection =
     workspaceActiveSection ?? WORKSPACE_ITEMS[0]?.key ?? "becas";
-  const resolvedActiveSection = showWorkspaceLayout ? effectiveWorkspaceSection : activeSection;
+  const workspaceWhatsappAllowed = canAccessWorkspaceWhatsapp(userEmail);
+  const visibleWorkspaceSection =
+    !workspaceWhatsappAllowed && effectiveWorkspaceSection === "waba"
+      ? "web"
+      : effectiveWorkspaceSection;
+  const resolvedActiveSection = showWorkspaceLayout ? visibleWorkspaceSection : activeSection;
   const currentWorkspaceItem =
     WORKSPACE_ITEMS.find((item) => item.key === resolvedActiveSection) ??
     WORKSPACE_ITEMS[0];
@@ -362,6 +370,7 @@ export default function AppChrome({
                               onNavigate={() => setMobileNavOpen(false)}
                               sidebarTopAnnouncements={sidebarTopAnnouncements}
                               sidebarBottomAnnouncements={sidebarBottomAnnouncements}
+                              userEmail={userEmail}
                             />
                           </div>
                         </Dialog.Content>
