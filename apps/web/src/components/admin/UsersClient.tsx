@@ -496,7 +496,7 @@ export default function UsersClient({
                   type="button"
                   disabled={!selectedIds.length}
                   onClick={() => void runBulkAction("activate")}
-                  className="rounded-xl border border-blue-900/40 bg-blue-950/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:bg-blue-900/30 disabled:opacity-50"
+                  className="rounded-xl border border-emerald-300 bg-emerald-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-950 transition hover:bg-emerald-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100"
                 >
                   Activar lote
                 </button>
@@ -504,7 +504,7 @@ export default function UsersClient({
                   type="button"
                   disabled={!selectedIds.length}
                   onClick={() => void runBulkAction("deactivate")}
-                  className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-100 transition hover:bg-amber-500/20 disabled:opacity-50"
+                  className="rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-950 transition hover:bg-amber-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100"
                 >
                   Desactivar lote
                 </button>

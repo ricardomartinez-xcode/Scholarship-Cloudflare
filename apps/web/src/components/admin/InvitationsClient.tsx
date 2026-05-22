@@ -562,8 +562,8 @@ export default function InvitationsClient({
         </div>
 
         {smtpBlocked ? (
-          <div className="mt-6 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-red-200">
+          <div className="mt-6 rounded-2xl border border-red-300 bg-red-100 px-4 py-3 text-sm font-medium text-red-950">
+            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-red-800">
               Envío por correo no disponible
             </div>
             <p className="mt-2">
@@ -571,7 +571,7 @@ export default function InvitationsClient({
               puedes generar enlaces directos personalizados y compartirlos manualmente.
             </p>
             {missingVars.length ? (
-              <div className="mt-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs text-red-100/90">
+              <div className="mt-3 rounded-xl border border-red-200 bg-white/55 px-3 py-2 text-xs text-red-900">
                 Faltan: <span className="font-semibold">{missingVars.join(", ")}</span>
               </div>
             ) : null}
@@ -676,7 +676,7 @@ export default function InvitationsClient({
                 !currentAdmin.canManageInvites ||
                 (deliveryMethod === "email" && smtpBlocked)
               }
-              className="self-end rounded-2xl bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 disabled:opacity-60"
+              className="self-end rounded-2xl bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 disabled:bg-slate-200 disabled:text-slate-600 disabled:opacity-100"
             >
               {saving
                 ? "Procesando..."
@@ -780,7 +780,7 @@ export default function InvitationsClient({
                   type="button"
                   disabled={!selectedIds.length || bulkHasUsedRows || saving}
                   onClick={() => void runBulkAction("cancel")}
-                  className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-100 transition hover:bg-amber-500/20 disabled:opacity-50"
+                  className="rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-950 transition hover:bg-amber-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100"
                 >
                   Cancelar lote
                 </button>
@@ -788,7 +788,7 @@ export default function InvitationsClient({
                   type="button"
                   disabled={!selectedIds.length || bulkHasUsedRows || saving}
                   onClick={() => void runBulkAction("delete")}
-                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-50"
+                  className="rounded-xl border border-red-300 bg-red-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-950 transition hover:bg-red-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100"
                 >
                   Eliminar lote
                 </button>
@@ -953,7 +953,7 @@ export default function InvitationsClient({
                             type="button"
                             disabled={saving || !currentAdmin.canManageInvites}
                             onClick={() => void patchInvitation("cancel", row.id)}
-                            className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-60"
+                            className="rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-950 transition hover:bg-amber-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100"
                           >
                             Cancelar
                           </button>
@@ -963,7 +963,7 @@ export default function InvitationsClient({
                             type="button"
                             disabled={saving || !currentAdmin.canManageInvites}
                             onClick={() => void removeInvitation(row.id)}
-                            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-60"
+                            className="rounded-xl border border-red-300 bg-red-100 px-3 py-2 text-xs font-semibold text-red-950 transition hover:bg-red-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100"
                           >
                             Eliminar
                           </button>

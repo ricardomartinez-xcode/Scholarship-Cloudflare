@@ -246,7 +246,6 @@ export default function AdminChrome({
                 </div>
                 <div className="mt-2 hidden flex-wrap gap-2 sm:flex">
                   <span className="ui-pill ui-pill--accent">{roleLabel}</span>
-                  {isSystemOwner ? <span className="ui-pill">Owner</span> : null}
                 </div>
               </div>
             </div>
@@ -278,7 +277,6 @@ export default function AdminChrome({
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="ui-pill ui-pill--accent">{roleLabel}</span>
-                      {isSystemOwner ? <span className="ui-pill">Owner</span> : null}
                     </div>
                     <div className="mt-4 grid gap-2">
                       <form action={logoutAction}>

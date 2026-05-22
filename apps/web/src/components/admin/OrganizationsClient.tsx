@@ -301,16 +301,16 @@ export default function OrganizationsClient({
       </div>
 
       {hasConfigError ? (
-        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200">
+        <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-950">
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-800">
             Error
           </div>
           <p className="mt-2">{configError}</p>
         </div>
       ) : (
         <>
-          <div className="mt-6 rounded-2xl border border-sky-500/25 bg-sky-500/10 p-4 text-sm text-sky-100">
-            <div className="text-xs uppercase tracking-[0.24em] text-sky-200">
+          <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-medium text-sky-950">
+            <div className="text-xs uppercase tracking-[0.24em] text-sky-700">
               Ayuda contextual
             </div>
             <p className="mt-2">
@@ -340,14 +340,14 @@ export default function OrganizationsClient({
               type="button"
               onClick={() => void handleCreate()}
               disabled={saving || Boolean(createNameError) || !currentAdmin.canManageOrganizations}
-              className="self-end rounded-2xl bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 disabled:opacity-60"
+              className="self-end rounded-2xl bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 disabled:bg-slate-200 disabled:text-slate-600 disabled:opacity-100"
             >
               {saving ? "Creando..." : "Crear organización"}
             </button>
           </div>
 
           {createNameError && newName.trim() ? (
-            <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+            <div className="mt-3 rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-sm font-medium text-amber-950">
               {createNameError}
             </div>
           ) : null}
