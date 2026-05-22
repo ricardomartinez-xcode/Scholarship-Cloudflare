@@ -15,6 +15,10 @@ type DragState = {
 
 const POSITION_STORAGE_KEY = "recalc:floating-calculator-position";
 const VIEWPORT_MARGIN = 10;
+const DEFAULT_TOP_OFFSET = 176;
+const DEFAULT_RIGHT_OFFSET = 58;
+const LEGACY_DEFAULT_LEFT = 16;
+const LEGACY_DEFAULT_BOTTOM_OFFSET = 68;
 
 function formatDisplay(value: number) {
   if (!Number.isFinite(value)) return "Error";
@@ -60,6 +64,16 @@ export default function FloatingCalculator() {
     };
   }, []);
 
+  const getDefaultPosition = useCallback(() => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    const width = rect?.width ?? 132;
+
+    return clampPosition({
+      x: window.innerWidth - width - DEFAULT_RIGHT_OFFSET,
+      y: DEFAULT_TOP_OFFSET,
+    });
+  }, [clampPosition]);
+
   const persistPosition = useCallback((nextPosition: Position) => {
     window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(nextPosition));
   }, []);
@@ -71,7 +85,14 @@ export default function FloatingCalculator() {
         try {
           const parsed = JSON.parse(storedPosition) as Partial<Position>;
           if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-            setPosition(clampPosition({ x: parsed.x, y: parsed.y }));
+            const legacyDefaultY = window.innerHeight - LEGACY_DEFAULT_BOTTOM_OFFSET;
+            const isLegacyDefault =
+              Math.abs(parsed.x - LEGACY_DEFAULT_LEFT) <= 2 &&
+              Math.abs(parsed.y - legacyDefaultY) <= 2;
+            setPosition(isLegacyDefault ? getDefaultPosition() : clampPosition({
+              x: parsed.x,
+              y: parsed.y,
+            }));
             return;
           }
         } catch {
@@ -79,14 +100,11 @@ export default function FloatingCalculator() {
         }
       }
 
-      setPosition(clampPosition({
-        x: 16,
-        y: window.innerHeight - 68,
-      }));
+      setPosition(getDefaultPosition());
     });
 
     return () => window.cancelAnimationFrame(raf);
-  }, [clampPosition]);
+  }, [clampPosition, getDefaultPosition]);
 
   useEffect(() => {
     const raf = window.requestAnimationFrame(() => {
@@ -231,10 +249,7 @@ export default function FloatingCalculator() {
   };
 
   const resetPosition = () => {
-    const nextPosition = clampPosition({
-      x: 16,
-      y: window.innerHeight - 68,
-    });
+    const nextPosition = getDefaultPosition();
     setPosition(nextPosition);
     persistPosition(nextPosition);
   };
@@ -327,7 +342,14 @@ export default function FloatingCalculator() {
         aria-expanded={isOpen}
         title="Abrir o arrastrar calculadora"
       >
-        Calculadora
+        <img
+          src="/branding/floating-calculator.png"
+          alt=""
+          aria-hidden="true"
+          className="ui-floating-calculator__rail-image"
+          draggable={false}
+        />
+        <span className="sr-only">Calculadora</span>
       </button>
     </aside>
   );

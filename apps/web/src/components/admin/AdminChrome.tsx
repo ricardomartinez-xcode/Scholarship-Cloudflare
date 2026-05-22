@@ -87,7 +87,6 @@ function AdminDrawerNav({
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="ui-pill ui-pill--accent">{roleLabel}</span>
-          {isSystemOwner ? <span className="ui-pill">Owner</span> : null}
         </div>
       </section>
 
