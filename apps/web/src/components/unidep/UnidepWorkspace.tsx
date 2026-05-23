@@ -728,7 +728,7 @@ function PlanesSection() {
                     href={row.planPdfUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs text-emerald-200 transition hover:bg-emerald-500/25"
+                    className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
                   >
                     Abrir / Descargar plan
                   </a>
@@ -825,7 +825,7 @@ function FormatosSection() {
                     href={row.fileUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs text-emerald-200 transition hover:bg-emerald-500/25"
+                    className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
                   >
                     Abrir / Descargar
                   </a>
