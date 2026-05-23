@@ -5031,6 +5031,22 @@ a[role="button"] {
   line-height: 1.25;
 }
 
+.ui-button-danger:disabled,
+.ui-card .ui-button-danger:disabled {
+  border-color: #efb8b8 !important;
+  background: #fde8e8 !important;
+  color: #7f1d1d !important;
+  opacity: 1 !important;
+}
+
+.ui-button-info:disabled,
+.ui-card .ui-button-info:disabled {
+  border-color: #9fc3d1 !important;
+  background: #d8edf5 !important;
+  color: #0f3c55 !important;
+  opacity: 1 !important;
+}
+
 .ui-control,
 .ui-control--select,
 .ui-chat-composer__field,
