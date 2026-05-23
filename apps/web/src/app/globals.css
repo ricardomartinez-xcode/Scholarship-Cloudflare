@@ -5087,6 +5087,45 @@ a.ui-button-danger:not(:disabled):hover {
   color: var(--ui-text-primary) !important;
 }
 
+.ui-campaign-table-shell {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-primary) !important;
+}
+
+.ui-campaign-table {
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-campaign-table thead {
+  background: #eaf3f8 !important;
+}
+
+.ui-campaign-table th {
+  color: var(--ui-institutional-blue-deep) !important;
+}
+
+.ui-campaign-table td {
+  border-top-color: var(--ui-border) !important;
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-campaign-table tbody tr {
+  background: var(--ui-surface-primary) !important;
+}
+
+.ui-campaign-table__title {
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-campaign-table__meta,
+.ui-campaign-table__time {
+  color: var(--ui-text-secondary) !important;
+}
+
+.ui-campaign-table__error {
+  color: #7f1d1d !important;
+}
+
 .ui-control,
 .ui-control--select,
 .ui-chat-composer__field,
