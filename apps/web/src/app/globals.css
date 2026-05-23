@@ -5498,3 +5498,32 @@ a.ui-button-danger:not(:disabled):hover {
     width: min(330px, calc(100vw - 62px));
   }
 }
+
+html body .ui-campaign-table-shell {
+  border-color: var(--ui-border) !important;
+  background: #ffffff !important;
+}
+
+html body .ui-campaign-table,
+html body .ui-campaign-table tbody,
+html body .ui-campaign-table tr,
+html body .ui-campaign-table td {
+  background: #ffffff !important;
+  color: var(--ui-text-primary) !important;
+}
+
+html body .ui-campaign-table thead,
+html body .ui-campaign-table thead tr,
+html body .ui-campaign-table th {
+  background: #eaf3f8 !important;
+  color: #0f3c55 !important;
+}
+
+html body .ui-campaign-table__meta,
+html body .ui-campaign-table__time {
+  color: var(--ui-text-secondary) !important;
+}
+
+html body .ui-campaign-table__error {
+  color: #7f1d1d !important;
+}

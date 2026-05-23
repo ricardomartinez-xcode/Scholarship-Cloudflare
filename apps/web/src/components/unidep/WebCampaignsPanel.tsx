@@ -1714,7 +1714,7 @@ ${summary}
                 })()}
               </article>
 
-              <article className="rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+              <article className="ui-web-campaign-detail rounded-3xl border border-white/10 bg-slate-950/35 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
@@ -1733,11 +1733,11 @@ ${summary}
                   <table className="ui-campaign-table">
                     <thead>
                       <tr>
-                        <th>Contacto</th>
-                        <th>Estado del envío</th>
-                        <th>Programado para</th>
-                        <th>Último intento</th>
-                        <th>Detalle operativo</th>
+                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Contacto</th>
+                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Estado del envío</th>
+                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Programado para</th>
+                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Último intento</th>
+                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Detalle operativo</th>
                       </tr>
                     </thead>
                     <tbody>
