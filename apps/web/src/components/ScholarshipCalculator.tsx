@@ -92,6 +92,60 @@ type CalculationErr = {
   ranges?: string[];
 };
 
+const QUOTE_MISSING_FIELD_LABELS: Record<string, string> = {
+  enrollmentType: "tipo de inscripción",
+  businessLine: "línea de negocio",
+  modality: "modalidad",
+  plan: "plan de estudios",
+  campus: "plantel",
+  average: "promedio",
+  subjectCount: "materias",
+  extraCharge: "cargo académico",
+};
+
+const QUOTE_MISSING_FIELD_MAP: Record<string, NonNullable<CalculationErr["missing"]>[number]> = {
+  businessLine: "nivel",
+  modality: "modalidad",
+  plan: "plan",
+  campus: "plantel",
+  average: "promedio",
+  subjectCount: "materias",
+};
+
+function normalizeQuoteError(result: Extract<QuoteApiResult, { ok: false }>): CalculationErr {
+  if (result.error === "missing_fields") {
+    const missing = result.missing ?? [];
+    const labels = missing.map((field) => QUOTE_MISSING_FIELD_LABELS[field] ?? field);
+
+    return {
+      error: "Faltan campos obligatorios.",
+      hint: labels.length ? `Completa: ${labels.join(", ")}.` : result.hint,
+      missing: missing
+        .map((field) => QUOTE_MISSING_FIELD_MAP[field])
+        .filter((field): field is NonNullable<CalculationErr["missing"]>[number] => Boolean(field)),
+      ranges: result.ranges,
+    };
+  }
+
+  if (result.error === "invalid_payload") {
+    return {
+      error: "Hay campos con valores inválidos.",
+      hint: result.hint,
+      missing: result.missing
+        ?.map((field) => QUOTE_MISSING_FIELD_MAP[field])
+        .filter((field): field is NonNullable<CalculationErr["missing"]>[number] => Boolean(field)),
+      ranges: result.ranges,
+    };
+  }
+
+  return {
+    error: result.error,
+    hint: result.hint,
+    missing: result.missing as CalculationErr["missing"],
+    ranges: result.ranges,
+  };
+}
+
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -878,7 +932,7 @@ export default function ScholarshipCalculator({
             businessLine: benefitBusinessLine,
             modality: benefitModality || modalidad,
             plan,
-            campus: plantel || null,
+            campus: benefitLookupKey || plantel || null,
             average: promedio.trim(),
             subjectCount: materias,
             extraCharge: cargoEnabled ? cargoAmount : null,
@@ -910,6 +964,7 @@ export default function ScholarshipCalculator({
     tipo,
     benefitBusinessLine,
     benefitModality,
+    benefitLookupKey,
     modalidad,
     plan,
     plantel,
@@ -1265,12 +1320,7 @@ export default function ScholarshipCalculator({
   const quoteCalculation = useMemo<Calculation | null>(() => {
     if (!quoteResult) return null;
     if (!quoteResult.ok) {
-      return {
-        error: quoteResult.error,
-        hint: quoteResult.hint,
-        missing: quoteResult.missing as CalculationErr["missing"],
-        ranges: quoteResult.ranges,
-      };
+      return normalizeQuoteError(quoteResult);
     }
 
     return {
@@ -1549,35 +1599,35 @@ export default function ScholarshipCalculator({
         title: "1er cuatrimestre",
         rows: [
           {
-            label: "Mensualidad 1",
-            detail: "Primera mensualidad",
+            label: "Pago de incorporación a la SEP + Gastos administrativos",
+            detail: "Primer pago",
+            amount: firstPaymentAmount,
+          },
+          {
+            label: "Primer Colegiatura",
+            detail: "Costo mensual con beneficio aplicado",
             amount: 0,
           },
           ...[2, 3, 4].map((index) => ({
             label: `Mensualidad ${index}`,
-            detail: "Costo mensual cotizado",
+            detail: "Costo mensual con beneficio aplicado",
             amount: currentMonthlyAmount,
           })),
-          {
-            label: "Pago de incorporación a la SEP + Gastos administrativos",
-            detail: "Pago único",
-            amount: firstPaymentAmount,
-          },
         ],
       },
       {
         title: "2do cuatrimestre",
         rows: [
+          {
+            label: "Pago de incorporación a la SEP",
+            detail: "Primer pago",
+            amount: firstPaymentAmount,
+          },
           ...[1, 2, 3, 4].map((index) => ({
             label: `Mensualidad ${index}`,
             detail: "Costo mensual",
             amount: secondTermMonthlyAmount,
           })),
-          {
-            label: "Pago de incorporación a la SEP",
-            detail: "Pago único",
-            amount: firstPaymentAmount,
-          },
         ],
       },
     ];

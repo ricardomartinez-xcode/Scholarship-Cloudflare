@@ -1,25 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Operator = "+" | "-" | "*" | "/" | null;
 type Position = { x: number; y: number };
-type DragState = {
-  pointerId: number;
-  startX: number;
-  startY: number;
-  originX: number;
-  originY: number;
-  moved: boolean;
-};
 
-const POSITION_STORAGE_KEY = "recalc:floating-calculator-position";
 const VIEWPORT_MARGIN = 10;
 const DEFAULT_TOP_OFFSET = 176;
 const DEFAULT_RIGHT_OFFSET = 58;
 const DEFAULT_RAIL_WIDTH = 74;
-const LEGACY_DEFAULT_LEFT = 16;
-const LEGACY_DEFAULT_BOTTOM_OFFSET = 68;
 
 function formatDisplay(value: number) {
   if (!Number.isFinite(value)) return "Error";
@@ -36,17 +25,20 @@ function calculate(left: number, right: number, operator: Operator) {
   return right;
 }
 
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
+}
+
 export default function FloatingCalculator() {
   const rootRef = useRef<HTMLElement | null>(null);
-  const dragStateRef = useRef<DragState | null>(null);
-  const justDraggedRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [display, setDisplay] = useState("0");
   const [storedValue, setStoredValue] = useState<number | null>(null);
   const [operator, setOperator] = useState<Operator>(null);
   const [waitingForNextValue, setWaitingForNextValue] = useState(false);
   const [position, setPosition] = useState<Position>({ x: 16, y: 16 });
-  const [isDragging, setIsDragging] = useState(false);
 
   const currentValue = Number(display.replace(/,/g, ""));
 
@@ -75,62 +67,28 @@ export default function FloatingCalculator() {
     });
   }, [clampPosition]);
 
-  const persistPosition = useCallback((nextPosition: Position) => {
-    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(nextPosition));
-  }, []);
+  useEffect(() => {
+    const raf = window.requestAnimationFrame(() => setPosition(getDefaultPosition()));
+
+    return () => window.cancelAnimationFrame(raf);
+  }, [getDefaultPosition]);
 
   useEffect(() => {
     const raf = window.requestAnimationFrame(() => {
-      const storedPosition = window.localStorage.getItem(POSITION_STORAGE_KEY);
-      if (storedPosition) {
-        try {
-          const parsed = JSON.parse(storedPosition) as Partial<Position>;
-          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-            const legacyDefaultY = window.innerHeight - LEGACY_DEFAULT_BOTTOM_OFFSET;
-            const isLegacyDefault =
-              Math.abs(parsed.x - LEGACY_DEFAULT_LEFT) <= 2 &&
-              Math.abs(parsed.y - legacyDefaultY) <= 2;
-            setPosition(isLegacyDefault ? getDefaultPosition() : clampPosition({
-              x: parsed.x,
-              y: parsed.y,
-            }));
-            return;
-          }
-        } catch {
-          window.localStorage.removeItem(POSITION_STORAGE_KEY);
-        }
-      }
-
       setPosition(getDefaultPosition());
     });
 
     return () => window.cancelAnimationFrame(raf);
-  }, [clampPosition, getDefaultPosition]);
-
-  useEffect(() => {
-    const raf = window.requestAnimationFrame(() => {
-      setPosition((current) => {
-        const next = clampPosition(current);
-        persistPosition(next);
-        return next;
-      });
-    });
-
-    return () => window.cancelAnimationFrame(raf);
-  }, [clampPosition, isOpen, persistPosition]);
+  }, [getDefaultPosition, isOpen]);
 
   useEffect(() => {
     const handleResize = () => {
-      setPosition((current) => {
-        const next = clampPosition(current);
-        persistPosition(next);
-        return next;
-      });
+      setPosition(getDefaultPosition());
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [clampPosition, persistPosition]);
+  }, [getDefaultPosition]);
 
   const clear = () => {
     setDisplay("0");
@@ -164,9 +122,37 @@ export default function FloatingCalculator() {
     if (!display.includes(".")) setDisplay((value) => `${value}.`);
   };
 
+  const inputBackspace = () => {
+    if (waitingForNextValue || display === "Error") {
+      setDisplay("0");
+      setWaitingForNextValue(false);
+      return;
+    }
+
+    setDisplay((value) => {
+      const next = value.slice(0, -1);
+      return next && next !== "-" ? next : "0";
+    });
+  };
+
   const toggleSign = () => {
     if (display === "0" || display === "Error") return;
     setDisplay((value) => (value.startsWith("-") ? value.slice(1) : `-${value}`));
+  };
+
+  const applyPercent = () => {
+    if (!Number.isFinite(currentValue)) {
+      clear();
+      return;
+    }
+
+    const percentValue =
+      storedValue !== null && operator
+        ? (storedValue * currentValue) / 100
+        : currentValue / 100;
+
+    setDisplay(formatDisplay(percentValue));
+    setWaitingForNextValue(false);
   };
 
   const chooseOperator = (nextOperator: Exclude<Operator, null>) => {
@@ -196,64 +182,73 @@ export default function FloatingCalculator() {
     setWaitingForNextValue(true);
   };
 
-  const beginDrag = (event: PointerEvent<HTMLElement>) => {
-    if (event.button !== 0 && event.pointerType === "mouse") return;
-    dragStateRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: position.x,
-      originY: position.y,
-      moved: false,
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isEditableTarget(event.target)) return;
+
+      const key = event.key;
+      if (/^\d$/.test(key)) {
+        event.preventDefault();
+        inputDigit(key);
+        return;
+      }
+
+      if (key === "." || key === ",") {
+        event.preventDefault();
+        inputDecimal();
+        return;
+      }
+
+      if (key === "+" || key === "-" || key === "*" || key === "/") {
+        event.preventDefault();
+        chooseOperator(key as Exclude<Operator, null>);
+        return;
+      }
+
+      if (key.toLowerCase() === "x") {
+        event.preventDefault();
+        chooseOperator("*");
+        return;
+      }
+
+      if (key === "%") {
+        event.preventDefault();
+        applyPercent();
+        return;
+      }
+
+      if (key === "Enter" || key === "=") {
+        event.preventDefault();
+        finishCalculation();
+        return;
+      }
+
+      if (key === "Backspace") {
+        event.preventDefault();
+        inputBackspace();
+        return;
+      }
+
+      if (key === "Escape") {
+        event.preventDefault();
+        clear();
+      }
     };
-    setIsDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
 
-  const moveDrag = (event: PointerEvent<HTMLElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - dragState.startX;
-    const deltaY = event.clientY - dragState.startY;
-    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-      dragState.moved = true;
-    }
-
-    setPosition(clampPosition({
-      x: dragState.originX + deltaX,
-      y: dragState.originY + deltaY,
-    }));
-  };
-
-  const endDrag = (event: PointerEvent<HTMLElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) return;
-
-    const nextPosition = clampPosition({
-      x: dragState.originX + event.clientX - dragState.startX,
-      y: dragState.originY + event.clientY - dragState.startY,
-    });
-    setPosition(nextPosition);
-    persistPosition(nextPosition);
-    justDraggedRef.current = dragState.moved;
-    dragStateRef.current = null;
-    setIsDragging(false);
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
-    window.setTimeout(() => {
-      justDraggedRef.current = false;
-    }, 0);
-  };
-
-  const resetPosition = () => {
-    const nextPosition = getDefaultPosition();
-    setPosition(nextPosition);
-    persistPosition(nextPosition);
-  };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    applyPercent,
+    chooseOperator,
+    currentValue,
+    finishCalculation,
+    inputBackspace,
+    inputDecimal,
+    inputDigit,
+    isOpen,
+  ]);
 
   return (
     <aside
@@ -261,7 +256,6 @@ export default function FloatingCalculator() {
       className={[
         "ui-floating-calculator",
         isOpen ? "ui-floating-calculator--open" : "",
-        isDragging ? "ui-floating-calculator--dragging" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -269,17 +263,12 @@ export default function FloatingCalculator() {
       style={{
         transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
       }}
-      onPointerMove={moveDrag}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
     >
       {isOpen ? (
         <div className="ui-floating-calculator__panel">
           <div className="ui-floating-calculator__head">
             <div
               className="ui-floating-calculator__drag-handle"
-              onPointerDown={beginDrag}
-              title="Arrastrar calculadora"
             >
               <div className="ui-floating-calculator__eyebrow">Cotizador</div>
               <div className="ui-floating-calculator__title">Calculadora</div>
@@ -288,18 +277,17 @@ export default function FloatingCalculator() {
               <button
                 type="button"
                 className="ui-floating-calculator__close"
-                onClick={resetPosition}
-                aria-label="Restaurar posición de la calculadora"
-              >
-                Restaurar
-              </button>
-              <button
-                type="button"
-                className="ui-floating-calculator__close"
                 onClick={() => setIsOpen(false)}
                 aria-label="Contraer calculadora"
               >
-                Contraer
+                <img
+                  src="/branding/floating-calculator.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="ui-floating-calculator__collapse-image"
+                  draggable={false}
+                />
+                <span className="sr-only">Contraer</span>
               </button>
             </div>
           </div>
@@ -311,7 +299,7 @@ export default function FloatingCalculator() {
           <div className="ui-floating-calculator__keys">
             <button type="button" onClick={clear}>C</button>
             <button type="button" onClick={toggleSign}>+/-</button>
-            <button type="button" onClick={() => setDisplay(formatDisplay(currentValue / 100))}>%</button>
+            <button type="button" onClick={applyPercent}>%</button>
             <button type="button" className="is-operator" onClick={() => chooseOperator("/")}>÷</button>
             {["7", "8", "9"].map((digit) => (
               <button key={digit} type="button" onClick={() => inputDigit(digit)}>{digit}</button>
@@ -332,26 +320,24 @@ export default function FloatingCalculator() {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        className="ui-floating-calculator__rail"
-        onPointerDown={beginDrag}
-        onClick={() => {
-          if (justDraggedRef.current) return;
-          setIsOpen((value) => !value);
-        }}
-        aria-expanded={isOpen}
-        title="Abrir o arrastrar calculadora"
-      >
-        <img
-          src="/branding/floating-calculator.png"
-          alt=""
-          aria-hidden="true"
-          className="ui-floating-calculator__rail-image"
-          draggable={false}
-        />
-        <span className="sr-only">Calculadora</span>
-      </button>
+      {!isOpen ? (
+        <button
+          type="button"
+          className="ui-floating-calculator__rail"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={isOpen}
+          title="Abrir calculadora"
+        >
+          <img
+            src="/branding/floating-calculator.png"
+            alt=""
+            aria-hidden="true"
+            className="ui-floating-calculator__rail-image"
+            draggable={false}
+          />
+          <span className="sr-only">Calculadora</span>
+        </button>
+      ) : null}
     </aside>
   );
 }

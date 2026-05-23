@@ -4767,13 +4767,7 @@ a[role="button"] {
 
 .ui-floating-calculator__drag-handle {
   min-width: 0;
-  cursor: grab;
   user-select: none;
-}
-
-.ui-floating-calculator--dragging .ui-floating-calculator__drag-handle,
-.ui-floating-calculator--dragging .ui-floating-calculator__rail {
-  cursor: grabbing;
 }
 
 .ui-floating-calculator__head-actions {
@@ -4805,6 +4799,14 @@ a[role="button"] {
   font-size: 11px;
   font-weight: 750;
   padding: 6px 8px;
+}
+
+.ui-floating-calculator__collapse-image {
+  display: block;
+  width: 16px;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
 }
 
 .ui-floating-calculator__display {
@@ -4872,7 +4874,7 @@ a[role="button"] {
   color: #0F3C55;
   filter: drop-shadow(0 18px 28px rgba(15, 60, 85, 0.2));
   padding: 0;
-  cursor: grab;
+  cursor: pointer;
 }
 
 .ui-floating-calculator__rail-image {

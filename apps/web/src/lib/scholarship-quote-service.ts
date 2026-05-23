@@ -255,7 +255,11 @@ export async function resolveScholarshipQuote(
   }
 
   const benefits = await resolveAdditionalBenefits({
-    campus: input.campus ?? campus?.metaKey ?? campus?.name ?? null,
+    campus:
+      input.campus ??
+      campus?.metaKey ??
+      campus?.name ??
+      (input.modality === "online" ? "ONLINE" : null),
     businessLine: input.businessLine,
     modality: input.modality,
     enrollmentType: ruleEnrollmentType,
