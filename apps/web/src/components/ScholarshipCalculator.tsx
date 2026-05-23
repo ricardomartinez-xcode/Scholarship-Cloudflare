@@ -2082,7 +2082,8 @@ export default function ScholarshipCalculator({
   return (
     <>
     <div className="ui-form-grid ui-form-grid--main-aside">
-      <section className="ui-card min-w-0 p-[var(--ui-card-pad)]">
+      <section className="ui-card relative min-w-0 p-[var(--ui-card-pad)]">
+        <FloatingCalculator />
         <h1 className="ui-section-title font-semibold">Calculadora</h1>
 
         <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -2725,7 +2726,6 @@ export default function ScholarshipCalculator({
         {belowResultSlot}
       </aside>
     </div>
-    <FloatingCalculator />
     </>
   );
 }
