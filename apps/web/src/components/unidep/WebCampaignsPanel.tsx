@@ -1729,72 +1729,76 @@ ${summary}
                   </div>
                 </div>
 
-                <div
-                  className="mt-4 ui-campaign-table-shell"
-                  style={{ backgroundColor: "#ffffff", borderColor: "#d7e4ed" }}
-                >
-                  <table className="ui-campaign-table" style={{ backgroundColor: "#ffffff", color: "#0f3c55" }}>
-                    <thead style={{ backgroundColor: "#eaf3f8" }}>
-                      <tr style={{ backgroundColor: "#eaf3f8" }}>
-                        {[
-                          "Contacto",
-                          "Estado del envío",
-                          "Programado para",
-                          "Último intento",
-                          "Detalle operativo",
-                        ].map((heading) => (
-                          <th
-                            key={heading}
-                            style={{
-                              backgroundColor: "#eaf3f8",
-                              color: "#0f3c55",
-                              fontWeight: 800,
-                            }}
+                <div className="mt-4 overflow-hidden rounded-3xl border border-[#d7e4ed] bg-white">
+                  <div className="hidden grid-cols-[minmax(220px,1.3fr)_minmax(120px,0.7fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(240px,1.2fr)] gap-3 bg-[#eaf3f8] px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#0f3c55] xl:grid">
+                    <div>Contacto</div>
+                    <div>Estado del envío</div>
+                    <div>Programado para</div>
+                    <div>Último intento</div>
+                    <div>Detalle operativo</div>
+                  </div>
+                  <div className="divide-y divide-[#d7e4ed]">
+                    {selectedCampaign.recipients.slice(0, 60).map((recipient) => (
+                      <div
+                        key={recipient.id}
+                        className="grid gap-3 px-5 py-4 text-sm text-[#0f3c55] xl:grid-cols-[minmax(220px,1.3fr)_minmax(120px,0.7fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(240px,1.2fr)]"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                            Contacto
+                          </div>
+                          <div className="font-bold text-[#0f3c55]">
+                            {recipient.contactName || "Sin nombre"}
+                          </div>
+                          <div className="mt-1 text-xs leading-5 text-[#5f788c]">
+                            {recipient.contactValue}
+                          </div>
+                          <div className="mt-1 text-xs leading-5 text-[#5f788c]">
+                            {recipient.resolvedMessage
+                              ? `Mensaje: ${recipient.resolvedMessage.slice(0, 84)}${recipient.resolvedMessage.length > 84 ? "…" : ""}`
+                              : "Sin preview del mensaje"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                            Estado del envío
+                          </div>
+                          <span
+                            className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] xl:mt-0 ${statusTone(recipient.status)}`}
                           >
-                            {heading}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedCampaign.recipients.slice(0, 60).map((recipient) => (
-                        <tr key={recipient.id}>
-                          <td className="ui-campaign-table__contact">
-                            <div className="ui-campaign-table__title">
-                              {recipient.contactName || "Sin nombre"}
-                            </div>
-                            <div className="ui-campaign-table__meta">
-                              {recipient.contactValue}
-                            </div>
-                            <div className="ui-campaign-table__meta">
-                              {recipient.resolvedMessage
-                                ? `Mensaje: ${recipient.resolvedMessage.slice(0, 84)}${recipient.resolvedMessage.length > 84 ? "…" : ""}`
-                                : "Sin preview del mensaje"}
-                            </div>
-                          </td>
-                          <td>
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusTone(recipient.status)}`}
-                            >
-                              {recipientStatusLabel(recipient.status)}
-                            </span>
-                          </td>
-                          <td className="ui-campaign-table__time">
+                            {recipientStatusLabel(recipient.status)}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                            Programado para
+                          </div>
+                          <div className="mt-1 text-xs leading-5 text-[#5f788c] xl:mt-0">
                             {formatDateTime(recipient.scheduledFor)}
-                          </td>
-                          <td className="ui-campaign-table__time">
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                            Último intento
+                          </div>
+                          <div className="mt-1 text-xs leading-5 text-[#5f788c] xl:mt-0">
                             {formatDateTime(recipient.sentAt || recipient.attemptedAt)}
-                          </td>
-                          <td className="ui-campaign-table__error">
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                            Detalle operativo
+                          </div>
+                          <div className="mt-1 text-xs leading-5 text-[#7f1d1d] xl:mt-0">
                             {recipient.lastError ||
                               (String(recipient.status ?? "").trim().toLowerCase() === "failed"
                                 ? "Sin detalle de error devuelto por el runner."
                                 : "Sin incidencias registradas.")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </article>
             </>
