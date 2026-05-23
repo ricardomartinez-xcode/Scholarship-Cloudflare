@@ -1729,15 +1729,31 @@ ${summary}
                   </div>
                 </div>
 
-                <div className="mt-4 ui-campaign-table-shell">
-                  <table className="ui-campaign-table">
-                    <thead>
-                      <tr>
-                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Contacto</th>
-                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Estado del envío</th>
-                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Programado para</th>
-                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Último intento</th>
-                        <th className="!bg-[#eaf3f8] !text-[#0f3c55]">Detalle operativo</th>
+                <div
+                  className="mt-4 ui-campaign-table-shell"
+                  style={{ backgroundColor: "#ffffff", borderColor: "#d7e4ed" }}
+                >
+                  <table className="ui-campaign-table" style={{ backgroundColor: "#ffffff", color: "#0f3c55" }}>
+                    <thead style={{ backgroundColor: "#eaf3f8" }}>
+                      <tr style={{ backgroundColor: "#eaf3f8" }}>
+                        {[
+                          "Contacto",
+                          "Estado del envío",
+                          "Programado para",
+                          "Último intento",
+                          "Detalle operativo",
+                        ].map((heading) => (
+                          <th
+                            key={heading}
+                            style={{
+                              backgroundColor: "#eaf3f8",
+                              color: "#0f3c55",
+                              fontWeight: 800,
+                            }}
+                          >
+                            {heading}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
