@@ -5,8 +5,6 @@ import {
   createInboxThreadForUser,
   listInboxThreadsForUser,
 } from "@/lib/inbox-service";
-import { buildDisplayName } from "@/lib/training-access";
-
 export async function GET() {
   try {
     const session = await getSessionUser();
@@ -20,7 +18,7 @@ export async function GET() {
       viewer: {
         userId: session.user.id,
         email: session.user.email,
-        displayName: buildDisplayName(session.user.email),
+        displayName: session.user.displayName?.trim() || session.user.email,
       },
       threads: payload.threads,
       eligibleUsers: payload.eligibleUsers,

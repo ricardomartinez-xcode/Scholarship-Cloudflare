@@ -200,6 +200,7 @@ export const useAppContext = () => {
 export default function AppChrome({
   children,
   userEmail,
+  userDisplayName,
   isAdmin,
   profileHref = "/profile",
   navAnnouncements = [],
@@ -211,6 +212,7 @@ export default function AppChrome({
 }: {
   children: React.ReactNode;
   userEmail: string | null;
+  userDisplayName?: string | null;
   isAdmin: boolean;
   signOutAction: () => Promise<void>;
   profileHref?: string | null;
@@ -238,6 +240,7 @@ export default function AppChrome({
 
   const unlockAdmin = () => setAdminUnlocked(true);
   const resolvedProfileHref = profileHref ?? null;
+  const accountLabel = userDisplayName?.trim() || userEmail || "n/a";
   const showProfileActions = Boolean(resolvedProfileHref);
   const workspaceTab = searchParams.get("tab");
   const workspaceSection = searchParams.get("section");
@@ -414,7 +417,7 @@ export default function AppChrome({
                 <div className="ui-workspace-header__account flex min-w-0 items-center gap-2.5">
                   <div className="hidden text-right sm:block">
                     <div className="ui-workspace-header__email max-w-[260px] truncate text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                      {userEmail ?? "n/a"}
+                      {accountLabel}
                     </div>
                   </div>
 

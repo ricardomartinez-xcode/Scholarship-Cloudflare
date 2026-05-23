@@ -58,6 +58,7 @@ export default async function ExtensionPage({
   return (
     <AppChrome
       userEmail={activeSession.email}
+      userDisplayName={activeSession.user.displayName?.trim() || null}
       isAdmin={false}
       profileHref={null}
       signOutAction={signOutAction}

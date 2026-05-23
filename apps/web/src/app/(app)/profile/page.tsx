@@ -4,11 +4,34 @@ import Link from "next/link";
 import AgendaPanel from "@/components/unidep/AgendaPanel";
 import { auth } from "@/lib/auth/server";
 import { requireAuth } from "@/lib/authz";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 const buildUrl = (key: "error" | "success", message: string) =>
   `/profile?${key}=${encodeURIComponent(message)}`;
+
+function normalizeDisplayName(value: FormDataEntryValue | null) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+async function updateDisplayNameAction(formData: FormData) {
+  "use server";
+
+  const user = await requireAuth();
+  const displayName = normalizeDisplayName(formData.get("displayName"));
+
+  if (displayName && (displayName.length < 2 || displayName.length > 40)) {
+    redirect(buildUrl("error", "El nickname debe tener entre 2 y 40 caracteres."));
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { displayName: displayName || null },
+  });
+
+  redirect(buildUrl("success", "Nombre visible actualizado."));
+}
 
 async function changePasswordAction(formData: FormData) {
   "use server";
@@ -56,6 +79,7 @@ export default async function ProfilePage({
   const params = searchParams ? await searchParams : undefined;
   const user = await requireAuth();
   const email = user.email;
+  const displayName = user.displayName?.trim() ?? "";
 
   return (
     <div className="grid gap-[var(--ui-shell-gap)]">
@@ -78,7 +102,30 @@ export default async function ProfilePage({
           <div className="ui-card-muted p-4 text-sm">
             <div className="ui-kicker">Sesión</div>
             <div className="mt-2 font-semibold text-[color:var(--ui-text-primary)]">
-              {email}
+              {displayName || email}
+            </div>
+            {displayName ? (
+              <div className="mt-1 text-xs text-[color:var(--ui-text-secondary)]">
+                {email}
+              </div>
+            ) : null}
+            <form action={updateDisplayNameAction} className="mt-4 grid gap-2">
+              <label className="grid gap-1 text-xs font-semibold text-[color:var(--ui-text-primary)]">
+                Nickname visible
+                <input
+                  name="displayName"
+                  defaultValue={displayName}
+                  className="ui-control"
+                  maxLength={40}
+                  placeholder="Ej. Ricardo"
+                />
+              </label>
+              <button type="submit" className="ui-button-info w-full text-sm">
+                Guardar nickname
+              </button>
+            </form>
+            <div className="mt-2 text-xs leading-5 text-[color:var(--ui-text-secondary)]">
+              Este nombre se muestra en el header, Inbox y mensajes internos.
             </div>
             <form action={signOutAction} className="mt-4">
               <button type="submit" className="ui-button-secondary w-full">

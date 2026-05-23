@@ -27,6 +27,7 @@ export default async function AppLayout({
 }>) {
   const user = await requireAuth();
   const email = user.email;
+  const displayName = user.displayName?.trim() || null;
   const adminOverrides = await prisma.adminUserCapability.findMany({
     where: { userId: user.id },
     select: { capability: true, enabled: true },
@@ -125,6 +126,7 @@ export default async function AppLayout({
   return (
     <AppChrome
       userEmail={email}
+      userDisplayName={displayName}
       isAdmin={canAccessAdminPanel(user.role, adminCapabilities)}
       signOutAction={signOutAction}
       navAnnouncements={navAnnouncements}

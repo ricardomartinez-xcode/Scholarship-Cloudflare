@@ -34,11 +34,20 @@ export type InboxMessageSummary = {
   sender: InboxParticipantIdentity;
 };
 
-function serializeInboxIdentity(input: { userId?: string; id?: string; email: string }) {
+function resolveUserDisplayName(input: { email: string; displayName?: string | null }) {
+  return input.displayName?.trim() || buildDisplayName(input.email);
+}
+
+function serializeInboxIdentity(input: {
+  userId?: string;
+  id?: string;
+  email: string;
+  displayName?: string | null;
+}) {
   return {
     userId: input.userId ?? input.id ?? "",
     email: input.email,
-    displayName: buildDisplayName(input.email),
+    displayName: resolveUserDisplayName(input),
   };
 }
 
@@ -72,6 +81,7 @@ export async function listInboxThreadsForUser(userId: string) {
             select: {
               id: true,
               email: true,
+              displayName: true,
             },
           },
         },
@@ -86,6 +96,7 @@ export async function listInboxThreadsForUser(userId: string) {
             select: {
               id: true,
               email: true,
+              displayName: true,
             },
           },
         },
@@ -113,6 +124,7 @@ export async function listInboxThreadsForUser(userId: string) {
                 select: {
                   id: true,
                   email: true,
+                  displayName: true,
                 },
               },
             },
@@ -290,6 +302,7 @@ export async function listInboxMessagesForUser(userId: string, threadId: string)
         select: {
           id: true,
           email: true,
+          displayName: true,
         },
       },
     },
@@ -334,6 +347,7 @@ export async function createInboxMessageForUser(input: {
           select: {
             id: true,
             email: true,
+            displayName: true,
           },
         },
       },
