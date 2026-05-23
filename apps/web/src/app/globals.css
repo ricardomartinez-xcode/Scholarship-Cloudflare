@@ -5032,6 +5032,7 @@ a[role="button"] {
 }
 
 .ui-button-danger:disabled,
+.ui-button-danger.disabled\:opacity-50:disabled,
 .ui-card .ui-button-danger:disabled {
   border-color: #efb8b8 !important;
   background: #fde8e8 !important;
@@ -5040,6 +5041,7 @@ a[role="button"] {
 }
 
 .ui-button-info:disabled,
+.ui-button-info.disabled\:opacity-50:disabled,
 .ui-card .ui-button-info:disabled {
   border-color: #9fc3d1 !important;
   background: #d8edf5 !important;

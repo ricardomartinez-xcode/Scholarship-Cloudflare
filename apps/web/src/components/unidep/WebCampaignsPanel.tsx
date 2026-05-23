@@ -1429,7 +1429,7 @@ ${summary}
                   type="button"
                   onClick={() => downloadRecipientsCsv(exportScope, "sent")}
                   disabled={!exportScope.length}
-                  className="ui-button-info disabled:opacity-50"
+                  className="ui-button-info"
                 >
                   CSV enviados
                 </button>
@@ -1437,7 +1437,7 @@ ${summary}
                   type="button"
                   onClick={() => downloadRecipientsCsv(exportScope, "failed")}
                   disabled={!exportScope.length}
-                  className="ui-button-danger disabled:opacity-50"
+                  className="ui-button-danger"
                 >
                   CSV fallidos
                 </button>
