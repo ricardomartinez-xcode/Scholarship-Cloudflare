@@ -1042,7 +1042,7 @@ function PlantelesSection() {
                     href={`https://wa.me/${digitsOnly(campus.whatsapp)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-950/20 px-2 py-0.5 text-xs text-emerald-300 transition hover:bg-emerald-500/10"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#0f7a68] bg-[#128c7e] px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0f7a68]"
                   >
                     WhatsApp
                   </a>
