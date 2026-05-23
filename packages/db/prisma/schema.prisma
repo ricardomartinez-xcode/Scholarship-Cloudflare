@@ -289,6 +289,7 @@ enum AdminPlacementBreakpoint {
 enum AdminAdditionalBenefitType {
   percentage
   first_payment
+  fixed_scholarship
 
   @@schema("recalc_admin")
 }

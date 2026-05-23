@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrides";
 import {
+  BASE_PRICE_OVERRIDE_SCOPE,
+  LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
+  buildLegacyDiscountedOverrideMap,
+  findPublishedBasePriceOverride,
+  legacyDiscountedOverrideKey,
+} from "@/lib/base-price-overrides";
+import {
   buildCampusAliases,
   type CampusIdentity,
 } from "@/lib/campus-resolver";
@@ -45,22 +52,35 @@ export async function loadCanonicalFlatRulesPayload(sourceVersion = "legacy") {
         { minAverage: "asc" },
       ],
     }),
-    listActivePublishedPriceOverrides(),
+    listActivePublishedPriceOverrides([
+      LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
+      BASE_PRICE_OVERRIDE_SCOPE,
+    ]),
   ]);
 
-  const overrideMap = new Map<string, number>();
-  for (const override of overrides) {
-    const keys = override.targetKeys as Record<string, string>;
-    const key = `${keys.programa_key}|${keys.nivel_key}|${keys.modalidad_key}|${keys.plan}|${keys.tier}`;
-    overrideMap.set(key, Number(override.newPrice));
-  }
+  const legacyDiscountedOverrideMap = buildLegacyDiscountedOverrideMap(overrides);
 
   return rules.map<FlatRulePayload>((rule) => {
     const programa = toLegacyProgram(rule.enrollmentType);
     const nivel = toLegacyBusinessLine(rule.businessLine);
     const modalidad = rule.modality;
     const tier = rule.campusTier === "ANY" ? null : rule.campusTier;
-    const overrideKey = `${programa}|${nivel}|${modalidad}|${rule.plan}|${tier ?? ""}`;
+    const scholarshipPercent = toNumber(rule.scholarshipPercent);
+    const basePriceOverride = findPublishedBasePriceOverride(overrides, {
+      businessLine: rule.businessLine,
+      modality: rule.modality,
+      plan: rule.plan,
+      tier: rule.campusTier,
+    });
+    const legacyDiscountedOverride = legacyDiscountedOverrideMap.get(
+      legacyDiscountedOverrideKey({
+        enrollmentType: rule.enrollmentType,
+        businessLine: rule.businessLine,
+        modality: rule.modality,
+        plan: rule.plan,
+        tier: rule.campusTier,
+      }),
+    );
 
     return {
       programa,
@@ -75,9 +95,11 @@ export async function loadCanonicalFlatRulesPayload(sourceVersion = "legacy") {
               max: toNumber(rule.maxAverage),
             }
           : null,
-      porcentaje: toNumber(rule.scholarshipPercent),
+      porcentaje: scholarshipPercent,
       monto:
-        overrideMap.get(overrideKey) ?? toNumber(rule.discountedPriceMxn),
+        basePriceOverride !== null && scholarshipPercent !== null
+          ? basePriceOverride * (1 - scholarshipPercent / 100)
+          : legacyDiscountedOverride ?? toNumber(rule.discountedPriceMxn),
       origen: rule.origin,
     };
   });

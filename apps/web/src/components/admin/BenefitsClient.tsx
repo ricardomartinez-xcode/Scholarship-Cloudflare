@@ -14,7 +14,7 @@ type Benefit = {
   appliesToAll: boolean;
   campusIds: string[];
   campusNames: string[];
-  benefitType: "percentage" | "first_payment";
+  benefitType: "percentage" | "first_payment" | "fixed_scholarship";
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso" | null;
   extraPercent: number;
   firstPaymentAmount: number;
@@ -30,7 +30,7 @@ type ActionResult = { ok: boolean; error?: string };
 type BenefitImportPreviewRow = {
   rowNumber: number;
   action: "create" | "update" | "noop";
-  benefitType: "percentage" | "first_payment";
+  benefitType: "percentage" | "first_payment" | "fixed_scholarship";
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso" | null;
   businessLine: string | null;
   modality: string | null;
@@ -85,6 +85,7 @@ const DURATION_OPTIONS = [
 const BENEFIT_TYPE_OPTIONS = [
   { value: "percentage", label: "Porcentaje adicional" },
   { value: "first_payment", label: "Primer pago" },
+  { value: "fixed_scholarship", label: "Beca fija" },
 ];
 
 const ENROLLMENT_TYPE_OPTIONS = [

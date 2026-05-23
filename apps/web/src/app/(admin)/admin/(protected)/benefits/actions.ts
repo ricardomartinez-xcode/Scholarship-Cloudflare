@@ -40,6 +40,7 @@ const DURATIONS = new Set<BenefitDuration>([
 const BENEFIT_TYPES = new Set<AdminAdditionalBenefitType>([
   AdminAdditionalBenefitType.percentage,
   AdminAdditionalBenefitType.first_payment,
+  AdminAdditionalBenefitType.fixed_scholarship,
 ]);
 
 const ENROLLMENT_TYPES = new Set<EnrollmentType>([
@@ -162,15 +163,18 @@ export async function upsertBenefitAction(formData: FormData) {
     const typedDuration = duration as BenefitDuration | null;
     const typedEnrollmentType = enrollmentType as EnrollmentType | null;
 
-    if (benefitType === AdminAdditionalBenefitType.percentage) {
+    if (
+      benefitType === AdminAdditionalBenefitType.percentage ||
+      benefitType === AdminAdditionalBenefitType.fixed_scholarship
+    ) {
       if (!Number.isFinite(extraPercent) || extraPercent <= 0) {
-        return { ok: false, error: "El % adicional debe ser un número mayor que 0." };
+        return { ok: false, error: "El % debe ser un número mayor que 0." };
       }
       if (extraPercent % 5 !== 0) {
-        return { ok: false, error: "El % adicional debe ser múltiplo de 5." };
+        return { ok: false, error: "El % debe ser múltiplo de 5." };
       }
       if (extraPercent > 100) {
-        return { ok: false, error: "El % adicional no puede ser mayor a 100." };
+        return { ok: false, error: "El % no puede ser mayor a 100." };
       }
     }
     if (benefitType === AdminAdditionalBenefitType.first_payment) {
@@ -221,7 +225,10 @@ export async function upsertBenefitAction(formData: FormData) {
             benefitType,
             enrollmentType: typedEnrollmentType,
             extraPercent:
-              benefitType === AdminAdditionalBenefitType.percentage ? extraPercent : 0,
+              benefitType === AdminAdditionalBenefitType.percentage ||
+              benefitType === AdminAdditionalBenefitType.fixed_scholarship
+                ? extraPercent
+                : 0,
             firstPaymentAmount:
               benefitType === AdminAdditionalBenefitType.first_payment
                 ? firstPaymentAmount
@@ -241,7 +248,10 @@ export async function upsertBenefitAction(formData: FormData) {
             benefitType,
             enrollmentType: typedEnrollmentType,
             extraPercent:
-              benefitType === AdminAdditionalBenefitType.percentage ? extraPercent : 0,
+              benefitType === AdminAdditionalBenefitType.percentage ||
+              benefitType === AdminAdditionalBenefitType.fixed_scholarship
+                ? extraPercent
+                : 0,
             firstPaymentAmount:
               benefitType === AdminAdditionalBenefitType.first_payment
                 ? firstPaymentAmount

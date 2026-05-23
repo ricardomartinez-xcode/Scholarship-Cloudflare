@@ -18,6 +18,13 @@ import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrid
 import { resolveAdditionalBenefits } from "@/lib/additional-benefits";
 import { resolveCampus } from "@/lib/campus-resolver";
 import {
+  BASE_PRICE_OVERRIDE_SCOPE,
+  LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
+  buildLegacyDiscountedOverrideMap,
+  findPublishedBasePriceOverride,
+  legacyDiscountedOverrideKey,
+} from "@/lib/base-price-overrides";
+import {
   basePriceFromRule,
   basePriceFromRules,
   findNearestRule,
@@ -130,7 +137,10 @@ export async function resolveScholarshipQuote(
         { maxAverage: "asc" },
       ],
     }),
-    listActivePublishedPriceOverrides(),
+    listActivePublishedPriceOverrides([
+      LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
+      BASE_PRICE_OVERRIDE_SCOPE,
+    ]),
   ]);
 
   if (!allRules.length) {
@@ -147,22 +157,9 @@ export async function resolveScholarshipQuote(
   );
   if (!candidateRules.length) candidateRules = allRules;
 
-  const overrideMap = new Map<string, number>();
-  for (const override of overrides) {
-    const keys = override.targetKeys as Record<string, string>;
-    const key = `${keys.programa_key}|${keys.nivel_key}|${keys.modalidad_key}|${keys.plan}|${keys.tier}`;
-    overrideMap.set(key, Number(override.newPrice));
-  }
+  const legacyDiscountedOverrideMap = buildLegacyDiscountedOverrideMap(overrides);
 
   const normalizedCandidateRules = candidateRules.map((rule) => {
-    const overrideKey = [
-      rule.enrollmentType === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso",
-      rule.businessLine === "prepa" ? "preparatoria" : rule.businessLine,
-      rule.modality,
-      String(rule.plan),
-      rule.campusTier === "ANY" ? "" : rule.campusTier,
-    ].join("|");
-
     return {
       enrollmentType: rule.enrollmentType,
       businessLine: rule.businessLine,
@@ -173,7 +170,15 @@ export async function resolveScholarshipQuote(
       maxAverage: toNumber(rule.maxAverage),
       scholarshipPercent: toNumber(rule.scholarshipPercent),
       discountedPriceMxn:
-        overrideMap.get(overrideKey) ?? toNumber(rule.discountedPriceMxn),
+        legacyDiscountedOverrideMap.get(
+          legacyDiscountedOverrideKey({
+            enrollmentType: rule.enrollmentType,
+            businessLine: rule.businessLine,
+            modality: rule.modality,
+            plan: rule.plan,
+            tier: rule.campusTier,
+          }),
+        ) ?? toNumber(rule.discountedPriceMxn),
     };
   });
 
@@ -237,8 +242,15 @@ export async function resolveScholarshipQuote(
         })
       : null;
 
+  const basePriceOverride = findPublishedBasePriceOverride(overrides, {
+    businessLine: input.businessLine,
+    modality: input.modality,
+    plan: input.plan,
+    tier: runtimeTier,
+  });
   const basePriceMxn =
     toNumber(returnSubjectPrice?.priceMxn) ??
+    basePriceOverride ??
     basePriceFromRule(
       matchedRule && "discountedPriceMxn" in matchedRule
         ? matchedRule

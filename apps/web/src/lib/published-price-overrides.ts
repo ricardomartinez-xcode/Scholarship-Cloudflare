@@ -7,16 +7,18 @@ import {
 } from "@/lib/admin-config-snapshots";
 import { prisma } from "@/lib/prisma";
 
-export async function listActivePublishedPriceOverrides(): Promise<PriceOverrideSnapshot[]> {
+export async function listActivePublishedPriceOverrides(
+  scopes: string[] = ["monto"],
+): Promise<PriceOverrideSnapshot[]> {
   const published = await getPublishedConfigSnapshot(AdminConfigModule.PRICES);
   if (published) {
     return (published.snapshot as PricesDraftSnapshot).overrides.filter(
-      (override) => override.isActive && override.scope === "monto",
+      (override) => override.isActive && scopes.includes(override.scope),
     );
   }
 
   const overrides = await prisma.adminPriceOverride.findMany({
-    where: { isActive: true, scope: "monto" },
+    where: { isActive: true, scope: { in: scopes } },
     orderBy: [{ scope: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
