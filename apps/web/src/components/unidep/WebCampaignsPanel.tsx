@@ -158,6 +158,30 @@ function recipientStatusLabel(status: string) {
   }
 }
 
+function recipientStatusCompactLabel(status: string) {
+  const normalized = String(status ?? "").trim().toLowerCase();
+  switch (normalized) {
+    case "queued":
+      return "Cola";
+    case "scheduled":
+      return "Prog.";
+    case "claimed":
+      return "Tomado";
+    case "running":
+    case "processing":
+      return "Proc.";
+    case "sent":
+    case "completed":
+      return "OK";
+    case "failed":
+      return "Error";
+    case "blocked":
+      return "Bloq.";
+    default:
+      return normalized ? "Estado" : "N/A";
+  }
+}
+
 function delay(ms: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms);
@@ -1764,9 +1788,11 @@ ${summary}
                             Estado del envío
                           </div>
                           <span
-                            className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] xl:mt-0 ${statusTone(recipient.status)}`}
+                            className={`mt-1 inline-flex w-fit shrink-0 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] xl:mt-0 ${statusTone(recipient.status)}`}
+                            aria-label={`Estado del envío: ${recipientStatusLabel(recipient.status)}`}
+                            title={recipientStatusLabel(recipient.status)}
                           >
-                            {recipientStatusLabel(recipient.status)}
+                            {recipientStatusCompactLabel(recipient.status)}
                           </span>
                         </div>
                         <div>
