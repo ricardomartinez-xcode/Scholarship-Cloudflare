@@ -1441,19 +1441,19 @@ ${summary}
         </div>
 
         <div className="grid min-w-0 gap-4">
-          <article className="rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+          <article className="min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/35 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-white">
+              <div className="min-w-0 text-sm font-semibold text-white">
                 {selectedCampaignIds.length > 1
                   ? `${selectedCampaignIds.length} campañas`
                   : exportScope[0]?.campaignName ?? "Descargas"}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex min-w-0 flex-wrap justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => downloadRecipientsCsv(exportScope, "sent")}
                   disabled={!exportScope.length}
-                  className="ui-button-info"
+                  className="ui-button-info min-w-[116px] justify-center whitespace-nowrap"
                 >
                   CSV enviados
                 </button>
@@ -1461,7 +1461,7 @@ ${summary}
                   type="button"
                   onClick={() => downloadRecipientsCsv(exportScope, "failed")}
                   disabled={!exportScope.length}
-                  className="ui-button-danger"
+                  className="ui-button-danger min-w-[116px] justify-center whitespace-nowrap"
                 >
                   CSV fallidos
                 </button>
@@ -1471,7 +1471,7 @@ ${summary}
 
           {selectedCampaign ? (
             <>
-              <article className="ui-web-campaign-detail grid gap-3 rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+              <article className="ui-web-campaign-detail grid min-w-0 gap-3 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/35 p-4">
                 <div className="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
                   <div className="min-w-0">
                     <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
@@ -1485,7 +1485,7 @@ ${summary}
                       actualizada {formatDateTime(selectedCampaign.updatedAt)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 xl:justify-end">
                     <span
                       className={`w-fit max-w-full rounded-full border px-3 py-1 text-xs font-semibold uppercase leading-snug tracking-[0.12em] ${campaignStatusTone(selectedCampaign)}`}
                     >
@@ -1501,7 +1501,7 @@ ${summary}
                       <button
                         type="button"
                         onClick={() => void updateCampaign(selectedCampaign.id, "force_pause")}
-                        className="ui-button-secondary"
+                        className="ui-button-secondary max-w-full whitespace-normal text-center"
                         disabled={repairingCampaignId === selectedCampaign.id}
                       >
                         Forzar pausa
@@ -1511,7 +1511,7 @@ ${summary}
                       <button
                         type="button"
                         onClick={() => void updateCampaign(selectedCampaign.id, "resume")}
-                        className="ui-button-info"
+                        className="ui-button-info max-w-full whitespace-normal text-center"
                         disabled={repairingCampaignId === selectedCampaign.id}
                       >
                         Reanudar
@@ -1520,7 +1520,7 @@ ${summary}
                     <button
                       type="button"
                       onClick={() => void autoDiagnoseAndRepairCampaign(selectedCampaign)}
-                      className="ui-button-secondary"
+                      className="ui-button-secondary max-w-full whitespace-normal text-center"
                       disabled={repairingCampaignId === selectedCampaign.id}
                     >
                       {repairingCampaignId === selectedCampaign.id
@@ -1541,7 +1541,7 @@ ${summary}
                       <button
                         type="button"
                         onClick={() => void deleteCampaign(selectedCampaign.id)}
-                        className="ui-button-danger"
+                        className="ui-button-danger max-w-full whitespace-normal text-center"
                         disabled={repairingCampaignId === selectedCampaign.id}
                       >
                         Eliminar
@@ -1550,7 +1550,7 @@ ${summary}
                   </div>
                 </div>
 
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                   <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
                     <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
                       Template guardado
@@ -1561,9 +1561,9 @@ ${summary}
                   </div>
 
                   <div className="grid gap-3">
-                    <div className="grid gap-2 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-200 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-3">
+                    <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(148px,1fr))] gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-200">
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="text-xs uppercase tracking-[0.12em] text-slate-400">
                           Programación
                         </div>
                         <div className="mt-1">
@@ -1571,7 +1571,7 @@ ${summary}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="text-xs uppercase tracking-[0.12em] text-slate-400">
                           Cierre
                         </div>
                         <div className="mt-1">
@@ -1579,13 +1579,13 @@ ${summary}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="text-xs uppercase tracking-[0.12em] text-slate-400">
                           Batch
                         </div>
                         <div className="mt-1">{selectedCampaign.batchSize}</div>
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="text-xs uppercase tracking-[0.12em] text-slate-400">
                           Delay
                         </div>
                         <div className="mt-1">
@@ -1593,22 +1593,22 @@ ${summary}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="text-xs uppercase tracking-[0.12em] text-slate-400">
                           Canal
                         </div>
                         <div className="mt-1">{selectedCampaign.channel ?? "extension_runner"}</div>
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="text-xs uppercase tracking-[0.12em] text-slate-400">
                           Runner health
                         </div>
                         <div className="mt-1">{runnerStatusLabel}</div>
                       </div>
                     </div>
 
-                    <div className="grid gap-2 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-200 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+                    <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(104px,1fr))] gap-2 rounded-2xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-200">
                       <div className="rounded-2xl border border-white/10 px-3 py-2">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="break-words text-xs uppercase tracking-[0.1em] text-slate-400">
                           En cola
                         </div>
                         <div className="mt-1 text-lg font-semibold text-white">
@@ -1616,7 +1616,7 @@ ${summary}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-white/10 px-3 py-2">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="break-words text-xs uppercase tracking-[0.1em] text-slate-400">
                           Programados
                         </div>
                         <div className="mt-1 text-lg font-semibold text-white">
@@ -1624,7 +1624,7 @@ ${summary}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-white/10 px-3 py-2">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="break-words text-xs uppercase tracking-[0.1em] text-slate-400">
                           Reclamados
                         </div>
                         <div className="mt-1 text-lg font-semibold text-white">
@@ -1632,7 +1632,7 @@ ${summary}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-white/10 px-3 py-2">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="break-words text-xs uppercase tracking-[0.1em] text-slate-400">
                           Enviados
                         </div>
                         <div className="mt-1 text-lg font-semibold text-white">
@@ -1640,7 +1640,7 @@ ${summary}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-white/10 px-3 py-2">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="break-words text-xs uppercase tracking-[0.1em] text-slate-400">
                           Fallidos
                         </div>
                         <div className="mt-1 text-lg font-semibold text-white">
@@ -1648,7 +1648,7 @@ ${summary}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-white/10 px-3 py-2">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <div className="break-words text-xs uppercase tracking-[0.1em] text-slate-400">
                           Total
                         </div>
                         <div className="mt-1 text-lg font-semibold text-white">
@@ -1738,7 +1738,7 @@ ${summary}
                 })()}
               </article>
 
-              <article className="ui-web-campaign-detail rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+              <article className="ui-web-campaign-detail min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/35 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
@@ -1753,22 +1753,15 @@ ${summary}
                   </div>
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-3xl border border-[#d7e4ed] bg-white">
-                  <div className="hidden grid-cols-[minmax(220px,1.3fr)_minmax(120px,0.7fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(240px,1.2fr)] gap-3 bg-[#eaf3f8] px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#0f3c55] xl:grid">
-                    <div>Contacto</div>
-                    <div>Estado del envío</div>
-                    <div>Programado para</div>
-                    <div>Último intento</div>
-                    <div>Detalle operativo</div>
-                  </div>
+                <div className="mt-4 min-w-0 overflow-hidden rounded-3xl border border-[#d7e4ed] bg-white">
                   <div className="divide-y divide-[#d7e4ed]">
                     {selectedCampaign.recipients.slice(0, 60).map((recipient) => (
                       <div
                         key={recipient.id}
-                        className="grid gap-3 px-5 py-4 text-sm text-[#0f3c55] xl:grid-cols-[minmax(220px,1.3fr)_minmax(120px,0.7fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(240px,1.2fr)]"
+                        className="grid min-w-0 gap-4 bg-white px-5 py-4 text-sm text-[#0f3c55] md:grid-cols-[minmax(180px,1.2fr)_minmax(96px,0.55fr)_minmax(140px,0.75fr)_minmax(140px,0.75fr)_minmax(180px,1fr)]"
                       >
                         <div className="min-w-0">
-                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#0f3c55]">
                             Contacto
                           </div>
                           <div className="font-bold text-[#0f3c55]">
@@ -1784,11 +1777,11 @@ ${summary}
                           </div>
                         </div>
                         <div>
-                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#0f3c55]">
                             Estado del envío
                           </div>
                           <span
-                            className={`mt-1 inline-flex w-fit shrink-0 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] xl:mt-0 ${statusTone(recipient.status)}`}
+                            className={`mt-1 inline-flex w-fit shrink-0 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${statusTone(recipient.status)}`}
                             aria-label={`Estado del envío: ${recipientStatusLabel(recipient.status)}`}
                             title={recipientStatusLabel(recipient.status)}
                           >
@@ -1796,26 +1789,26 @@ ${summary}
                           </span>
                         </div>
                         <div>
-                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#0f3c55]">
                             Programado para
                           </div>
-                          <div className="mt-1 text-xs leading-5 text-[#5f788c] xl:mt-0">
+                          <div className="mt-1 text-xs leading-5 text-[#5f788c]">
                             {formatDateTime(recipient.scheduledFor)}
                           </div>
                         </div>
                         <div>
-                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#0f3c55]">
                             Último intento
                           </div>
-                          <div className="mt-1 text-xs leading-5 text-[#5f788c] xl:mt-0">
+                          <div className="mt-1 text-xs leading-5 text-[#5f788c]">
                             {formatDateTime(recipient.sentAt || recipient.attemptedAt)}
                           </div>
                         </div>
                         <div>
-                          <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#0f3c55] xl:hidden">
+                          <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#0f3c55]">
                             Detalle operativo
                           </div>
-                          <div className="mt-1 text-xs leading-5 text-[#7f1d1d] xl:mt-0">
+                          <div className="mt-1 text-xs leading-5 text-[#7f1d1d]">
                             {recipient.lastError ||
                               (String(recipient.status ?? "").trim().toLowerCase() === "failed"
                                 ? "Sin detalle de error devuelto por el runner."
