@@ -1,14 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Operator = "+" | "-" | "*" | "/" | null;
-type Position = { x: number; y: number };
-
-const VIEWPORT_MARGIN = 10;
-const DEFAULT_TOP_OFFSET = 176;
-const DEFAULT_RIGHT_OFFSET = 58;
-const DEFAULT_RAIL_WIDTH = 74;
 
 function formatDisplay(value: number) {
   if (!Number.isFinite(value)) return "Error";
@@ -32,63 +26,13 @@ function isEditableTarget(target: EventTarget | null) {
 }
 
 export default function FloatingCalculator() {
-  const rootRef = useRef<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [display, setDisplay] = useState("0");
   const [storedValue, setStoredValue] = useState<number | null>(null);
   const [operator, setOperator] = useState<Operator>(null);
   const [waitingForNextValue, setWaitingForNextValue] = useState(false);
-  const [position, setPosition] = useState<Position>({ x: 16, y: 16 });
 
   const currentValue = Number(display.replace(/,/g, ""));
-
-  const clampPosition = useCallback((nextPosition: Position) => {
-    if (typeof window === "undefined") return nextPosition;
-
-    const rect = rootRef.current?.getBoundingClientRect();
-    const width = rect?.width ?? 120;
-    const height = rect?.height ?? 54;
-    const maxX = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN);
-    const maxY = Math.max(VIEWPORT_MARGIN, window.innerHeight - height - VIEWPORT_MARGIN);
-
-    return {
-      x: Math.min(Math.max(nextPosition.x, VIEWPORT_MARGIN), maxX),
-      y: Math.min(Math.max(nextPosition.y, VIEWPORT_MARGIN), maxY),
-    };
-  }, []);
-
-  const getDefaultPosition = useCallback(() => {
-    const rect = rootRef.current?.getBoundingClientRect();
-    const width = rect?.width ?? DEFAULT_RAIL_WIDTH;
-
-    return clampPosition({
-      x: window.innerWidth - width - DEFAULT_RIGHT_OFFSET,
-      y: DEFAULT_TOP_OFFSET,
-    });
-  }, [clampPosition]);
-
-  useEffect(() => {
-    const raf = window.requestAnimationFrame(() => setPosition(getDefaultPosition()));
-
-    return () => window.cancelAnimationFrame(raf);
-  }, [getDefaultPosition]);
-
-  useEffect(() => {
-    const raf = window.requestAnimationFrame(() => {
-      setPosition(getDefaultPosition());
-    });
-
-    return () => window.cancelAnimationFrame(raf);
-  }, [getDefaultPosition, isOpen]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setPosition(getDefaultPosition());
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [getDefaultPosition]);
 
   const clear = () => {
     setDisplay("0");
@@ -252,7 +196,6 @@ export default function FloatingCalculator() {
 
   return (
     <aside
-      ref={rootRef}
       className={[
         "ui-floating-calculator",
         isOpen ? "ui-floating-calculator--open" : "",
@@ -260,9 +203,6 @@ export default function FloatingCalculator() {
         .filter(Boolean)
         .join(" ")}
       aria-label="Calculadora flotante"
-      style={{
-        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-      }}
     >
       {isOpen ? (
         <div className="ui-floating-calculator__panel">

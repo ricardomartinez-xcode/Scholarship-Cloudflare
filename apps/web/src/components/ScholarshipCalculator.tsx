@@ -1599,7 +1599,7 @@ export default function ScholarshipCalculator({
         title: "1er cuatrimestre",
         rows: [
           {
-            label: "Pago de incorporación a la SEP + Gastos administrativos",
+            label: "Pago de incorporación a la SEP",
             detail: "Primer pago",
             amount: firstPaymentAmount,
           },
@@ -1609,7 +1609,12 @@ export default function ScholarshipCalculator({
             amount: 0,
           },
           ...[2, 3, 4].map((index) => ({
-            label: `Mensualidad ${index}`,
+            label:
+              index === 2
+                ? "Segunda colegiatura"
+                : index === 3
+                  ? "Tercer colegiatura"
+                  : "Cuarta colegiatura",
             detail: "Costo mensual con beneficio aplicado",
             amount: currentMonthlyAmount,
           })),
@@ -1639,11 +1644,6 @@ export default function ScholarshipCalculator({
     resultPanelSnapshot,
     showResultPanelBenefits,
   ]);
-  const paymentPlanTotal = paymentPlanSections.reduce(
-    (sectionTotal, section) =>
-      round2(sectionTotal + section.rows.reduce((total, row) => total + row.amount, 0)),
-    0,
-  );
   const resultCampusLabel =
     modalidad === "online" ? "Online" : plantel || null;
   const resultProgramLabel = selectedOfferProgram?.programName ?? null;
@@ -2654,24 +2654,26 @@ export default function ScholarshipCalculator({
                         Muestra mensualidades y pagos de incorporación por cuatrimestre.
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ui-text-secondary)]">
-                        Total plan
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-[color:var(--ui-text-primary)]">
-                        {formatMoney(paymentPlanTotal)}
-                      </div>
-                    </div>
                   </div>
 
                   <div className="mt-4 grid gap-3">
-                    {paymentPlanSections.map((section) => (
+                    {paymentPlanSections.map((section) => {
+                      const sectionTotal = round2(
+                        section.rows.reduce((total, row) => total + row.amount, 0),
+                      );
+
+                      return (
                       <div
                         key={section.title}
                         className="grid gap-2 rounded-2xl border border-[color:var(--ui-border)] bg-white/80 p-3"
                       >
-                        <div className="text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                          {section.title}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                            {section.title}
+                          </div>
+                          <div className="shrink-0 text-right text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                            {formatMoney(sectionTotal)}
+                          </div>
                         </div>
                         {section.rows.map((row) => (
                           <div
@@ -2692,7 +2694,8 @@ export default function ScholarshipCalculator({
                           </div>
                         ))}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               ) : null}

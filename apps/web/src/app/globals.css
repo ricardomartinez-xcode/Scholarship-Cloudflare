@@ -4733,15 +4733,14 @@ a[role="button"] {
 
 .ui-floating-calculator {
   position: fixed;
-  left: 0;
-  top: 0;
+  right: 58px;
+  top: 176px;
   z-index: 44;
   display: flex;
   align-items: flex-end;
   gap: 10px;
   pointer-events: none;
   touch-action: none;
-  will-change: transform;
 }
 
 .ui-floating-calculator__panel,
@@ -5275,8 +5274,8 @@ a[role="button"] {
 @media (max-width: 767px) {
   .ui-floating-calculator {
     bottom: auto;
-    left: 0;
-    top: 0;
+    right: 10px;
+    top: 112px;
   }
 
   .ui-shell-header--workspace {
