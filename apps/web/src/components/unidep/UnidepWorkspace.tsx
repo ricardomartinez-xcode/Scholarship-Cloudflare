@@ -421,52 +421,64 @@ function OfertaAcademicaSection() {
               </div>
 
               {currentOfferings.length ? (
-                <div className="ui-table-wrap ui-scrollbar">
-                  <table className="ui-table min-w-[620px]">
-                    <thead>
-                      <tr>
-                        <th className="text-left">Modalidad</th>
-                        <th className="text-left">Horario</th>
-                        <th className="ui-cell-nowrap text-right">Plan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentOfferings.map((offering) => {
-                        const link = offering.planLink ?? currentProgram.planPdfUrl;
-                        return (
-                          <tr key={offering.id}>
-                            <td className="text-slate-100">{offering.modality}</td>
-                            <td className="text-slate-300">
+                <div className="overflow-hidden rounded-2xl border border-white/10">
+                  <div className="hidden grid-cols-[minmax(120px,1fr)_minmax(180px,1.4fr)_minmax(164px,auto)] gap-3 bg-slate-900/70 px-4 py-3 text-sm font-semibold text-slate-100 md:grid">
+                    <div>Modalidad</div>
+                    <div>Horario</div>
+                    <div className="text-right">Plan</div>
+                  </div>
+                  <div className="divide-y divide-white/10">
+                    {currentOfferings.map((offering) => {
+                      const link = offering.planLink ?? currentProgram.planPdfUrl;
+                      return (
+                        <div
+                          key={offering.id}
+                          className="grid gap-3 px-4 py-3 text-sm md:grid-cols-[minmax(120px,1fr)_minmax(180px,1.4fr)_minmax(164px,auto)] md:items-center"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 md:hidden">
+                              Modalidad
+                            </div>
+                            <div className="break-words text-slate-100">{offering.modality}</div>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 md:hidden">
+                              Horario
+                            </div>
+                            <div className="break-words text-slate-300">
                               {offering.schedule?.trim() || "Horario no disponible"}
-                            </td>
-                            <td className="ui-cell-nowrap text-right">
-                              {link ? (
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewUrl(link)}
-                                    className="ui-button-secondary min-h-[34px] px-3 text-xs"
-                                  >
-                                    Ver PDF
-                                  </button>
-                                  <a
-                                    href={link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="ui-button-info min-h-[34px] px-3 text-xs"
-                                  >
-                                    Abrir
-                                  </a>
-                                </div>
-                              ) : (
-                                <span className="text-slate-500">Sin PDF</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            </div>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 md:hidden">
+                              Plan
+                            </div>
+                            {link ? (
+                              <div className="mt-2 flex flex-wrap gap-2 md:mt-0 md:justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewUrl(link)}
+                                  className="ui-button-secondary min-h-[34px] px-3 text-xs"
+                                >
+                                  Ver PDF
+                                </button>
+                                <a
+                                  href={link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="ui-button-info min-h-[34px] px-3 text-xs"
+                                >
+                                  Abrir
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 md:block md:text-right">Sin PDF</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
