@@ -1447,7 +1447,7 @@ ${summary}
 
           {selectedCampaign ? (
             <>
-              <article className="grid gap-3 rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+              <article className="ui-web-campaign-detail grid gap-3 rounded-3xl border border-white/10 bg-slate-950/35 p-4">
                 <div className="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
                   <div className="min-w-0">
                     <div className="text-xs uppercase tracking-[0.24em] text-slate-400">

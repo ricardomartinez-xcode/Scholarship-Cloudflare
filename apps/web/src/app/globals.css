@@ -5063,6 +5063,30 @@ a.ui-button-danger:not(:disabled):hover {
   background: #b91c1c !important;
 }
 
+.ui-web-campaign-detail,
+.ui-web-campaign-detail [class*="bg-slate-950/"] {
+  border-color: var(--ui-border) !important;
+  background: var(--ui-surface-primary) !important;
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-web-campaign-detail [class*="text-white"],
+.ui-web-campaign-detail [class*="text-slate-100"],
+.ui-web-campaign-detail [class*="text-slate-200"] {
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-web-campaign-detail [class*="text-slate-300"],
+.ui-web-campaign-detail [class*="text-slate-400"],
+.ui-web-campaign-detail [class*="text-slate-500"] {
+  color: var(--ui-text-secondary) !important;
+}
+
+.ui-web-campaign-detail pre,
+.ui-web-campaign-detail code {
+  color: var(--ui-text-primary) !important;
+}
+
 .ui-control,
 .ui-control--select,
 .ui-chat-composer__field,
