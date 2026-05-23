@@ -3019,19 +3019,19 @@ select:-webkit-autofill {
 .ui-campaign-table-shell {
   overflow-x: auto;
   border-radius: 24px;
-  border: 1px solid rgba(194, 220, 234, 0.08);
-  background: rgba(8, 30, 48, 0.32);
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-primary);
 }
 
 .ui-campaign-table {
   min-width: 920px;
   width: 100%;
   border-collapse: collapse;
-  color: #dce9f2;
+  color: var(--ui-text-primary);
 }
 
 .ui-campaign-table thead {
-  background: rgba(255, 255, 255, 0.04);
+  background: #eaf3f8;
 }
 
 .ui-campaign-table th {
@@ -3041,15 +3041,16 @@ select:-webkit-autofill {
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #9eb9cb;
+  color: var(--ui-institutional-blue-deep);
   white-space: nowrap;
 }
 
 .ui-campaign-table td {
   padding: 14px 16px;
   vertical-align: top;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--ui-border);
   font-size: 0.88rem;
+  color: var(--ui-text-primary);
 }
 
 .ui-campaign-table__contact {
@@ -3058,21 +3059,21 @@ select:-webkit-autofill {
 
 .ui-campaign-table__title {
   font-weight: 700;
-  color: #ffffff;
+  color: var(--ui-text-primary);
 }
 
 .ui-campaign-table__meta {
   margin-top: 4px;
   font-size: 0.75rem;
   line-height: 1.5;
-  color: #a9c0d1;
+  color: var(--ui-text-secondary);
 }
 
 .ui-campaign-table__time {
   min-width: 160px;
   font-size: 0.78rem;
   line-height: 1.5;
-  color: #b8cddd;
+  color: var(--ui-text-secondary);
 }
 
 .ui-campaign-table__error {
@@ -3080,7 +3081,7 @@ select:-webkit-autofill {
   max-width: 360px;
   font-size: 0.78rem;
   line-height: 1.6;
-  color: #ffd9d9;
+  color: #7f1d1d;
  }
 
 @media (max-width: 900px) {
