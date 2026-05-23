@@ -5049,6 +5049,20 @@ a[role="button"] {
   opacity: 1 !important;
 }
 
+.ui-card .ui-button-danger:not(:disabled),
+button.ui-button-danger:not(:disabled),
+a.ui-button-danger:not(:disabled) {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.ui-card .ui-button-danger:not(:disabled):hover,
+button.ui-button-danger:not(:disabled):hover,
+a.ui-button-danger:not(:disabled):hover {
+  background: #b91c1c !important;
+}
+
 .ui-control,
 .ui-control--select,
 .ui-chat-composer__field,
