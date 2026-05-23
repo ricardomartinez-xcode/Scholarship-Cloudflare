@@ -4221,6 +4221,28 @@ select:-webkit-autofill {
   color: var(--ui-text-primary);
 }
 
+@media (max-width: 1280px) {
+  .ui-table-wrap > .ui-table {
+    width: 100%;
+    min-width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .ui-table-wrap > .ui-table th,
+  .ui-table-wrap > .ui-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-table-wrap > .ui-table .ui-cell-nowrap {
+    white-space: normal;
+  }
+
+  .ui-table-wrap > .ui-table td > .flex {
+    flex-wrap: wrap;
+  }
+}
+
 .ui-table thead {
   background: #EAF3F8;
   color: var(--ui-institutional-blue-deep);
