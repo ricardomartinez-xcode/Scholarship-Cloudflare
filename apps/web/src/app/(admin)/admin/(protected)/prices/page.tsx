@@ -29,7 +29,7 @@ export default async function PricesPage() {
     getConfigPublicationState(configModule),
     getBecaRules(),
     prisma.adminPriceOverride.findMany({
-      where: { scope: "monto", isActive: true },
+      where: { scope: "base_price", isActive: true },
       select: { id: true, targetKeys: true, newPrice: true, isActive: true },
     }),
   ]);

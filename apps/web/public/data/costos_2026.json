@@ -9,7 +9,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2916.35
+    "monto": 2913.8
   },
   {
     "nivel": "licenciatura",
@@ -21,7 +21,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3123.75
+    "monto": 3151.8
   },
   {
     "nivel": "licenciatura",
@@ -33,7 +33,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3380.45
+    "monto": 3379.6
   },
   {
     "nivel": "licenciatura",
@@ -45,7 +45,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2744.8
+    "monto": 2742.4
   },
   {
     "nivel": "licenciatura",
@@ -57,7 +57,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2940.0
+    "monto": 2966.4
   },
   {
     "nivel": "licenciatura",
@@ -69,7 +69,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3181.6
+    "monto": 3180.8
   },
   {
     "nivel": "licenciatura",
@@ -81,7 +81,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2573.25
+    "monto": 2571.0
   },
   {
     "nivel": "licenciatura",
@@ -93,7 +93,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2756.25
+    "monto": 2781.0
   },
   {
     "nivel": "licenciatura",
@@ -105,7 +105,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2982.75
+    "monto": 2982.0
   },
   {
     "nivel": "licenciatura",
@@ -117,7 +117,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3645.65
+    "monto": 3642.25
   },
   {
     "nivel": "licenciatura",
@@ -129,7 +129,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3904.9
+    "monto": 3939.75
   },
   {
     "nivel": "licenciatura",
@@ -141,7 +141,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 4226.2
+    "monto": 4224.5
   },
   {
     "nivel": "licenciatura",
@@ -153,7 +153,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3431.2
+    "monto": 3428.0
   },
   {
     "nivel": "licenciatura",
@@ -165,7 +165,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3675.2
+    "monto": 3708.0
   },
   {
     "nivel": "licenciatura",
@@ -177,7 +177,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3977.6
+    "monto": 3976.0
   },
   {
     "nivel": "licenciatura",
@@ -189,7 +189,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3216.75
+    "monto": 3213.75
   },
   {
     "nivel": "licenciatura",
@@ -201,7 +201,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3445.5
+    "monto": 3476.25
   },
   {
     "nivel": "licenciatura",
@@ -213,7 +213,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3729.0
+    "monto": 3727.5
   },
   {
     "nivel": "salud",
@@ -249,7 +249,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3869.2
+    "monto": 3867.5
   },
   {
     "nivel": "salud",
@@ -285,7 +285,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3641.6
+    "monto": 3640.0
   },
   {
     "nivel": "salud",
@@ -321,7 +321,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3414.0
+    "monto": 3412.5
   },
   {
     "nivel": "maestria",
@@ -332,7 +332,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3815.65
+    "monto": 4119.984
   },
   {
     "nivel": "maestria",
@@ -343,7 +343,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3591.2
+    "monto": 3877.632
   },
   {
     "nivel": "maestria",
@@ -354,7 +354,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3366.75
+    "monto": 3635.28
   },
   {
     "nivel": "licenciatura",
@@ -431,7 +431,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1646.45
+    "monto": 1644.75
   },
   {
     "nivel": "preparatoria",
@@ -442,7 +442,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1549.6
+    "monto": 1548.0
   },
   {
     "nivel": "preparatoria",
@@ -453,7 +453,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1452.75
+    "monto": 1451.25
   },
   {
     "nivel": "preparatoria",
@@ -464,7 +464,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2627.316
+    "monto": 2623.95
   },
   {
     "nivel": "preparatoria",
@@ -475,7 +475,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2472.768
+    "monto": 2469.6
   },
   {
     "nivel": "preparatoria",
@@ -486,7 +486,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2318.22
+    "monto": 2315.25
   },
   {
     "nivel": "preparatoria",
@@ -497,7 +497,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1751.544
+    "monto": 1749.3
   },
   {
     "nivel": "preparatoria",
@@ -508,7 +508,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1648.512
+    "monto": 1646.4
   },
   {
     "nivel": "preparatoria",
@@ -519,7 +519,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1545.48
+    "monto": 1543.5
   },
   {
     "nivel": "licenciatura",
@@ -531,7 +531,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2916.35
+    "monto": 3357.5
   },
   {
     "nivel": "licenciatura",
@@ -543,7 +543,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3123.75
+    "monto": 3995.0
   },
   {
     "nivel": "licenciatura",
@@ -567,7 +567,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2744.8
+    "monto": 3160.0
   },
   {
     "nivel": "licenciatura",
@@ -579,7 +579,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2940.0
+    "monto": 3760.0
   },
   {
     "nivel": "licenciatura",
@@ -603,7 +603,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2573.25
+    "monto": 2962.5
   },
   {
     "nivel": "licenciatura",
@@ -615,7 +615,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2756.25
+    "monto": 3525.0
   },
   {
     "nivel": "licenciatura",
@@ -639,7 +639,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3645.65
+    "monto": 4196.875
   },
   {
     "nivel": "licenciatura",
@@ -651,7 +651,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3904.9
+    "monto": 4993.75
   },
   {
     "nivel": "licenciatura",
@@ -675,7 +675,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3431.2
+    "monto": 3950.0
   },
   {
     "nivel": "licenciatura",
@@ -687,7 +687,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3675.2
+    "monto": 4700.0
   },
   {
     "nivel": "licenciatura",
@@ -711,7 +711,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3216.75
+    "monto": 3703.125
   },
   {
     "nivel": "licenciatura",
@@ -723,7 +723,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3445.5
+    "monto": 4406.25
   },
   {
     "nivel": "licenciatura",
@@ -746,7 +746,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2627.316
+    "monto": 2623.95
   },
   {
     "nivel": "preparatoria",
@@ -757,7 +757,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2472.768
+    "monto": 2469.6
   },
   {
     "nivel": "preparatoria",
@@ -768,7 +768,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2318.22
+    "monto": 2315.25
   },
   {
     "nivel": "preparatoria",
@@ -779,7 +779,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1751.544
+    "monto": 1749.3
   },
   {
     "nivel": "preparatoria",
@@ -790,7 +790,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1648.512
+    "monto": 1646.4
   },
   {
     "nivel": "preparatoria",
@@ -801,6 +801,6 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1545.48
+    "monto": 1543.5
   }
 ]

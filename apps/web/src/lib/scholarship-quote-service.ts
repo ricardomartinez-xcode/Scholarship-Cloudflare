@@ -16,7 +16,7 @@
 import { prisma } from "@/lib/prisma";
 import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrides";
 import { resolveAdditionalBenefits } from "@/lib/additional-benefits";
-import { resolveCampus } from "@/lib/campus-resolver";
+import { buildCampusAliases, resolveCampus } from "@/lib/campus-resolver";
 import {
   BASE_PRICE_OVERRIDE_SCOPE,
   LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
@@ -246,6 +246,8 @@ export async function resolveScholarshipQuote(
     modality: input.modality,
     plan: input.plan,
     tier: runtimeTier,
+    campus: input.campus ?? campus?.name ?? null,
+    campusAliases: buildCampusAliases(campus, input.campus),
   });
   const basePriceMxn =
     toNumber(returnSubjectPrice?.priceMxn) ??

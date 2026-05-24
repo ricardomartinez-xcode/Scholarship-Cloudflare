@@ -32,12 +32,25 @@ export type BecaRule = {
   rango_max: number | null;
   porcentaje: number | null;
   monto: number | null;
+  basePriceMxn: number | null;
   origen: string | null;
 };
 
 const PRICES_WRITE_CAPABILITY = AdminCapability.manage_prices;
 
-function buildRuleKey(rule: Omit<BecaRule, "id">) {
+function buildRuleKey(rule: {
+  programa_key: string;
+  nivel_key: string;
+  modalidad_key: string;
+  plan: string;
+  tier: string | null;
+  rango_min: number | null;
+  rango_max: number | null;
+  porcentaje?: number | null;
+  monto?: number | null;
+  basePriceMxn?: number | null;
+  origen?: string | null;
+}) {
   return [
     rule.programa_key,
     rule.nivel_key,
@@ -69,6 +82,20 @@ function serializePriceOverride(record: {
   };
 }
 
+function inferBasePriceMxn(params: {
+  monto: number | null;
+  porcentaje: number | null;
+}) {
+  if (
+    params.monto === null ||
+    params.porcentaje === null ||
+    params.porcentaje >= 100
+  ) {
+    return params.monto;
+  }
+  return Math.round((params.monto / (1 - params.porcentaje / 100)) * 100) / 100;
+}
+
 export async function getBecaRules(): Promise<BecaRule[]> {
   try {
     await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
@@ -93,6 +120,10 @@ export async function getBecaRules(): Promise<BecaRule[]> {
         rango_max: row.rango_max === null ? null : Number(row.rango_max),
         porcentaje: row.porcentaje === null ? null : Number(row.porcentaje),
         monto: row.monto === null ? null : Number(row.monto),
+        basePriceMxn: inferBasePriceMxn({
+          monto: row.monto === null ? null : Number(row.monto),
+          porcentaje: row.porcentaje === null ? null : Number(row.porcentaje),
+        }),
         origen: row.origen ? String(row.origen) : null,
       })) as BecaRule[];
     };
@@ -161,6 +192,15 @@ export async function getBecaRules(): Promise<BecaRule[]> {
             }),
           ) ?? null;
 
+        const monto =
+          payloadRow?.monto ??
+          (row.discountedPriceMxn === null
+            ? null
+            : Number(row.discountedPriceMxn));
+        const porcentaje =
+          row.scholarshipPercent === null
+            ? null
+            : Number(row.scholarshipPercent);
         return {
           id: row.id,
           programa_key:
@@ -174,11 +214,9 @@ export async function getBecaRules(): Promise<BecaRule[]> {
           tier: row.campusTier === "ANY" ? null : row.campusTier,
           rango_min: row.minAverage === null ? null : Number(row.minAverage),
           rango_max: row.maxAverage === null ? null : Number(row.maxAverage),
-          porcentaje:
-            row.scholarshipPercent === null
-              ? null
-              : Number(row.scholarshipPercent),
-          monto: payloadRow?.monto ?? (row.discountedPriceMxn === null ? null : Number(row.discountedPriceMxn)),
+          porcentaje,
+          monto,
+          basePriceMxn: inferBasePriceMxn({ monto, porcentaje }),
           origen: row.origin,
         } satisfies BecaRule;
       });
@@ -239,7 +277,6 @@ export async function upsertMontoOverrideAction(formData: FormData) {
   try {
     const admin = await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
 
-    const programa_key = String(formData.get("programa_key") ?? "").trim();
     const nivel_key = String(formData.get("nivel_key") ?? "").trim();
     const modalidad_key = String(formData.get("modalidad_key") ?? "").trim();
     const plan = String(formData.get("plan") ?? "").trim();
@@ -253,11 +290,11 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     if (Number(newPrice) < 0) {
       return { ok: false, error: "El precio no puede ser negativo." };
     }
-    if (!programa_key || !nivel_key || !modalidad_key || !plan) {
-      return { ok: false, error: "Faltan claves de la regla a editar." };
+    if (!nivel_key || !modalidad_key || !plan) {
+      return { ok: false, error: "Faltan claves de precio a editar." };
     }
 
-    const targetKeys: Prisma.InputJsonValue = { programa_key, nivel_key, modalidad_key, plan, tier };
+    const targetKeys: Prisma.InputJsonValue = { nivel_key, modalidad_key, plan, tier };
     const before = existingId
       ? await prisma.adminPriceOverride.findUnique({
           where: { id: existingId },
@@ -300,8 +337,8 @@ export async function upsertMontoOverrideAction(formData: FormData) {
       });
     } else {
       saved = await prisma.adminPriceOverride.create({
-        data: {
-          scope: "monto",
+          data: {
+          scope: "base_price",
           targetKeys,
           newPrice,
           isActive: true,

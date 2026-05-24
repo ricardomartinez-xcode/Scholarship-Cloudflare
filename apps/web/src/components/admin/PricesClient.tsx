@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
 import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
+import {
+  normalizePriceListWorkbookRows,
+  priceListRowsToCsv,
+  type PriceListWorkbookSheet,
+} from "@/lib/importers/price-list-format";
 
 type BecaRule = {
   id: string;
@@ -17,6 +22,7 @@ type BecaRule = {
   rango_max: number | null;
   porcentaje: number | null;
   monto: number | null;
+  basePriceMxn: number | null;
   origen: string | null;
 };
 
@@ -32,7 +38,8 @@ type ActionResult = { ok: boolean; error?: string };
 type PriceImportPreviewRow = {
   rowNumber: number;
   action: "create" | "update" | "noop";
-  programaKey: string;
+  plantel: string | null;
+  programaKey: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -66,7 +73,6 @@ function findOverride(rule: BecaRule, overrides: MontoOverride[]): MontoOverride
     overrides.find((o) => {
       const keys = o.targetKeys as Record<string, string>;
       return (
-        keys.programa_key === rule.programa_key &&
         keys.nivel_key === rule.nivel_key &&
         keys.modalidad_key === rule.modalidad_key &&
         keys.plan === rule.plan &&
@@ -153,7 +159,7 @@ export default function PricesClient({
     const override = findOverride(rule, montoOverrides);
     setEditingRule(rule);
     setEditingOverride(override);
-    setNewPrice(override ? String(override.newPrice) : String(rule.monto ?? ""));
+    setNewPrice(override ? String(override.newPrice) : String(rule.basePriceMxn ?? ""));
     setOpen(true);
   }
 
@@ -166,6 +172,39 @@ export default function PricesClient({
     });
   }
 
+  async function buildNormalizedImportFile(file: File) {
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith(".csv")) return file;
+    if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
+      throw new Error("Formato no soportado. Usa un archivo .xlsx, .xls o .csv.");
+    }
+
+    const xlsx = await import("xlsx");
+    const data = await file.arrayBuffer();
+    const workbook = xlsx.read(data, { type: "array" });
+    const sheets: PriceListWorkbookSheet[] = workbook.SheetNames.map((name) => {
+      const worksheet = workbook.Sheets[name];
+      const rows = xlsx.utils.sheet_to_json<Array<string | number | boolean | null>>(
+        worksheet,
+        {
+          header: 1,
+          blankrows: false,
+          defval: "",
+          raw: true,
+        },
+      );
+      return { name, rows };
+    });
+    const normalizedRows = normalizePriceListWorkbookRows({ sheets });
+    if (!normalizedRows.length) {
+      throw new Error("No se encontraron columnas de Precio Lista en el archivo.");
+    }
+    const csv = priceListRowsToCsv(normalizedRows);
+    return new File([csv], `${file.name.replace(/\.[^.]+$/, "")}.normalized.csv`, {
+      type: "text/csv",
+    });
+  }
+
   async function validateImportCsv() {
     setImportLoading(true);
     setImportError(null);
@@ -175,10 +214,11 @@ export default function PricesClient({
     try {
       const file = importFileRef.current?.files?.[0] ?? null;
       if (!file) {
-        throw new Error("Selecciona un archivo CSV de precios.");
+        throw new Error("Selecciona un archivo de precios.");
       }
+      const normalizedFile = await buildNormalizedImportFile(file);
       const formData = new FormData();
-      formData.set("file", file);
+      formData.set("file", normalizedFile);
       const response = await fetch("/api/admin/prices/import", {
         method: "POST",
         body: formData,
@@ -254,11 +294,11 @@ export default function PricesClient({
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
         <div>
-          <h1 className="mt-1 text-lg font-semibold">Precios base y ajustes</h1>
+          <h1 className="mt-1 text-lg font-semibold">Precios lista y ajustes</h1>
           <p className="mt-1 text-sm text-slate-300">
-            Reglas activas de la calculadora. Usa{" "}
+            Precios lista activos de la calculadora. Usa{" "}
             <strong className="text-slate-100">Editar</strong> para crear un ajuste sobre el
-            monto base. El badge{" "}
+            precio lista. El badge{" "}
             <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
               Editado
             </span>{" "}
@@ -271,10 +311,11 @@ export default function PricesClient({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
-              Import CSV
+              Importar precio lista
             </div>
             <p className="mt-1 text-sm text-slate-300">
-              Importa overrides de precio con preview de diff, aplicación y rollback lógico.
+              Importa archivos XLSX o CSV con columnas de Precio Lista. Se genera preview de
+              diff antes de aplicar cambios.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -284,7 +325,7 @@ export default function PricesClient({
               disabled={importLoading || applyImportLoading || rollbackImportLoading}
               className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60"
             >
-              {importLoading ? "Analizando..." : "Validar CSV"}
+              {importLoading ? "Analizando..." : "Validar archivo"}
             </button>
             <button
               type="button"
@@ -309,7 +350,7 @@ export default function PricesClient({
         <input
           ref={importFileRef}
           type="file"
-          accept=".csv,text/csv"
+          accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
           className="ui-control max-w-full text-sm"
         />
         {importError ? (
@@ -358,18 +399,22 @@ export default function PricesClient({
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
                       <th className="ui-cell-nowrap text-left">Acción</th>
+                      <th className="ui-cell-nowrap text-left">Plantel</th>
                       <th className="text-left">Scope</th>
-                      <th className="ui-cell-nowrap text-right">Precio</th>
+                      <th className="ui-cell-nowrap text-right">Precio lista</th>
                       <th className="ui-cell-nowrap text-left">Activo</th>
                     </tr>
                   </thead>
                   <tbody>
                     {importPreviewRows.slice(0, 40).map((row) => (
-                      <tr key={`${row.rowNumber}-${row.programaKey}-${row.plan}`}>
+                      <tr key={`${row.rowNumber}-${row.plantel ?? "general"}-${row.plan}`}>
                         <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                         <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {row.plantel ?? "General"}
+                        </td>
                         <td className="text-slate-200">
-                          {row.programaKey} · {row.nivelKey} · {row.modalidadKey} · {row.plan}/
+                          {row.nivelKey} · {row.modalidadKey} · {row.plan}/
                           {row.tier ?? "ANY"}
                         </td>
                         <td className="ui-cell-nowrap text-right font-mono text-slate-100">
@@ -436,7 +481,7 @@ export default function PricesClient({
               <th className="ui-cell-nowrap text-left">Modalidad</th>
               <th className="ui-cell-nowrap text-left">Plan / Tier</th>
               <th className="ui-cell-nowrap text-right">% Beca</th>
-              <th className="ui-cell-nowrap text-right">Monto base</th>
+              <th className="ui-cell-nowrap text-right">Precio lista</th>
               <th className="ui-cell-nowrap text-right">Ajuste activo</th>
               <th className="ui-cell-nowrap text-right">Acciones</th>
             </tr>
@@ -459,7 +504,7 @@ export default function PricesClient({
                       {rule.porcentaje !== null ? `${rule.porcentaje}%` : "—"}
                     </td>
                     <td className="ui-cell-nowrap text-right font-mono text-slate-100">
-                      {fmt(rule.monto)}
+                      {fmt(rule.basePriceMxn)}
                     </td>
                     <td className="ui-cell-nowrap text-right">
                       {override ? (
@@ -549,15 +594,15 @@ export default function PricesClient({
         description={
           editingRule
             ? `${editingRule.nivel_key} · ${editingRule.modalidad_key} · ${editingRule.plan}/${editingRule.tier}`
-            : "Actualiza el monto final que usará la calculadora para esta regla."
+            : "Actualiza el precio lista que usará la calculadora para esta regla."
         }
         size="md"
       >
         {editingRule && (
           <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
-            <span className="text-slate-400">Precio base: </span>
+            <span className="text-slate-400">Precio lista actual: </span>
             <span className="font-mono font-semibold text-slate-100">
-              {fmt(editingRule.monto)}
+              {fmt(editingRule.basePriceMxn)}
             </span>
             {editingRule.porcentaje !== null && (
               <span className="ml-3 text-slate-400">{editingRule.porcentaje}% beca</span>
@@ -584,7 +629,7 @@ export default function PricesClient({
               <input type="hidden" name="existingId" value={editingOverride?.id ?? ""} />
 
               <label className="grid gap-2 text-sm">
-                Nuevo monto (MXN)
+                Nuevo precio lista (MXN)
                 <input
                   name="newPrice"
                   type="number"

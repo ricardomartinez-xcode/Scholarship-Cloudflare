@@ -8,7 +8,8 @@ export type PriceImportDiffAction = "create" | "update" | "noop";
 export type PriceImportPreviewRow = {
   rowNumber: number;
   action: PriceImportDiffAction;
-  programaKey: string;
+  plantel: string | null;
+  programaKey: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -50,7 +51,8 @@ export type PricesImportApplySummary = {
 
 type ParsedPriceRow = {
   rowNumber: number;
-  programaKey: string;
+  plantel: string | null;
+  programaKey: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -62,11 +64,12 @@ type ParsedPriceRow = {
 
 const HEADER_ALIASES = {
   programaKey: ["programakey", "programa", "programa_key"],
+  plantel: ["plantel", "campus", "sede"],
   nivelKey: ["nivelkey", "nivel", "nivel_key"],
   modalidadKey: ["modalidadkey", "modalidad", "modalidad_key"],
   plan: ["plan"],
   tier: ["tier"],
-  newPrice: ["newprice", "precio", "monto", "new_price"],
+  newPrice: ["newprice", "precio", "preciolista", "monto", "new_price"],
   isActive: ["isactive", "activo", "active"],
   notes: ["notes", "nota", "notas"],
 } as const;
@@ -93,14 +96,16 @@ function parseBoolean(value: string, defaultValue: boolean) {
 }
 
 function buildPriceScopeKey(input: {
-  programaKey: string;
+  plantel?: string | null;
+  programaKey?: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
   tier: string | null;
 }) {
   return [
-    input.programaKey.trim().toLowerCase(),
+    (input.plantel ?? "").trim().toLowerCase(),
+    (input.programaKey ?? "").trim().toLowerCase(),
     input.nivelKey.trim().toLowerCase(),
     input.modalidadKey.trim().toLowerCase(),
     input.plan.trim().toLowerCase(),
@@ -125,7 +130,7 @@ function hasPriceValueChanged(
 
 async function buildExistingPriceOverridesByScopeKey() {
   const rows = await prisma.adminPriceOverride.findMany({
-    where: { scope: "monto" },
+    where: { scope: "base_price" },
     select: {
       id: true,
       targetKeys: true,
@@ -150,6 +155,7 @@ async function buildExistingPriceOverridesByScopeKey() {
         ? (row.targetKeys as Record<string, unknown>)
         : {};
     const key = buildPriceScopeKey({
+      plantel: target.plantel ? String(target.plantel) : null,
       programaKey: String(target.programa_key ?? ""),
       nivelKey: String(target.nivel_key ?? ""),
       modalidadKey: String(target.modalidad_key ?? ""),
@@ -188,6 +194,7 @@ export async function preparePricesCsvImport(
   });
 
   const idxPrograma = findColumnIndex(headerMap, HEADER_ALIASES.programaKey);
+  const idxPlantel = findColumnIndex(headerMap, HEADER_ALIASES.plantel);
   const idxNivel = findColumnIndex(headerMap, HEADER_ALIASES.nivelKey);
   const idxModalidad = findColumnIndex(headerMap, HEADER_ALIASES.modalidadKey);
   const idxPlan = findColumnIndex(headerMap, HEADER_ALIASES.plan);
@@ -196,9 +203,9 @@ export async function preparePricesCsvImport(
   const idxIsActive = findColumnIndex(headerMap, HEADER_ALIASES.isActive);
   const idxNotes = findColumnIndex(headerMap, HEADER_ALIASES.notes);
 
-  if (idxPrograma < 0 || idxNivel < 0 || idxModalidad < 0 || idxPlan < 0 || idxNewPrice < 0) {
+  if (idxNivel < 0 || idxModalidad < 0 || idxPlan < 0 || idxNewPrice < 0) {
     throw new Error(
-      "Faltan columnas obligatorias: programa_key, nivel_key, modalidad_key, plan, new_price.",
+      "Faltan columnas obligatorias: nivel_key, modalidad_key, plan, new_price.",
     );
   }
 
@@ -214,15 +221,16 @@ export async function preparePricesCsvImport(
     if (!row.some((cell) => String(cell ?? "").trim())) continue;
     const rowNumber = index + 1;
 
-    const programaKey = readCell(row, idxPrograma);
+    const plantel = readCell(row, idxPlantel) || null;
+    const programaKey = readCell(row, idxPrograma) || null;
     const nivelKey = readCell(row, idxNivel);
     const modalidadKey = readCell(row, idxModalidad);
     const plan = readCell(row, idxPlan);
     const tier = readCell(row, idxTier) || null;
 
-    if (!programaKey || !nivelKey || !modalidadKey || !plan) {
+    if (!nivelKey || !modalidadKey || !plan) {
       errors.push(
-        `Fila ${rowNumber}: programa_key, nivel_key, modalidad_key y plan son obligatorios.`,
+        `Fila ${rowNumber}: nivel_key, modalidad_key y plan son obligatorios.`,
       );
       continue;
     }
@@ -237,6 +245,7 @@ export async function preparePricesCsvImport(
     const isActive = parseBoolean(readCell(row, idxIsActive), true);
     const notes = readCell(row, idxNotes) || null;
     const key = buildPriceScopeKey({
+      plantel,
       programaKey,
       nivelKey,
       modalidadKey,
@@ -251,6 +260,7 @@ export async function preparePricesCsvImport(
 
     parsedRows.push({
       rowNumber,
+      plantel,
       programaKey,
       nivelKey,
       modalidadKey,
@@ -269,6 +279,7 @@ export async function preparePricesCsvImport(
 
   for (const parsedRow of parsedRows) {
     const key = buildPriceScopeKey({
+      plantel: parsedRow.plantel,
       programaKey: parsedRow.programaKey,
       nivelKey: parsedRow.nivelKey,
       modalidadKey: parsedRow.modalidadKey,
@@ -330,13 +341,18 @@ export async function applyPreparedPricesImport(params: {
         continue;
       }
 
-      const targetKeys: Prisma.InputJsonValue = {
-        programa_key: row.programaKey,
+      const targetKeys: Record<string, string | null> = {
         nivel_key: row.nivelKey,
         modalidad_key: row.modalidadKey,
         plan: row.plan,
         tier: row.tier,
       };
+      if (row.programaKey) {
+        targetKeys.programa_key = row.programaKey;
+      }
+      if (row.plantel) {
+        targetKeys.plantel = row.plantel;
+      }
 
       let existingId = row.existingId ?? null;
       if (existingId) {
@@ -362,8 +378,8 @@ export async function applyPreparedPricesImport(params: {
 
       await tx.adminPriceOverride.create({
         data: {
-          scope: "monto",
-          targetKeys,
+          scope: "base_price",
+          targetKeys: targetKeys as Prisma.InputJsonValue,
           newPrice: row.newPrice,
           isActive: row.isActive,
           notes: row.notes,

@@ -58,6 +58,21 @@ function matchesBasePriceTarget(
   );
 }
 
+function normalizeCampusTargets(params: {
+  campus?: string | null;
+  campusAliases?: string[];
+}) {
+  return new Set(
+    [params.campus, ...(params.campusAliases ?? [])]
+      .map((value) => normalizeKey(value))
+      .filter(Boolean),
+  );
+}
+
+function targetCampusKey(keys: Record<string, unknown>) {
+  return normalizeKey(keys.plantel ?? keys.campus ?? keys.sede ?? keys.metaKey);
+}
+
 function matchesLegacyDiscountedTarget(
   keys: Record<string, unknown>,
   params: {
@@ -83,16 +98,31 @@ export function findPublishedBasePriceOverride(
     modality: CanonicalModalityValue | string;
     plan: number | string;
     tier?: string | null;
+    campus?: string | null;
+    campusAliases?: string[];
   },
 ) {
+  const campusTargets = normalizeCampusTargets(params);
+  let genericPrice: number | null = null;
+
   for (const override of overrides) {
     if (!override.isActive || override.scope !== BASE_PRICE_OVERRIDE_SCOPE) continue;
-    if (matchesBasePriceTarget(targetRecord(override.targetKeys), params)) {
-      const price = toNumber(override.newPrice);
-      if (price !== null) return price;
+    const keys = targetRecord(override.targetKeys);
+    if (!matchesBasePriceTarget(keys, params)) continue;
+
+    const price = toNumber(override.newPrice);
+    if (price === null) continue;
+
+    const campusKey = targetCampusKey(keys);
+    if (campusKey) {
+      if (campusTargets.has(campusKey)) return price;
+      continue;
     }
+
+    if (genericPrice === null) genericPrice = price;
   }
-  return null;
+
+  return genericPrice;
 }
 
 export function buildLegacyDiscountedOverrideMap(

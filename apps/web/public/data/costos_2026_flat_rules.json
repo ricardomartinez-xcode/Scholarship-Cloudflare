@@ -9,7 +9,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2916.35,
+    "monto": 2913.8,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -23,7 +23,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2916.35,
+    "monto": 2913.8,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -37,7 +37,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3123.75,
+    "monto": 3151.8,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -51,7 +51,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3123.75,
+    "monto": 3151.8,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -65,7 +65,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3380.45,
+    "monto": 3379.6,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -79,7 +79,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3380.45,
+    "monto": 3379.6,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -93,7 +93,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2744.8,
+    "monto": 2742.4,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -107,7 +107,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2744.8,
+    "monto": 2742.4,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -121,7 +121,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2940.0,
+    "monto": 2966.4,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -135,7 +135,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2940.0,
+    "monto": 2966.4,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -149,7 +149,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3181.6,
+    "monto": 3180.8,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -163,7 +163,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3181.6,
+    "monto": 3180.8,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -177,7 +177,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2573.25,
+    "monto": 2571.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -191,7 +191,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2573.25,
+    "monto": 2571.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -205,7 +205,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2756.25,
+    "monto": 2781.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -219,7 +219,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2756.25,
+    "monto": 2781.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -233,7 +233,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2982.75,
+    "monto": 2982.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -247,22 +247,8 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2982.75,
+    "monto": 2982.0,
     "programa": "reingreso",
-    "origen": "base"
-  },
-  {
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "tier": "T1",
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 3645.65,
-    "programa": "nuevo_ingreso",
     "origen": "base"
   },
   {
@@ -275,7 +261,21 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3645.65,
+    "monto": 3642.25,
+    "programa": "nuevo_ingreso",
+    "origen": "base"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3642.25,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -289,7 +289,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3904.9,
+    "monto": 3939.75,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -303,7 +303,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3904.9,
+    "monto": 3939.75,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -317,7 +317,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 4226.2,
+    "monto": 4224.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -331,7 +331,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 4226.2,
+    "monto": 4224.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -345,7 +345,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3431.2,
+    "monto": 3428.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -359,7 +359,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3431.2,
+    "monto": 3428.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -373,7 +373,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3675.2,
+    "monto": 3708.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -387,7 +387,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3675.2,
+    "monto": 3708.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -401,7 +401,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3977.6,
+    "monto": 3976.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -415,7 +415,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3977.6,
+    "monto": 3976.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -429,7 +429,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3216.75,
+    "monto": 3213.75,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -443,7 +443,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3216.75,
+    "monto": 3213.75,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -457,7 +457,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3445.5,
+    "monto": 3476.25,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -471,7 +471,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3445.5,
+    "monto": 3476.25,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -485,7 +485,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3729.0,
+    "monto": 3727.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -499,7 +499,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3729.0,
+    "monto": 3727.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -569,7 +569,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3869.2,
+    "monto": 3867.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -583,7 +583,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3869.2,
+    "monto": 3867.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -653,7 +653,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3641.6,
+    "monto": 3640.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -667,7 +667,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3641.6,
+    "monto": 3640.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -737,7 +737,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3414.0,
+    "monto": 3412.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -751,7 +751,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3414.0,
+    "monto": 3412.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -764,7 +764,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3815.65,
+    "monto": 4119.984,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -777,7 +777,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3815.65,
+    "monto": 4119.984,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -790,7 +790,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3591.2,
+    "monto": 3877.632,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -803,7 +803,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3591.2,
+    "monto": 3877.632,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -816,7 +816,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3366.75,
+    "monto": 3635.28,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -829,7 +829,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3366.75,
+    "monto": 3635.28,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -920,7 +920,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1646.45,
+    "monto": 1644.75,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -933,7 +933,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1646.45,
+    "monto": 1644.75,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -946,7 +946,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1549.6,
+    "monto": 1548.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -959,7 +959,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1549.6,
+    "monto": 1548.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -972,7 +972,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1452.75,
+    "monto": 1451.25,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -985,7 +985,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1452.75,
+    "monto": 1451.25,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -998,7 +998,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2627.316,
+    "monto": 2623.95,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1011,7 +1011,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2627.316,
+    "monto": 2623.95,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1024,7 +1024,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2472.768,
+    "monto": 2469.6,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1037,7 +1037,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2472.768,
+    "monto": 2469.6,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1050,7 +1050,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2318.22,
+    "monto": 2315.25,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1063,7 +1063,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2318.22,
+    "monto": 2315.25,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1076,7 +1076,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1751.544,
+    "monto": 1749.3,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1089,7 +1089,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1751.544,
+    "monto": 1749.3,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1102,7 +1102,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1648.512,
+    "monto": 1646.4,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1115,7 +1115,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1648.512,
+    "monto": 1646.4,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1128,7 +1128,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1545.48,
+    "monto": 1543.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1141,7 +1141,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1545.48,
+    "monto": 1543.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1155,7 +1155,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2916.35,
+    "monto": 3357.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1169,7 +1169,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2916.35,
+    "monto": 3357.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1183,7 +1183,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3123.75,
+    "monto": 3995.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1197,7 +1197,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3123.75,
+    "monto": 3995.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1239,7 +1239,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2744.8,
+    "monto": 3160.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1253,7 +1253,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2744.8,
+    "monto": 3160.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1267,7 +1267,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2940.0,
+    "monto": 3760.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1281,7 +1281,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2940.0,
+    "monto": 3760.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1323,7 +1323,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2573.25,
+    "monto": 2962.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1337,7 +1337,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2573.25,
+    "monto": 2962.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1351,7 +1351,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2756.25,
+    "monto": 3525.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1365,7 +1365,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2756.25,
+    "monto": 3525.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1407,7 +1407,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3645.65,
+    "monto": 4196.875,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1421,7 +1421,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3645.65,
+    "monto": 4196.875,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1435,7 +1435,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3904.9,
+    "monto": 4993.75,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1449,7 +1449,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3904.9,
+    "monto": 4993.75,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1491,7 +1491,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3431.2,
+    "monto": 3950.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1505,7 +1505,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3431.2,
+    "monto": 3950.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1519,7 +1519,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3675.2,
+    "monto": 4700.0,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1533,7 +1533,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3675.2,
+    "monto": 4700.0,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1575,7 +1575,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3216.75,
+    "monto": 3703.125,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1589,7 +1589,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3216.75,
+    "monto": 3703.125,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1603,7 +1603,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3445.5,
+    "monto": 4406.25,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1617,7 +1617,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 3445.5,
+    "monto": 4406.25,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1658,7 +1658,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2627.316,
+    "monto": 2623.95,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1671,7 +1671,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2627.316,
+    "monto": 2623.95,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1684,7 +1684,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2472.768,
+    "monto": 2469.6,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1697,7 +1697,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2472.768,
+    "monto": 2469.6,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1710,7 +1710,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2318.22,
+    "monto": 2315.25,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1723,7 +1723,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2318.22,
+    "monto": 2315.25,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1736,7 +1736,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1751.544,
+    "monto": 1749.3,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1749,7 +1749,7 @@
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 1751.544,
+    "monto": 1749.3,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1762,7 +1762,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1648.512,
+    "monto": 1646.4,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1775,7 +1775,7 @@
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 1648.512,
+    "monto": 1646.4,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1788,7 +1788,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1545.48,
+    "monto": 1543.5,
     "programa": "nuevo_ingreso",
     "origen": "base"
   },
@@ -1801,7 +1801,7 @@
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1545.48,
+    "monto": 1543.5,
     "programa": "reingreso",
     "origen": "base"
   },
@@ -1884,1689 +1884,3129 @@
     "origen": "base"
   },
   {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 6,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 2340.9,
     "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 6,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 2340.9,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 6,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2203.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 6,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2203.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 6,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2065.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 6,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2065.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 6,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 2340.9,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 6,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 2340.9,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 6,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2203.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 6,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2203.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 6,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2065.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 6,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2065.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Cd. Mante"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 9,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 1606.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 9,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 1606.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 9,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 1512.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 9,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 1512.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 9,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 1417.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "presencial",
+    "plan": 9,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 1417.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 9,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 1606.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 9,
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 1606.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 9,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 1512.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 9,
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 1512.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 9,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 1417.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "preparatoria",
+    "modalidad": "mixta",
+    "plan": 9,
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 1417.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 2777.8,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 2777.8,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2614.4,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2614.4,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2451.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2451.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
     "monto": 2835.6,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
     "monto": 2835.6,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 2835.6,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 2835.6,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
     "monto": 2668.8,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
     "monto": 2668.8,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2668.8,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2668.8,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
     "monto": 2502.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
     "monto": 2502.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2502.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2502.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 3722.15,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 3722.15,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 3722.15,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 3722.15,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 3503.2,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 3503.2,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 3503.2,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 3503.2,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 3284.25,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 3284.25,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 3284.25,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 3284.25,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Aguascalientes",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
     "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
     "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2614.4,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2614.4,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2451.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2451.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
     "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
     "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
     "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
     "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2614.4,
     "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Aguascalientes",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Aguascalientes",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
     "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T1",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
     "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Aguascalientes",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Aguascalientes",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Querétaro",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Querétaro",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Querétaro",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Querétaro",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Querétaro",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2968.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Querétaro",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2968.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Querétaro",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2968.0,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Querétaro",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
     "rango": {
-      "min": 8.0,
-      "max": 8.9
+      "min": 9.0,
+      "max": 10.0
     },
-    "porcentaje": 20,
-    "monto": 2968.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "porcentaje": 25,
+    "monto": 2754.0,
     "programa": "nuevo_ingreso",
-    "plantel": "Querétaro",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2782.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Querétaro",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2782.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "monto": 2754.0,
     "programa": "reingreso",
-    "plantel": "Querétaro",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2782.5,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Querétaro",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2782.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Veracruz",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Veracruz",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Veracruz",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Veracruz",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Veracruz",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Veracruz",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Veracruz",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
-      "min": 8.0,
-      "max": 8.9
+      "min": 9.0,
+      "max": 10.0
     },
-    "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Veracruz",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "porcentaje": 25,
+    "monto": 2754.0,
     "programa": "nuevo_ingreso",
-    "plantel": "Veracruz",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Veracruz",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "monto": 2754.0,
     "programa": "reingreso",
-    "plantel": "Veracruz",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Veracruz",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Culiacán",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Culiacán",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Culiacán",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Culiacán",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3153.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Culiacán",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2968.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Culiacán",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2968.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Culiacán",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2968.0,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Culiacán",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
     "rango": {
-      "min": 8.0,
-      "max": 8.9
+      "min": 9.0,
+      "max": 10.0
     },
-    "porcentaje": 20,
-    "monto": 2968.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "porcentaje": 25,
+    "monto": 2754.0,
     "programa": "nuevo_ingreso",
-    "plantel": "Culiacán",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2782.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Culiacán",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2782.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "monto": 2754.0,
     "programa": "reingreso",
-    "plantel": "Culiacán",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2782.5,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Culiacán",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2782.5,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Altamira",
-    "nivel": "licenciatura",
-    "modalidad": "presencial",
-    "plan": 11,
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 2777.8,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
-    "modalidad": "mixta",
+    "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 2614.4,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
-  },
-  {
+    "monto": 2754.0,
     "programa": "nuevo_ingreso",
-    "plantel": "Altamira",
-    "nivel": "licenciatura",
-    "modalidad": "mixta",
-    "plan": 11,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Altamira",
     "nivel": "licenciatura",
     "modalidad": "presencial",
     "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
   },
   {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3472.25,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3472.25,
     "programa": "reingreso",
-    "plantel": "Altamira",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3268.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3268.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3063.75,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3063.75,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Aguascalientes"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3544.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3544.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3336.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3336.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3127.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3127.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3472.25,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3472.25,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3268.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3268.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3063.75,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3063.75,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Veracruz"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3472.25,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3472.25,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3268.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3268.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3063.75,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T1",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3063.75,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Altamira"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Ensenada"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Mexicali"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Puerto Peñasco"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Saltillo"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Torreón"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Tuxpan"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "presencial",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Zacatecas"
+  },
+  {
     "nivel": "licenciatura",
     "modalidad": "mixta",
     "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3121.2,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2451.0,
-    "tier": "T1",
-    "origen": "plantel_excepcion"
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
   },
   {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3121.2,
     "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3121.2,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 2937.6,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 11,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 2754.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Nogales"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 7.0,
+      "max": 7.9
+    },
+    "porcentaje": 15,
+    "monto": 3901.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 8.0,
+      "max": 8.9
+    },
+    "porcentaje": 20,
+    "monto": 3672.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
+    "nivel": "licenciatura",
+    "modalidad": "mixta",
+    "plan": 9,
+    "tier": "T2",
+    "rango": {
+      "min": 9.0,
+      "max": 10.0
+    },
+    "porcentaje": 25,
+    "monto": 3442.5,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Los Cabos"
+  },
+  {
     "nivel": "salud",
     "modalidad": "presencial",
     "plan": 12,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3389.8,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3387.25,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
     "nivel": "salud",
     "modalidad": "presencial",
     "plan": 12,
+    "tier": "T2",
     "rango": {
       "min": 7.0,
       "max": 7.9
     },
     "porcentaje": 15,
-    "monto": 3389.8,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3387.25,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
     "nivel": "salud",
     "modalidad": "presencial",
     "plan": 12,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3190.4,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3188.0,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
     "nivel": "salud",
     "modalidad": "presencial",
     "plan": 12,
+    "tier": "T2",
     "rango": {
       "min": 8.0,
       "max": 8.9
     },
     "porcentaje": 20,
-    "monto": 3190.4,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 3188.0,
+    "programa": "reingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
     "nivel": "salud",
     "modalidad": "presencial",
     "plan": 12,
+    "tier": "T2",
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 2991.0,
-    "tier": "T2",
-    "origen": "plantel_excepcion"
+    "monto": 2988.75,
+    "programa": "nuevo_ingreso",
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   },
   {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
     "nivel": "salud",
     "modalidad": "presencial",
     "plan": 12,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2991.0,
     "tier": "T2",
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 1685.45,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 1685.45,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 1685.45,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 1685.45,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 1586.3,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 1586.3,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 1586.3,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 1586.3,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 9,
     "rango": {
       "min": 9.0,
       "max": 10.0
     },
     "porcentaje": 25,
-    "monto": 1487.16,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 1487.16,
-    "origen": "plantel_excepcion"
-  },
-  {
+    "monto": 2988.75,
     "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 1487.16,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Chihuahua",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 9,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 1487.16,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 6,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 2342.6,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 6,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 2342.6,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 6,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 2342.6,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 6,
-    "rango": {
-      "min": 7.0,
-      "max": 7.9
-    },
-    "porcentaje": 15,
-    "monto": 2342.6,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 6,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2204.8,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 6,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2204.8,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 6,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2204.8,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 6,
-    "rango": {
-      "min": 8.0,
-      "max": 8.9
-    },
-    "porcentaje": 20,
-    "monto": 2204.8,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 6,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2067.0,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "nuevo_ingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 6,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2067.0,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "presencial",
-    "plan": 6,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2067.0,
-    "origen": "plantel_excepcion"
-  },
-  {
-    "programa": "reingreso",
-    "plantel": "Cd. Mante",
-    "nivel": "preparatoria",
-    "modalidad": "mixta",
-    "plan": 6,
-    "rango": {
-      "min": 9.0,
-      "max": 10.0
-    },
-    "porcentaje": 25,
-    "monto": 2067.0,
-    "origen": "plantel_excepcion"
+    "origen": "plantel_excepcion",
+    "plantel": "Chihuahua"
   }
 ]
