@@ -9,6 +9,7 @@ import {
   BenefitBusinessLine,
   BenefitDuration,
   BenefitModality,
+  CanonicalModality,
   EnrollmentType,
   Prisma,
 } from "@prisma/client";
@@ -40,7 +41,6 @@ const DURATIONS = new Set<BenefitDuration>([
 const BENEFIT_TYPES = new Set<AdminAdditionalBenefitType>([
   AdminAdditionalBenefitType.percentage,
   AdminAdditionalBenefitType.first_payment,
-  AdminAdditionalBenefitType.fixed_scholarship,
 ]);
 
 const ENROLLMENT_TYPES = new Set<EnrollmentType>([
@@ -164,8 +164,7 @@ export async function upsertBenefitAction(formData: FormData) {
     const typedEnrollmentType = enrollmentType as EnrollmentType | null;
 
     if (
-      benefitType === AdminAdditionalBenefitType.percentage ||
-      benefitType === AdminAdditionalBenefitType.fixed_scholarship
+      benefitType === AdminAdditionalBenefitType.percentage
     ) {
       if (!Number.isFinite(extraPercent) || extraPercent <= 0) {
         return { ok: false, error: "El % debe ser un número mayor que 0." };
@@ -225,8 +224,7 @@ export async function upsertBenefitAction(formData: FormData) {
             benefitType,
             enrollmentType: typedEnrollmentType,
             extraPercent:
-              benefitType === AdminAdditionalBenefitType.percentage ||
-              benefitType === AdminAdditionalBenefitType.fixed_scholarship
+              benefitType === AdminAdditionalBenefitType.percentage
                 ? extraPercent
                 : 0,
             firstPaymentAmount:
@@ -248,8 +246,7 @@ export async function upsertBenefitAction(formData: FormData) {
             benefitType,
             enrollmentType: typedEnrollmentType,
             extraPercent:
-              benefitType === AdminAdditionalBenefitType.percentage ||
-              benefitType === AdminAdditionalBenefitType.fixed_scholarship
+              benefitType === AdminAdditionalBenefitType.percentage
                 ? extraPercent
                 : 0,
             firstPaymentAmount:
@@ -361,4 +358,139 @@ export async function deleteBenefitAction(formData: FormData) {
   revalidatePath("/admin/benefits");
   revalidatePath("/");
   revalidatePath("/unidep");
+}
+
+export async function upsertBaseScholarshipAction(formData: FormData) {
+  try {
+    const admin = await requireAdminCapabilityUser(BENEFITS_WRITE_CAPABILITY);
+
+    const enrollmentType = String(formData.get("enrollmentType") ?? "").trim();
+    const businessLine = String(formData.get("businessLine") ?? "").trim();
+    const modality = String(formData.get("modality") ?? "").trim();
+    const campusId = String(formData.get("campusId") ?? "__ALL__").trim();
+    const plan = Number(formData.get("plan") ?? "");
+    const scholarshipPercent = Number(formData.get("scholarshipPercent") ?? "");
+    const minAverage = Number(formData.get("minAverage") ?? "");
+    const maxAverage = Number(formData.get("maxAverage") ?? "");
+
+    if (!ENROLLMENT_TYPES.has(enrollmentType as EnrollmentType)) {
+      return { ok: false, error: "Selecciona un tipo de inscripción válido." };
+    }
+    if (!BUSINESS_LINES.has(businessLine as BenefitBusinessLine)) {
+      return { ok: false, error: "Selecciona una línea de negocio válida." };
+    }
+    if (!MODALITIES.has(modality as BenefitModality)) {
+      return { ok: false, error: "Selecciona una modalidad válida." };
+    }
+    if (!Number.isInteger(plan) || plan <= 0) {
+      return { ok: false, error: "El plan debe ser un número entero mayor que 0." };
+    }
+    if (
+      !Number.isFinite(scholarshipPercent) ||
+      scholarshipPercent < 0 ||
+      scholarshipPercent > 100
+    ) {
+      return { ok: false, error: "El % de beca debe estar entre 0 y 100." };
+    }
+    if (
+      !Number.isFinite(minAverage) ||
+      !Number.isFinite(maxAverage) ||
+      minAverage < 0 ||
+      maxAverage > 10 ||
+      minAverage > maxAverage
+    ) {
+      return {
+        ok: false,
+        error: "El promedio debe tener un rango válido entre 0 y 10.",
+      };
+    }
+
+    let campusTier = "ANY";
+    if (campusId && campusId !== "__ALL__") {
+      const campus = await prisma.campus.findFirst({
+        where: { id: campusId, isActive: true },
+        select: { tier: true, name: true },
+      });
+      if (!campus) {
+        return { ok: false, error: "Selecciona un plantel activo." };
+      }
+      campusTier = String(campus.tier ?? "").trim();
+      if (!campusTier) {
+        return {
+          ok: false,
+          error: "El plantel seleccionado no tiene tier configurado.",
+        };
+      }
+    }
+
+    const where = {
+      enrollmentType: enrollmentType as EnrollmentType,
+      businessLine: businessLine as BenefitBusinessLine,
+      modality: modality as CanonicalModality,
+      plan,
+      campusTier,
+      minAverage,
+      maxAverage,
+      sourceVersion: "canonical",
+    };
+
+    const before = await prisma.scholarshipRule.findFirst({ where });
+    const saved = before
+      ? await prisma.scholarshipRule.update({
+          where: { id: before.id },
+          data: {
+            scholarshipPercent,
+            origin: "admin-benefits",
+          },
+        })
+      : await prisma.scholarshipRule.create({
+          data: {
+            ...where,
+            scholarshipPercent,
+            discountedPriceMxn: null,
+            origin: "admin-benefits",
+          },
+        });
+
+    await writeAdminAuditLog({
+      module: AdminConfigModule.BENEFITS,
+      action: before ? AdminAuditAction.UPDATE : AdminAuditAction.CREATE,
+      actor: admin,
+      entityType: "ScholarshipRule",
+      entityId: saved.id,
+      before: before
+        ? {
+            id: before.id,
+            scholarshipPercent: Number(before.scholarshipPercent),
+            minAverage: Number(before.minAverage),
+            maxAverage: Number(before.maxAverage),
+          }
+        : null,
+      after: {
+        id: saved.id,
+        enrollmentType: saved.enrollmentType,
+        businessLine: saved.businessLine,
+        modality: saved.modality,
+        plan: saved.plan,
+        campusTier: saved.campusTier,
+        minAverage: Number(saved.minAverage),
+        maxAverage: Number(saved.maxAverage),
+        scholarshipPercent: Number(saved.scholarshipPercent),
+        sourceVersion: saved.sourceVersion,
+      },
+    });
+
+    revalidatePath("/admin/benefits");
+    revalidatePath("/admin/prices");
+    revalidatePath("/");
+    revalidatePath("/unidep");
+    return { ok: true };
+  } catch (error) {
+    captureException(error, {
+      module: "admin-benefits",
+      action: "upsert-base-scholarship",
+      result: "failure",
+    }, "Failed to save base scholarship rule");
+    return { ok: false, error: "No fue posible guardar la beca por promedio." };
+  }
 }

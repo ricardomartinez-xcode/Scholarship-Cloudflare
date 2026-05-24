@@ -18,9 +18,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { resolveCampus } from "@/lib/campus-resolver";
 import { writeBusinessEventSafe } from "@/lib/business-events";
-import type { RuntimeMode } from "@/lib/runtime-modes";
-
-const VALID_RUNTIME_MODES = new Set<RuntimeMode>(["legacy", "compare", "canonical"]);
+import { getQuoteMode, type RuntimeMode } from "@/lib/runtime-modes";
 const GENERIC_DRAFT_LABELS = new Set(["escenario actual", "escenario en curso"]);
 
 const BUSINESS_LINE_LABELS: Record<string, string> = {
@@ -47,7 +45,8 @@ type SessionWithScenarios = QuoteSession & {
 };
 
 function normalizeRuntimeMode(value: string): RuntimeMode {
-  return VALID_RUNTIME_MODES.has(value as RuntimeMode) ? (value as RuntimeMode) : "legacy";
+  void value;
+  return getQuoteMode();
 }
 
 function toIsoString(value: Date | null) {

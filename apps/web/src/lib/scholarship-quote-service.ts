@@ -5,13 +5,7 @@
  * Prisma ORM layer (canonical `ScholarshipRule` table) and applies published
  * price overrides and additional benefits.
  *
- * Relationship with legacy-pricing.ts:
- *   Both engines are called by `GET /api/data/quote` for side-by-side comparison
- *   during the v1 → v2 migration. Once migration is complete and validated,
- *   `legacy-pricing.ts` will be retired and this module becomes the sole engine.
- *
- * See also: `runtime-modes.ts` for the feature flag that controls which engine
- * is primary vs comparison-only.
+ * This module is now the sole quote engine for web and extension quote APIs.
  */
 import { prisma } from "@/lib/prisma";
 import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrides";
@@ -83,7 +77,7 @@ export type ScholarshipQuoteResult =
 export async function resolveScholarshipQuote(
   input: ScholarshipQuoteInput,
 ): Promise<ScholarshipQuoteResult> {
-  const sourceVersion = input.sourceVersion ?? "legacy";
+  const sourceVersion = input.sourceVersion ?? "canonical";
   const requiresCampus = requiresCampusForQuote(
     input.businessLine,
     input.modality,

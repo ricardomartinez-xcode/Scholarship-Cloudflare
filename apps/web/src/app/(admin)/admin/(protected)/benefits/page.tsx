@@ -5,13 +5,18 @@ import { getAdminUser, requireAdminCapabilityUser } from "@/lib/admin-session";
 import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { canPublishConfigWithAdmin } from "@/lib/admin-publish-auth";
 import { getConfigPublicationState } from "@/lib/admin-config-snapshots";
+import { serializeBaseScholarshipRows } from "@/lib/admin-base-scholarships";
 import { prisma } from "@/lib/prisma";
 import BenefitsClient from "@/components/admin/BenefitsClient";
 import {
   publishConfigModuleAction,
   rollbackConfigVersionAction,
 } from "../config-actions";
-import { deleteBenefitAction, upsertBenefitAction } from "./actions";
+import {
+  deleteBenefitAction,
+  upsertBaseScholarshipAction,
+  upsertBenefitAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +25,7 @@ export default async function BenefitsPage() {
   const configModule = AdminConfigModule.BENEFITS;
   const moduleMeta = getAdminConfigModuleMeta(configModule);
 
-  const [admin, publicationState, benefits, campuses] = await Promise.all([
+  const [admin, publicationState, benefits, campuses, scholarshipRules] = await Promise.all([
     getAdminUser(),
     getConfigPublicationState(configModule),
     prisma.adminAdditionalBenefit.findMany({
@@ -47,14 +52,39 @@ export default async function BenefitsPage() {
     prisma.campus.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, kind: true, sortOrder: true },
+      select: { id: true, name: true, kind: true, sortOrder: true, tier: true },
+    }),
+    prisma.scholarshipRule.findMany({
+      orderBy: [
+        { enrollmentType: "asc" },
+        { businessLine: "asc" },
+        { modality: "asc" },
+        { plan: "asc" },
+        { campusTier: "asc" },
+        { minAverage: "asc" },
+      ],
+      select: {
+        id: true,
+        enrollmentType: true,
+        businessLine: true,
+        modality: true,
+        plan: true,
+        campusTier: true,
+        minAverage: true,
+        maxAverage: true,
+        scholarshipPercent: true,
+        discountedPriceMxn: true,
+        origin: true,
+      },
     }),
   ]);
 
-  const normalizedBenefits = benefits.map((b) => ({
+  const normalizedBenefits = benefits
+    .filter((benefit) => benefit.benefitType !== "fixed_scholarship")
+    .map((b) => ({
     id: b.id,
     appliesToAll: b.appliesToAll,
-    benefitType: b.benefitType,
+    benefitType: b.benefitType as "percentage" | "first_payment",
     enrollmentType: b.enrollmentType,
     extraPercent: b.extraPercent,
     firstPaymentAmount: Number(b.firstPaymentAmount),
@@ -111,12 +141,15 @@ export default async function BenefitsPage() {
       </section>
       <BenefitsClient
         benefits={normalizedBenefits}
+        baseScholarships={serializeBaseScholarshipRows(scholarshipRules)}
         campusOptions={campuses.map((c) => ({
           value: c.id,
           label: c.name,
           kind: c.kind,
+          tier: c.tier,
         }))}
         upsertBenefitAction={upsertBenefitAction}
+        upsertBaseScholarshipAction={upsertBaseScholarshipAction}
         deleteBenefitAction={deleteBenefitAction}
       />
     </div>

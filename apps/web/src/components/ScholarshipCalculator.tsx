@@ -572,7 +572,7 @@ export default function ScholarshipCalculator({
   whatsappTemplates,
   belowResultSlot = null,
   hideActionRail = false,
-  quoteMode = "legacy",
+  quoteMode = "canonical",
   visibleOfferCycles = ["C1"],
 }: {
   ctasAboveResult?: PublicCta[];
@@ -586,7 +586,7 @@ export default function ScholarshipCalculator({
   whatsappTemplates: WhatsappTemplateCollection;
   belowResultSlot?: React.ReactNode;
   hideActionRail?: boolean;
-  quoteMode?: "legacy" | "compare" | "canonical";
+  quoteMode?: "canonical";
   visibleOfferCycles?: AcademicOfferCycle[];
 }) {
   const { userEmail, isAdmin, adminUnlocked } = useAppContext();
@@ -598,7 +598,8 @@ export default function ScholarshipCalculator({
   void resultBelowAnnouncements;
   void calculatorFooterAnnouncements;
   void ctasCalculatorFooter;
-  const useCanonicalQuote = quoteMode === "canonical";
+  void quoteMode;
+  const useCanonicalQuote = true;
   const normalizedVisibleOfferCycles = useMemo(
     () => Array.from(new Set(visibleOfferCycles.filter(Boolean))),
     [visibleOfferCycles],
@@ -1109,7 +1110,7 @@ export default function ScholarshipCalculator({
     setOfferSelectedProgramId(selected?.programId ?? "");
   }, [offerProgramId, offerPrograms]);
  
-  const legacyCalculation = useMemo<Calculation | null>(() => {
+  const localRuleCalculation = useMemo<Calculation | null>(() => {
     if (!rules) return null;
  
     const hasStarted =
@@ -1345,8 +1346,8 @@ export default function ScholarshipCalculator({
     };
   }, [quoteResult, benefitLookupKey]);
 
-  const calculation =
-    useCanonicalQuote && quoteCalculation ? quoteCalculation : legacyCalculation;
+  void localRuleCalculation;
+  const calculation = quoteCalculation;
 
   const calcErr = calculation && "error" in calculation ? calculation : null;
   const calcError = calcErr?.error ?? null;
@@ -1408,8 +1409,10 @@ export default function ScholarshipCalculator({
   const beneficioBlockedByTipo = tipo === "regreso";
   const beneficioAplica = !beneficioBlockedByTipo && beneficioPercent > 0;
   const firstPaymentAplica = firstPaymentAmount > 0;
-  const effectiveBenefitLoading = useCanonicalQuote ? quoteLoading : beneficioLoading;
-  const effectiveBenefitError = useCanonicalQuote ? null : beneficioError;
+  void beneficioLoading;
+  void beneficioError;
+  const effectiveBenefitLoading = quoteLoading;
+  const effectiveBenefitError = null;
   const selectedCargo = cargoOptions.find((o) => o.value === cargoType);
   const cargoLabel = selectedCargo?.label ?? "Cargo académico";
   const cargoAmountValue = cargoEnabled ? toNum(cargoAmount) ?? 0 : 0;
@@ -1457,7 +1460,7 @@ export default function ScholarshipCalculator({
   const currentSimulatorResult = useMemo<SimulatorResultSnapshot | null>(() => {
     if (!calcOk) return null;
     return {
-      source: useCanonicalQuote ? "canonical" : "legacy",
+      source: "canonical",
       basePriceMxn: calcOk.base,
       scholarshipPercent: becaPct,
       scholarshipAmountMxn: becaMonto,
@@ -1488,7 +1491,6 @@ export default function ScholarshipCalculator({
     firstPaymentDuration,
     subtotal,
     total,
-    useCanonicalQuote,
   ]);
   const currentSimulatorFingerprint = useMemo(
     () =>
@@ -1749,7 +1751,7 @@ export default function ScholarshipCalculator({
         input: null,
         result: null,
         fingerprint: null,
-        quoteMode: "legacy",
+        quoteMode: "canonical",
       });
     };
   }, [setCurrentSnapshot]);

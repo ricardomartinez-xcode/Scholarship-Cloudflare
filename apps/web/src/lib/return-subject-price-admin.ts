@@ -13,7 +13,7 @@ function toStoredModality(raw: string) {
   return normalizeCanonicalModality(raw) === "online" ? "online" : "presencial";
 }
 
-export async function getCanonicalMateriaRows(sourceVersion = "legacy") {
+export async function getCanonicalMateriaRows(sourceVersion = "canonical") {
   const rows = await prisma.returnSubjectPrice.findMany({
     where: { sourceVersion },
     orderBy: [
@@ -50,7 +50,7 @@ export async function syncCanonicalMateriaRow(params: {
   origMaterias?: number;
   sourceVersion?: string;
 }) {
-  const sourceVersion = params.sourceVersion ?? "legacy";
+  const sourceVersion = params.sourceVersion ?? "canonical";
   const campus = await resolveCampus(params.plantelRaw);
   if (!campus) {
     return {
@@ -142,7 +142,7 @@ export async function deleteCanonicalMateriaRow(params: {
   materiasCount: number;
   sourceVersion?: string;
 }) {
-  const sourceVersion = params.sourceVersion ?? "legacy";
+  const sourceVersion = params.sourceVersion ?? "canonical";
   const campus = await resolveCampus(params.plantelRaw);
   if (!campus) {
     return {

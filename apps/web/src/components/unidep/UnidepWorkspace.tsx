@@ -1079,7 +1079,7 @@ export default function UnidepWorkspace({
   simulatorBottomAnnouncements = [],
   whatsappTemplates,
   newUser = false,
-  quoteMode = "legacy",
+  quoteMode = "canonical",
   visibleOfferCycles = ["C1"],
   forcedSection,
 }: {
@@ -1103,7 +1103,7 @@ export default function UnidepWorkspace({
   simulatorBottomAnnouncements?: Announcement[];
   whatsappTemplates: WhatsappTemplateCollection;
   newUser?: boolean;
-  quoteMode?: "legacy" | "compare" | "canonical";
+  quoteMode?: "canonical";
   visibleOfferCycles?: AcademicOfferCycle[];
   forcedSection?: WorkspaceSectionKey;
 }) {

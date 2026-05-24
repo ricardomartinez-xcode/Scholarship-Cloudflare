@@ -70,7 +70,7 @@ const DEFAULT_SNAPSHOT: SimulatorCalculationSnapshot = {
   input: null,
   result: null,
   fingerprint: null,
-  quoteMode: "legacy",
+  quoteMode: "canonical",
 };
 
 export function useSimulator() {

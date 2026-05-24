@@ -14,7 +14,7 @@ type Benefit = {
   appliesToAll: boolean;
   campusIds: string[];
   campusNames: string[];
-  benefitType: "percentage" | "first_payment" | "fixed_scholarship";
+  benefitType: "percentage" | "first_payment";
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso" | null;
   extraPercent: number;
   firstPaymentAmount: number;
@@ -25,12 +25,24 @@ type Benefit = {
   duration: string | null;
 };
 
+type BaseScholarshipRow = {
+  id: string;
+  enrollmentType: string;
+  businessLine: string;
+  modality: string;
+  plan: number;
+  campusTier: string;
+  percentages: number[];
+  ranges: string[];
+  ruleCount: number;
+};
+
 type ActionResult = { ok: boolean; error?: string };
 
 type BenefitImportPreviewRow = {
   rowNumber: number;
   action: "create" | "update" | "noop";
-  benefitType: "percentage" | "first_payment" | "fixed_scholarship";
+  benefitType: "percentage" | "first_payment";
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso" | null;
   businessLine: string | null;
   modality: string | null;
@@ -85,7 +97,6 @@ const DURATION_OPTIONS = [
 const BENEFIT_TYPE_OPTIONS = [
   { value: "percentage", label: "Porcentaje adicional" },
   { value: "first_payment", label: "Primer pago" },
-  { value: "fixed_scholarship", label: "Beca fija" },
 ];
 
 const ENROLLMENT_TYPE_OPTIONS = [
@@ -118,13 +129,17 @@ function formatBenefitValue(benefit: Benefit) {
 
 export default function BenefitsClient({
   benefits,
+  baseScholarships,
   campusOptions,
   upsertBenefitAction,
+  upsertBaseScholarshipAction,
   deleteBenefitAction,
 }: {
   benefits: Benefit[];
-  campusOptions: { value: string; label: string; kind: string }[];
+  baseScholarships: BaseScholarshipRow[];
+  campusOptions: { value: string; label: string; kind: string; tier?: string | null }[];
   upsertBenefitAction: (formData: FormData) => Promise<ActionResult>;
+  upsertBaseScholarshipAction: (formData: FormData) => Promise<ActionResult>;
   deleteBenefitAction: (formData: FormData) => Promise<void>;
 }) {
   const router = useRouter();
@@ -138,6 +153,14 @@ export default function BenefitsClient({
   const benefitTypeId = useId();
   const enrollmentTypeId = useId();
   const firstPaymentId = useId();
+  const baseEnrollmentTypeId = useId();
+  const baseBusinessLineId = useId();
+  const baseModalityId = useId();
+  const baseCampusId = useId();
+  const basePlanId = useId();
+  const basePercentId = useId();
+  const baseMinAverageId = useId();
+  const baseMaxAverageId = useId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Benefit | null>(null);
 
@@ -153,7 +176,7 @@ export default function BenefitsClient({
   const campusSelectOptions = useMemo(
     () => [{ value: "__ALL__", label: "Todos" }, ...campusOptions.map((campus) => ({
       value: campus.value,
-      label: campus.label,
+      label: campus.tier ? `${campus.label} · ${campus.tier}` : campus.label,
     }))],
     [campusOptions],
   );
@@ -177,10 +200,26 @@ export default function BenefitsClient({
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
   const [importApplied, setImportApplied] = useState(false);
   const [importRolledBack, setImportRolledBack] = useState(false);
+  const [baseEnrollmentType, setBaseEnrollmentType] = useState("nuevo_ingreso");
+  const [baseBusinessLine, setBaseBusinessLine] = useState("licenciatura");
+  const [baseModality, setBaseModality] = useState("presencial");
+  const [baseCampus, setBaseCampus] = useState("__ALL__");
+  const [basePlan, setBasePlan] = useState("");
+  const [basePercent, setBasePercent] = useState("");
+  const [baseMinAverage, setBaseMinAverage] = useState("");
+  const [baseMaxAverage, setBaseMaxAverage] = useState("");
 
   const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
     upsertBenefitAction,
     "No fue posible guardar el beneficio.",
+  );
+  const {
+    handleSubmit: handleBaseScholarshipSubmit,
+    saveState: baseScholarshipSaveState,
+    saving: baseScholarshipSaving,
+  } = useAdminActionForm(
+    upsertBaseScholarshipAction,
+    "No fue posible guardar la beca por promedio.",
   );
 
   useEffect(() => {
@@ -481,6 +520,205 @@ export default function BenefitsClient({
         ) : null}
       </section>
 
+      <section className="mt-6 grid gap-4 rounded-2xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-secondary)] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
+              % de beca por promedio
+            </div>
+            <h2 className="mt-1 text-lg font-semibold text-slate-100">
+              Reglas canónicas aplicadas
+            </h2>
+          </div>
+          <span className="ui-pill">{baseScholarships.length} grupos</span>
+        </div>
+
+        <form onSubmit={handleBaseScholarshipSubmit} className="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <input type="hidden" name="enrollmentType" value={baseEnrollmentType} />
+          <input type="hidden" name="businessLine" value={baseBusinessLine} />
+          <input type="hidden" name="modality" value={baseModality} />
+          <input type="hidden" name="campusId" value={baseCampus} />
+          <input type="hidden" name="plan" value={basePlan} />
+          <input type="hidden" name="scholarshipPercent" value={basePercent} />
+          <input type="hidden" name="minAverage" value={baseMinAverage} />
+          <input type="hidden" name="maxAverage" value={baseMaxAverage} />
+
+          {baseScholarshipSaveState?.ok === false && baseScholarshipSaveState.error ? (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {baseScholarshipSaveState.error}
+            </div>
+          ) : null}
+          {baseScholarshipSaveState?.ok ? (
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+              Beca por promedio guardada.
+            </div>
+          ) : null}
+
+          <div className="ui-form-grid ui-form-grid--two">
+            <div className="grid gap-2 text-sm">
+              <span id={baseEnrollmentTypeId}>Tipo de inscripción</span>
+              <SmartSelect
+                labelId={baseEnrollmentTypeId}
+                placeholder="Selecciona tipo"
+                value={baseEnrollmentType}
+                onChange={setBaseEnrollmentType}
+                options={ENROLLMENT_TYPE_OPTIONS.filter((option) => option.value !== "__ALL__")}
+              />
+            </div>
+
+            <div className="grid gap-2 text-sm">
+              <span id={baseCampusId}>Plantel</span>
+              <SmartSelect
+                labelId={baseCampusId}
+                placeholder="Todos"
+                value={baseCampus}
+                onChange={setBaseCampus}
+                options={campusSelectOptions}
+              />
+            </div>
+          </div>
+
+          <div className="ui-form-grid ui-form-grid--two">
+            <div className="grid gap-2 text-sm">
+              <span id={baseBusinessLineId}>Línea de negocio</span>
+              <SmartSelect
+                labelId={baseBusinessLineId}
+                placeholder="Selecciona línea"
+                value={baseBusinessLine}
+                onChange={setBaseBusinessLine}
+                options={BUSINESS_LINE_OPTIONS.filter((option) => option.value !== "__ALL__")}
+              />
+            </div>
+
+            <div className="grid gap-2 text-sm">
+              <span id={baseModalityId}>Modalidad</span>
+              <SmartSelect
+                labelId={baseModalityId}
+                placeholder="Selecciona modalidad"
+                value={baseModality}
+                onChange={setBaseModality}
+                options={MODALITY_OPTIONS.filter((option) => option.value !== "__ALL__")}
+              />
+            </div>
+          </div>
+
+          <div className="ui-form-grid ui-form-grid--two ui-form-grid--four">
+            <label className="grid gap-2 text-sm">
+              <span id={basePlanId}>Plan</span>
+              <input
+                aria-labelledby={basePlanId}
+                value={basePlan}
+                onChange={(event) => setBasePlan(event.target.value)}
+                inputMode="numeric"
+                className="ui-control"
+                placeholder="Ej. 9"
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              <span id={basePercentId}>% de beca</span>
+              <input
+                aria-labelledby={basePercentId}
+                value={basePercent}
+                onChange={(event) => setBasePercent(event.target.value)}
+                inputMode="decimal"
+                className="ui-control"
+                placeholder="Ej. 25"
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              <span id={baseMinAverageId}>Promedio mínimo</span>
+              <input
+                aria-labelledby={baseMinAverageId}
+                value={baseMinAverage}
+                onChange={(event) => setBaseMinAverage(event.target.value)}
+                inputMode="decimal"
+                className="ui-control"
+                placeholder="Ej. 8.0"
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              <span id={baseMaxAverageId}>Promedio máximo</span>
+              <input
+                aria-labelledby={baseMaxAverageId}
+                value={baseMaxAverage}
+                onChange={(event) => setBaseMaxAverage(event.target.value)}
+                inputMode="decimal"
+                className="ui-control"
+                placeholder="Ej. 8.9"
+              />
+            </label>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={baseScholarshipSaving}
+              className="ui-button-primary px-4 py-2 text-sm disabled:opacity-60"
+            >
+              {baseScholarshipSaving ? "Guardando..." : "Guardar % de beca"}
+            </button>
+          </div>
+        </form>
+
+        {baseScholarships.length ? (
+          <div className="ui-table-wrap ui-scrollbar">
+            <table className="ui-table min-w-[1040px]">
+              <thead>
+                <tr>
+                  <th className="ui-cell-nowrap text-left">Ingreso</th>
+                  <th className="ui-cell-nowrap text-left">Línea</th>
+                  <th className="ui-cell-nowrap text-left">Modalidad</th>
+                  <th className="ui-cell-nowrap text-left">Plan</th>
+                  <th className="ui-cell-nowrap text-left">Plantel</th>
+                  <th className="text-left">Rangos</th>
+                  <th className="ui-cell-nowrap text-left">% Beca</th>
+                  <th className="ui-cell-nowrap text-right">Reglas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baseScholarships.map((row) => (
+                  <tr key={row.id}>
+                    <td className="ui-cell-nowrap text-slate-100">
+                      {resolveLabel(
+                        row.enrollmentType,
+                        ENROLLMENT_TYPE_OPTIONS,
+                        row.enrollmentType,
+                      )}
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-100">
+                      {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-100">
+                      {resolveLabel(row.modality, MODALITY_OPTIONS, row.modality)}
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-100">
+                      {row.plan}
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-100">
+                      {row.campusTier === "ANY" ? "Todos" : row.campusTier}
+                    </td>
+                    <td className="text-slate-200">{row.ranges.join(", ")}</td>
+                    <td className="ui-cell-nowrap text-slate-100">
+                      {row.percentages.length
+                        ? row.percentages.map((value) => `${value}%`).join(", ")
+                        : "Sin beca"}
+                    </td>
+                    <td className="ui-cell-nowrap text-right text-slate-100">
+                      {row.ruleCount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+            No hay becas base canónicas cargadas. Si el cotizador falla, falta poblar
+            scholarshipRule para el ciclo activo.
+          </div>
+        )}
+      </section>
+
       {benefits.length ? (
         <div className="ui-table-wrap ui-scrollbar mt-6">
           <table className="ui-table min-w-[1120px]">
@@ -507,7 +745,7 @@ export default function BenefitsClient({
                         ? "Todos"
                         : benefit.campusNames?.length
                           ? benefit.campusNames.join(", ")
-                          : "Sin planteles (legacy)"}
+                          : "Sin planteles"}
                     </span>
                   </td>
                   <td className="ui-cell-nowrap text-slate-100">

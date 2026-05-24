@@ -11,15 +11,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { loadCanonicalFlatRulesPayload } from "@/lib/canonical-pricing-readers";
-import { getSql } from "@/lib/neon";
 import { captureException, logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
-import {
-  createComparisonSummary,
-  logComparisonReport,
-  type ComparisonMismatch,
-} from "@/lib/runtime-comparison";
-import { getPricingReadMode } from "@/lib/runtime-modes";
 
 export type BecaRule = {
   id: string;
@@ -99,175 +92,96 @@ function inferBasePriceMxn(params: {
 export async function getBecaRules(): Promise<BecaRule[]> {
   try {
     await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
-    const pricingReadMode = getPricingReadMode();
+    const rows = await prisma.scholarshipRule.findMany({
+      where: {
+        enrollmentType: { in: ["nuevo_ingreso", "reingreso"] },
+      },
+      orderBy: [
+        { enrollmentType: "asc" },
+        { businessLine: "asc" },
+        { modality: "asc" },
+        { plan: "asc" },
+        { campusTier: "asc" },
+        { minAverage: "asc" },
+      ],
+    });
 
-    const legacyQuery = async () => {
-      const sql = getSql();
-      const rows = await sql`
-        SELECT id, programa_key, nivel_key, modalidad_key, plan, tier,
-               rango_min, rango_max, porcentaje, monto, origen
-        FROM recalc_regla_beca
-        ORDER BY programa_key, nivel_key, modalidad_key, plan, tier
-      `;
-      return rows.map((row) => ({
-        id: String(row.id),
-        programa_key: String(row.programa_key),
-        nivel_key: String(row.nivel_key),
-        modalidad_key: String(row.modalidad_key),
-        plan: String(row.plan),
-        tier: row.tier ? String(row.tier) : null,
-        rango_min: row.rango_min === null ? null : Number(row.rango_min),
-        rango_max: row.rango_max === null ? null : Number(row.rango_max),
-        porcentaje: row.porcentaje === null ? null : Number(row.porcentaje),
-        monto: row.monto === null ? null : Number(row.monto),
-        basePriceMxn: inferBasePriceMxn({
-          monto: row.monto === null ? null : Number(row.monto),
-          porcentaje: row.porcentaje === null ? null : Number(row.porcentaje),
+    const payload = await loadCanonicalFlatRulesPayload();
+    const payloadMap = new Map(
+      payload.map((rule) => [
+        buildRuleKey({
+          programa_key: rule.programa,
+          nivel_key: rule.nivel,
+          modalidad_key: rule.modalidad,
+          plan: String(rule.plan),
+          tier: rule.tier,
+          rango_min: rule.rango?.min ?? null,
+          rango_max: rule.rango?.max ?? null,
+          porcentaje: rule.porcentaje,
+          monto: rule.monto,
+          origen: rule.origen,
         }),
-        origen: row.origen ? String(row.origen) : null,
-      })) as BecaRule[];
-    };
+        rule,
+      ]),
+    );
 
-    const canonicalQuery = async () => {
-      const rows = await prisma.scholarshipRule.findMany({
-        where: {
-          sourceVersion: "legacy",
-          enrollmentType: { in: ["nuevo_ingreso", "reingreso"] },
-        },
-        orderBy: [
-          { enrollmentType: "asc" },
-          { businessLine: "asc" },
-          { modality: "asc" },
-          { plan: "asc" },
-          { campusTier: "asc" },
-          { minAverage: "asc" },
-        ],
-      });
-
-      const payload = await loadCanonicalFlatRulesPayload();
-      const payloadMap = new Map(
-        payload.map((rule) => [
+    return rows.map((row) => {
+      const payloadRow =
+        payloadMap.get(
           buildRuleKey({
-            programa_key: rule.programa,
-            nivel_key: rule.nivel,
-            modalidad_key: rule.modalidad,
-            plan: String(rule.plan),
-            tier: rule.tier,
-            rango_min: rule.rango?.min ?? null,
-            rango_max: rule.rango?.max ?? null,
-            porcentaje: rule.porcentaje,
-            monto: rule.monto,
-            origen: rule.origen,
+            programa_key:
+              row.enrollmentType === "nuevo_ingreso"
+                ? "nuevo_ingreso"
+                : "reingreso",
+            nivel_key:
+              row.businessLine === "prepa"
+                ? "preparatoria"
+                : row.businessLine,
+            modalidad_key: row.modality,
+            plan: String(row.plan),
+            tier: row.campusTier === "ANY" ? null : row.campusTier,
+            rango_min: row.minAverage === null ? null : Number(row.minAverage),
+            rango_max: row.maxAverage === null ? null : Number(row.maxAverage),
+            porcentaje:
+              row.scholarshipPercent === null
+                ? null
+                : Number(row.scholarshipPercent),
+            monto:
+              row.discountedPriceMxn === null
+                ? null
+                : Number(row.discountedPriceMxn),
+            origen: row.origin,
           }),
-          rule,
-        ]),
-      );
+        ) ?? null;
 
-      return rows.map((row) => {
-        const payloadRow =
-          payloadMap.get(
-            buildRuleKey({
-              programa_key:
-                row.enrollmentType === "nuevo_ingreso"
-                  ? "nuevo_ingreso"
-                  : "reingreso",
-              nivel_key:
-                row.businessLine === "prepa"
-                  ? "preparatoria"
-                  : row.businessLine,
-              modalidad_key: row.modality,
-              plan: String(row.plan),
-              tier: row.campusTier === "ANY" ? null : row.campusTier,
-              rango_min: row.minAverage === null ? null : Number(row.minAverage),
-              rango_max: row.maxAverage === null ? null : Number(row.maxAverage),
-              porcentaje:
-                row.scholarshipPercent === null
-                  ? null
-                  : Number(row.scholarshipPercent),
-              monto:
-                row.discountedPriceMxn === null
-                  ? null
-                  : Number(row.discountedPriceMxn),
-              origen: row.origin,
-            }),
-          ) ?? null;
-
-        const monto =
-          payloadRow?.monto ??
-          (row.discountedPriceMxn === null
-            ? null
-            : Number(row.discountedPriceMxn));
-        const porcentaje =
-          row.scholarshipPercent === null
-            ? null
-            : Number(row.scholarshipPercent);
-        return {
-          id: row.id,
-          programa_key:
-            row.enrollmentType === "nuevo_ingreso"
-              ? "nuevo_ingreso"
-              : "reingreso",
-          nivel_key:
-            row.businessLine === "prepa" ? "preparatoria" : row.businessLine,
-          modalidad_key: row.modality,
-          plan: String(row.plan),
-          tier: row.campusTier === "ANY" ? null : row.campusTier,
-          rango_min: row.minAverage === null ? null : Number(row.minAverage),
-          rango_max: row.maxAverage === null ? null : Number(row.maxAverage),
-          porcentaje,
-          monto,
-          basePriceMxn: inferBasePriceMxn({ monto, porcentaje }),
-          origen: row.origin,
-        } satisfies BecaRule;
-      });
-    };
-
-    if (pricingReadMode === "canonical") {
-      return await canonicalQuery();
-    }
-
-    const legacy = await legacyQuery();
-    if (pricingReadMode === "compare") {
-      const canonical = await canonicalQuery();
-      const canonicalMap = new Map(
-        canonical.map((rule) => [buildRuleKey({ ...rule }), rule]),
-      );
-      const mismatches: ComparisonMismatch[] = [];
-      for (const legacyRule of legacy) {
-        const key = buildRuleKey({ ...legacyRule });
-        const canonicalRule = canonicalMap.get(key);
-        if (!canonicalRule) {
-          mismatches.push({
-            key,
-            field: "row",
-            legacy: legacyRule,
-            canonical: null,
-            note: "missing_in_canonical",
-          });
-          continue;
-        }
-        if ((legacyRule.monto ?? null) !== (canonicalRule.monto ?? null)) {
-          mismatches.push({
-            key,
-            field: "monto",
-            legacy: legacyRule.monto,
-            canonical: canonicalRule.monto,
-          });
-        }
-      }
-
-      logComparisonReport({
-        channel: "admin-prices",
-        mode: "compare",
-        summary: createComparisonSummary({
-          read: legacy.length,
-          conflicted: mismatches.length,
-        }),
-        mismatches,
-      });
-    }
-
-    return legacy;
+      const monto =
+        payloadRow?.monto ??
+        (row.discountedPriceMxn === null
+          ? null
+          : Number(row.discountedPriceMxn));
+      const porcentaje =
+        row.scholarshipPercent === null
+          ? null
+          : Number(row.scholarshipPercent);
+      return {
+        id: row.id,
+        programa_key:
+          row.enrollmentType === "nuevo_ingreso"
+            ? "nuevo_ingreso"
+            : "reingreso",
+        nivel_key:
+          row.businessLine === "prepa" ? "preparatoria" : row.businessLine,
+        modalidad_key: row.modality,
+        plan: String(row.plan),
+        tier: row.campusTier === "ANY" ? null : row.campusTier,
+        rango_min: row.minAverage === null ? null : Number(row.minAverage),
+        rango_max: row.maxAverage === null ? null : Number(row.maxAverage),
+        porcentaje,
+        monto,
+        basePriceMxn: inferBasePriceMxn({ monto, porcentaje }),
+        origen: row.origin,
+      } satisfies BecaRule;
+    });
   } catch {
     return [];
   }

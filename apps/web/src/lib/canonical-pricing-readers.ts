@@ -36,7 +36,7 @@ function toLegacyBusinessLine(businessLine: string) {
   return businessLine === "prepa" ? "preparatoria" : businessLine;
 }
 
-export async function loadCanonicalFlatRulesPayload(sourceVersion = "legacy") {
+export async function loadCanonicalFlatRulesPayload(sourceVersion = "canonical") {
   const [rules, overrides] = await Promise.all([
     prisma.scholarshipRule.findMany({
       where: {
@@ -107,7 +107,7 @@ export async function loadCanonicalFlatRulesPayload(sourceVersion = "legacy") {
 
 export async function loadCanonicalReturnSubjectPayload(
   campuses: CampusIdentity[],
-  sourceVersion = "legacy",
+  sourceVersion = "canonical",
 ) {
   const rows = await prisma.returnSubjectPrice.findMany({
     where: { sourceVersion },

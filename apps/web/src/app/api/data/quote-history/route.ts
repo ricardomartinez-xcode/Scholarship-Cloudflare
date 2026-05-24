@@ -24,10 +24,7 @@ function toOptionalNumber(value: unknown) {
 }
 
 function parseRuntimeMode(value: unknown): RuntimeMode {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (normalized === "canonical" || normalized === "compare" || normalized === "legacy") {
-    return normalized;
-  }
+  void value;
   return getQuoteMode();
 }
 
@@ -68,7 +65,7 @@ function parseSavePayload(payload: unknown): QuoteHistorySavePayload | null {
   const firstPaymentAmountMxn = toOptionalNumber(resultRecord.firstPaymentAmountMxn) ?? 0;
   const subtotalMxn = toOptionalNumber(resultRecord.subtotalMxn);
   const totalMxn = toOptionalNumber(resultRecord.totalMxn);
-  const source = resultRecord.source === "canonical" ? "canonical" : resultRecord.source === "legacy" ? "legacy" : null;
+  const source = resultRecord.source === "canonical" ? "canonical" : null;
 
   if (
     !enrollmentType ||

@@ -4,14 +4,10 @@ const {
   getSessionUserMock,
   checkRateLimitMock,
   resolveScholarshipQuoteMock,
-  loadLegacyPricingSnapshotMock,
-  computeLegacyScholarshipQuoteMock,
 } = vi.hoisted(() => ({
   getSessionUserMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
   resolveScholarshipQuoteMock: vi.fn(),
-  loadLegacyPricingSnapshotMock: vi.fn(),
-  computeLegacyScholarshipQuoteMock: vi.fn(),
 }));
 
 vi.mock("@/lib/authz", () => ({
@@ -24,11 +20,6 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/scholarship-quote-service", () => ({
   resolveScholarshipQuote: resolveScholarshipQuoteMock,
-}));
-
-vi.mock("@/lib/legacy-pricing", () => ({
-  loadLegacyPricingSnapshot: loadLegacyPricingSnapshotMock,
-  computeLegacyScholarshipQuote: computeLegacyScholarshipQuoteMock,
 }));
 
 import { POST } from "./route";
@@ -75,7 +66,5 @@ describe("POST /api/ext/quote", () => {
     expect(data.source).toBe("canonical");
     expect(data.modeUsed).toBe("canonical");
     expect(resolveScholarshipQuoteMock).toHaveBeenCalledTimes(1);
-    expect(loadLegacyPricingSnapshotMock).not.toHaveBeenCalled();
-    expect(computeLegacyScholarshipQuoteMock).not.toHaveBeenCalled();
   });
 });

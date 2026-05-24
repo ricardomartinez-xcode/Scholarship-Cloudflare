@@ -15,7 +15,7 @@ export type QuoteHistoryInputSnapshot = {
 };
 
 export type QuoteHistoryResultSnapshot = {
-  source: "legacy" | "canonical";
+  source: "canonical";
   basePriceMxn: number;
   scholarshipPercent: number;
   scholarshipAmountMxn: number;

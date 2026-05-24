@@ -39,12 +39,12 @@ describe("runtime mode defaults", () => {
     expect(shouldMirrorLegacyDirectoryWrites()).toBe(false);
   });
 
-  it("still allows explicit compare mode for validation windows", () => {
+  it("ignores explicit legacy or compare modes for pricing and quote paths", () => {
     process.env.PRICING_READ_MODE = "compare";
-    process.env.QUOTE_MODE = "compare";
+    process.env.QUOTE_MODE = "legacy";
 
-    expect(getPricingReadMode()).toBe("compare");
-    expect(getQuoteMode()).toBe("compare");
-    expect(shouldMirrorLegacyPricingWrites()).toBe(true);
+    expect(getPricingReadMode()).toBe("canonical");
+    expect(getQuoteMode()).toBe("canonical");
+    expect(shouldMirrorLegacyPricingWrites()).toBe(false);
   });
 });

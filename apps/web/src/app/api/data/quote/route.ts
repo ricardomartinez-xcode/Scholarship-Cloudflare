@@ -5,16 +5,6 @@ import { getSessionUser } from "@/lib/authz";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import { addObservabilityBreadcrumb, captureException, logStructured } from "@/lib/observability";
 import {
-  computeLegacyScholarshipQuote,
-  loadLegacyPricingSnapshot,
-} from "@/lib/legacy-pricing";
-import {
-  createComparisonSummary,
-  logComparisonReport,
-  type ComparisonMismatch,
-} from "@/lib/runtime-comparison";
-import { getQuoteMode } from "@/lib/runtime-modes";
-import {
   normalizeBusinessLine,
   normalizeCanonicalModality,
   normalizeEnrollmentType,
@@ -54,70 +44,6 @@ function toOptionalNumber(value: unknown) {
   return null;
 }
 
-function compareQuoteResults(
-  canonical: Awaited<ReturnType<typeof resolveScholarshipQuote>>,
-  legacy: Awaited<ReturnType<typeof computeLegacyScholarshipQuote>>,
-) {
-  const mismatches: ComparisonMismatch[] = [];
-
-  if (canonical.ok !== legacy.ok) {
-    mismatches.push({
-      key: "quote.status",
-      field: "ok",
-      legacy: legacy.ok,
-      canonical: canonical.ok,
-    });
-    return mismatches;
-  }
-
-  if (!canonical.ok || !legacy.ok) {
-    const errorValues = [legacy.ok ? null : legacy.error, canonical.ok ? null : canonical.error];
-    if (errorValues[0] !== errorValues[1]) {
-      mismatches.push({
-        key: "quote.error",
-        field: "error",
-        legacy: errorValues[0],
-        canonical: errorValues[1],
-      });
-    }
-    return mismatches;
-  }
-
-  const fields: Array<keyof typeof canonical> = [
-    "basePriceMxn",
-    "scholarshipPercent",
-    "scholarshipAmountMxn",
-    "additionalBenefitPercent",
-    "additionalBenefitDuration",
-    "firstPaymentAmountMxn",
-    "firstPaymentDuration",
-    "subtotalMxn",
-    "totalMxn",
-    "tier",
-    "sinAccessToScholarship",
-  ];
-
-  for (const field of fields) {
-    const legacyValue = legacy[field];
-    const canonicalValue = canonical[field];
-    const bothNumbers =
-      typeof legacyValue === "number" && typeof canonicalValue === "number";
-    const equal = bothNumbers
-      ? Math.abs(legacyValue - canonicalValue) < 0.01
-      : legacyValue === canonicalValue;
-    if (!equal) {
-      mismatches.push({
-        key: "quote.result",
-        field,
-        legacy: legacyValue,
-        canonical: canonicalValue,
-      });
-    }
-  }
-
-  return mismatches;
-}
-
 async function recordQuoteGeneratedEvent(params: {
   userId: string;
   requestId: string;
@@ -136,8 +62,6 @@ async function recordQuoteGeneratedEvent(params: {
     Awaited<ReturnType<typeof resolveScholarshipQuote>>,
     { ok: true }
   >;
-  compareMode: boolean;
-  mismatches?: ComparisonMismatch[];
 }) {
   await writeBusinessEventSafe({
     type: BusinessEventType.QUOTE_GENERATED,
@@ -162,8 +86,8 @@ async function recordQuoteGeneratedEvent(params: {
       additionalBenefitDuration: params.result.additionalBenefitDuration,
       firstPaymentAmountMxn: params.result.firstPaymentAmountMxn,
       firstPaymentDuration: params.result.firstPaymentDuration,
-      compareMode: params.compareMode,
-      mismatchCount: params.mismatches?.length ?? 0,
+      compareMode: false,
+      mismatchCount: 0,
     },
   });
 }
@@ -335,64 +259,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const quoteMode = getQuoteMode();
-    if (quoteMode !== "compare") {
-      if (canonicalResult.ok) {
-        await recordQuoteGeneratedEvent({
-          userId: auth.user.id,
-          requestId,
-          input: requestInput,
-          result: canonicalResult,
-          compareMode: false,
-        });
-      }
-
-      statusCode = canonicalResult.ok ? 200 : 422;
-      return NextResponse.json(
-        { ...canonicalResult, requestId },
-        { status: statusCode },
-      );
-    }
-
-    const snapshot = await loadLegacyPricingSnapshot();
-    const legacyResult = await computeLegacyScholarshipQuote(requestInput, snapshot);
-
-    const mismatches = compareQuoteResults(canonicalResult, legacyResult);
-    logComparisonReport({
-      channel: "quote",
-      mode: "compare",
-      summary: createComparisonSummary({ read: 1, conflicted: mismatches.length }),
-      mismatches,
-      metadata: {
-        enrollmentType: requestInput.enrollmentType,
-        businessLine: requestInput.businessLine,
-        modality: requestInput.modality,
-        plan: requestInput.plan,
-        campus: requestInput.campus,
-      },
-    });
-
     if (canonicalResult.ok) {
       await recordQuoteGeneratedEvent({
         userId: auth.user.id,
         requestId,
         input: requestInput,
         result: canonicalResult,
-        compareMode: true,
-        mismatches,
       });
     }
 
     statusCode = canonicalResult.ok ? 200 : 422;
     return NextResponse.json(
-      {
-        ...canonicalResult,
-        comparison: {
-          legacyOk: legacyResult.ok,
-          mismatches,
-        },
-        requestId,
-      },
+      { ...canonicalResult, requestId },
       { status: statusCode },
     );
   } catch (error) {

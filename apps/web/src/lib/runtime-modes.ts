@@ -1,8 +1,6 @@
 /**
- * RuntimeMode — modo de ejecución para subsistemas con implementación dual.
- *
- * Soporta migración gradual de la fuente de datos legacy (tablas `recalc_*`)
- * a la implementación canónica (Prisma ORM con esquema normalizado):
+ * RuntimeMode — modo de ejecución para subsistemas que todavía admiten
+ * validación dual fuera del cotizador.
  *
  *  - "legacy"    Usa solo la implementación legacy. Solo para ventanas de auditoría.
  *  - "compare"   Ejecuta ambas implementaciones, registra diferencias en logs
@@ -14,12 +12,12 @@
  *  - "canonical" Usa solo la implementación canónica. Valor por defecto.
  *
  * Variables de entorno asociadas:
- *  - PRICING_READ_MODE      → reglas de beca, precios por materia, meta
+ *  - PRICING_READ_MODE      → reglas de beca, precios por materia, meta.
+ *                             Siempre resuelve a canonical; otros valores
+ *                             se ignoran para exponer faltantes canónicos.
  *  - DIRECTORY_READ_MODE    → directorio público de contactos
  *  - DIRECTORY_WRITE_MODE   → escritura y sincronización de métodos de contacto
- *  - QUOTE_MODE             → cálculo de cotización (el endpoint /api/data/quote
- *                             es canonical-first; este modo solo activa el logging
- *                             de comparación cuando se establece en "compare")
+ *  - QUOTE_MODE             → cálculo de cotización. Siempre resuelve a canonical.
  *
  * Ver docs/ROUTING_MODES_REFERENCE.md para el mapa completo de rutas y el
  * camino de migración recomendado.
@@ -43,8 +41,7 @@ function readRuntimeMode(
 }
 
 /** Controla la fuente de datos para reglas de beca y precios. */
-export const getPricingReadMode = () =>
-  readRuntimeMode(process.env.PRICING_READ_MODE);
+export const getPricingReadMode = () => "canonical" as const;
 
 /** Controla la fuente de datos para el directorio público de contactos. */
 export const getDirectoryReadMode = () =>
@@ -59,19 +56,16 @@ export const getDirectoryWriteMode = () =>
   readRuntimeMode(process.env.DIRECTORY_WRITE_MODE);
 
 /**
- * Controla el modo de cotización.
- * Nota: /api/data/quote es canonical-first — siempre ejecuta resolveScholarshipQuote.
- * Este modo solo activa el logging de comparación con el motor legacy cuando
- * se establece en "compare".
+ * Controla el modo de cotización. El cotizador siempre usa canonical.
  */
-export const getQuoteMode = () => readRuntimeMode(process.env.QUOTE_MODE);
+export const getQuoteMode = () => "canonical" as const;
 
 /**
- * Devuelve true cuando las escrituras admin deben duplicarse también en las
- * tablas legacy de precios (recalc_*). Se vuelve false solo en modo canonical.
+ * Devuelve true cuando las escrituras admin de precios deben duplicarse a una
+ * segunda fuente. Para pricing siempre queda apagado.
  */
 export const shouldMirrorLegacyPricingWrites = () =>
-  getPricingReadMode() !== "canonical";
+  false;
 
 /**
  * Devuelve true cuando las escrituras admin deben duplicarse también en las

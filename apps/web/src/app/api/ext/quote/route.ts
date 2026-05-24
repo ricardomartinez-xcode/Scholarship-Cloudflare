@@ -2,16 +2,11 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
 import {
-  computeLegacyScholarshipQuote,
-  loadLegacyPricingSnapshot,
-} from "@/lib/legacy-pricing";
-import {
   normalizeBusinessLine,
   normalizeCanonicalModality,
   normalizeEnrollmentType,
 } from "@/lib/pricing-normalize";
 import { resolveScholarshipQuote } from "@/lib/scholarship-quote-service";
-import { getQuoteMode } from "@/lib/runtime-modes";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -158,25 +153,11 @@ export async function POST(request: Request) {
     clientSurface: string;
   };
 
-  const quoteMode = getQuoteMode();
-
-  if (quoteMode !== "legacy") {
-    const result = await resolveScholarshipQuote(input);
-    return NextResponse.json(
-      {
-        ...result,
-        modeUsed: quoteMode,
-      },
-      { status: result.ok ? 200 : 422 },
-    );
-  }
-
-  const snapshot = await loadLegacyPricingSnapshot();
-  const result = await computeLegacyScholarshipQuote(input, snapshot);
+  const result = await resolveScholarshipQuote(input);
   return NextResponse.json(
     {
       ...result,
-      modeUsed: quoteMode,
+      modeUsed: "canonical",
     },
     { status: result.ok ? 200 : 422 },
   );
