@@ -54,7 +54,6 @@ La promoción de ramas con `npm run promote` sólo aplica para releases aprobada
 ## Neon (Auth + DB)
 - Auth usa **Neon Auth (Better Auth)** con `NEON_AUTH_BASE_URL`, `NEXT_PUBLIC_NEON_AUTH_BASE_URL` y `NEON_AUTH_COOKIE_SECRET`.
 - DB usa `DATABASE_URL` (Neon serverless).
-- Esquema SQL: `sql/000_init.sql`
 - Seed inicial: `npm run seed:neon`
 
 **Restricción de dominio**

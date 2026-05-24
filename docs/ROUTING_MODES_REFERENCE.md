@@ -147,7 +147,6 @@ Precios y becas se leen desde Prisma. La UI y la extensión usan `GET /api/data/
 | Precios regreso | Retirada de rutas de runtime | `ReturnSubjectPrice` (Prisma) | Canónico activo en producción |
 | Cotización | Fallback local legacy retirado | `resolveScholarshipQuote()` | Canónico activo en producción |
 | Directorio | Proyección sin `methods` | Proyección con `methods` | Depende de `DIRECTORY_READ_MODE` |
-| Meta pricing | `recalc_meta` | ❌ Sin equivalente | Migración pendiente |
 
 ---
 

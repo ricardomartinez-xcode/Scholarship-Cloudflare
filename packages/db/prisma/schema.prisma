@@ -289,7 +289,6 @@ enum AdminPlacementBreakpoint {
 enum AdminAdditionalBenefitType {
   percentage
   first_payment
-  fixed_scholarship
 
   @@schema("recalc_admin")
 }
@@ -431,7 +430,6 @@ model Campus {
   contacts            DirectoryContact[]
   bulletins           Bulletin[]
   academicFees        CampusAcademicFee[]
-  regresoMaterias     RegresoMaterias[]
   returnSubjectPrices ReturnSubjectPrice[]
   quoteScenarios      QuoteScenario[]
 
@@ -1757,8 +1755,7 @@ model ScholarshipRule {
   scholarshipPercent Decimal?            @db.Decimal(5, 2)
   discountedPriceMxn Decimal?            @db.Decimal(12, 2)
   origin             String?
-  legacyRowId        BigInt?             @unique @db.BigInt
-  sourceVersion      String              @default("legacy")
+  sourceVersion      String              @default("canonical")
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -1775,9 +1772,7 @@ model ReturnSubjectPrice {
   modality          CanonicalModality
   subjectCount      Int
   priceMxn          Decimal           @db.Decimal(12, 2)
-  legacyPlantelRaw  String?
-  legacyModalityRaw String?
-  sourceVersion     String            @default("legacy")
+  sourceVersion     String            @default("canonical")
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -1786,21 +1781,5 @@ model ReturnSubjectPrice {
   @@unique([campusId, modality, subjectCount, sourceVersion], map: "return_subject_price_runtime_key")
   @@index([campusId, modality], map: "return_subject_price_lookup_idx")
   @@map("return_subject_price")
-  @@schema("recalc_admin")
-}
-
-model RegresoMaterias {
-  id            String          @id @default(uuid()) @db.Uuid
-  campusId      String          @db.Uuid
-  modalidad     BenefitModality
-  materiasCount Int
-  costo         Int
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
-
-  @@unique([campusId, modalidad, materiasCount])
-  @@map("regreso_materias")
   @@schema("recalc_admin")
 }

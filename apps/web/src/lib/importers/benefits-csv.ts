@@ -72,7 +72,11 @@ type ParsedBenefitRow = {
   notes: string | null;
 };
 
-const BENEFIT_TYPE_SET = new Set(Object.values(AdminAdditionalBenefitType));
+const ACTIVE_BENEFIT_TYPES = [
+  AdminAdditionalBenefitType.percentage,
+  AdminAdditionalBenefitType.first_payment,
+] as const;
+const BENEFIT_TYPE_SET = new Set<AdminAdditionalBenefitType>(ACTIVE_BENEFIT_TYPES);
 const BUSINESS_LINE_SET = new Set(Object.values(BenefitBusinessLine));
 const MODALITY_SET = new Set(Object.values(BenefitModality));
 const DURATION_SET = new Set(Object.values(BenefitDuration));

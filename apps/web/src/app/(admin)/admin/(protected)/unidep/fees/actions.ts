@@ -9,12 +9,6 @@ import {
   revalidatePublicRouteTags,
 } from "@/lib/public-route-cache";
 import {
-  createComparisonSummary,
-  logComparisonReport,
-  type ComparisonMismatch,
-} from "@/lib/runtime-comparison";
-import { getPricingReadMode } from "@/lib/runtime-modes";
-import {
   deleteCanonicalMateriaRow,
   getCanonicalMateriaRows,
   syncCanonicalMateriaRow,
@@ -32,7 +26,7 @@ import {
 
 const PRICES_WRITE_CAPABILITY = AdminCapability.manage_prices;
 
-// ─── Precio por Materia (recalc_regreso_materias) ───────────────────────────
+// ─── Precio por Materia (ReturnSubjectPrice canónico) ───────────────────────
 
 export type MateriaRow = {
   plantel: string;
@@ -44,68 +38,7 @@ export type MateriaRow = {
 export async function getMateriasAction(): Promise<MateriaRow[]> {
   try {
     await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
-    const pricingReadMode = getPricingReadMode();
-
-    const legacyRows = await prisma.regresoMaterias.findMany({
-      include: { campus: { select: { code: true } } },
-      orderBy: [{ campus: { code: "asc" } }, { modalidad: "asc" }, { materiasCount: "asc" }],
-    });
-    const legacy = legacyRows.map((row) => ({
-      plantel: row.campus.code,
-      modalidad: row.modalidad,
-      materias_count: row.materiasCount,
-      costo: row.costo,
-    }));
-
-    if (pricingReadMode === "canonical") {
-      return await getCanonicalMateriaRows();
-    }
-
-    if (pricingReadMode === "compare") {
-      const canonical = await getCanonicalMateriaRows();
-      const mismatches: ComparisonMismatch[] = [];
-      const canonicalMap = new Map(
-        canonical.map((row) => [
-          `${row.plantel}|${row.modalidad}|${row.materias_count}`,
-          row.costo,
-        ]),
-      );
-
-      for (const row of legacy) {
-        const key = `${row.plantel}|${row.modalidad}|${row.materias_count}`;
-        const canonicalValue = canonicalMap.get(key);
-        if (canonicalValue === undefined) {
-          mismatches.push({
-            key,
-            field: "row",
-            legacy: row,
-            canonical: null,
-            note: "missing_in_canonical",
-          });
-          continue;
-        }
-        if (canonicalValue !== row.costo) {
-          mismatches.push({
-            key,
-            field: "costo",
-            legacy: row.costo,
-            canonical: canonicalValue,
-          });
-        }
-      }
-
-      logComparisonReport({
-        channel: "admin-materias",
-        mode: "compare",
-        summary: createComparisonSummary({
-          read: legacy.length,
-          conflicted: mismatches.length,
-        }),
-        mismatches,
-      });
-    }
-
-    return legacy;
+    return await getCanonicalMateriaRows();
   } catch {
     return [];
   }
@@ -139,81 +72,10 @@ export async function upsertMateriaAction(
       return { ok: false, error: "Cantidad de materias inválida." };
     if (isNaN(costo) || costo < 0) return { ok: false, error: "Costo inválido." };
 
-    const campus = await prisma.campus.findFirst({
-      where: {
-        OR: [
-          { metaKey: { equals: plantelRaw, mode: "insensitive" } },
-          { code: { equals: plantelRaw, mode: "insensitive" } },
-          { name: { equals: plantelRaw, mode: "insensitive" } },
-          { slug: { equals: plantelRaw, mode: "insensitive" } },
-        ],
-      },
-      select: { id: true, code: true, metaKey: true },
-    });
-    if (!campus) return { ok: false, error: `Plantel no encontrado: ${plantelRaw}` };
-
     const modalidad = toBenefitModality(modalidadRaw);
     if (!modalidad) return { ok: false, error: "Modalidad inválida." };
 
-    const isEdit = origPlantel && origModalidad && !isNaN(origMaterias);
-
-    if (isEdit) {
-      const origCampus = await prisma.campus.findFirst({
-        where: {
-          OR: [
-            { code: { equals: origPlantel, mode: "insensitive" } },
-            { metaKey: { equals: origPlantel, mode: "insensitive" } },
-            { name: { equals: origPlantel, mode: "insensitive" } },
-            { slug: { equals: origPlantel, mode: "insensitive" } },
-          ],
-        },
-        select: { id: true },
-      });
-      const origMod = toBenefitModality(
-        normalizeKey(origModalidad).includes("online") ? "online" : origModalidad,
-      );
-      if (origCampus && origMod) {
-        const existing = await prisma.regresoMaterias.findUnique({
-          where: {
-            campusId_modalidad_materiasCount: {
-              campusId: origCampus.id,
-              modalidad: origMod,
-              materiasCount: origMaterias,
-            },
-          },
-        });
-        if (existing) {
-          await prisma.regresoMaterias.update({
-            where: { id: existing.id },
-            data: {
-              campusId: campus.id,
-              modalidad,
-              materiasCount: materias_count,
-              costo: Math.round(costo),
-            },
-          });
-        }
-      }
-    } else {
-      await prisma.regresoMaterias.upsert({
-        where: {
-          campusId_modalidad_materiasCount: {
-            campusId: campus.id,
-            modalidad,
-            materiasCount: materias_count,
-          },
-        },
-        update: { costo: Math.round(costo) },
-        create: {
-          campusId: campus.id,
-          modalidad,
-          materiasCount: materias_count,
-          costo: Math.round(costo),
-        },
-      });
-    }
-
-    await syncCanonicalMateriaRow({
+    const result = await syncCanonicalMateriaRow({
       plantelRaw,
       modalidadRaw,
       materiasCount: materias_count,
@@ -222,6 +84,7 @@ export async function upsertMateriaAction(
       origModalidad: origModalidad || undefined,
       origMaterias: isNaN(origMaterias) ? undefined : origMaterias,
     });
+    if (!result.ok) return { ok: false, error: result.message };
 
     revalidatePath("/admin/unidep/fees");
     revalidatePublicRouteTags([PUBLIC_ROUTE_CACHE_TAGS.costos]);
@@ -241,35 +104,6 @@ export async function deleteMateriaAction(formData: FormData): Promise<void> {
 
     if (!plantel || !modalidadRaw || isNaN(materias_count)) return;
 
-    const modalidad = toBenefitModality(modalidadRaw);
-    if (!modalidad) return;
-
-    const campus = await prisma.campus.findFirst({
-      where: {
-        OR: [
-          { code: { equals: plantel, mode: "insensitive" } },
-          { metaKey: { equals: plantel, mode: "insensitive" } },
-          { name: { equals: plantel, mode: "insensitive" } },
-          { slug: { equals: plantel, mode: "insensitive" } },
-        ],
-      },
-      select: { id: true },
-    });
-    if (!campus) return;
-
-    const existing = await prisma.regresoMaterias.findUnique({
-      where: {
-        campusId_modalidad_materiasCount: {
-          campusId: campus.id,
-          modalidad,
-          materiasCount: materias_count,
-        },
-      },
-    });
-
-    if (existing) {
-      await prisma.regresoMaterias.delete({ where: { id: existing.id } });
-    }
     await deleteCanonicalMateriaRow({
       plantelRaw: plantel,
       modalidadRaw,
@@ -1028,40 +862,15 @@ export async function seedMateriasImportAction(formData: FormData) {
         continue;
       }
 
-      const existing = await prisma.regresoMaterias.findUnique({
-        where: {
-          campusId_modalidad_materiasCount: {
-            campusId: campus.id,
-            modalidad,
-            materiasCount,
-          },
-        },
-      });
-
-      if (existing) {
-        await prisma.regresoMaterias.update({
-          where: { id: existing.id },
-          data: { costo },
-        });
-        updated++;
-      } else {
-        await prisma.regresoMaterias.create({
-          data: {
-            campusId: campus.id,
-            modalidad,
-            materiasCount,
-            costo,
-          },
-        });
-        created++;
-      }
-
-      await syncCanonicalMateriaRow({
+      const result = await syncCanonicalMateriaRow({
         plantelRaw,
         modalidadRaw,
         materiasCount,
         costo,
       });
+      if (result.ok && result.reason === "created") created++;
+      else if (result.ok && result.reason === "updated") updated++;
+      else if (!result.ok) errors.push(result.message);
     }
 
     revalidatePath("/admin/unidep/fees");

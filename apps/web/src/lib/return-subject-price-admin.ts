@@ -25,7 +25,6 @@ export async function getCanonicalMateriaRows(sourceVersion = "canonical") {
       modality: true,
       subjectCount: true,
       priceMxn: true,
-      legacyPlantelRaw: true,
       campus: {
         select: { metaKey: true, name: true },
       },
@@ -33,7 +32,7 @@ export async function getCanonicalMateriaRows(sourceVersion = "canonical") {
   });
 
   return rows.map<AdminMateriaRow>((row) => ({
-    plantel: row.legacyPlantelRaw ?? row.campus.metaKey ?? row.campus.name,
+    plantel: row.campus.metaKey ?? row.campus.name,
     modalidad: row.modality === "online" ? "online" : "presencial",
     materias_count: row.subjectCount,
     costo: Number(row.priceMxn),
@@ -92,8 +91,6 @@ export async function syncCanonicalMateriaRow(params: {
         modality,
         subjectCount: params.materiasCount,
         priceMxn: params.costo,
-        legacyPlantelRaw: params.plantelRaw,
-        legacyModalityRaw: params.modalidadRaw,
       },
     });
     return { ok: true as const, reason: "updated" as const };
@@ -114,8 +111,6 @@ export async function syncCanonicalMateriaRow(params: {
       where: { id: existing.id },
       data: {
         priceMxn: params.costo,
-        legacyPlantelRaw: params.plantelRaw,
-        legacyModalityRaw: params.modalidadRaw,
       },
     });
     return { ok: true as const, reason: "updated" as const };
@@ -127,8 +122,6 @@ export async function syncCanonicalMateriaRow(params: {
       modality,
       subjectCount: params.materiasCount,
       priceMxn: params.costo,
-      legacyPlantelRaw: params.plantelRaw,
-      legacyModalityRaw: params.modalidadRaw,
       sourceVersion,
     },
   });
