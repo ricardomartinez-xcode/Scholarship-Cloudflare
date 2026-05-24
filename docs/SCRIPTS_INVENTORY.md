@@ -15,9 +15,6 @@
 | `seed-campuses.js` | `campus:seed` | Siembra el catálogo canónico de campus (25 presenciales + 1 online) en `recalc_admin.campus` vía Prisma. |
 | `import-output.ts` | `import:output` | Punto de entrada TypeScript que delega en `import-output.js`. |
 | `import-output.js` | _(impl)_ | Importador académico principal. Lee el output XLSX y actualiza las tablas canónicas. No modifica `AdminPriceOverride`. |
-| `backup-legacy-data.ts` | `backup:legacy` | Exporta datos del esquema legacy a JSON para backup antes de migrar. |
-| `backfill-canonical-data.ts` | `canonical:backfill` | Rellena el esquema canónico (Prisma) con datos copiados desde legacy. Parte del flujo de migración `legacy → canonical`. |
-| `compare-canonical-data.ts` | `canonical:compare` | Compara datos entre legacy y canonical y reporta divergencias. Usar junto con `PRICING_READ_MODE=compare`. |
 | `release-gate.ts` | `release:gate` | Valida criterios de calidad (ESLint, TypeScript, tests) antes de promover a producción. |
 | `local-code-review.sh` | _(manual)_ | Ejecuta los mismos checks de calidad del workflow CI de forma local. |
 | `promote.sh` | `promote` _(posix)_ | Promueve la rama actual a producción vía merge. |
@@ -73,15 +70,6 @@ Los siguientes scripts han sido **eliminados** en este bloque por ser duplicados
 2. npx prisma db push                  (schema sync)
 3. node scripts/bootstrap-admin.js    (admin:bootstrap)
 4. node scripts/seed-campuses.js      (campus:seed)
-```
-
-### Migración legacy → canonical
-```
-1. tsx scripts/backup-legacy-data.ts       (backup:legacy)
-2. tsx scripts/backfill-canonical-data.ts  (canonical:backfill)
-3. # Activar PRICING_READ_MODE=compare / DIRECTORY_READ_MODE=compare
-4. tsx scripts/compare-canonical-data.ts   (canonical:compare)
-5. # Validar paridad y cambiar a =canonical
 ```
 
 ### Importación de oferta académica

@@ -73,9 +73,9 @@ El acceso se limita a `@unidep.edu.mx` y `@*.unidep.edu.mx` en server-side.
 
 ### API (datos)
 La app consume datos **solo** desde:
-- `/api/data/flat-rules`
-- `/api/data/meta`
-- `/api/data/regreso-materias`
+- `/api/data/pricing-options`
+- `/api/data/quote`
+- `/api/data/benefits`
 
 Estas rutas requieren autenticación (Neon Auth) y dominio permitido.
 

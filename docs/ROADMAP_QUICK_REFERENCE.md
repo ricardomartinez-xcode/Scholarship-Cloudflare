@@ -83,8 +83,6 @@ Referencia rápida del plan operativo post-merge.
 - `src/app/api/invite/accept/route.ts` — Accept endpoint
 
 ### Bloque 4 - Consolidación
-- `src/lib/legacy-pricing.ts` — Legacy system
-- `src/lib/canonical-pricing-readers.ts` — Canonical system
 - `src/lib/runtime-comparison.ts` — Comparison logic
 - `scripts/` — Scripts históricos
 

@@ -24,37 +24,25 @@ import type {
   WhatsappTemplatePreviewData,
 } from "@/lib/whatsapp-templates";
 import type { AcademicOfferCycle } from "@/config/academicOffer";
- 
+
 const QUOTE_DEBOUNCE_MS = 300;
- 
+
 type TipoInscripcion = "nuevo_ingreso" | "regreso" | "reingreso";
- 
-type FlatRule = {
-  programa: string;
-  nivel: string;
-  modalidad: string;
+
+type PricingOption = {
+  enrollmentType: TipoInscripcion;
+  businessLine: string;
+  modality: string;
   plan: number;
-  tier?: string | null;
-  rango?: { min: number; max: number } | null;
-  porcentaje?: number | null;
-  monto?: number | null;
-  origen?: string | null;
 };
- 
-type MetaPlantel = {
-  tier?: string | null;
-  oferta?: Record<string, Record<string, { neto?: number }>>;
+
+type PricingOptionsResponse = {
+  ok?: boolean;
+  combinations?: PricingOption[];
+  campuses?: Array<{ value: string; label: string }>;
+  subjectCounts?: number[];
 };
- 
-type MetaResponse = {
-  version?: string;
-  planteles?: Record<string, MetaPlantel>;
-};
- 
-type RegresoResponse = {
-  materias?: Record<string, Record<string, Record<string, number>>>;
-};
- 
+
 type CalculationOk = {
   base: number;
   porcentaje: number;
@@ -73,7 +61,7 @@ type CalculationOk = {
   firstPaymentNotes?: string | null;
   firstPaymentDuration?: string | null;
 };
- 
+
 type CalculationErr = {
   error: string;
   hint?: string;
@@ -241,7 +229,7 @@ function fitCanvasFontSize(
     size: options.min,
   };
 }
- 
+
 type BenefitInfo = {
   extraPercent: number;
   firstPaymentAmount: number;
@@ -254,7 +242,7 @@ type BenefitBundle = {
   benefit?: BenefitInfo | null;
   firstPaymentBenefit?: BenefitInfo | null;
 };
- 
+
 type OfferProgram = {
   offeringId: string;
   programId: string;
@@ -263,7 +251,7 @@ type OfferProgram = {
   schedule: string | null;
   planLink: string | null;
 };
- 
+
 type PublicCta = {
   id: string;
   label: string;
@@ -319,9 +307,9 @@ const currency = new Intl.NumberFormat("es-MX", {
   currency: "MXN",
   maximumFractionDigits: 2,
 });
- 
+
 const round2 = (value: number) => Math.round(value * 100) / 100;
- 
+
 const formatMoney = (value: number) => currency.format(round2(value));
 
 const enrollmentTypeLabels: Record<TipoInscripcion, string> = {
@@ -362,8 +350,16 @@ const humanizeLabel = (value: string) => {
 const formatPercent = (value: number) =>
   `${Number.isInteger(value) ? value : round2(value)}%`;
 
-const toUiBusinessLine = (value: SimulatorInputSnapshot["businessLine"]) =>
-  value === "prepa" ? "preparatoria" : value;
+const toNum = (value: unknown) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const n = Number(value.trim().replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+const toUiBusinessLine = (value: SimulatorInputSnapshot["businessLine"]) => value;
 
 const toUiModality = (value: SimulatorInputSnapshot["modality"]) => value;
 
@@ -385,50 +381,22 @@ const toQuoteApiResult = (result: SimulatorResultSnapshot): QuoteApiResult => ({
   source: result.source,
   sinAccessToScholarship: result.sinAccessToScholarship,
 });
- 
+
 const uniqSorted = (items: string[]) =>
   Array.from(new Set(items.filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, "es")
   );
- 
-const toNum = (value: unknown) => {
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string") {
-    const trimmed = value.trim().replace(",", ".");
-    const n = Number(trimmed);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-};
 
-const normalizeLookupKey = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
- 
 const requierePlantel = (nivel: string, modalidad: string) => {
   if (!nivel || !modalidad) return false;
   return (
     (nivel === "licenciatura" ||
       nivel === "salud" ||
-      nivel === "preparatoria") &&
+      nivel === "prepa") &&
     modalidad !== "online"
   );
 };
- 
-const resolvePlantelKey = (
-  nivel: string,
-  modalidad: string,
-  plantelValue: string
-) => {
-  if (!nivel || !modalidad) return "";
-  if (modalidad === "online") return "ONLINE";
-  if (requierePlantel(nivel, modalidad)) return plantelValue || "";
-  return "";
-};
- 
+
 const toBenefitBusinessLine = (nivel: string) => {
   if (!nivel) return "";
   if (nivel === "salud") return "salud";
@@ -438,7 +406,7 @@ const toBenefitBusinessLine = (nivel: string) => {
     return "posgrado";
   return "";
 };
- 
+
 const toBenefitModality = (modalidad: string) => {
   if (!modalidad) return "";
   if (modalidad === "online") return "online";
@@ -446,119 +414,11 @@ const toBenefitModality = (modalidad: string) => {
   if (modalidad === "ejecutivo" || modalidad === "mixta") return "mixta";
   return "";
 };
- 
+
 const shouldShowMaterias = (tipo: TipoInscripcion, nivel: string) =>
   tipo === "regreso" && nivel === "licenciatura";
- 
-const getTierForPlantel = (meta: MetaResponse | null, plantelKey: string) => {
-  if (!plantelKey) return null;
-  return meta?.planteles?.[plantelKey]?.tier ?? null;
-};
- 
-const getOfertaNeto = (
-  meta: MetaResponse | null,
-  plantelKey: string,
-  nivel: string,
-  plan: number
-) => {
-  if (!plantelKey || !nivel || !plan) return null;
-  const oferta = meta?.planteles?.[plantelKey]?.oferta?.[nivel]?.[String(plan)];
-  const neto = oferta?.neto;
-  return typeof neto === "number" ? neto : null;
-};
- 
-const getMateriasPrecio = (
-  regreso: RegresoResponse | null,
-  nivel: string,
-  modalidad: string,
-  plantelKey: string,
-  materiasCount: number
-) => {
-  if (!nivel || !modalidad || !plantelKey || !materiasCount) return null;
-  if (nivel !== "licenciatura") return null;
-  const modalidadKey = modalidad === "online" ? "online" : "presencial";
-  const plantelEntries = regreso?.materias ?? {};
-  const normalizedPlantelKey = normalizeLookupKey(plantelKey);
-  const plantelBucket =
-    plantelEntries[plantelKey] ??
-    Object.entries(plantelEntries).find(
-      ([key]) => normalizeLookupKey(key) === normalizedPlantelKey
-    )?.[1];
-  if (!plantelBucket) return null;
 
-  const modalidadBucket =
-    plantelBucket[modalidadKey] ??
-    Object.entries(plantelBucket).find(
-      ([key]) => normalizeLookupKey(key) === normalizeLookupKey(modalidadKey)
-    )?.[1];
-  if (!modalidadBucket) return null;
 
-  const value = modalidadBucket[String(materiasCount)];
-  return typeof value === "number" ? value : null;
-};
- 
-const findRuleForPromedio = (
-  rules: FlatRule[],
-  promedio: number
-): FlatRule | null => {
-  for (const rule of rules) {
-    const rango = rule.rango;
-    if (!rango) continue;
-    const minRaw = toNum((rango as { min?: unknown }).min);
-    const maxRaw = toNum((rango as { max?: unknown }).max);
-    if (minRaw === null || maxRaw === null) continue;
-    const min = minRaw - 1e-6;
-    const max = maxRaw + 1e-6;
-    if (promedio >= min && promedio <= max) return rule;
-  }
-  return null;
-};
- 
-const formatRango = (rule: FlatRule) => {
-  const rango = rule.rango;
-  if (!rango) return null;
-  const min = toNum((rango as { min?: unknown }).min);
-  const max = toNum((rango as { max?: unknown }).max);
-  if (min === null || max === null) return null;
-  return `${min.toFixed(1)}-${max.toFixed(1)}`;
-};
- 
-const listValidRanges = (rules: FlatRule[]) => {
-  const ranges = rules.map(formatRango).filter((r): r is string => Boolean(r));
-  return Array.from(new Set(ranges));
-};
- 
-const findNearestRule = (rules: FlatRule[], promedio: number) => {
-  let best: { rule: FlatRule; distance: number } | null = null;
-  for (const rule of rules) {
-    const rango = rule.rango;
-    if (!rango) continue;
-    const min = toNum((rango as { min?: unknown }).min);
-    const max = toNum((rango as { max?: unknown }).max);
-    if (min === null || max === null) continue;
-    const distance =
-      promedio < min ? min - promedio : promedio > max ? promedio - max : 0;
-    if (!best || distance < best.distance) best = { rule, distance };
-  }
-  return best?.rule ?? null;
-};
- 
-const baseFromRules = (rules: FlatRule[]) => {
-  const basePrices = rules
-    .map((rule) => {
-      const monto = toNum(rule.monto);
-      const pct = toNum(rule.porcentaje);
-      if (monto === null || pct === null || pct >= 100) return null;
-      return monto / (1 - pct / 100);
-    })
-    .filter((value): value is number => value !== null)
-    .map((value) => Math.round(value * 100) / 100);
-
-  if (!basePrices.length) return null;
-
-  return Math.max(...basePrices);
-};
- 
 export default function ScholarshipCalculator({
   ctasAboveResult = [],
   ctasInsideResult = [],
@@ -608,20 +468,20 @@ export default function ScholarshipCalculator({
   const [selectedOfferCycle, setSelectedOfferCycle] = useState<AcademicOfferCycle | "">(
     normalizedVisibleOfferCycles[0] ?? "",
   );
- 
-  const [rules, setRules] = useState<FlatRule[] | null>(null);
-  const [meta, setMeta] = useState<MetaResponse | null>(null);
-  const [regreso, setRegreso] = useState<RegresoResponse | null>(null);
+
+  const [pricingOptions, setPricingOptions] = useState<PricingOption[] | null>(null);
+  const [campusOptions, setCampusOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [subjectCountOptions, setSubjectCountOptions] = useState<number[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
- 
+
   const [nivel, setNivel] = useState("");
   const [modalidad, setModalidad] = useState("");
   const [plan, setPlan] = useState<number | null>(null);
   const [plantel, setPlantel] = useState("");
   const [materias, setMaterias] = useState<number | null>(null);
   const [promedio, setPromedio] = useState("");
- 
+
   const [offerPrograms, setOfferPrograms] = useState<OfferProgram[]>([]);
   const [offerProgramId, setOfferProgramId] = useState("");
   const [offerSelectedProgramId, setOfferSelectedProgramId] = useState("");
@@ -634,9 +494,9 @@ export default function ScholarshipCalculator({
     Array<{ id: string; code: string; concept: string; costMxn: number; section: string }>
   >([]);
   const [academicFeesLoading, setAcademicFeesLoading] = useState(false);
- 
+
   // moduloIngreso removed from UI
- 
+
   const [benefitBundle, setBenefitBundle] = useState<BenefitBundle | null>(null);
   const [beneficioLoading, setBeneficioLoading] = useState(false);
   const [beneficioError, setBeneficioError] = useState<string | null>(null);
@@ -653,7 +513,7 @@ export default function ScholarshipCalculator({
   const [copyQuoteImagePending, setCopyQuoteImagePending] = useState(false);
   const [copyQuoteImageStatus, setCopyQuoteImageStatus] = useState<string | null>(null);
   const [showPaymentPlan, setShowPaymentPlan] = useState(false);
- 
+
   const tipoLabelId = useId();
   const nivelLabelId = useId();
   const modalidadLabelId = useId();
@@ -698,26 +558,13 @@ export default function ScholarshipCalculator({
     setLoading(true);
     setLoadError(null);
     try {
-      const [flatRulesRes, metaRes, regresoRes] = await Promise.all([
-        fetch("/api/data/flat-rules", { cache: "no-store" }),
-        fetch("/api/data/meta", { cache: "no-store" }),
-        fetch("/api/data/regreso-materias", { cache: "no-store" }),
-      ]);
- 
-      if (!flatRulesRes.ok) throw new Error("No fue posible cargar reglas.");
-      if (!metaRes.ok) throw new Error("No fue posible cargar meta.");
-      if (!regresoRes.ok)
-        throw new Error("No fue posible cargar regreso-materias.");
- 
-      const [flatRules, metaJson, regresoJson] = await Promise.all([
-        flatRulesRes.json(),
-        metaRes.json(),
-        regresoRes.json(),
-      ]);
- 
-      setRules(flatRules as FlatRule[]);
-      setMeta(metaJson as MetaResponse);
-      setRegreso(regresoJson as RegresoResponse);
+      const response = await fetch("/api/data/pricing-options", { cache: "no-store" });
+      if (!response.ok) throw new Error("No fue posible cargar opciones de precios.");
+
+      const data = (await response.json()) as PricingOptionsResponse;
+      setPricingOptions(Array.isArray(data.combinations) ? data.combinations : []);
+      setCampusOptions(Array.isArray(data.campuses) ? data.campuses : []);
+      setSubjectCountOptions(Array.isArray(data.subjectCounts) ? data.subjectCounts : []);
     } catch (err) {
       setLoadError(
         err instanceof Error ? err.message : "No fue posible cargar datos."
@@ -726,7 +573,7 @@ export default function ScholarshipCalculator({
       setLoading(false);
     }
   }, []);
- 
+
   useEffect(() => {
     void refreshData();
   }, [refreshData]);
@@ -746,41 +593,49 @@ export default function ScholarshipCalculator({
     });
   }, [normalizedVisibleOfferCycles]);
 
- 
+
   const niveles = useMemo(() => {
-    if (!rules) return [];
-    return uniqSorted(rules.map((r) => r.nivel));
-  }, [rules]);
- 
+    if (!pricingOptions) return [];
+    return uniqSorted(
+      pricingOptions
+        .filter((option) => option.enrollmentType === tipo)
+        .map((option) => option.businessLine),
+    );
+  }, [pricingOptions, tipo]);
+
   const modalidades = useMemo(() => {
-    if (!rules || !nivel) return [];
-    const filtered = rules.filter((r) => r.nivel === nivel);
-    const all = uniqSorted(filtered.map((r) => r.modalidad));
+    if (!pricingOptions || !nivel) return [];
+    const filtered = pricingOptions.filter(
+      (option) => option.enrollmentType === tipo && option.businessLine === nivel,
+    );
+    const all = uniqSorted(filtered.map((option) => option.modality));
     if (nivel === "salud") return all.filter((m) => m === "presencial");
     const order: Record<string, number> = { presencial: 0, mixta: 1, online: 2 };
     return all.sort((a, b) => (order[a] ?? 9) - (order[b] ?? 9));
-  }, [rules, nivel]);
- 
+  }, [pricingOptions, tipo, nivel]);
+
   const planes = useMemo(() => {
-    if (!rules || !nivel || !modalidad) return [];
-    const filtered = rules.filter(
-      (r) =>
-        r.nivel === nivel &&
-        r.modalidad === modalidad
+    if (!pricingOptions || !nivel || !modalidad) return [];
+    const filtered = pricingOptions.filter(
+      (option) =>
+        option.enrollmentType === tipo &&
+        option.businessLine === nivel &&
+        option.modality === modalidad
     );
-    return Array.from(new Set(filtered.map((r) => Number(r.plan)))).sort((a, b) => a - b);
-  }, [rules, nivel, modalidad]);
- 
+    return Array.from(new Set(filtered.map((option) => Number(option.plan)))).sort((a, b) => a - b);
+  }, [pricingOptions, tipo, nivel, modalidad]);
+
   const planteles = useMemo(() => {
-    const plantelesObj = meta?.planteles ?? {};
-    const keys = Object.keys(plantelesObj);
-    return keys
-      .filter((key) => key && key !== "ONLINE")
-      .sort((a, b) => a.localeCompare(b, "es"));
-  }, [meta]);
- 
-  const materiasOptions = useMemo(() => [1, 2, 3, 4, 5, 6, 7], []);
- 
+    return campusOptions
+      .filter((campus) => campus.value && campus.value !== "ONLINE")
+      .sort((a, b) => a.label.localeCompare(b.label, "es"));
+  }, [campusOptions]);
+
+  const materiasOptions = useMemo(
+    () => (subjectCountOptions.length ? subjectCountOptions : [1, 2, 3, 4, 5, 6, 7]),
+    [subjectCountOptions],
+  );
+
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setNivel("");
@@ -790,7 +645,7 @@ export default function ScholarshipCalculator({
     setMaterias(null);
     setPromedio("");
   }, [tipo]);
- 
+
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setModalidad("");
@@ -798,20 +653,20 @@ export default function ScholarshipCalculator({
     setPlantel("");
     setMaterias(null);
   }, [nivel]);
- 
+
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlan(null);
     setPlantel("");
     setMaterias(null);
   }, [modalidad]);
- 
+
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlantel("");
     setMaterias(null);
   }, [plan]);
- 
+
   useEffect(() => {
     if (!cargoEnabled) {
       setCargoType("");
@@ -971,7 +826,7 @@ export default function ScholarshipCalculator({
     cargoAmount,
     nivel,
   ]);
- 
+
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -1021,11 +876,11 @@ export default function ScholarshipCalculator({
       controller.abort();
     };
   }, [benefitLookupKey, benefitBusinessLine, benefitModality, tipo]);
- 
+
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
- 
+
     const run = async () => {
       if (!canLoadOfferPanel || !benefitLookupKey || !selectedOfferCycle) {
         setOfferPrograms([]);
@@ -1035,7 +890,7 @@ export default function ScholarshipCalculator({
         setOfferSelectedProgramId("");
         return;
       }
- 
+
       setOfferProgramsLoading(true);
       setOfferProgramsError(null);
       try {
@@ -1050,7 +905,7 @@ export default function ScholarshipCalculator({
         if (!res.ok) {
           throw new Error("offer_fetch_failed");
         }
- 
+
         const data = (await res.json()) as {
           offerings?: Array<{
             id: string;
@@ -1064,7 +919,7 @@ export default function ScholarshipCalculator({
           }>;
         };
         if (!active) return;
- 
+
         const items = (data.offerings ?? []).map((row) => ({
           offeringId: row.id,
           programId: row.program.id,
@@ -1089,224 +944,20 @@ export default function ScholarshipCalculator({
         if (active) setOfferProgramsLoading(false);
       }
     };
- 
+
     run();
     return () => {
       active = false;
       controller.abort();
     };
   }, [canLoadOfferPanel, benefitLookupKey, benefitBusinessLine, selectedOfferCycle]);
- 
+
   useEffect(() => {
     const selected =
       offerPrograms.find((item) => item.offeringId === offerProgramId) ?? null;
     setOfferSelectedProgramId(selected?.programId ?? "");
   }, [offerProgramId, offerPrograms]);
- 
-  const localRuleCalculation = useMemo<Calculation | null>(() => {
-    if (!rules) return null;
- 
-    const hasStarted =
-      Boolean(nivel) ||
-      Boolean(modalidad) ||
-      Boolean(plan) ||
-      Boolean(plantel) ||
-      Boolean(materias) ||
-      Boolean(promedio.trim()) ||
-      cargoEnabled ||
-      Boolean(cargoType) ||
-      Boolean(cargoAmount);
- 
-    if (!hasStarted) return null;
- 
-    const missing: CalculationErr["missing"] = [];
-    if (!nivel) missing.push("nivel");
-    if (!modalidad) missing.push("modalidad");
-    if (!plan) missing.push("plan");
-    if (missing.length) {
-      const labelMap: Record<string, string> = {
-        nivel: "Línea de negocio",
-        modalidad: "Modalidad",
-        plan: "Plan de estudios",
-        cargoType: "Tipo de cargo académico",
-        cargoAmount: "Monto de cargo académico",
-      };
-      return {
-        error: "Faltan campos obligatorios.",
-        hint: `Completa: ${missing
-          .map((m) => labelMap[m] ?? m)
-          .join(", ")}.`,
-        missing,
-      };
-    }
-    const planNum = plan as number;
- 
-    const reqPlantel = requierePlantel(nivel, modalidad);
-    const plantelKey = resolvePlantelKey(nivel, modalidad, plantel);
-    const needsPlantelKey = modalidad === "online" ? "ONLINE" : plantelKey;
- 
-    if (reqPlantel && !plantel) {
-      return {
-        error: "Falta seleccionar un plantel.",
-        hint: "Selecciona un plantel para continuar con el cálculo.",
-        missing: ["plantel"],
-      };
-    }
- 
-    const showMaterias = shouldShowMaterias(tipo, nivel);
-    if (showMaterias && !materias) {
-      return {
-        error: "Falta seleccionar materias.",
-        hint: "Selecciona cuántas materias se van a inscribir.",
-        missing: ["materias"],
-      };
-    }
- 
-    const promedioStr = promedio.trim();
-    if (!promedioStr) {
-      return {
-        error: "Falta el promedio.",
-        hint: "Ingresa el promedio del estudiante (0 a 10).",
-        missing: ["promedio"],
-      };
-    }
-    const promedioNumRaw = Number(promedioStr.replace(",", "."));
-    if (Number.isNaN(promedioNumRaw) || promedioNumRaw <= 0 || promedioNumRaw > 10) {
-      return {
-        error: "Promedio inválido.",
-        hint: "Ingresa un promedio válido entre 0 y 10.",
-        missing: ["promedio"],
-      };
-    }
- 
-    const promedioNum = Math.round(promedioNumRaw * 10) / 10;
- 
-    if (cargoEnabled) {
-      const cargoMissing: CalculationErr["missing"] = [];
-      if (!cargoType) cargoMissing.push("cargoType");
-      const cargoNum = toNum(cargoAmount);
-      if (cargoNum === null || cargoNum <= 0) cargoMissing.push("cargoAmount");
-      if (cargoMissing.length) {
-        return {
-          error: "Falta completar el cargo académico.",
-          hint: "Selecciona el tipo de cargo y define el monto.",
-          missing: cargoMissing,
-        };
-      }
-    }
- 
-    let candidatos = rules.filter(
-      (r) =>
-        r.nivel === nivel &&
-        r.modalidad === modalidad &&
-        Number(r.plan) === planNum
-    );
- 
-    if (!candidatos.length) {
-      // Check if there are any rules for this nivel+modalidad (ignoring plan).
-      // If so, the current plan value is stale (nivel/modalidad changed but plan
-      // hasn't been cleared by its effect yet). Treat it as a missing plan.
-      const hasRulesForCombo = rules.some(
-        (r) =>
-          r.nivel === nivel &&
-          r.modalidad === modalidad
-      );
-      if (hasRulesForCombo) {
-        return {
-          error: "Faltan campos obligatorios.",
-          hint: "Selecciona un plan de estudios.",
-          missing: ["plan"] as CalculationErr["missing"],
-        };
-      }
-      return {
-        error: "No hay reglas para esta combinación.",
-        hint: "Intenta cambiar línea de negocio, modalidad o plan de estudios.",
-      };
-    }
- 
-    const tier =
-      modalidad === "online"
-        ? "ONLINE"
-        : getTierForPlantel(meta, needsPlantelKey);
-    if (tier) {
-      const byTier = candidatos.filter((r) => r.tier === tier);
-      if (byTier.length) candidatos = byTier;
-    }
- 
-    const sinAccesoBeca = promedioNum < 7;
-    let match = sinAccesoBeca ? null : findRuleForPromedio(candidatos, promedioNum);
- 
-    if (!sinAccesoBeca && !match) {
-      const nearest = findNearestRule(candidatos, promedioNum);
-      if (nearest) {
-        const rango = nearest.rango as { min?: unknown; max?: unknown } | null;
-        const min = rango ? toNum(rango.min) : null;
-        const max = rango ? toNum(rango.max) : null;
-        if (
-          min !== null &&
-          max !== null &&
-          promedioNum >= min - 0.05 &&
-          promedioNum <= max + 0.05
-        ) {
-          match = nearest;
-        }
-      }
-    }
- 
-    if (!sinAccesoBeca && !match) {
-      const ranges = listValidRanges(candidatos);
-      return {
-        error: "No se encontró costo para ese promedio en esta combinación.",
-        hint: ranges.length
-          ? "Revisa el promedio o elige otra combinación. Abajo se muestran rangos válidos."
-          : "Revisa el promedio o elige otra combinación.",
-        ranges,
-      };
-    }
- 
-    const porcentaje = toNum(match?.porcentaje) ?? 0;
- 
-    const materiasPrecio = showMaterias
-      ? getMateriasPrecio(regreso, nivel, modalidad, needsPlantelKey, materias ?? 0)
-      : null;
- 
-    let base: number | null =
-      typeof materiasPrecio === "number"
-        ? materiasPrecio
-        : getOfertaNeto(meta, needsPlantelKey, nivel, planNum);
- 
-    if (typeof base !== "number") {
-      base = baseFromRules(candidatos);
-    }
-    if (typeof base !== "number") {
-      return { error: "No fue posible determinar el costo base de esta combinación." };
-    }
- 
-    const montoFinal = base * (1 - porcentaje / 100);
-    return {
-      base,
-      porcentaje,
-      montoFinal,
-      sinAccesoBeca,
-      tier: tier ?? null,
-      plantelKey: needsPlantelKey,
-    };
-  }, [
-    rules,
-    nivel,
-    modalidad,
-    plan,
-    plantel,
-    materias,
-    promedio,
-    tipo,
-    cargoEnabled,
-    cargoType,
-    cargoAmount,
-    meta,
-    regreso,
-  ]);
- 
+
   const quoteCalculation = useMemo<Calculation | null>(() => {
     if (!quoteResult) return null;
     if (!quoteResult.ok) {
@@ -1333,16 +984,15 @@ export default function ScholarshipCalculator({
     };
   }, [quoteResult, benefitLookupKey]);
 
-  void localRuleCalculation;
   const calculation = quoteCalculation;
 
   const calcErr = calculation && "error" in calculation ? calculation : null;
   const calcError = calcErr?.error ?? null;
   const calcOk = calculation && !("error" in calculation) ? calculation : null;
- 
+
   const inputClass = (hasError: boolean) =>
     ["ui-control", hasError ? "ui-control--error" : ""].filter(Boolean).join(" ");
- 
+
   const tipoOptions = [
     { value: "nuevo_ingreso", label: "Nuevo ingreso" },
     { value: "regreso", label: "Regreso" },
@@ -1351,7 +1001,10 @@ export default function ScholarshipCalculator({
   const nivelOptions = niveles.map((n) => ({ value: n, label: n }));
   const modalidadOptions = modalidades.map((m) => ({ value: m, label: m }));
   const planOptions = planes.map((p) => ({ value: String(p), label: String(p) }));
-  const plantelOptions = planteles.map((p) => ({ value: p, label: p }));
+  const plantelOptions = planteles.map((campus) => ({
+    value: campus.value,
+    label: campus.label,
+  }));
   const materiasOptionsUi = materiasOptions.map((m) => ({
     value: String(m),
     label: String(m),
@@ -2067,7 +1720,7 @@ export default function ScholarshipCalculator({
     showResultPanelCharges,
     showResultPanelSecondaryTotal,
   ]);
-  
+
   return (
     <>
     <div className="ui-form-grid ui-form-grid--main-aside">
@@ -2100,7 +1753,7 @@ export default function ScholarshipCalculator({
             </label>
           )}
         </div>
- 
+
         {loading ? (
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
             Cargando datos...
@@ -2122,7 +1775,7 @@ export default function ScholarshipCalculator({
               onChange={(v) => setTipo(v as TipoInscripcion)}
             />
           </label>
- 
+
           <div className="ui-form-grid ui-form-grid--two ui-form-grid--four">
             <label className="grid min-w-0 gap-2 ui-label">
               <span id={nivelLabelId}>Línea de negocio</span>
@@ -2130,13 +1783,13 @@ export default function ScholarshipCalculator({
                 labelId={nivelLabelId}
                 value={nivel}
                 placeholder="Selecciona nivel"
-                disabled={!rules}
+                disabled={!pricingOptions}
                 error={Boolean(calcErr?.missing?.includes("nivel"))}
                 options={nivelOptions}
                 onChange={(v) => setNivel(v)}
               />
             </label>
- 
+
             <label className="grid min-w-0 gap-2 ui-label">
               <span id={modalidadLabelId}>Modalidad</span>
               <SmartSelect
@@ -2149,7 +1802,7 @@ export default function ScholarshipCalculator({
                 onChange={(v) => setModalidad(v)}
               />
             </label>
- 
+
             <label className="grid min-w-0 gap-2 ui-label">
               <span id={planLabelId}>Plan de estudios</span>
               <SmartSelect
@@ -2162,7 +1815,7 @@ export default function ScholarshipCalculator({
                 onChange={(v) => setPlan(v ? Number(v) : null)}
               />
             </label>
- 
+
             <label className="grid min-w-0 gap-2 ui-label">
               <span id={plantelLabelId}>Plantel</span>
               <SmartSelect
@@ -2180,7 +1833,7 @@ export default function ScholarshipCalculator({
               />
             </label>
           </div>
- 
+
           <div className="ui-subcard">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -2383,7 +2036,7 @@ export default function ScholarshipCalculator({
               </div>
             </div>
           </div>
- 
+
           {calcError ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
               <div className="font-semibold text-red-900">{calcError}</div>
@@ -2399,7 +2052,7 @@ export default function ScholarshipCalculator({
           ) : null}
         </div>
       </section>
-  
+
       <aside className="ui-scrollbar grid min-w-0 content-start gap-[var(--ui-shell-gap)] xl:sticky xl:top-[calc(var(--ui-shell-pad-y)+2px)] xl:max-h-[calc(100dvh-(var(--ui-shell-pad-y)*2))] xl:self-start xl:overflow-y-auto xl:pr-1">
         {!hideActionRail &&
         (ctasAboveResult.length > 0 || resultAboveAnnouncements.length > 0) ? (
@@ -2702,7 +2355,7 @@ export default function ScholarshipCalculator({
               </details>
             </div>
           ) : null}
- 
+
           {/* Admin debug panel removed — CTAs are now sourced from admin locations */}
         </section>
 
@@ -2712,4 +2365,4 @@ export default function ScholarshipCalculator({
     </>
   );
 }
- 
+

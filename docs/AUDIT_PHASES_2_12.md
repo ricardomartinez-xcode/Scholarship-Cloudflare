@@ -284,7 +284,6 @@ Hay presencia clara de modos:
 - `src/components/ScholarshipCalculator.tsx`
 - `src/components/unidep/UnidepWorkspace.tsx`
 - `src/app/api/data/quote/route.ts`
-- `src/app/api/data/flat-rules/route.ts`
 
 ### 6.2 Módulos potencialmente solapados
 `/admin/oferta` convive con `/admin/unidep/programs`. No son idénticos, pero ambos orbitan la gestión de oferta/programas.

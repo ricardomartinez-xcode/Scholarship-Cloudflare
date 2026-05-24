@@ -79,9 +79,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const state = {
     email: "",
-    rules: [],
-    meta: null,
-    regreso: null,
+    pricingOptions: [],
+    campuses: [],
     fees: [],
     lastSyncAt: null,
     panelConfig: { ...DEFAULT_PANEL_CONFIG },
@@ -108,6 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
     prepa: "Prepa",
     licenciatura: "Licenciatura",
     maestria: "Maestría",
+    posgrado: "Posgrado",
     salud: "Salud",
   };
   const modalityLabels = {
@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
     mixta: "Mixta",
     online: "Online",
   };
-  const businessLineOrder = ["prepa", "licenciatura", "maestria", "salud"];
+  const businessLineOrder = ["prepa", "licenciatura", "posgrado", "maestria", "salud"];
   const modalityOrder = ["presencial", "mixta", "online"];
 
   const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const canonBusinessLine = (value) => {
     const key = normalizeKey(value);
     if (["prepa", "preparatoria", "bachillerato"].includes(key)) return "prepa";
-    if (["maestria", "maestrias", "posgrado"].includes(key)) return "maestria";
+    if (["maestria", "maestrias", "posgrado"].includes(key)) return "posgrado";
     if (["licenciatura", "licenciaturas"].includes(key)) return "licenciatura";
     if (key === "salud") return "salud";
     return key;
@@ -164,14 +164,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (left !== -1 || right !== -1) return (left === -1 ? 99 : left) - (right === -1 ? 99 : right);
     return String(a).localeCompare(String(b), "es");
   };
-  const ruleMatches = (rule, programKey, businessLine, modality = null) => {
-    if (rule.programa !== programKey) return false;
-    if (businessLine && canonBusinessLine(rule.nivel) !== canonBusinessLine(businessLine)) return false;
-    if (modality && canonModality(rule.modalidad) !== canonModality(modality)) return false;
+  const optionMatches = (option, enrollmentType, businessLine, modality = null) => {
+    if (option.enrollmentType !== enrollmentType) return false;
+    if (businessLine && canonBusinessLine(option.businessLine) !== canonBusinessLine(businessLine)) return false;
+    if (modality && canonModality(option.modality) !== canonModality(modality)) return false;
     return true;
   };
   const requiresCampus = (businessLine, modality) =>
-    ["prepa", "licenciatura", "maestria", "salud"].includes(canonBusinessLine(businessLine)) &&
+    ["prepa", "licenciatura", "posgrado", "salud"].includes(canonBusinessLine(businessLine)) &&
     Boolean(canonModality(modality)) &&
     canonModality(modality) !== "online";
   const needsSubjects = (type, businessLine) => type === "regreso" && canonBusinessLine(businessLine) === "licenciatura";
@@ -490,26 +490,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderSelectors() {
     populate(refs.tipoSelect, enrollmentOptions, "Selecciona tipo", refs.tipoSelect.value || "nuevo_ingreso");
-    const programKey = refs.tipoSelect.value === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
-    const businessLines = uniq(state.rules
-      .filter((rule) => rule.programa === programKey)
-      .map((rule) => canonBusinessLine(rule.nivel)))
+    const enrollmentType = refs.tipoSelect.value || "nuevo_ingreso";
+    const businessLines = uniq(state.pricingOptions
+      .filter((option) => option.enrollmentType === enrollmentType)
+      .map((option) => canonBusinessLine(option.businessLine)))
       .sort(compareByOrder(businessLineOrder))
       .map((value) => ({ value, label: labelBusinessLine(value) }));
     populate(refs.nivelSelect, businessLines, "Selecciona línea");
-    const modalities = uniq(state.rules
-      .filter((rule) => ruleMatches(rule, programKey, refs.nivelSelect.value))
-      .map((rule) => canonModality(rule.modalidad)))
+    const modalities = uniq(state.pricingOptions
+      .filter((option) => optionMatches(option, enrollmentType, refs.nivelSelect.value))
+      .map((option) => canonModality(option.modality)))
       .sort(compareByOrder(modalityOrder))
       .map((value) => ({ value, label: labelModality(value) }));
     populate(refs.modalidadSelect, modalities, "Selecciona modalidad");
-    const plans = Array.from(new Set(state.rules
-      .filter((rule) => ruleMatches(rule, programKey, refs.nivelSelect.value, refs.modalidadSelect.value))
-      .map((rule) => Number(rule.plan)))).sort((a, b) => a - b);
+    const plans = Array.from(new Set(state.pricingOptions
+      .filter((option) => optionMatches(option, enrollmentType, refs.nivelSelect.value, refs.modalidadSelect.value))
+      .map((option) => Number(option.plan)))).sort((a, b) => a - b);
     populate(refs.planSelect, plans.map((value) => ({ value: String(value), label: `${value} cuatrimestres` })), "Selecciona plan");
     const campusRequired = requiresCampus(refs.nivelSelect.value, refs.modalidadSelect.value);
     refs.plantelField.classList.toggle("hidden", !campusRequired);
-    if (campusRequired) populate(refs.plantelSelect, uniq(Object.keys(state.meta?.planteles ?? {}).filter((key) => key && key !== "ONLINE")), "Selecciona plantel");
+    if (campusRequired) populate(refs.plantelSelect, state.campuses, "Selecciona plantel");
     else populate(refs.plantelSelect, [], "No aplica", "");
     const subjectsRequired = needsSubjects(refs.tipoSelect.value, refs.nivelSelect.value);
     refs.materiasField.classList.toggle("hidden", !subjectsRequired);
@@ -517,9 +517,9 @@ document.addEventListener("DOMContentLoaded", () => {
     else populate(refs.materiasSelect, [], "No aplica", "");
   }
 
-  function hasMatchingQuoteRule(programKey, businessLine, modality, plan) {
-    return state.rules.some((rule) =>
-      ruleMatches(rule, programKey, businessLine, modality) && Number(rule.plan) === Number(plan),
+  function hasMatchingQuoteRule(enrollmentType, businessLine, modality, plan) {
+    return state.pricingOptions.some((option) =>
+      optionMatches(option, enrollmentType, businessLine, modality) && Number(option.plan) === Number(plan),
     );
   }
 
@@ -546,15 +546,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadBootstrap() {
-    const [rulesResult, metaResult, regresoResult] = await Promise.all([
-      fetchJson("/api/data/flat-rules"),
-      fetchJson("/api/data/meta"),
-      fetchJson("/api/data/regreso-materias"),
-    ]);
-    if (!rulesResult.response.ok || !metaResult.response.ok || !regresoResult.response.ok) throw new Error("sync_failed");
-    state.rules = Array.isArray(rulesResult.data) ? rulesResult.data : [];
-    state.meta = metaResult.data ?? null;
-    state.regreso = regresoResult.data ?? null;
+    const { response, data } = await fetchJson("/api/data/pricing-options");
+    if (!response.ok || !data?.ok) throw new Error("sync_failed");
+    state.pricingOptions = Array.isArray(data.combinations) ? data.combinations : [];
+    state.campuses = Array.isArray(data.campuses) ? data.campuses : [];
     state.lastSyncAt = Date.now();
     refs.syncTime.textContent = new Date(state.lastSyncAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
     renderSelectors();
@@ -617,136 +612,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return fee ? Number(fee.costMxn) : 0;
   }
 
-  function getRuleMin(rule) {
-    const min = Number(rule?.rango?.min);
-    return Number.isFinite(min) ? min : null;
-  }
-
-  function getRuleMax(rule) {
-    const max = Number(rule?.rango?.max);
-    return Number.isFinite(max) ? max : null;
-  }
-
-  function ruleContainsAverage(rule, average) {
-    const min = getRuleMin(rule);
-    const max = getRuleMax(rule);
-    if (min === null || max === null) return false;
-    return average >= min - 1e-6 && average <= max + 1e-6;
-  }
-
-  function nearestRuleForAverage(rules, average) {
-    let best = null;
-    for (const rule of rules) {
-      const min = getRuleMin(rule);
-      const max = getRuleMax(rule);
-      if (min === null || max === null) continue;
-      const distance = average < min ? min - average : average > max ? average - max : 0;
-      if (!best || distance < best.distance) best = { rule, distance };
-    }
-    return best?.rule ?? null;
-  }
-
-  function listRuleRanges(rules) {
-    return Array.from(new Set(rules.map((rule) => {
-      const min = getRuleMin(rule);
-      const max = getRuleMax(rule);
-      if (min === null || max === null) return null;
-      return `${min.toFixed(1)}-${max.toFixed(1)}`;
-    }).filter(Boolean)));
-  }
-
-  function basePriceFromRule(rule) {
-    if (!rule) return null;
-    const discountedPrice = Number(rule.monto);
-    const scholarshipPercent = Number(rule.porcentaje);
-    if (!Number.isFinite(discountedPrice) || !Number.isFinite(scholarshipPercent) || scholarshipPercent >= 100) return null;
-    return discountedPrice / (1 - scholarshipPercent / 100);
-  }
-
-  function shouldUseLocalMaestriaFallback(payload, quoteResult) {
-    const message = normalizeKey([quoteResult?.error, quoteResult?.hint].filter(Boolean).join(" "));
-    return (
-      canonBusinessLine(payload?.businessLine) === "maestria" &&
-      canonModality(payload?.modality) === "online" &&
-      Number(payload?.plan) === 4 &&
-      (message.includes("no hay reglas") || message.includes("combinacion") || !quoteResult?.ok)
-    );
-  }
-
-  function calculateLocalLegacyQuote(payload) {
-    const programKey = payload.enrollmentType === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
-    const businessLine = canonBusinessLine(payload.businessLine);
-    const modality = canonModality(payload.modality);
-    const plan = Number(payload.plan);
-    const average = Math.round(Number(payload.average) * 10) / 10;
-    const extraCharge = Number(payload.extraCharge || 0);
-    const candidateRules = state.rules.filter((rule) =>
-      ruleMatches(rule, programKey, businessLine, modality) && Number(rule.plan) === plan,
-    );
-
-    if (!candidateRules.length) {
-      return null;
-    }
-
-    const sinAccessToScholarship = average < 7;
-    let matchedRule = sinAccessToScholarship ? null : candidateRules.find((rule) => ruleContainsAverage(rule, average));
-    if (!sinAccessToScholarship && !matchedRule) {
-      const nearest = nearestRuleForAverage(candidateRules, average);
-      if (nearest) {
-        const min = getRuleMin(nearest);
-        const max = getRuleMax(nearest);
-        if (min !== null && max !== null && average >= min - 0.05 && average <= max + 0.05) {
-          matchedRule = nearest;
-        }
-      }
-    }
-
-    if (!sinAccessToScholarship && !matchedRule) {
-      return {
-        ok: false,
-        error: "No se encontró costo para ese promedio en esta combinación.",
-        hint: "Revisa el promedio o elige otra combinación. Abajo se muestran rangos válidos.",
-        ranges: listRuleRanges(candidateRules),
-        source: "extension_local_legacy",
-      };
-    }
-
-    const referenceRule = matchedRule || candidateRules[0];
-    const basePriceMxn = basePriceFromRule(referenceRule);
-    if (basePriceMxn === null) {
-      return null;
-    }
-
-    const scholarshipPercent = sinAccessToScholarship ? 0 : Number(referenceRule.porcentaje || 0);
-    const percentageBenefit = payload.enrollmentType === "regreso" ? null : state.currentBenefits?.benefit;
-    const firstPaymentBenefit = state.currentBenefits?.firstPaymentBenefit;
-    const additionalBenefitPercent = Number(percentageBenefit?.extraPercent || 0);
-    const scholarshipAmountMxn = sinAccessToScholarship ? 0 : basePriceMxn * (scholarshipPercent / 100);
-    const additionalBenefitAmountMxn = basePriceMxn * (additionalBenefitPercent / 100);
-    const subtotalMxn = basePriceMxn - scholarshipAmountMxn - additionalBenefitAmountMxn;
-    const totalMxn = subtotalMxn + extraCharge;
-
-    return {
-      ok: true,
-      basePriceMxn,
-      scholarshipPercent,
-      scholarshipAmountMxn,
-      additionalBenefitPercent,
-      additionalBenefitNotes: percentageBenefit?.notes ?? null,
-      additionalBenefitDuration: percentageBenefit?.duration ?? null,
-      additionalBenefitAmountMxn,
-      firstPaymentAmountMxn: Number(firstPaymentBenefit?.firstPaymentAmount || 0),
-      firstPaymentNotes: firstPaymentBenefit?.notes ?? null,
-      firstPaymentDuration: firstPaymentBenefit?.duration ?? null,
-      subtotalMxn,
-      totalMxn,
-      tier: null,
-      source: "extension_local_legacy",
-      modeUsed: "extension_local_legacy",
-      sinAccessToScholarship,
-    };
-  }
-
   async function resolveQuoteWithFallback(payload) {
     let primary = null;
 
@@ -782,17 +647,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
       }
     } catch {
-      // Continúa al fallback local si ReCalc no responde o la ruta canónica no acepta el token de extensión.
-    }
-
-    const localResult = calculateLocalLegacyQuote(payload);
-    if (localResult) {
-      return {
-        ...localResult,
-        source: localResult.source ?? "extension_local_legacy",
-        modeUsed: localResult.modeUsed ?? "extension_local_legacy",
-        fallback: true,
-      };
+      // La cotización ya no usa fallback local; se devuelve el error remoto.
     }
 
     return primary?.data ?? {
@@ -811,7 +666,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const average = decimal(refs.promedioInput.value);
     const subjects = refs.materiasSelect.value ? Number(refs.materiasSelect.value) : null;
     const extraCharge = refs.extraEnabled.checked ? selectedFeeAmount() : 0;
-    const programKey = refs.tipoSelect.value === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
     if (!businessLine || !modality || !plan || average === null) {
       showError(refs.quoteError, "Completa tipo, línea, modalidad, plan y promedio.");
       resetQuote("Completa los campos requeridos y vuelve a calcular.", { preserveError: true });
@@ -827,7 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
       resetQuote("Selecciona las materias inscritas y vuelve a calcular.", { preserveError: true });
       return;
     }
-    if (!hasMatchingQuoteRule(programKey, businessLine, modality, plan)) {
+    if (!hasMatchingQuoteRule(refs.tipoSelect.value, businessLine, modality, plan)) {
       showError(
         refs.quoteError,
         `No hay regla activa para ${describeQuoteSelection(businessLine, modality, plan)}. Cambia línea, modalidad o plan de estudios.`,

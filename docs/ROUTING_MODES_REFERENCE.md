@@ -1,7 +1,7 @@
 # Referencia de Rutas y Modos de Ejecución
 
-**Fecha**: 2026-03-11  
-**Estado**: Vigente — Bloque 4C: Consolidación de rutas legacy, compare y canonical
+**Fecha**: 2026-03-11
+**Estado**: Vigente — precios ya consolidados en rutas canónicas
 
 ---
 
@@ -28,12 +28,12 @@
 | `/app-real` | Acceso legacy al panel | **Legacy / Redirige** | Solo redirige a `/unidep`; se mantiene por compatibilidad temporal con marcadores y enlaces externos |
 | `/profile` | Perfil del usuario | Canónica | |
 
-> **Criterio canónico**: `/unidep` es el único punto de entrada legítimo al panel de usuario.  
+> **Criterio canónico**: `/unidep` es el único punto de entrada legítimo al panel de usuario.
 > `/app-real` **no debe aparecer en nuevos desarrollos**. Puede eliminarse cuando se confirme que no hay referencias externas activas.
 
 ### Rutas de administración (alcance Bloque 4C)
 
-> **Alcance**: esta tabla no es exhaustiva. Solo lista rutas de administración relevantes para la consolidación de modos **legacy / compare / canonical**.  
+> **Alcance**: esta tabla no es exhaustiva. Solo lista rutas de administración relevantes para la consolidación de modos **legacy / compare / canonical**.
 > Otras rutas operativas de admin (por ejemplo: `/admin/oferta`, `/admin/sidebar`, `/admin/ctas`, `/admin/comunicados`, `/admin/auth-sync`) quedan fuera de este documento.
 
 | Ruta | Descripción | Estado |
@@ -62,10 +62,8 @@
 
 | Ruta | Descripción | Modo controlado por |
 |------|-------------|---------------------|
-| `GET /api/data/flat-rules` | Reglas de beca planas | `PRICING_READ_MODE` |
-| `GET /api/data/meta` | Metadatos de precios (legacy) | `PRICING_READ_MODE` (solo logging en compare) |
-| `GET /api/data/regreso-materias` | Precios por materia (regreso) | `PRICING_READ_MODE` |
-| `POST /api/data/quote` | Cálculo de cotización de beca | `QUOTE_MODE` |
+| `GET /api/data/pricing-options` | Opciones canónicas del cotizador | Sin modo — solo Prisma |
+| `POST /api/data/quote` | Cálculo canónico de cotización de beca | Sin modo — solo Prisma |
 | `GET/POST /api/data/quote-history` | Historial de cotizaciones | `QUOTE_MODE` (solo valor por defecto/metadata de `quoteMode`; la lógica de guardado es común a todos los modos) |
 | `GET /api/data/benefits` | Beneficios adicionales | Sin modo — solo Prisma |
 | `GET /api/data/simulador` | Delegado de quote-history | Sin modo propio |
@@ -108,24 +106,14 @@ El sistema de modos permite la **migración gradual** de la implementación lega
 
 | Variable | Subsistema | Destino canónico |
 |----------|------------|-----------------|
-| `PRICING_READ_MODE` | Reglas de beca, meta, regreso-materias | `"canonical"` |
 | `DIRECTORY_READ_MODE` | Directorio público de contactos | `"canonical"` |
 | `DIRECTORY_WRITE_MODE` | Escritura en directorio (sincronización de métodos) | `"canonical"` |
-| `QUOTE_MODE` | Cálculo de cotización y guardado de historial | `"canonical"` (ver nota) |
-
-> **Nota sobre `QUOTE_MODE`**: La ruta `/api/data/quote` ya es **canonical-first**: siempre ejecuta `resolveScholarshipQuote` (implementación canónica) independientemente del modo configurado. El modo solo activa el logging de comparación con el motor legacy cuando se establece en `"compare"`. Configurar `QUOTE_MODE=legacy` o `QUOTE_MODE=canonical` produce el mismo resultado (retorno canónico sin comparación). El motor legacy en este contexto es solo una herramienta de auditoría.
 
 ### Comportamiento por subsistema
 
-#### Precios (`PRICING_READ_MODE`)
+#### Precios
 
-| Modo | flat-rules | regreso-materias | meta |
-|------|-----------|-----------------|------|
-| `legacy` (default) | Devuelve datos legacy (`recalc_regla_beca`) | Devuelve datos legacy | Devuelve datos legacy (`recalc_meta`) |
-| `compare` | Devuelve datos legacy + log de diferencias | Devuelve datos legacy + log de diferencias | Log de diferencias de tier por plantel (datos legacy siempre) |
-| `canonical` | Devuelve datos Prisma (`ScholarshipRule`) | Devuelve datos Prisma (`ReturnSubjectPrice`) | ⚠️ Sin implementación canónica — siempre devuelve legacy |
-
-> **Deuda técnica identificada**: `/api/data/meta` no tiene implementación canónica. La tabla `recalc_meta` no tiene equivalente en Prisma. Es el único endpoint de datos que no puede migrar a `canonical` todavía.
+Precios y becas se leen desde Prisma. La UI y la extensión usan `GET /api/data/pricing-options` para selectores y `POST /api/data/quote` para cálculo; los precios por materia de regreso se resuelven dentro del motor canónico.
 
 #### Directorio (`DIRECTORY_READ_MODE` / `DIRECTORY_WRITE_MODE`)
 
@@ -137,13 +125,9 @@ El sistema de modos permite la **migración gradual** de la implementación lega
 
 > El campo `methods` en la respuesta del directorio es la principal diferencia entre legacy y canonical. La migración a `canonical` habilita contactos con múltiples canales (email, teléfono, WhatsApp).
 
-#### Cotización (`QUOTE_MODE`)
+#### Cotización
 
-| Modo | Comportamiento |
-|------|---------------|
-| `legacy` | Retorna resultado canónico (sin logging de comparación) |
-| `compare` | Retorna resultado canónico + log de diferencias con motor legacy |
-| `canonical` | Retorna resultado canónico (sin logging de comparación) |
+`/api/data/quote` retorna únicamente resultado canónico.
 
 ---
 
@@ -159,9 +143,9 @@ El sistema de modos permite la **migración gradual** de la implementación lega
 
 | Subsistema | Implementación legacy | Implementación canónica | Estado de paridad |
 |------------|-----------------------|-------------------------|-------------------|
-| Reglas de beca | `legacy-pricing.ts` + `recalc_regla_beca` | `canonical-pricing-readers.ts` + `ScholarshipRule` | En verificación — usar `compare` mode para validar |
-| Precios regreso | `recalc_regreso_materias` (Neon SQL) | `ReturnSubjectPrice` (Prisma) | En verificación |
-| Cotización | `computeLegacyScholarshipQuote()` | `resolveScholarshipQuote()` | Canónico activo en producción |
+| Reglas de beca | Retirada de rutas de runtime | `ScholarshipRule` | Canónico activo en producción |
+| Precios regreso | Retirada de rutas de runtime | `ReturnSubjectPrice` (Prisma) | Canónico activo en producción |
+| Cotización | Fallback local legacy retirado | `resolveScholarshipQuote()` | Canónico activo en producción |
 | Directorio | Proyección sin `methods` | Proyección con `methods` | Depende de `DIRECTORY_READ_MODE` |
 | Meta pricing | `recalc_meta` | ❌ Sin equivalente | Migración pendiente |
 
@@ -171,19 +155,14 @@ El sistema de modos permite la **migración gradual** de la implementación lega
 
 Para completar la consolidación, el orden recomendado es:
 
-1. **`PRICING_READ_MODE=compare`** → Validar paridad entre legacy y canonical en `flat-rules` y `regreso-materias`.  
-2. **`PRICING_READ_MODE=canonical`** → Una vez validada la paridad, promover a canonical.  
-3. **`DIRECTORY_READ_MODE=compare` + `DIRECTORY_WRITE_MODE=compare`** → Validar sincronización de métodos de contacto.  
-4. **`DIRECTORY_READ_MODE=canonical` + `DIRECTORY_WRITE_MODE=canonical`** → Activar métodos de contacto en producción.  
-5. **`/api/data/meta`** → Diseñar equivalente canónico en Prisma para `recalc_meta` o consolidar los campos relevantes (especialmente `planteles[].tier`) directamente en el modelo `Campus`.  
-6. **Eliminar `/app-real`** → Tras confirmar que no hay referencias externas activas.  
-7. **Depurar `legacy-pricing.ts`** y `computeLegacyScholarshipQuote()` → Solo cuando todos los modos estén en `"canonical"` y validados.
+1. **`DIRECTORY_READ_MODE=compare` + `DIRECTORY_WRITE_MODE=compare`** → Validar sincronización de métodos de contacto.
+2. **`DIRECTORY_READ_MODE=canonical` + `DIRECTORY_WRITE_MODE=canonical`** → Activar métodos de contacto en producción.
+3. **Eliminar `/app-real`** → Tras confirmar que no hay referencias externas activas.
 
 ---
 
 ## 6. Guía de lectura para desarrolladores
 
-- Los archivos `src/lib/runtime-modes.ts` y `src/lib/runtime-comparison.ts` son la infraestructura transversal de comparación. No requieren cambios para la migración; solo ajustar las variables de entorno.  
-- El logging de comparación usa el prefijo `[canonical-compare]` en los logs estructurados. Buscar este prefijo para auditar diferencias en producción.  
-- Las funciones `shouldMirrorLegacyPricingWrites()` y `shouldMirrorLegacyDirectoryWrites()` controlan si las escrituras admin se duplican también en las tablas legacy. Se vuelven `false` cuando el modo está en `"canonical"`.  
-- Los scripts en `scripts/` (`backfill-canonical-data.ts`, `compare-canonical-data.ts`, `backup-legacy-data.ts`) son herramientas de soporte para la migración de datos.
+- Los archivos `src/lib/runtime-modes.ts` y `src/lib/runtime-comparison.ts` se mantienen para subsistemas que todavía requieren comparación gradual.
+- El logging de comparación usa el prefijo `[canonical-compare]` en los logs estructurados. Buscar este prefijo para auditar diferencias en producción.
+- La lógica de precios ya no depende de rutas de compatibilidad ni de scripts de migración legacy.

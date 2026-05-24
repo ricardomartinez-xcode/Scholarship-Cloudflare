@@ -154,10 +154,7 @@ export async function resolveScholarshipQuote(
       discountedPriceMxn: toNumber(rule.discountedPriceMxn),
     };
   });
-  const sameEnrollmentRules = normalizedCandidateRules.filter(
-    (rule) => rule.enrollmentType === input.enrollmentType,
-  );
-  const averageCandidateRules = sameEnrollmentRules;
+  const averageCandidateRules = normalizedCandidateRules;
 
   const average = Math.round(Number(input.average) * 10) / 10;
   const sinAccessToScholarship = average < 7;
