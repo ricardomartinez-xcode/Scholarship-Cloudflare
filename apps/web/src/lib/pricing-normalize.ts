@@ -82,12 +82,6 @@ export function normalizeEnrollmentType(
   return null;
 }
 
-export function getRuleEnrollmentType(
-  enrollmentType: EnrollmentTypeValue,
-): EnrollmentTypeValue {
-  return enrollmentType === "regreso" ? "reingreso" : enrollmentType;
-}
-
 export function requiresCampusForQuote(
   businessLine: string,
   modality: string,

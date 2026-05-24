@@ -25,7 +25,6 @@ import type {
 } from "@/lib/whatsapp-templates";
 import type { AcademicOfferCycle } from "@/config/academicOffer";
  
-const MAX_BECA_REGRESO = 25;
 const QUOTE_DEBOUNCE_MS = 300;
  
 type TipoInscripcion = "nuevo_ingreso" | "regreso" | "reingreso";
@@ -748,35 +747,29 @@ export default function ScholarshipCalculator({
   }, [normalizedVisibleOfferCycles]);
 
  
-  const programaKey = tipo === "nuevo_ingreso" ? "nuevo_ingreso" : "reingreso";
- 
   const niveles = useMemo(() => {
     if (!rules) return [];
-    const filtered = rules.filter((r) => r.programa === programaKey);
-    return uniqSorted(filtered.map((r) => r.nivel));
-  }, [rules, programaKey]);
+    return uniqSorted(rules.map((r) => r.nivel));
+  }, [rules]);
  
   const modalidades = useMemo(() => {
     if (!rules || !nivel) return [];
-    const filtered = rules.filter(
-      (r) => r.programa === programaKey && r.nivel === nivel
-    );
+    const filtered = rules.filter((r) => r.nivel === nivel);
     const all = uniqSorted(filtered.map((r) => r.modalidad));
     if (nivel === "salud") return all.filter((m) => m === "presencial");
     const order: Record<string, number> = { presencial: 0, mixta: 1, online: 2 };
     return all.sort((a, b) => (order[a] ?? 9) - (order[b] ?? 9));
-  }, [rules, nivel, programaKey]);
+  }, [rules, nivel]);
  
   const planes = useMemo(() => {
     if (!rules || !nivel || !modalidad) return [];
     const filtered = rules.filter(
       (r) =>
-        r.programa === programaKey &&
         r.nivel === nivel &&
         r.modalidad === modalidad
     );
     return Array.from(new Set(filtered.map((r) => Number(r.plan)))).sort((a, b) => a - b);
-  }, [rules, nivel, modalidad, programaKey]);
+  }, [rules, nivel, modalidad]);
  
   const planteles = useMemo(() => {
     const plantelesObj = meta?.planteles ?? {};
@@ -1204,7 +1197,6 @@ export default function ScholarshipCalculator({
  
     let candidatos = rules.filter(
       (r) =>
-        r.programa === programaKey &&
         r.nivel === nivel &&
         r.modalidad === modalidad &&
         Number(r.plan) === planNum
@@ -1216,7 +1208,6 @@ export default function ScholarshipCalculator({
       // hasn't been cleared by its effect yet). Treat it as a missing plan.
       const hasRulesForCombo = rules.some(
         (r) =>
-          r.programa === programaKey &&
           r.nivel === nivel &&
           r.modalidad === modalidad
       );
@@ -1273,10 +1264,7 @@ export default function ScholarshipCalculator({
       };
     }
  
-    let porcentaje = toNum(match?.porcentaje) ?? 0;
-    if (tipo !== "nuevo_ingreso") {
-      porcentaje = Math.min(porcentaje, MAX_BECA_REGRESO);
-    }
+    const porcentaje = toNum(match?.porcentaje) ?? 0;
  
     const materiasPrecio = showMaterias
       ? getMateriasPrecio(regreso, nivel, modalidad, needsPlantelKey, materias ?? 0)
@@ -1317,7 +1305,6 @@ export default function ScholarshipCalculator({
     cargoAmount,
     meta,
     regreso,
-    programaKey,
   ]);
  
   const quoteCalculation = useMemo<Calculation | null>(() => {
@@ -1405,9 +1392,7 @@ export default function ScholarshipCalculator({
     calcOk?.firstPaymentNotes ?? firstPaymentBenefit?.notes ?? "";
   const firstPaymentDuration =
     calcOk?.firstPaymentDuration ?? firstPaymentBenefit?.duration ?? null;
-  // Los beneficios porcentuales nunca aplican para Regresos; Primer pago sí puede aplicar.
-  const beneficioBlockedByTipo = tipo === "regreso";
-  const beneficioAplica = !beneficioBlockedByTipo && beneficioPercent > 0;
+  const beneficioAplica = beneficioPercent > 0;
   const firstPaymentAplica = firstPaymentAmount > 0;
   void beneficioLoading;
   void beneficioError;
@@ -2318,12 +2303,7 @@ export default function ScholarshipCalculator({
               <div className="ui-panel-kicker">
                 Beneficio adicional
               </div>
-              {beneficioBlockedByTipo ? (
-                <div className="mt-2 text-sm font-medium text-[color:var(--ui-text-secondary)]">
-                  Los beneficios adicionales <span className="font-semibold text-[color:var(--ui-text-primary)]">no aplican para Regresos</span>.
-                </div>
-              ) : (
-                <>
+              <>
                   <div className="mt-2 text-sm font-medium text-[color:var(--ui-text-primary)]">
                     <span className="font-semibold">Estado:</span>{" "}
                     <span
@@ -2353,8 +2333,7 @@ export default function ScholarshipCalculator({
                       {beneficioDurationSentence}
                     </div>
                   ) : null}
-                </>
-              )}
+              </>
             </div>
 
             <div className="ui-subcard">

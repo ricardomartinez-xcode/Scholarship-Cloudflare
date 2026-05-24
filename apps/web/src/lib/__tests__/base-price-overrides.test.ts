@@ -50,4 +50,33 @@ describe("findPublishedBasePriceOverride", () => {
       }),
     ).toBe(1890);
   });
+
+  it("ignores legacy enrollment keys for canonical price-list overrides", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "legacy-program-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          programa_key: "reingreso",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T1",
+        },
+        newPrice: 4290,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        tier: "T1",
+      }),
+    ).toBe(4290);
+  });
 });

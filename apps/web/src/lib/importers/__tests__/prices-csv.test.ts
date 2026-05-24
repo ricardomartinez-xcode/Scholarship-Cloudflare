@@ -63,4 +63,41 @@ describe("preparePricesCsvImport", () => {
       newPrice: 1890,
     });
   });
+
+  it("does not key canonical price imports by legacy programa", async () => {
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([
+      {
+        id: "override-1",
+        targetKeys: {
+          programa_key: "nuevo_ingreso",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T1",
+        },
+        newPrice: 4289,
+        isActive: true,
+        notes: null,
+      },
+    ]);
+
+    const csv = [
+      "programa,nivel_key,modalidad_key,plan,tier,new_price",
+      "reingreso,licenciatura,presencial,9,T1,4290",
+    ].join("\n");
+    const file = new File([csv], "precios.csv", { type: "text/csv" });
+
+    const result = await preparePricesCsvImport({ file });
+
+    expect(result.payload.rows[0]).toMatchObject({
+      action: "update",
+      existingId: "override-1",
+      programaKey: "reingreso",
+      nivelKey: "licenciatura",
+      modalidadKey: "presencial",
+      plan: "9",
+      tier: "T1",
+      newPrice: 4290,
+    });
+  });
 });

@@ -97,7 +97,6 @@ function parseBoolean(value: string, defaultValue: boolean) {
 
 function buildPriceScopeKey(input: {
   plantel?: string | null;
-  programaKey?: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -105,7 +104,6 @@ function buildPriceScopeKey(input: {
 }) {
   return [
     (input.plantel ?? "").trim().toLowerCase(),
-    (input.programaKey ?? "").trim().toLowerCase(),
     input.nivelKey.trim().toLowerCase(),
     input.modalidadKey.trim().toLowerCase(),
     input.plan.trim().toLowerCase(),
@@ -156,7 +154,6 @@ async function buildExistingPriceOverridesByScopeKey() {
         : {};
     const key = buildPriceScopeKey({
       plantel: target.plantel ? String(target.plantel) : null,
-      programaKey: String(target.programa_key ?? ""),
       nivelKey: String(target.nivel_key ?? ""),
       modalidadKey: String(target.modalidad_key ?? ""),
       plan: String(target.plan ?? ""),
@@ -246,7 +243,6 @@ export async function preparePricesCsvImport(
     const notes = readCell(row, idxNotes) || null;
     const key = buildPriceScopeKey({
       plantel,
-      programaKey,
       nivelKey,
       modalidadKey,
       plan,
@@ -280,7 +276,6 @@ export async function preparePricesCsvImport(
   for (const parsedRow of parsedRows) {
     const key = buildPriceScopeKey({
       plantel: parsedRow.plantel,
-      programaKey: parsedRow.programaKey,
       nivelKey: parsedRow.nivelKey,
       modalidadKey: parsedRow.modalidadKey,
       plan: parsedRow.plan,
@@ -347,9 +342,6 @@ export async function applyPreparedPricesImport(params: {
         plan: row.plan,
         tier: row.tier,
       };
-      if (row.programaKey) {
-        targetKeys.programa_key = row.programaKey;
-      }
       if (row.plantel) {
         targetKeys.plantel = row.plantel;
       }

@@ -34,7 +34,7 @@ describe("calculator quote engine", () => {
     expect(result.totalMxn).toBe(2000);
   });
 
-  it("aplica tope de reingreso/regreso", () => {
+  it("usa el porcentaje configurado por tipo de ingreso sin topes legacy", () => {
     const reingreso = runQuoteEngine({
       enrollmentType: "reingreso",
       businessLine: "maestria",
@@ -45,7 +45,7 @@ describe("calculator quote engine", () => {
       basePriceMxn: 1000,
       scholarshipPercent: 50,
     });
-    expect(reingreso.scholarshipPercent).toBe(25);
+    expect(reingreso.scholarshipPercent).toBe(50);
 
     const regreso = runQuoteEngine({
       enrollmentType: "regreso",
@@ -57,7 +57,7 @@ describe("calculator quote engine", () => {
       basePriceMxn: 1000,
       scholarshipPercent: 40,
     });
-    expect(regreso.scholarshipPercent).toBe(25);
+    expect(regreso.scholarshipPercent).toBe(40);
   });
 
   it("soporta planteles/modalidades distintas", () => {

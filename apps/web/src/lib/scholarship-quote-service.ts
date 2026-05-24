@@ -13,16 +13,12 @@ import { resolveAdditionalBenefits } from "@/lib/additional-benefits";
 import { buildCampusAliases, resolveCampus } from "@/lib/campus-resolver";
 import {
   BASE_PRICE_OVERRIDE_SCOPE,
-  LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
-  buildLegacyDiscountedOverrideMap,
   findPublishedBasePriceOverride,
-  legacyDiscountedOverrideKey,
 } from "@/lib/base-price-overrides";
 import {
   basePriceFromRules,
   findNearestRule,
   findRuleForAverage,
-  getRuleEnrollmentType,
   listRuleRanges,
   normalizeTier,
   requiresCampusForQuote,
@@ -31,8 +27,6 @@ import {
   type CanonicalModalityValue,
   type EnrollmentTypeValue,
 } from "@/lib/pricing-normalize";
-
-const MAX_REGRESO_SCHOLARSHIP = 25;
 
 export type ScholarshipQuoteInput = {
   enrollmentType: EnrollmentTypeValue;
@@ -112,13 +106,11 @@ export async function resolveScholarshipQuote(
     input.modality === "online"
       ? "ANY"
       : normalizeTier(campus?.tier ?? null);
-  const ruleEnrollmentType = getRuleEnrollmentType(input.enrollmentType);
   const tierCandidates = Array.from(new Set([runtimeTier, "ANY"]));
 
   const [allRules, overrides] = await Promise.all([
     prisma.scholarshipRule.findMany({
       where: {
-        enrollmentType: ruleEnrollmentType,
         businessLine: input.businessLine,
         modality: input.modality,
         plan: Number(input.plan),
@@ -131,7 +123,6 @@ export async function resolveScholarshipQuote(
       ],
     }),
     listActivePublishedPriceOverrides([
-      LEGACY_DISCOUNTED_PRICE_OVERRIDE_SCOPE,
       BASE_PRICE_OVERRIDE_SCOPE,
     ]),
   ]);
@@ -150,8 +141,6 @@ export async function resolveScholarshipQuote(
   );
   if (!candidateRules.length) candidateRules = allRules;
 
-  const legacyDiscountedOverrideMap = buildLegacyDiscountedOverrideMap(overrides);
-
   const normalizedCandidateRules = candidateRules.map((rule) => {
     return {
       enrollmentType: rule.enrollmentType,
@@ -162,27 +151,22 @@ export async function resolveScholarshipQuote(
       minAverage: toNumber(rule.minAverage),
       maxAverage: toNumber(rule.maxAverage),
       scholarshipPercent: toNumber(rule.scholarshipPercent),
-      discountedPriceMxn:
-        legacyDiscountedOverrideMap.get(
-          legacyDiscountedOverrideKey({
-            enrollmentType: rule.enrollmentType,
-            businessLine: rule.businessLine,
-            modality: rule.modality,
-            plan: rule.plan,
-            tier: rule.campusTier,
-          }),
-        ) ?? toNumber(rule.discountedPriceMxn),
+      discountedPriceMxn: toNumber(rule.discountedPriceMxn),
     };
   });
+  const sameEnrollmentRules = normalizedCandidateRules.filter(
+    (rule) => rule.enrollmentType === input.enrollmentType,
+  );
+  const averageCandidateRules = sameEnrollmentRules;
 
   const average = Math.round(Number(input.average) * 10) / 10;
   const sinAccessToScholarship = average < 7;
-  let matchedRule = sinAccessToScholarship
+  let matchedRule = sinAccessToScholarship || !averageCandidateRules.length
     ? null
-    : findRuleForAverage(normalizedCandidateRules, average);
+    : findRuleForAverage(averageCandidateRules, average);
 
-  if (!sinAccessToScholarship && !matchedRule) {
-    const nearest = findNearestRule(normalizedCandidateRules, average);
+  if (!sinAccessToScholarship && averageCandidateRules.length && !matchedRule) {
+    const nearest = findNearestRule(averageCandidateRules, average);
     if (nearest) {
       const min = toNumber(nearest.minAverage);
       const max = toNumber(nearest.maxAverage);
@@ -203,21 +187,15 @@ export async function resolveScholarshipQuote(
       error: "No se encontró costo para ese promedio en esta combinación.",
       hint:
         "Revisa el promedio o elige otra combinación. Abajo se muestran rangos válidos.",
-      ranges: listRuleRanges(normalizedCandidateRules),
+      ranges: listRuleRanges(averageCandidateRules),
       source: "canonical",
     };
   }
 
-  let scholarshipPercent =
+  const scholarshipPercent =
     matchedRule && "scholarshipPercent" in matchedRule
       ? (toNumber(matchedRule.scholarshipPercent) ?? 0)
       : 0;
-  if (input.enrollmentType !== "nuevo_ingreso") {
-    scholarshipPercent = Math.min(
-      scholarshipPercent,
-      MAX_REGRESO_SCHOLARSHIP,
-    );
-  }
 
   const returnSubjectPrice =
     input.enrollmentType === "regreso" &&
@@ -264,11 +242,10 @@ export async function resolveScholarshipQuote(
       (input.modality === "online" ? "ONLINE" : null),
     businessLine: input.businessLine,
     modality: input.modality,
-    enrollmentType: ruleEnrollmentType,
+    enrollmentType: input.enrollmentType,
   });
 
-  const percentageBenefit =
-    input.enrollmentType === "regreso" ? null : benefits.percentageBenefit;
+  const percentageBenefit = benefits.percentageBenefit;
   const firstPaymentBenefit = benefits.firstPaymentBenefit;
   const additionalBenefitPercent = percentageBenefit?.extraPercent ?? 0;
   const scholarshipAmountMxn =

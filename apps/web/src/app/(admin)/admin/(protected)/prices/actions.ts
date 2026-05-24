@@ -10,7 +10,6 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
-import { loadCanonicalFlatRulesPayload } from "@/lib/canonical-pricing-readers";
 import { captureException, logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 
@@ -30,30 +29,6 @@ export type BecaRule = {
 };
 
 const PRICES_WRITE_CAPABILITY = AdminCapability.manage_prices;
-
-function buildRuleKey(rule: {
-  programa_key: string;
-  nivel_key: string;
-  modalidad_key: string;
-  plan: string;
-  tier: string | null;
-  rango_min: number | null;
-  rango_max: number | null;
-  porcentaje?: number | null;
-  monto?: number | null;
-  basePriceMxn?: number | null;
-  origen?: string | null;
-}) {
-  return [
-    rule.programa_key,
-    rule.nivel_key,
-    rule.modalidad_key,
-    rule.plan,
-    rule.tier ?? "",
-    rule.rango_min ?? "",
-    rule.rango_max ?? "",
-  ].join("|");
-}
 
 function serializePriceOverride(record: {
   id: string;
@@ -93,82 +68,28 @@ export async function getBecaRules(): Promise<BecaRule[]> {
   try {
     await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
     const rows = await prisma.scholarshipRule.findMany({
-      where: {
-        enrollmentType: { in: ["nuevo_ingreso", "reingreso"] },
-      },
       orderBy: [
-        { enrollmentType: "asc" },
         { businessLine: "asc" },
         { modality: "asc" },
         { plan: "asc" },
         { campusTier: "asc" },
+        { enrollmentType: "asc" },
         { minAverage: "asc" },
       ],
     });
 
-    const payload = await loadCanonicalFlatRulesPayload();
-    const payloadMap = new Map(
-      payload.map((rule) => [
-        buildRuleKey({
-          programa_key: rule.programa,
-          nivel_key: rule.nivel,
-          modalidad_key: rule.modalidad,
-          plan: String(rule.plan),
-          tier: rule.tier,
-          rango_min: rule.rango?.min ?? null,
-          rango_max: rule.rango?.max ?? null,
-          porcentaje: rule.porcentaje,
-          monto: rule.monto,
-          origen: rule.origen,
-        }),
-        rule,
-      ]),
-    );
-
     return rows.map((row) => {
-      const payloadRow =
-        payloadMap.get(
-          buildRuleKey({
-            programa_key:
-              row.enrollmentType === "nuevo_ingreso"
-                ? "nuevo_ingreso"
-                : "reingreso",
-            nivel_key:
-              row.businessLine === "prepa"
-                ? "preparatoria"
-                : row.businessLine,
-            modalidad_key: row.modality,
-            plan: String(row.plan),
-            tier: row.campusTier === "ANY" ? null : row.campusTier,
-            rango_min: row.minAverage === null ? null : Number(row.minAverage),
-            rango_max: row.maxAverage === null ? null : Number(row.maxAverage),
-            porcentaje:
-              row.scholarshipPercent === null
-                ? null
-                : Number(row.scholarshipPercent),
-            monto:
-              row.discountedPriceMxn === null
-                ? null
-                : Number(row.discountedPriceMxn),
-            origen: row.origin,
-          }),
-        ) ?? null;
-
       const monto =
-        payloadRow?.monto ??
-        (row.discountedPriceMxn === null
+        row.discountedPriceMxn === null
           ? null
-          : Number(row.discountedPriceMxn));
+          : Number(row.discountedPriceMxn);
       const porcentaje =
         row.scholarshipPercent === null
           ? null
           : Number(row.scholarshipPercent);
       return {
         id: row.id,
-        programa_key:
-          row.enrollmentType === "nuevo_ingreso"
-            ? "nuevo_ingreso"
-            : "reingreso",
+        programa_key: "canonical",
         nivel_key:
           row.businessLine === "prepa" ? "preparatoria" : row.businessLine,
         modalidad_key: row.modality,
