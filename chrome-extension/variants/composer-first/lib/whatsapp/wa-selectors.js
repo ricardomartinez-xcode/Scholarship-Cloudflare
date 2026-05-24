@@ -305,6 +305,24 @@
       .map((input) => ({ input, score: scoreAttachmentInput(input, kind) }))
       .sort((a, b) => b.score - a.score);
 
+    if (kind === "media") {
+      const viableMediaInputs = sorted.filter(({ input, score }) => {
+        const accept = String(input?.accept || "").toLowerCase().trim();
+        const multiple = Boolean(input?.multiple);
+
+        if (accept.includes("video")) return true;
+        if (multiple && accept.includes("image")) return true;
+        return score >= 4;
+      });
+
+      if (viableMediaInputs[0]?.input) return viableMediaInputs[0].input;
+
+      return sorted.find(({ input }) => {
+        const accept = String(input?.accept || "").toLowerCase().trim();
+        return accept.includes("image") && !accept.includes("audio");
+      })?.input || null;
+    }
+
     return sorted[0]?.input || null;
   }
 

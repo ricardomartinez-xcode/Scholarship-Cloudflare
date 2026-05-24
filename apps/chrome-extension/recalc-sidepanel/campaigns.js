@@ -1108,18 +1108,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function forcePauseCampaign(campaignId = state.runner?.campaignId ?? state.selectedCampaignId) {
-    const campaign = state.campaigns.find((item) => item.id === campaignId) ?? null;
-    if (!campaign?.id) {
+    const targetCampaignId = String(campaignId ?? "").trim();
+    if (!targetCampaignId) {
       throw new Error("Selecciona una campaña para pausarla.");
     }
 
-    if (state.runner?.enabled && state.runner?.campaignId === campaign.id) {
-      await pauseLocalRunner();
+    let localRunnerError = null;
+    if (state.runner?.enabled && state.runner?.campaignId === targetCampaignId) {
+      try {
+        await stopLocalRunner();
+      } catch (error) {
+        localRunnerError = error instanceof Error ? error.message : "No fue posible detener el runner local.";
+      }
     }
 
-    await updateCampaignAction(campaign.id, "force_pause");
+    await updateCampaignAction(targetCampaignId, "force_pause");
     await loadCampaigns({ silent: true });
     await loadRunnerStatus();
+    return { localRunnerError };
   }
 
   async function deleteSelectedCampaign(campaignId = state.selectedCampaignId) {
@@ -1414,8 +1420,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   refs.campaignStopRunner.addEventListener("click", async () => {
     try {
-      await forcePauseCampaign();
-      setFeedback("success", "La campaña seleccionada quedo en pausa segura.");
+      const result = await forcePauseCampaign();
+      if (result?.localRunnerError) {
+        setFeedback("warning", `Campaña pausada en backend, pero el runner local reportó: ${result.localRunnerError}`);
+      } else {
+        setFeedback("success", "La campaña seleccionada quedo en pausa segura.");
+      }
     } catch (error) {
       setFeedback("danger", error instanceof Error ? error.message : "No fue posible pausar la campaña.");
     }
@@ -1430,8 +1440,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   refs.campaignPauseSelected.addEventListener("click", async () => {
     try {
-      await forcePauseCampaign();
-      setFeedback("success", "La campaña fue pausada correctamente.");
+      const result = await forcePauseCampaign();
+      if (result?.localRunnerError) {
+        setFeedback("warning", `Campaña pausada en backend, pero el runner local reportó: ${result.localRunnerError}`);
+      } else {
+        setFeedback("success", "La campaña fue pausada correctamente.");
+      }
     } catch (error) {
       setFeedback("danger", error instanceof Error ? error.message : "No fue posible pausar la campaña.");
     }

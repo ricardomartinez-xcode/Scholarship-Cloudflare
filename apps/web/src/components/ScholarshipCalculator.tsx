@@ -590,6 +590,9 @@ export default function ScholarshipCalculator({
   visibleOfferCycles?: AcademicOfferCycle[];
 }) {
   const { userEmail, isAdmin, adminUnlocked } = useAppContext();
+  void userEmail;
+  void isAdmin;
+  void adminUnlocked;
   void ctasInsideResult;
   void ctasBelowResult;
   void resultBelowAnnouncements;

@@ -204,13 +204,20 @@
         const accept = String(input?.accept || "").toLowerCase().trim();
         const multiple = Boolean(input?.multiple);
 
-        if (accept === "image/*" && !multiple) return false;
         if (accept.includes("video")) return true;
         if (multiple && accept.includes("image")) return true;
         return score >= 4;
       });
 
-      return viableMediaInputs[0]?.input || null;
+      if (viableMediaInputs[0]?.input) return viableMediaInputs[0].input;
+
+      // WhatsApp Web can expose only one media input with accept="image/*".
+      // Older builds also used a similar single-image input for Sticker Maker,
+      // so prefer richer media inputs above but keep this as the safe fallback.
+      return sorted.find(({ input }) => {
+        const accept = String(input?.accept || "").toLowerCase().trim();
+        return accept.includes("image") && !accept.includes("audio");
+      })?.input || null;
     }
 
     return sorted[0]?.input || null;

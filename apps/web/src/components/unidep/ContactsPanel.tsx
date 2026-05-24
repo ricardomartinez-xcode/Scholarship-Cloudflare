@@ -126,6 +126,52 @@ const EMPTY_DRAFT: DraftState = {
 };
 
 const CONTACTS_PAGE_SIZE = 20;
+const PROSPECT_TRACKING_SPREADSHEET_ID = "1Rkeaf6HBbdkaCM54HY0wtmNKNx-ka5sWO8RcIu5ApfY";
+const PROSPECT_TRACKING_SPREADSHEET_URL = `https://docs.google.com/spreadsheets/d/${PROSPECT_TRACKING_SPREADSHEET_ID}/edit`;
+const PROSPECT_TRACKING_SHEETS = [
+  {
+    key: "seguimiento",
+    label: "Seguimiento",
+    sheetName: "Seguimiento",
+    gid: "1630061474",
+    rowsLabel: "4,199 registros iniciales",
+    description:
+      "Bitacora de toques, tipificacion, clasificacion, motivo, resolucion y estado por canal.",
+    columns: ["Toque", "Clasificacion", "Motivo", "Resolucion", "WhatsApp", "Correo", "Llamada"],
+  },
+  {
+    key: "campanas",
+    label: "Campañas",
+    sheetName: "Campañas",
+    gid: "1854268015",
+    rowsLabel: "50 campanas base",
+    description:
+      "Resumen operativo por campana: canal, batch, estado, enviados, fallidos y fechas.",
+    columns: ["Campana", "Canal", "Estado", "Batch", "Enviados", "Fallidos", "Runner"],
+  },
+  {
+    key: "contactos",
+    label: "Contactos",
+    sheetName: "Contactos",
+    gid: "1142934270",
+    rowsLabel: "3,800 contactos unicos",
+    description:
+      "Directorio deduplicado con datos de contacto, plantel, plan, expediente y origen.",
+    columns: ["Nombre", "Telefono", "Correo", "Plantel", "Plan", "Expediente", "Fuente"],
+  },
+  {
+    key: "metadatos",
+    label: "Metadatos",
+    sheetName: "Metadatos",
+    gid: "746858452",
+    rowsLabel: "Catalogos y reglas",
+    description:
+      "Diccionario de campos, origenes, valores recomendados y reglas para mantener consistencia.",
+    columns: ["Campo", "Hoja", "Tipo", "Valores", "Uso", "Notas"],
+  },
+] as const;
+
+type ProspectTrackingSheetKey = (typeof PROSPECT_TRACKING_SHEETS)[number]["key"];
 
 function formatDateTime(value: string | null) {
   if (!value) return "—";
@@ -228,12 +274,33 @@ export default function ContactsPanel() {
   const [googleContactsQuery, setGoogleContactsQuery] = useState("");
   const [selectedGoogleContacts, setSelectedGoogleContacts] = useState<string[]>([]);
   const [selectedWebPhones, setSelectedWebPhones] = useState<string[]>([]);
+  const [trackingSheetKey, setTrackingSheetKey] =
+    useState<ProspectTrackingSheetKey>("seguimiento");
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
 
   const googleConnected = Boolean(google?.connection?.connected);
   const googleContactsReady = Boolean(google?.connection?.contactsConnected);
   const googleSheetsReady = Boolean(google?.connection?.sheetsConnected);
   const googleConfigReady = Boolean(google?.googleReady.ready);
+  const appContactsSpreadsheetUrl = google?.preference?.spreadsheetId
+    ? `https://docs.google.com/spreadsheets/d/${google.preference.spreadsheetId}/edit`
+    : null;
+  const selectedTrackingSheet = useMemo(
+    () =>
+      PROSPECT_TRACKING_SHEETS.find((sheet) => sheet.key === trackingSheetKey) ??
+      PROSPECT_TRACKING_SHEETS[0],
+    [trackingSheetKey],
+  );
+  const selectedTrackingSheetUrl = `${PROSPECT_TRACKING_SPREADSHEET_URL}#gid=${selectedTrackingSheet.gid}`;
+  const trackingSheetOptions = useMemo(
+    () =>
+      PROSPECT_TRACKING_SHEETS.map((sheet) => ({
+        value: sheet.key,
+        label: `${sheet.label} - ${sheet.rowsLabel}`,
+        keywords: `${sheet.sheetName} ${sheet.description} ${sheet.columns.join(" ")}`,
+      })),
+    [],
+  );
 
   function connectGoogle() {
     if (!googleConfigReady) {
@@ -837,6 +904,115 @@ export default function ContactsPanel() {
           {error}
         </div>
       ) : null}
+
+      <section className="mt-5 grid gap-4 rounded-3xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-2)] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="ui-kicker">Seguimiento / Tipificación</div>
+            <div className="mt-1 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+              Entradas operativas en Sheets
+            </div>
+            <p className="mt-1 max-w-3xl text-sm text-[color:var(--ui-text-secondary)]">
+              Acceso directo al documento de seguimiento creado para campañas,
+              contactos, tipificación y metadatos.
+            </p>
+          </div>
+          <a
+            href={PROSPECT_TRACKING_SPREADSHEET_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="ui-cta-primary"
+          >
+            Abrir documento
+          </a>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)]">
+          <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+            Entrada de Sheets
+            <SmartSelect
+              value={trackingSheetKey}
+              placeholder="Selecciona hoja"
+              options={trackingSheetOptions}
+              searchEnabled={false}
+              onChange={(value) => setTrackingSheetKey(value as ProspectTrackingSheetKey)}
+            />
+          </label>
+
+          <div className="rounded-2xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-3)] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-[color:var(--ui-text-secondary)]">
+                  {selectedTrackingSheet.rowsLabel}
+                </div>
+                <div className="mt-1 text-base font-semibold text-[color:var(--ui-text-primary)]">
+                  {selectedTrackingSheet.sheetName}
+                </div>
+                <p className="mt-1 text-sm text-[color:var(--ui-text-secondary)]">
+                  {selectedTrackingSheet.description}
+                </p>
+              </div>
+              <a
+                href={selectedTrackingSheetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="ui-button-secondary"
+              >
+                Abrir hoja
+              </a>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedTrackingSheet.columns.map((column) => (
+                <span
+                  key={column}
+                  className="rounded-full border border-[color:var(--ui-border)] bg-white px-3 py-1 text-xs font-semibold text-[color:var(--ui-text-primary)]"
+                >
+                  {column}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {PROSPECT_TRACKING_SHEETS.map((sheet) => {
+            const active = sheet.key === trackingSheetKey;
+            return (
+              <button
+                key={sheet.key}
+                type="button"
+                onClick={() => setTrackingSheetKey(sheet.key)}
+                className={[
+                  "rounded-2xl border px-3 py-3 text-left transition",
+                  active
+                    ? "border-[color:var(--ui-accent)] bg-[color:var(--ui-accent-soft)] text-[color:var(--ui-text-primary)]"
+                    : "border-[color:var(--ui-border)] bg-[color:var(--ui-surface-3)] text-[color:var(--ui-text-primary)] hover:border-[color:var(--ui-accent)]",
+                ].join(" ")}
+              >
+                <span className="block text-sm font-semibold">{sheet.label}</span>
+                <span className="mt-1 block text-xs text-[color:var(--ui-text-secondary)]">
+                  {sheet.rowsLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {appContactsSpreadsheetUrl ? (
+          <div className="rounded-2xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-3)] px-4 py-3 text-sm text-[color:var(--ui-text-secondary)]">
+            La sincronización actual de la app sigue usando{" "}
+            <a
+              href={appContactsSpreadsheetUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-[color:var(--ui-text-primary)] underline underline-offset-4"
+            >
+              la hoja conectada a Google
+            </a>
+            . Este bloque abre el documento operativo de seguimiento.
+          </div>
+        ) : null}
+      </section>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]">
         <section className="grid content-start gap-4 rounded-3xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-2)] p-4">

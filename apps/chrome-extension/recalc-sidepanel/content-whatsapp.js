@@ -596,16 +596,9 @@ async function automateRecipient(payload) {
     }
 
     if ((!captionComposer || !captionApplied) && recipient.resolvedMessage) {
-      const composerAfterMedia = await waitFor(() => findComposer(selectorPack), 12000, 350);
-      if (!composerAfterMedia) {
-        return { ok: true, messageDelayMs: recipient.messageDelayMs ?? 4000 };
-      }
-      fillComposer(composerAfterMedia, recipient.resolvedMessage);
-      await wait(250);
-      const sentText = clickSend(selectorPack);
-      if (!sentText) {
-        return { ok: false, error: "La imagen se adjuntó, pero no fue posible enviar el texto posterior." };
-      }
+      console.warn(
+        "[ReCalc][WA] La imagen fue enviada, pero no se confirmó el caption. Se omite fallback de texto para evitar duplicados.",
+      );
     }
 
     return { ok: true, messageDelayMs: recipient.messageDelayMs ?? 4000 };

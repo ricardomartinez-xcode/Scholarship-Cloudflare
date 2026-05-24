@@ -111,16 +111,6 @@ function dedupeCtas(ctas: PublicCta[]) {
   });
 }
 
-function dedupeAnnouncements(announcements: Announcement[]) {
-  const seen = new Set<string>();
-  return announcements.filter((item) => {
-    const key = `${item.title.toLowerCase()}:${item.message.toLowerCase()}:${item.url ?? ""}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 function isAdminPanelAnnouncement(item: Announcement) {
   const title = item.title.toLowerCase();
   const message = item.message.toLowerCase();
@@ -203,7 +193,6 @@ export default function AppChrome({
   userDisplayName,
   isAdmin,
   profileHref = "/profile",
-  navAnnouncements = [],
   navBannerCtas = [],
   sidebarTopCtas = [],
   sidebarBottomCtas = [],

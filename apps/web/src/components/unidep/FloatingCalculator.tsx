@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 
 type Operator = "+" | "-" | "*" | "/" | null;
 
@@ -34,14 +35,14 @@ export default function FloatingCalculator() {
 
   const currentValue = Number(display.replace(/,/g, ""));
 
-  const clear = () => {
+  const clear = useCallback(() => {
     setDisplay("0");
     setStoredValue(null);
     setOperator(null);
     setWaitingForNextValue(false);
-  };
+  }, []);
 
-  const inputDigit = (digit: string) => {
+  const inputDigit = useCallback((digit: string) => {
     if (display === "Error") {
       setDisplay(digit);
       setWaitingForNextValue(false);
@@ -55,18 +56,18 @@ export default function FloatingCalculator() {
     }
 
     setDisplay((value) => (value === "0" ? digit : `${value}${digit}`));
-  };
+  }, [display, waitingForNextValue]);
 
-  const inputDecimal = () => {
+  const inputDecimal = useCallback(() => {
     if (waitingForNextValue || display === "Error") {
       setDisplay("0.");
       setWaitingForNextValue(false);
       return;
     }
     if (!display.includes(".")) setDisplay((value) => `${value}.`);
-  };
+  }, [display, waitingForNextValue]);
 
-  const inputBackspace = () => {
+  const inputBackspace = useCallback(() => {
     if (waitingForNextValue || display === "Error") {
       setDisplay("0");
       setWaitingForNextValue(false);
@@ -77,14 +78,14 @@ export default function FloatingCalculator() {
       const next = value.slice(0, -1);
       return next && next !== "-" ? next : "0";
     });
-  };
+  }, [display, waitingForNextValue]);
 
   const toggleSign = () => {
     if (display === "0" || display === "Error") return;
     setDisplay((value) => (value.startsWith("-") ? value.slice(1) : `-${value}`));
   };
 
-  const applyPercent = () => {
+  const applyPercent = useCallback(() => {
     if (!Number.isFinite(currentValue)) {
       clear();
       return;
@@ -97,9 +98,9 @@ export default function FloatingCalculator() {
 
     setDisplay(formatDisplay(percentValue));
     setWaitingForNextValue(false);
-  };
+  }, [clear, currentValue, operator, storedValue]);
 
-  const chooseOperator = (nextOperator: Exclude<Operator, null>) => {
+  const chooseOperator = useCallback((nextOperator: Exclude<Operator, null>) => {
     if (!Number.isFinite(currentValue)) {
       clear();
       return;
@@ -115,16 +116,16 @@ export default function FloatingCalculator() {
 
     setOperator(nextOperator);
     setWaitingForNextValue(true);
-  };
+  }, [clear, currentValue, operator, storedValue]);
 
-  const finishCalculation = () => {
+  const finishCalculation = useCallback(() => {
     if (storedValue === null || !operator) return;
     const result = calculate(storedValue, currentValue, operator);
     setDisplay(formatDisplay(result));
     setStoredValue(null);
     setOperator(null);
     setWaitingForNextValue(true);
-  };
+  }, [currentValue, operator, storedValue]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -186,6 +187,7 @@ export default function FloatingCalculator() {
   }, [
     applyPercent,
     chooseOperator,
+    clear,
     currentValue,
     finishCalculation,
     inputBackspace,
@@ -220,9 +222,11 @@ export default function FloatingCalculator() {
                 onClick={() => setIsOpen(false)}
                 aria-label="Contraer calculadora"
               >
-                <img
+                <Image
                   src="/branding/floating-calculator.png"
                   alt=""
+                  width={96}
+                  height={96}
                   aria-hidden="true"
                   className="ui-floating-calculator__collapse-image"
                   draggable={false}
@@ -268,9 +272,11 @@ export default function FloatingCalculator() {
           aria-expanded={isOpen}
           title="Abrir calculadora"
         >
-          <img
+          <Image
             src="/branding/floating-calculator.png"
             alt=""
+            width={96}
+            height={96}
             aria-hidden="true"
             className="ui-floating-calculator__rail-image"
             draggable={false}

@@ -59,7 +59,6 @@ type AdminChromeProps = {
 function AdminDrawerNav({
   adminCapabilities,
   roleLabel,
-  isSystemOwner,
   pathname,
   onNavigate,
   sidebarTopAnnouncements,
@@ -69,7 +68,6 @@ function AdminDrawerNav({
 }: {
   adminCapabilities: string[];
   roleLabel: string;
-  isSystemOwner: boolean;
   pathname: string;
   onNavigate: () => void;
   sidebarTopAnnouncements: Announcement[];
@@ -131,7 +129,6 @@ export default function AdminChrome({
   adminEmail,
   adminRole,
   adminCapabilities,
-  isSystemOwner,
   campusIntegrity,
   logoutAction,
   children,
@@ -211,7 +208,6 @@ export default function AdminChrome({
                       <AdminDrawerNav
                         adminCapabilities={adminCapabilities}
                         roleLabel={roleLabel}
-                        isSystemOwner={isSystemOwner}
                         pathname={pathname}
                         onNavigate={() => setMobileNavOpen(false)}
                         sidebarTopAnnouncements={sidebarTopAnnouncements}

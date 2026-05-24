@@ -91,11 +91,6 @@ export default function InboxDock() {
     setStatus("ready");
   }, []);
 
-  const refreshThreads = useCallback(async () => {
-    const payload = await fetchInboxThreads();
-    applyThreadsPayload(payload);
-  }, [applyThreadsPayload]);
-
   useEffect(() => {
     let active = true;
 
