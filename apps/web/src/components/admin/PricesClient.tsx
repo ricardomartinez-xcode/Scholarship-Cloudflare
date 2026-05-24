@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useTransition, useState } from "react";
+import { useEffect, useMemo, useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
@@ -31,6 +31,15 @@ type MontoOverride = {
   targetKeys: unknown;
   newPrice: unknown;
   isActive: boolean;
+};
+
+type PriceRow = {
+  id: string;
+  nivel_key: string;
+  modalidad_key: string;
+  plan: string;
+  tier: string | null;
+  basePriceMxn: number | null;
 };
 
 type ActionResult = { ok: boolean; error?: string };
@@ -68,7 +77,12 @@ type ApiError = { ok: false; error: string };
 
 const PAGE_SIZE = 20;
 
-function findOverride(rule: BecaRule, overrides: MontoOverride[]): MontoOverride | null {
+function normalizeTierKey(value: unknown) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
+}
+
+function findOverride(rule: PriceRow, overrides: MontoOverride[]): MontoOverride | null {
   return (
     overrides.find((o) => {
       const keys = o.targetKeys as Record<string, string>;
@@ -76,7 +90,7 @@ function findOverride(rule: BecaRule, overrides: MontoOverride[]): MontoOverride
         keys.nivel_key === rule.nivel_key &&
         keys.modalidad_key === rule.modalidad_key &&
         keys.plan === rule.plan &&
-        keys.tier === rule.tier
+        normalizeTierKey(keys.tier) === normalizeTierKey(rule.tier)
       );
     }) ?? null
   );
@@ -100,14 +114,45 @@ export default function PricesClient({
 }) {
   const router = useRouter();
   const importFileRef = useRef<HTMLInputElement | null>(null);
-  const uniqueProgramas = [...new Set(becaRules.map((r) => r.programa_key))].sort();
+  const priceRows = useMemo(() => {
+    const rows = new Map<string, PriceRow>();
+    for (const rule of becaRules) {
+      const tier = normalizeTierKey(rule.tier);
+      const key = [
+        rule.nivel_key,
+        rule.modalidad_key,
+        rule.plan,
+        tier ?? "",
+      ].join("|");
+      const current = rows.get(key);
+      if (!current || current.basePriceMxn === null) {
+        rows.set(key, {
+          id: key,
+          nivel_key: rule.nivel_key,
+          modalidad_key: rule.modalidad_key,
+          plan: rule.plan,
+          tier,
+          basePriceMxn: rule.basePriceMxn,
+        });
+      }
+    }
+    return Array.from(rows.values()).sort((a, b) =>
+      [
+        a.nivel_key.localeCompare(b.nivel_key),
+        a.modalidad_key.localeCompare(b.modalidad_key),
+        a.plan.localeCompare(b.plan, undefined, { numeric: true }),
+        String(a.tier ?? "").localeCompare(String(b.tier ?? ""), undefined, {
+          numeric: true,
+        }),
+      ].find((result) => result !== 0) ?? 0,
+    );
+  }, [becaRules]);
 
-  const [filterPrograma, setFilterPrograma] = useState("");
   const [filterNivel, setFilterNivel] = useState("");
   const [page, setPage] = useState(0);
 
   const [open, setOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<BecaRule | null>(null);
+  const [editingRule, setEditingRule] = useState<PriceRow | null>(null);
   const [editingOverride, setEditingOverride] = useState<MontoOverride | null>(null);
   const [newPrice, setNewPrice] = useState("");
 
@@ -138,15 +183,10 @@ export default function PricesClient({
   }, [saveState?.ok]);
 
   const uniqueNiveles = [
-    ...new Set(
-      becaRules
-        .filter((r) => !filterPrograma || r.programa_key === filterPrograma)
-        .map((r) => r.nivel_key),
-    ),
+    ...new Set(priceRows.map((r) => r.nivel_key)),
   ].sort();
 
-  const filtered = becaRules.filter((r) => {
-    if (filterPrograma && r.programa_key !== filterPrograma) return false;
+  const filtered = priceRows.filter((r) => {
     if (filterNivel && r.nivel_key !== filterNivel) return false;
     return true;
   });
@@ -154,7 +194,7 @@ export default function PricesClient({
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  function openEdit(rule: BecaRule) {
+  function openEdit(rule: PriceRow) {
     clearSaveState();
     const override = findOverride(rule, montoOverrides);
     setEditingRule(rule);
@@ -436,22 +476,6 @@ export default function PricesClient({
       {/* Filters */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <select
-          value={filterPrograma}
-          onChange={(e) => {
-            setFilterPrograma(e.target.value);
-            setFilterNivel("");
-            setPage(0);
-          }}
-          className="ui-control w-full min-w-0 sm:w-auto sm:min-w-[180px] text-sm"
-        >
-          <option value="">Todos los programas</option>
-          {uniqueProgramas.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        <select
           value={filterNivel}
           onChange={(e) => {
             setFilterNivel(e.target.value);
@@ -467,7 +491,7 @@ export default function PricesClient({
           ))}
         </select>
         <span className="text-xs text-slate-400 sm:ml-auto">
-          {filtered.length} regla{filtered.length !== 1 ? "s" : ""}
+          {filtered.length} precio{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -476,11 +500,9 @@ export default function PricesClient({
         <table className="ui-table min-w-[940px]">
           <thead>
             <tr>
-              <th className="min-w-[200px] text-left whitespace-nowrap">Programa</th>
               <th className="ui-cell-nowrap text-left">Nivel</th>
               <th className="ui-cell-nowrap text-left">Modalidad</th>
               <th className="ui-cell-nowrap text-left">Plan / Tier</th>
-              <th className="ui-cell-nowrap text-right">% Beca</th>
               <th className="ui-cell-nowrap text-right">Precio lista</th>
               <th className="ui-cell-nowrap text-right">Ajuste activo</th>
               <th className="ui-cell-nowrap text-right">Acciones</th>
@@ -492,16 +514,10 @@ export default function PricesClient({
                 const override = findOverride(rule, montoOverrides);
                 return (
                   <tr key={rule.id}>
-                    <td className="text-slate-100" title={rule.programa_key}>
-                      <span className="ui-cell-truncate">{rule.programa_key}</span>
-                    </td>
                     <td className="ui-cell-nowrap text-slate-200">{rule.nivel_key}</td>
                     <td className="ui-cell-nowrap text-slate-200">{rule.modalidad_key}</td>
                     <td className="ui-cell-nowrap text-xs text-slate-300">
-                      {rule.plan} / {rule.tier}
-                    </td>
-                    <td className="ui-cell-nowrap text-right text-slate-300">
-                      {rule.porcentaje !== null ? `${rule.porcentaje}%` : "—"}
+                      {rule.plan} / {rule.tier ?? "General"}
                     </td>
                     <td className="ui-cell-nowrap text-right font-mono text-slate-100">
                       {fmt(rule.basePriceMxn)}
@@ -546,8 +562,8 @@ export default function PricesClient({
               })
             ) : (
               <tr>
-                <td className="text-slate-400" colSpan={8}>
-                  No hay reglas con los filtros seleccionados.
+                <td className="text-slate-400" colSpan={6}>
+                  No hay precios con los filtros seleccionados.
                 </td>
               </tr>
             )}
@@ -590,11 +606,11 @@ export default function PricesClient({
           }
         }}
         kicker={editingOverride ? "Modificar ajuste" : "Nuevo ajuste"}
-        title={editingRule?.programa_key ?? "Ajuste de precio"}
+        title="Ajuste de precio lista"
         description={
           editingRule
-            ? `${editingRule.nivel_key} · ${editingRule.modalidad_key} · ${editingRule.plan}/${editingRule.tier}`
-            : "Actualiza el precio lista que usará la calculadora para esta regla."
+            ? `${editingRule.nivel_key} · ${editingRule.modalidad_key} · ${editingRule.plan}/${editingRule.tier ?? "General"}`
+            : "Actualiza el precio lista que usará la calculadora."
         }
         size="md"
       >
@@ -604,9 +620,6 @@ export default function PricesClient({
             <span className="font-mono font-semibold text-slate-100">
               {fmt(editingRule.basePriceMxn)}
             </span>
-            {editingRule.porcentaje !== null && (
-              <span className="ml-3 text-slate-400">{editingRule.porcentaje}% beca</span>
-            )}
           </div>
         )}
 
@@ -617,7 +630,7 @@ export default function PricesClient({
         ) : null}
 
         <form onSubmit={handleSubmit} className="grid gap-4">
-              <input type="hidden" name="programa_key" value={editingRule?.programa_key ?? ""} />
+              <input type="hidden" name="programa_key" value="" />
               <input type="hidden" name="nivel_key" value={editingRule?.nivel_key ?? ""} />
               <input
                 type="hidden"
