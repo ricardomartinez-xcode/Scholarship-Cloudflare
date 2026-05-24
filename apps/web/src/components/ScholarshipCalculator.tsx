@@ -14,6 +14,7 @@ import {
   formatBenefitDurationLabel,
   formatBenefitDurationSentence,
 } from "@/lib/benefit-duration";
+import { visibleQuoteModalities } from "@/lib/pricing-option-display";
 import {
   buildSimulatorFingerprint,
   type SimulatorInputSnapshot,
@@ -610,8 +611,7 @@ export default function ScholarshipCalculator({
     );
     const all = uniqSorted(filtered.map((option) => option.modality));
     if (nivel === "salud") return all.filter((m) => m === "presencial");
-    const order: Record<string, number> = { presencial: 0, mixta: 1, online: 2 };
-    return all.sort((a, b) => (order[a] ?? 9) - (order[b] ?? 9));
+    return visibleQuoteModalities(all);
   }, [pricingOptions, tipo, nivel]);
 
   const planes = useMemo(() => {

@@ -14,6 +14,8 @@ export type BenefitImportDiffAction = "create" | "update" | "noop";
 export type BenefitImportPreviewRow = {
   rowNumber: number;
   action: BenefitImportDiffAction;
+  region: string | null;
+  tier: string | null;
   benefitType: AdminAdditionalBenefitType;
   enrollmentType: EnrollmentType | null;
   businessLine: BenefitBusinessLine | null;
@@ -21,6 +23,7 @@ export type BenefitImportPreviewRow = {
   duration: BenefitDuration | null;
   appliesToAll: boolean;
   campusIds: string[];
+  campusLabels: string[];
   extraPercent: number;
   firstPaymentAmount: number;
   isActive: boolean;
@@ -59,6 +62,8 @@ export type BenefitsImportApplySummary = {
 
 type ParsedBenefitRow = {
   rowNumber: number;
+  region: string | null;
+  tier: string | null;
   benefitType: AdminAdditionalBenefitType;
   enrollmentType: EnrollmentType | null;
   businessLine: BenefitBusinessLine | null;
@@ -66,6 +71,7 @@ type ParsedBenefitRow = {
   duration: BenefitDuration | null;
   appliesToAll: boolean;
   campusIds: string[];
+  campusLabels: string[];
   extraPercent: number;
   firstPaymentAmount: number;
   isActive: boolean;
@@ -83,6 +89,8 @@ const DURATION_SET = new Set(Object.values(BenefitDuration));
 const ENROLLMENT_SET = new Set(Object.values(EnrollmentType));
 
 const HEADER_ALIASES = {
+  region: ["region", "región"],
+  tier: ["tier"],
   benefitType: ["benefittype", "tipo", "tipobeneficio"],
   campusIds: ["campusids", "campuses", "campus", "planteles", "campusid"],
   appliesToAll: ["appliestoall", "todosplanteles", "allcampuses", "todos"],
@@ -200,8 +208,9 @@ async function buildCampusLookup() {
       slug: true,
     },
   });
-  const lookup = new Map<string, string>();
+  const lookup = new Map<string, { id: string; label: string }>();
   for (const campus of campuses) {
+    const label = campus.name || campus.code || campus.metaKey || campus.slug || campus.id;
     for (const value of [
       campus.id,
       campus.code,
@@ -209,7 +218,7 @@ async function buildCampusLookup() {
       campus.name,
       campus.slug,
     ]) {
-      lookup.set(value.trim().toLowerCase(), campus.id);
+      lookup.set(value.trim().toLowerCase(), { id: campus.id, label });
     }
   }
   return lookup;
@@ -287,6 +296,8 @@ export async function prepareBenefitsCsvImport(
     headerMap.set(normalizeHeader(cell), index);
   });
 
+  const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
+  const idxTier = findColumnIndex(headerMap, HEADER_ALIASES.tier);
   const idxBenefitType = findColumnIndex(headerMap, HEADER_ALIASES.benefitType);
   const idxCampusIds = findColumnIndex(headerMap, HEADER_ALIASES.campusIds);
   const idxAppliesToAll = findColumnIndex(headerMap, HEADER_ALIASES.appliesToAll);
@@ -321,6 +332,8 @@ export async function prepareBenefitsCsvImport(
     if (!row.some((cell) => String(cell ?? "").trim())) continue;
 
     const rowNumber = index + 1;
+    const region = readCell(row, idxRegion) || null;
+    const tier = readCell(row, idxTier) || null;
     const benefitTypeRaw = readCell(row, idxBenefitType);
     if (!BENEFIT_TYPE_SET.has(benefitTypeRaw as AdminAdditionalBenefitType)) {
       errors.push(`Fila ${rowNumber}: benefit_type inválido "${benefitTypeRaw}".`);
@@ -359,6 +372,7 @@ export async function prepareBenefitsCsvImport(
     const appliesToAll = parseBoolean(readCell(row, idxAppliesToAll), false);
     const campusIdentifiers = parseCampusIdentifiers(readCell(row, idxCampusIds));
     const campusIds: string[] = [];
+    const campusLabels: string[] = [];
     if (!appliesToAll) {
       if (!campusIdentifiers.length) {
         errors.push(`Fila ${rowNumber}: campus_ids es obligatorio cuando applies_to_all=false.`);
@@ -367,13 +381,14 @@ export async function prepareBenefitsCsvImport(
       let hasCampusError = false;
       for (const campusIdentifier of campusIdentifiers) {
         const normalizedIdentifier = campusIdentifier.trim().toLowerCase();
-        const campusId = campusLookup.get(normalizedIdentifier);
-        if (!campusId) {
+        const campus = campusLookup.get(normalizedIdentifier);
+        if (!campus) {
           errors.push(`Fila ${rowNumber}: plantel no reconocido "${campusIdentifier}".`);
           hasCampusError = true;
           continue;
         }
-        campusIds.push(campusId);
+        campusIds.push(campus.id);
+        campusLabels.push(campus.label);
       }
       if (hasCampusError) continue;
     }
@@ -412,6 +427,11 @@ export async function prepareBenefitsCsvImport(
     }
 
     const normalizedCampusIds = appliesToAll ? [] : Array.from(new Set(campusIds)).sort();
+    const normalizedCampusLabels = appliesToAll
+      ? []
+      : Array.from(new Set(campusLabels)).sort((left, right) =>
+          left.localeCompare(right, "es-MX", { sensitivity: "base" }),
+        );
     const key = buildBenefitScopeKey({
       benefitType,
       enrollmentType,
@@ -430,6 +450,8 @@ export async function prepareBenefitsCsvImport(
 
     const parsedRow: ParsedBenefitRow = {
       rowNumber,
+      region,
+      tier,
       benefitType,
       enrollmentType,
       businessLine,
@@ -437,6 +459,7 @@ export async function prepareBenefitsCsvImport(
       duration,
       appliesToAll,
       campusIds: normalizedCampusIds,
+      campusLabels: normalizedCampusLabels,
       extraPercent: benefitType === AdminAdditionalBenefitType.percentage ? extraPercent : 0,
       firstPaymentAmount:
         benefitType === AdminAdditionalBenefitType.first_payment ? firstPaymentAmount : 0,

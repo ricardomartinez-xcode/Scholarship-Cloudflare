@@ -8,11 +8,17 @@ import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
 import SmartMultiSelect from "@/components/SmartMultiSelect";
 import SmartSelect from "@/components/SmartSelect";
 import AppSelect from "@/components/ui/AppSelect";
+import {
+  compareAdminPricingScope,
+  formatAdminPricingTier,
+  normalizeAdminPricingRegion,
+} from "@/lib/admin-pricing-display";
 
 type Benefit = {
   id: string;
   appliesToAll: boolean;
   campusIds: string[];
+  campusScopes: Array<{ id: string; name: string; kind: string; tier?: string | null }>;
   campusNames: string[];
   benefitType: "percentage" | "first_payment";
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso" | null;
@@ -51,6 +57,8 @@ type ActionResult = { ok: boolean; error?: string };
 type BenefitImportPreviewRow = {
   rowNumber: number;
   action: "create" | "update" | "noop";
+  region?: string | null;
+  tier?: string | null;
   benefitType: "percentage" | "first_payment";
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso" | null;
   businessLine: string | null;
@@ -58,6 +66,7 @@ type BenefitImportPreviewRow = {
   duration: string | null;
   appliesToAll: boolean;
   campusIds: string[];
+  campusLabels?: string[];
   extraPercent: number;
   firstPaymentAmount: number;
   isActive: boolean;
@@ -134,6 +143,48 @@ function formatBenefitValue(benefit: Benefit) {
   }
 
   return `${benefit.extraPercent}%`;
+}
+
+function benefitScope(benefit: Benefit) {
+  const firstCampus = benefit.campusScopes?.[0] ?? null;
+  return {
+    region: "General",
+    plantel: benefit.appliesToAll
+      ? "Todos"
+      : firstCampus?.name ?? benefit.campusNames?.[0] ?? "Sin planteles",
+    tier: benefit.appliesToAll ? "ANY" : firstCampus?.tier ?? null,
+    kind: firstCampus?.kind ?? null,
+    value: `${benefit.benefitType}:${formatBenefitValue(benefit)}`,
+  };
+}
+
+function benefitPlantelLabel(benefit: Benefit) {
+  if (benefit.appliesToAll) return "Todos";
+  if (!benefit.campusNames?.length) return "Sin planteles";
+  return benefit.campusNames.join(", ");
+}
+
+function benefitTierLabel(benefit: Benefit) {
+  if (benefit.appliesToAll) return "General";
+  const tiers = Array.from(
+    new Set(
+      (benefit.campusScopes ?? []).map((campus) =>
+        formatAdminPricingTier({
+          plantel: campus.name,
+          tier: campus.tier,
+          kind: campus.kind,
+        }),
+      ),
+    ),
+  );
+  return tiers.length ? tiers.join(", ") : "General";
+}
+
+function benefitPreviewPlantelLabel(row: BenefitImportPreviewRow) {
+  if (row.appliesToAll) return "Todos";
+  if (row.campusLabels?.length) return row.campusLabels.join(", ");
+  if (row.campusIds.length) return row.campusIds.join(", ");
+  return "Sin planteles";
 }
 
 export default function BenefitsClient({
@@ -221,6 +272,28 @@ export default function BenefitsClient({
   const [baseMaxAverage, setBaseMaxAverage] = useState("");
   const [editingBaseScholarshipId, setEditingBaseScholarshipId] = useState("");
   const [editingBaseCampusTier, setEditingBaseCampusTier] = useState("");
+  const sortedBenefits = useMemo(
+    () => [...benefits].sort((left, right) => compareAdminPricingScope(benefitScope(left), benefitScope(right))),
+    [benefits],
+  );
+  const sortedBaseScholarships = useMemo(
+    () =>
+      [...baseScholarships].sort((left, right) => {
+        const scope = compareAdminPricingScope(
+          { region: "General", plantel: "Todos", tier: left.campusTier, modality: left.modality },
+          { region: "General", plantel: "Todos", tier: right.campusTier, modality: right.modality },
+        );
+        if (scope !== 0) return scope;
+        return (
+          [
+            left.businessLine.localeCompare(right.businessLine),
+            left.modality.localeCompare(right.modality),
+            left.plan - right.plan,
+          ].find((result) => result !== 0) ?? 0
+        );
+      }),
+    [baseScholarships],
+  );
 
   const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
     upsertBenefitAction,
@@ -476,6 +549,19 @@ export default function BenefitsClient({
           accept=".csv,text/csv"
           className="ui-control min-w-0 max-w-full text-sm"
         />
+        <div className="grid gap-2 rounded-xl border border-[color:var(--ui-border)] bg-white px-3 py-2 text-xs text-[color:var(--ui-text-secondary)] md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+          <div>
+            <div className="font-semibold text-[color:var(--ui-text-primary)]">
+              Orden canónico
+            </div>
+            <div className="mt-1 font-mono text-[11px]">
+              Region | Planteles | Tier | Beneficio
+            </div>
+          </div>
+          <div className="font-mono text-[11px] leading-5">
+            region,planteles,tier,benefit_type,extra_percent,enrollment_type,business_line,modality
+          </div>
+        </div>
         {importError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
             {importError}
@@ -516,15 +602,17 @@ export default function BenefitsClient({
               </div>
             ) : null}
             {importPreviewRows.length ? (
-              <div className="ui-table-wrap ui-scrollbar">
-                <table className="ui-table min-w-[900px]">
+              <div className="ui-table-wrap ui-scrollbar max-h-[360px]">
+                <table className="ui-table ui-table--compact min-w-[900px]">
                   <thead>
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
                       <th className="ui-cell-nowrap text-left">Acción</th>
-                      <th className="ui-cell-nowrap text-left">Tipo</th>
+                      <th className="ui-cell-nowrap text-left">Region</th>
                       <th className="ui-cell-nowrap text-left">Planteles</th>
-                      <th className="ui-cell-nowrap text-left">Valor</th>
+                      <th className="ui-cell-nowrap text-left">Tier</th>
+                      <th className="ui-cell-nowrap text-left">Beneficio</th>
+                      <th className="ui-cell-nowrap text-left">Tipo</th>
                       <th className="ui-cell-nowrap text-left">Estado</th>
                     </tr>
                   </thead>
@@ -533,9 +621,18 @@ export default function BenefitsClient({
                       <tr key={`${row.rowNumber}-${row.action}`}>
                         <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                         <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
-                        <td className="ui-cell-nowrap text-slate-200">{row.benefitType}</td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {normalizeAdminPricingRegion(row.region)}
+                        </td>
                         <td className="text-slate-200">
-                          {row.appliesToAll ? "Todos" : row.campusIds.join(", ")}
+                          {benefitPreviewPlantelLabel(row)}
+                        </td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {formatAdminPricingTier({
+                            tier: row.tier,
+                            plantel: benefitPreviewPlantelLabel(row),
+                            modality: row.modality,
+                          })}
                         </td>
                         <td className="ui-cell-nowrap text-slate-100">
                           {row.benefitType === "percentage"
@@ -547,6 +644,7 @@ export default function BenefitsClient({
                                 maximumFractionDigits: 2,
                               })}
                         </td>
+                        <td className="ui-cell-nowrap text-slate-200">{row.benefitType}</td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {row.isActive ? "Activo" : "Desactivado"}
                         </td>
@@ -727,16 +825,25 @@ export default function BenefitsClient({
 
         {baseScholarships.length ? (
           <div className="ui-scrollbar max-h-[520px] min-w-0 overflow-y-auto rounded-2xl border border-white/10 bg-white/5">
-            <div className="sticky top-0 z-10 grid grid-cols-[1.2fr_0.9fr_0.7fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
-              <span>Alcance</span>
-              <span>Rangos</span>
-              <span>% Beca</span>
+            <div className="sticky top-0 z-10 grid grid-cols-[0.7fr_0.9fr_0.7fr_1.4fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+              <span>Region</span>
+              <span>Plantel</span>
+              <span>Tier</span>
+              <span>Beneficio</span>
               <span className="text-right">Reglas</span>
             </div>
             <div className="divide-y divide-white/10">
-              {baseScholarships.map((row) => (
+              {sortedBaseScholarships.map((row) => (
                 <details key={row.id} className="group">
-                  <summary className="grid cursor-pointer list-none grid-cols-[1.2fr_0.9fr_0.7fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                  <summary className="grid cursor-pointer list-none grid-cols-[0.7fr_0.9fr_0.7fr_1.4fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                    <div className="ui-cell-nowrap text-slate-300">General</div>
+                    <div className="ui-cell-nowrap text-slate-300">Todos</div>
+                    <div className="ui-cell-nowrap text-slate-300">
+                      {formatAdminPricingTier({
+                        tier: row.campusTier,
+                        modality: row.modality,
+                      })}
+                    </div>
                     <div className="min-w-0">
                       <div className="truncate font-semibold">
                         {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)} ·{" "}
@@ -747,13 +854,13 @@ export default function BenefitsClient({
                         {row.campusTier === "ANY" ? "General" : row.campusTier}
                       </div>
                     </div>
-                    <div className="min-w-0 truncate text-slate-300">
-                      {row.ranges.join(", ")}
-                    </div>
                     <div className="min-w-0 truncate font-mono text-slate-100">
                       {row.percentages.length
                         ? row.percentages.map((value) => `${value}%`).join(", ")
                         : "0%"}
+                      <div className="mt-1 truncate text-xs font-normal text-slate-400">
+                        {row.ranges.join(", ")}
+                      </div>
                     </div>
                     <div className="flex items-center justify-end gap-2 text-right">
                       <span className="ui-pill">{row.ruleCount}</span>
@@ -815,34 +922,41 @@ export default function BenefitsClient({
         </div>
       </section>
 
-      {benefits.length ? (
-        <div className="ui-table-wrap ui-scrollbar mt-6">
-          <table className="ui-table min-w-[1120px]">
+      {sortedBenefits.length ? (
+        <div className="ui-table-wrap ui-scrollbar mt-6 max-h-[620px]">
+          <table className="ui-table min-w-[1240px]">
             <thead>
               <tr>
+                <th className="ui-cell-nowrap text-left">Region</th>
                 <th className="min-w-[220px] text-left">Planteles</th>
+                <th className="ui-cell-nowrap text-left">Tier</th>
+                <th className="ui-cell-nowrap text-left">Beneficio</th>
                 <th className="ui-cell-nowrap text-left">Tipo</th>
                 <th className="ui-cell-nowrap text-left">Ingreso</th>
                 <th className="ui-cell-nowrap text-left">Línea</th>
                 <th className="ui-cell-nowrap text-left">Modalidad</th>
                 <th className="ui-cell-nowrap text-left">Duración</th>
-                <th className="ui-cell-nowrap text-left">Valor</th>
                 <th className="ui-cell-nowrap text-left">Estado</th>
                 <th className="text-left">Notas</th>
                 <th className="ui-cell-nowrap text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {benefits.map((benefit) => (
+              {sortedBenefits.map((benefit) => (
                 <tr key={benefit.id}>
+                  <td className="ui-cell-nowrap text-slate-100">
+                    {normalizeAdminPricingRegion(null)}
+                  </td>
                   <td className="text-slate-100">
                     <span className="block min-w-[200px]">
-                      {benefit.appliesToAll
-                        ? "Todos"
-                        : benefit.campusNames?.length
-                          ? benefit.campusNames.join(", ")
-                          : "Sin planteles"}
+                      {benefitPlantelLabel(benefit)}
                     </span>
+                  </td>
+                  <td className="ui-cell-nowrap text-slate-100">
+                    {benefitTierLabel(benefit)}
+                  </td>
+                  <td className="ui-cell-nowrap text-slate-100">
+                    {formatBenefitValue(benefit)}
                   </td>
                   <td className="ui-cell-nowrap text-slate-100">
                     {resolveLabel(
@@ -866,9 +980,6 @@ export default function BenefitsClient({
                   </td>
                   <td className="ui-cell-nowrap text-slate-100">
                     {resolveLabel(benefit.duration, DURATION_OPTIONS, "Cualquiera")}
-                  </td>
-                  <td className="ui-cell-nowrap text-slate-100">
-                    {formatBenefitValue(benefit)}
                   </td>
                   <td className="ui-cell-nowrap text-slate-100">
                     {benefit.isActive ? "Activo" : "Desactivado"}

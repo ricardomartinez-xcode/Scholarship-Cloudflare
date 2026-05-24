@@ -5,6 +5,12 @@ import { type ChangeEvent, type FormEvent, useState, useTransition } from "react
 import { useRouter } from "next/navigation";
 
 import {
+  compareAdminPricingScope,
+  formatAdminPricingPlantel,
+  formatAdminPricingTier,
+  normalizeAdminPricingRegion,
+} from "@/lib/admin-pricing-display";
+import {
   seedCampusFeesJsonAction,
   seedFeesJsonAction,
   seedMateriasImportAction,
@@ -38,6 +44,8 @@ type Campus = {
   name: string;
   code: string;
   metaKey: string;
+  kind: "campus" | "online";
+  tier: string | null;
 };
 
 type Tab = "fees" | "availability" | "materias" | "seed";
@@ -177,10 +185,10 @@ function getSeedGuide(mode: SeedMode, format: SeedFormat) {
   return {
     title: "Importa un CSV para crear o actualizar Precio por materia.",
     detail:
-      "El orden esperado es: Plantel | Modalidad | # Materias | Costo MXN. Puedes usar coma, punto y coma o barra vertical como separador.",
+      "El orden esperado es: Region | Plantel | Tier | Modalidad | # Materias | Costo MXN. Region y Tier son opcionales; Online se trata como excepcion de tier.",
     sample:
-      "Plantel|Modalidad|# Materias|Costo MXN\nAGS|presencial|4|2400\nONLINE|online|6|3200",
-    placeholder: "Plantel|Modalidad|# Materias|Costo MXN",
+      "Region|Plantel|Tier|Modalidad|# Materias|Costo MXN\nGeneral|AGS|T1|presencial|4|2400\nGeneral|ONLINE|Online|online|6|3200",
+    placeholder: "Region|Plantel|Tier|Modalidad|# Materias|Costo MXN",
   };
 }
 
@@ -290,8 +298,28 @@ export default function FeesClient({
   );
   const visibleMaterias = materias.filter(
     (row) => !materiaFilter || row.plantel === materiaFilter,
+  ).sort((left, right) =>
+    compareAdminPricingScope(
+      {
+        region: left.region,
+        plantel: left.plantel,
+        tier: left.tier,
+        kind: left.kind,
+        modality: left.modalidad,
+        value: left.materias_count,
+      },
+      {
+        region: right.region,
+        plantel: right.plantel,
+        tier: right.tier,
+        kind: right.kind,
+        modality: right.modalidad,
+        value: right.materias_count,
+      },
+    ),
   );
   const campusName = campuses.find((campus) => campus.id === selectedCampus)?.name ?? "";
+  const selectedCampusRecord = campuses.find((campus) => campus.id === selectedCampus) ?? null;
   const seedGuide = getSeedGuide(seedMode, seedFormat);
 
   const campusFeeMap = campusFees.reduce<Record<string, CampusFee>>((map, fee) => {
@@ -672,14 +700,17 @@ export default function FeesClient({
 
           <div className="text-sm text-slate-300">{fees.length} registro(s)</div>
 
-          <div className="ui-scrollbar max-w-full overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[920px] border-collapse text-sm">
+          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[1080px] border-collapse text-sm">
               <thead className="bg-slate-950/40 text-slate-300">
                 <tr>
+                  <th className="p-3 text-left font-semibold">Region</th>
+                  <th className="p-3 text-left font-semibold">Plantel</th>
+                  <th className="p-3 text-left font-semibold">Tier</th>
+                  <th className="p-3 text-left font-semibold">Costo MXN</th>
                   <th className="p-3 text-left font-semibold">Código</th>
                   <th className="p-3 text-left font-semibold">Concepto</th>
                   <th className="p-3 text-left font-semibold">Sección</th>
-                  <th className="p-3 text-left font-semibold">Costo MXN</th>
                   <th className="p-3 text-left font-semibold">Activo</th>
                   <th className="p-3 text-left font-semibold">Acciones</th>
                 </tr>
@@ -687,6 +718,10 @@ export default function FeesClient({
               <tbody>
                 {fees.map((fee) => (
                   <tr key={fee.id} className="border-t border-white/10">
+                    <td className="p-3 text-slate-200">{normalizeAdminPricingRegion(null)}</td>
+                    <td className="p-3 text-slate-200">Todos</td>
+                    <td className="p-3 text-slate-200">General</td>
+                    <td className="p-3 text-slate-100">{formatMoney(fee.costMxn)}</td>
                     <td className="p-3 font-mono text-xs text-slate-300">{fee.code}</td>
                     <td className="p-3 text-slate-100">{fee.concept}</td>
                     <td className="p-3">
@@ -694,7 +729,6 @@ export default function FeesClient({
                         {SECTION_LABELS[fee.section]}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-100">{formatMoney(fee.costMxn)}</td>
                     <td className="p-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
@@ -732,7 +766,7 @@ export default function FeesClient({
                 ))}
                 {!fees.length && (
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={6}>
+                    <td className="p-4 text-slate-300" colSpan={9}>
                       Sin registros. Usa el botón de alta individual o la carga masiva.
                     </td>
                   </tr>
@@ -859,14 +893,17 @@ export default function FeesClient({
             </div>
           )}
 
-          <div className="ui-scrollbar max-w-full overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[920px] border-collapse text-sm">
+          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[1120px] border-collapse text-sm">
               <thead className="bg-slate-950/40 text-slate-300">
                 <tr>
+                  <th className="p-3 text-left font-semibold">Region</th>
+                  <th className="p-3 text-left font-semibold">Plantel</th>
+                  <th className="p-3 text-left font-semibold">Tier</th>
+                  <th className="p-3 text-left font-semibold">Costo plantel</th>
                   <th className="p-3 text-left font-semibold">Concepto</th>
                   <th className="p-3 text-left font-semibold">Sección</th>
                   <th className="p-3 text-left font-semibold">Costo base</th>
-                  <th className="p-3 text-left font-semibold">Costo plantel</th>
                   <th className="p-3 text-left font-semibold">Activo en plantel</th>
                   <th className="p-3 text-left font-semibold">Acciones</th>
                 </tr>
@@ -879,6 +916,27 @@ export default function FeesClient({
 
                   return (
                     <tr key={fee.id} className="border-t border-white/10">
+                      <td className="p-3 text-slate-200">
+                        {normalizeAdminPricingRegion(null)}
+                      </td>
+                      <td className="p-3 text-slate-100">
+                        {selectedCampusRecord
+                          ? formatAdminPricingPlantel({
+                              plantel: selectedCampusRecord.name,
+                              kind: selectedCampusRecord.kind,
+                            })
+                          : "Sin plantel"}
+                      </td>
+                      <td className="p-3 text-slate-200">
+                        {selectedCampusRecord
+                          ? formatAdminPricingTier({
+                              plantel: selectedCampusRecord.name,
+                              tier: selectedCampusRecord.tier,
+                              kind: selectedCampusRecord.kind,
+                            })
+                          : "General"}
+                      </td>
+                      <td className="p-3 text-slate-100">{formatMoney(effectiveCost)}</td>
                       <td className="p-3 text-slate-100">{fee.concept}</td>
                       <td className="p-3">
                         <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-xs text-slate-300">
@@ -886,7 +944,6 @@ export default function FeesClient({
                         </span>
                       </td>
                       <td className="p-3 text-slate-200">{formatMoney(fee.costMxn)}</td>
-                      <td className="p-3 text-slate-100">{formatMoney(effectiveCost)}</td>
                       <td className="p-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs ${
@@ -936,7 +993,7 @@ export default function FeesClient({
                 })}
                 {!fees.length && (
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={6}>
+                    <td className="p-4 text-slate-300" colSpan={9}>
                       Sin costos académicos cargados.
                     </td>
                   </tr>
@@ -1108,14 +1165,16 @@ export default function FeesClient({
             </div>
           )}
 
-          <div className="ui-scrollbar max-w-full overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[760px] border-collapse text-sm">
+          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[920px] border-collapse text-sm">
               <thead className="bg-slate-950/40 text-slate-300">
                 <tr>
+                  <th className="p-3 text-left font-semibold">Region</th>
                   <th className="p-3 text-left font-semibold">Plantel</th>
+                  <th className="p-3 text-left font-semibold">Tier</th>
+                  <th className="p-3 text-right font-semibold">Costo MXN</th>
                   <th className="p-3 text-left font-semibold">Modalidad</th>
                   <th className="p-3 text-right font-semibold"># Materias</th>
-                  <th className="p-3 text-right font-semibold">Costo MXN</th>
                   <th className="p-3 text-left font-semibold">Acciones</th>
                 </tr>
               </thead>
@@ -1125,13 +1184,24 @@ export default function FeesClient({
                     key={`${row.plantel}-${row.modalidad}-${row.materias_count}-${index}`}
                     className="border-t border-white/10"
                   >
+                    <td className="p-3 text-slate-200">
+                      {normalizeAdminPricingRegion(row.region)}
+                    </td>
                     <td className="p-3 text-slate-100">{row.plantel}</td>
-                    <td className="p-3 text-slate-200">{row.modalidad}</td>
-                    <td className="p-3 text-right font-mono text-slate-200">
-                      {row.materias_count}
+                    <td className="p-3 text-slate-200">
+                      {formatAdminPricingTier({
+                        plantel: row.plantel,
+                        tier: row.tier,
+                        kind: row.kind,
+                        modality: row.modalidad,
+                      })}
                     </td>
                     <td className="p-3 text-right font-mono text-slate-100">
                       {formatMoney(Number(row.costo))}
+                    </td>
+                    <td className="p-3 text-slate-200">{row.modalidad}</td>
+                    <td className="p-3 text-right font-mono text-slate-200">
+                      {row.materias_count}
                     </td>
                     <td className="p-3">
                       <button
@@ -1149,7 +1219,7 @@ export default function FeesClient({
                 ))}
                 {!visibleMaterias.length && (
                   <tr>
-                    <td className="p-4 text-slate-400" colSpan={5}>
+                    <td className="p-4 text-slate-400" colSpan={7}>
                       Sin registros.
                     </td>
                   </tr>

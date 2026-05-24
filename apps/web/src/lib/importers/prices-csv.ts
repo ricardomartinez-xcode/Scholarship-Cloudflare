@@ -8,6 +8,7 @@ export type PriceImportDiffAction = "create" | "update" | "noop";
 export type PriceImportPreviewRow = {
   rowNumber: number;
   action: PriceImportDiffAction;
+  region: string | null;
   plantel: string | null;
   programaKey: string | null;
   nivelKey: string;
@@ -51,6 +52,7 @@ export type PricesImportApplySummary = {
 
 type ParsedPriceRow = {
   rowNumber: number;
+  region: string | null;
   plantel: string | null;
   programaKey: string | null;
   nivelKey: string;
@@ -63,6 +65,7 @@ type ParsedPriceRow = {
 };
 
 const HEADER_ALIASES = {
+  region: ["region", "región"],
   programaKey: ["programakey", "programa", "programa_key"],
   plantel: ["plantel", "campus", "sede"],
   nivelKey: ["nivelkey", "nivel", "nivel_key"],
@@ -191,6 +194,7 @@ export async function preparePricesCsvImport(
   });
 
   const idxPrograma = findColumnIndex(headerMap, HEADER_ALIASES.programaKey);
+  const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
   const idxPlantel = findColumnIndex(headerMap, HEADER_ALIASES.plantel);
   const idxNivel = findColumnIndex(headerMap, HEADER_ALIASES.nivelKey);
   const idxModalidad = findColumnIndex(headerMap, HEADER_ALIASES.modalidadKey);
@@ -219,6 +223,7 @@ export async function preparePricesCsvImport(
     const rowNumber = index + 1;
 
     const plantel = readCell(row, idxPlantel) || null;
+    const region = readCell(row, idxRegion) || null;
     const programaKey = readCell(row, idxPrograma) || null;
     const nivelKey = readCell(row, idxNivel);
     const modalidadKey = readCell(row, idxModalidad);
@@ -256,6 +261,7 @@ export async function preparePricesCsvImport(
 
     parsedRows.push({
       rowNumber,
+      region,
       plantel,
       programaKey,
       nivelKey,
@@ -344,6 +350,9 @@ export async function applyPreparedPricesImport(params: {
       };
       if (row.plantel) {
         targetKeys.plantel = row.plantel;
+      }
+      if (row.region) {
+        targetKeys.region = row.region;
       }
 
       let existingId = row.existingId ?? null;

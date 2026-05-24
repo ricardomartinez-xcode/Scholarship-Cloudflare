@@ -12,6 +12,7 @@ export type PriceListWorkbook = {
 };
 
 export type NormalizedPriceListRow = {
+  region: string | null;
   plantel: string | null;
   nivelKey: string;
   modalidadKey: string;
@@ -156,6 +157,7 @@ export function normalizePriceListWorkbookRows(
       const headerRow = sheet.rows[rowIndex] ?? [];
       const headers = headerRow.map((cell) => normalizeHeader(String(cell ?? "")));
       const idxPlantel = findColumn(headers, ["plantel", "campus", "sede"]);
+      const idxRegion = findColumn(headers, ["region", "región"]);
       const idxTier = findColumn(headers, ["tier"]);
       const idxNivel = findColumn(headers, ["nivel", "nivelkey", "nivelkey"]);
       const idxModalidad = findColumn(headers, [
@@ -176,6 +178,7 @@ export function normalizePriceListWorkbookRows(
         if (!row.some((cell) => String(cell ?? "").trim())) continue;
 
         const plantel = readCell(row, idxPlantel) || null;
+        const region = readCell(row, idxRegion) || null;
         const tier = normalizeTier(readCell(row, idxTier));
         const nivelKey = defaults?.nivelKey ?? normalizeNivel(readCell(row, idxNivel));
         const modalidadKeys = defaults?.modalidadKeys ?? [
@@ -192,6 +195,7 @@ export function normalizePriceListWorkbookRows(
           for (const modalidadKey of modalidadKeys) {
             if (!modalidadKey) continue;
             output.push({
+              region,
               plantel,
               nivelKey,
               modalidadKey,
@@ -213,6 +217,7 @@ export function normalizePriceListWorkbookRows(
 
 export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
   const header = [
+    "region",
     "plantel",
     "nivel_key",
     "modalidad_key",
@@ -226,6 +231,7 @@ export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
     header.join(","),
     ...rows.map((row) =>
       [
+        row.region ?? "",
         row.plantel ?? "",
         row.nivelKey,
         row.modalidadKey,

@@ -25,7 +25,7 @@ async function loadFeesPageData() {
       prisma.campus.findMany({
         where: { isActive: true },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { id: true, name: true, code: true, metaKey: true },
+        select: { id: true, name: true, code: true, metaKey: true, kind: true, tier: true },
       }),
       prisma.campusAcademicFee.findMany({
         select: {

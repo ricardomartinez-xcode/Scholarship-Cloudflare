@@ -10,6 +10,12 @@ import {
   priceListRowsToCsv,
   type PriceListWorkbookSheet,
 } from "@/lib/importers/price-list-format";
+import {
+  compareAdminPricingScope,
+  formatAdminPricingPlantel,
+  formatAdminPricingTier,
+  normalizeAdminPricingRegion,
+} from "@/lib/admin-pricing-display";
 
 type BecaRule = {
   id: string;
@@ -35,6 +41,8 @@ type MontoOverride = {
 
 type PriceRow = {
   id: string;
+  region: string | null;
+  plantel: string | null;
   nivel_key: string;
   modalidad_key: string;
   plan: string;
@@ -47,6 +55,7 @@ type ActionResult = { ok: boolean; error?: string };
 type PriceImportPreviewRow = {
   rowNumber: number;
   action: "create" | "update" | "noop";
+  region: string | null;
   plantel: string | null;
   programaKey: string | null;
   nivelKey: string;
@@ -128,6 +137,8 @@ export default function PricesClient({
       if (!current || current.basePriceMxn === null) {
         rows.set(key, {
           id: key,
+          region: null,
+          plantel: null,
           nivel_key: rule.nivel_key,
           modalidad_key: rule.modalidad_key,
           plan: rule.plan,
@@ -136,16 +147,17 @@ export default function PricesClient({
         });
       }
     }
-    return Array.from(rows.values()).sort((a, b) =>
-      [
-        a.nivel_key.localeCompare(b.nivel_key),
-        a.modalidad_key.localeCompare(b.modalidad_key),
-        a.plan.localeCompare(b.plan, undefined, { numeric: true }),
-        String(a.tier ?? "").localeCompare(String(b.tier ?? ""), undefined, {
-          numeric: true,
-        }),
-      ].find((result) => result !== 0) ?? 0,
-    );
+    return Array.from(rows.values()).sort((a, b) => {
+      const scope = compareAdminPricingScope(a, b);
+      if (scope !== 0) return scope;
+      return (
+        [
+          a.nivel_key.localeCompare(b.nivel_key),
+          a.modalidad_key.localeCompare(b.modalidad_key),
+          a.plan.localeCompare(b.plan, undefined, { numeric: true }),
+        ].find((result) => result !== 0) ?? 0
+      );
+    });
   }, [becaRules]);
 
   const [filterNivel, setFilterNivel] = useState("");
@@ -354,8 +366,8 @@ export default function PricesClient({
               Importar precio lista
             </div>
             <p className="mt-1 text-sm text-slate-300">
-              Importa archivos XLSX o CSV con columnas de Precio Lista. Se genera preview de
-              diff antes de aplicar cambios.
+              Importa archivos XLSX o CSV con el orden canónico de precio. Se genera preview
+              de diff antes de aplicar cambios.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -393,6 +405,17 @@ export default function PricesClient({
           accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
           className="ui-control max-w-full text-sm"
         />
+        <div className="grid gap-2 rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs text-slate-300 md:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
+          <div>
+            <div className="font-semibold text-slate-100">Orden canónico</div>
+            <div className="mt-1 font-mono text-[11px]">
+              Region | Plantel | Tier | Precio lista
+            </div>
+          </div>
+          <div className="font-mono text-[11px] leading-5">
+            region,plantel,tier,precio,nivel,modalidad,plan
+          </div>
+        </div>
         {importError ? (
           <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {importError}
@@ -433,15 +456,17 @@ export default function PricesClient({
               </div>
             ) : null}
             {importPreviewRows.length ? (
-              <div className="ui-table-wrap ui-scrollbar">
-                <table className="ui-table min-w-[900px]">
+              <div className="ui-table-wrap ui-scrollbar max-h-[360px]">
+                <table className="ui-table ui-table--compact min-w-[940px]">
                   <thead>
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
                       <th className="ui-cell-nowrap text-left">Acción</th>
+                      <th className="ui-cell-nowrap text-left">Region</th>
                       <th className="ui-cell-nowrap text-left">Plantel</th>
-                      <th className="text-left">Scope</th>
+                      <th className="ui-cell-nowrap text-left">Tier</th>
                       <th className="ui-cell-nowrap text-right">Precio lista</th>
+                      <th className="text-left">Detalle</th>
                       <th className="ui-cell-nowrap text-left">Activo</th>
                     </tr>
                   </thead>
@@ -451,14 +476,19 @@ export default function PricesClient({
                         <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                         <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
                         <td className="ui-cell-nowrap text-slate-200">
-                          {row.plantel ?? "General"}
+                          {normalizeAdminPricingRegion(row.region)}
                         </td>
-                        <td className="text-slate-200">
-                          {row.nivelKey} · {row.modalidadKey} · {row.plan}/
-                          {row.tier ?? "ANY"}
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {formatAdminPricingPlantel(row)}
+                        </td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {formatAdminPricingTier(row)}
                         </td>
                         <td className="ui-cell-nowrap text-right font-mono text-slate-100">
                           {fmt(row.newPrice)}
+                        </td>
+                        <td className="text-slate-200">
+                          {row.nivelKey} · {row.modalidadKey} · plan {row.plan}
                         </td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {row.isActive ? "Sí" : "No"}
@@ -496,14 +526,17 @@ export default function PricesClient({
       </div>
 
       {/* Table */}
-      <div className="ui-table-wrap ui-scrollbar mt-4">
-        <table className="ui-table min-w-[940px]">
+      <div className="ui-table-wrap ui-scrollbar mt-4 max-h-[620px]">
+        <table className="ui-table min-w-[1120px]">
           <thead>
             <tr>
+              <th className="ui-cell-nowrap text-left">Region</th>
+              <th className="ui-cell-nowrap text-left">Plantel</th>
+              <th className="ui-cell-nowrap text-left">Tier</th>
+              <th className="ui-cell-nowrap text-right">Precio lista</th>
               <th className="ui-cell-nowrap text-left">Nivel</th>
               <th className="ui-cell-nowrap text-left">Modalidad</th>
-              <th className="ui-cell-nowrap text-left">Plan / Tier</th>
-              <th className="ui-cell-nowrap text-right">Precio lista</th>
+              <th className="ui-cell-nowrap text-left">Plan</th>
               <th className="ui-cell-nowrap text-right">Ajuste activo</th>
               <th className="ui-cell-nowrap text-right">Acciones</th>
             </tr>
@@ -514,13 +547,22 @@ export default function PricesClient({
                 const override = findOverride(rule, montoOverrides);
                 return (
                   <tr key={rule.id}>
-                    <td className="ui-cell-nowrap text-slate-200">{rule.nivel_key}</td>
-                    <td className="ui-cell-nowrap text-slate-200">{rule.modalidad_key}</td>
+                    <td className="ui-cell-nowrap text-slate-200">
+                      {normalizeAdminPricingRegion(rule.region)}
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-200">
+                      {formatAdminPricingPlantel(rule)}
+                    </td>
                     <td className="ui-cell-nowrap text-xs text-slate-300">
-                      {rule.plan} / {rule.tier ?? "General"}
+                      {formatAdminPricingTier(rule)}
                     </td>
                     <td className="ui-cell-nowrap text-right font-mono text-slate-100">
                       {fmt(rule.basePriceMxn)}
+                    </td>
+                    <td className="ui-cell-nowrap text-slate-200">{rule.nivel_key}</td>
+                    <td className="ui-cell-nowrap text-slate-200">{rule.modalidad_key}</td>
+                    <td className="ui-cell-nowrap text-xs text-slate-300">
+                      {rule.plan}
                     </td>
                     <td className="ui-cell-nowrap text-right">
                       {override ? (
@@ -562,7 +604,7 @@ export default function PricesClient({
               })
             ) : (
               <tr>
-                <td className="text-slate-400" colSpan={6}>
+                <td className="text-slate-400" colSpan={9}>
                   No hay precios con los filtros seleccionados.
                 </td>
               </tr>

@@ -3,7 +3,10 @@ import { resolveCampus } from "@/lib/campus-resolver";
 import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 
 export type AdminMateriaRow = {
+  region: string | null;
   plantel: string;
+  tier: string | null;
+  kind: "campus" | "online";
   modalidad: string;
   materias_count: number;
   costo: number;
@@ -17,22 +20,26 @@ export async function getCanonicalMateriaRows(sourceVersion = "canonical") {
   const rows = await prisma.returnSubjectPrice.findMany({
     where: { sourceVersion },
     orderBy: [
-      { campus: { name: "asc" } },
-      { modality: "asc" },
+    { campus: { name: "asc" } },
+    { campus: { tier: "asc" } },
+    { modality: "asc" },
       { subjectCount: "asc" },
     ],
     select: {
       modality: true,
       subjectCount: true,
       priceMxn: true,
-      campus: {
-        select: { metaKey: true, name: true },
-      },
+    campus: {
+      select: { metaKey: true, name: true, tier: true, kind: true },
+    },
     },
   });
 
   return rows.map<AdminMateriaRow>((row) => ({
+    region: null,
     plantel: row.campus.metaKey ?? row.campus.name,
+    tier: row.campus.tier,
+    kind: row.campus.kind,
     modalidad: row.modality === "online" ? "online" : "presencial",
     materias_count: row.subjectCount,
     costo: Number(row.priceMxn),

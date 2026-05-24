@@ -29,6 +29,7 @@ describe("price list workbook format", () => {
     expect(rows).toEqual([
       {
         plantel: "Chihuahua",
+        region: "Region 1",
         nivelKey: "preparatoria",
         modalidadKey: "presencial",
         plan: "9",
@@ -39,6 +40,7 @@ describe("price list workbook format", () => {
       },
       {
         plantel: "Chihuahua",
+        region: "Region 1",
         nivelKey: "preparatoria",
         modalidadKey: "mixta",
         plan: "9",
@@ -49,6 +51,7 @@ describe("price list workbook format", () => {
       },
       {
         plantel: "Tijuana",
+        region: "Region 1",
         nivelKey: "preparatoria",
         modalidadKey: "presencial",
         plan: "6",
@@ -59,6 +62,7 @@ describe("price list workbook format", () => {
       },
       {
         plantel: "Tijuana",
+        region: "Region 1",
         nivelKey: "preparatoria",
         modalidadKey: "mixta",
         plan: "6",
@@ -84,7 +88,7 @@ describe("price list workbook format", () => {
     });
 
     expect(priceListRowsToCsv(rows)).toContain(
-      "plantel,nivel_key,modalidad_key,plan,tier,new_price,is_active,notes",
+      "region,plantel,nivel_key,modalidad_key,plan,tier,new_price,is_active,notes",
     );
     expect(rows[0]).toMatchObject({
       plantel: "Chihuahua",

@@ -29,7 +29,10 @@ const PRICES_WRITE_CAPABILITY = AdminCapability.manage_prices;
 // ─── Precio por Materia (ReturnSubjectPrice canónico) ───────────────────────
 
 export type MateriaRow = {
+  region: string | null;
   plantel: string;
+  tier: string | null;
+  kind: "campus" | "online";
   modalidad: string;
   materias_count: number;
   costo: number;
@@ -812,13 +815,28 @@ export async function seedMateriasImportAction(formData: FormData) {
         return { ok: false, error: "El CSV no contiene filas." };
       }
 
-      const hasHeader = hasExpectedHeader(rows[0] ?? [], [
+      const firstRow = rows[0] ?? [];
+      const hasScopedHeader = hasExpectedHeader(firstRow, [
+        "Region",
         "Plantel",
+        "Tier",
         "Modalidad",
         "# Materias",
         "Costo MXN",
       ]);
+      const hasHeader =
+        hasScopedHeader ||
+        hasExpectedHeader(firstRow, [
+          "Plantel",
+          "Modalidad",
+          "# Materias",
+          "Costo MXN",
+        ]);
       const startIndex = hasHeader ? 1 : 0;
+      const plantelIndex = hasScopedHeader ? 1 : 0;
+      const modalidadIndex = hasScopedHeader ? 3 : 1;
+      const materiasIndex = hasScopedHeader ? 4 : 2;
+      const costoIndex = hasScopedHeader ? 5 : 3;
       if (rows.length <= startIndex) {
         return { ok: false, error: "El CSV no contiene filas de datos." };
       }
@@ -827,10 +845,10 @@ export async function seedMateriasImportAction(formData: FormData) {
         .slice(startIndex)
         .filter((row) => row.some((cell) => String(cell ?? "").trim()))
         .map((row) => ({
-          plantel: String(row[0] ?? "").trim(),
-          modalidad: String(row[1] ?? "").trim(),
-          materias_count: parseCountValue(row[2] ?? ""),
-          costo: parseMxnValue(row[3] ?? ""),
+          plantel: String(row[plantelIndex] ?? "").trim(),
+          modalidad: String(row[modalidadIndex] ?? "").trim(),
+          materias_count: parseCountValue(row[materiasIndex] ?? ""),
+          costo: parseMxnValue(row[costoIndex] ?? ""),
         }));
     }
 

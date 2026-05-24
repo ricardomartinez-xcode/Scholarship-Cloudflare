@@ -45,7 +45,7 @@ export default async function BenefitsPage() {
         duration: true,
         campuses: {
           select: {
-            campus: { select: { id: true, name: true, kind: true, sortOrder: true } },
+            campus: { select: { id: true, name: true, kind: true, sortOrder: true, tier: true } },
           },
         },
       },
@@ -95,6 +95,14 @@ export default async function BenefitsPage() {
     modality: b.modality,
     duration: b.duration,
     campusIds: b.campuses.map((x) => x.campus.id),
+    campusScopes: b.campuses
+      .map((x) => ({
+        id: x.campus.id,
+        name: x.campus.name,
+        kind: x.campus.kind,
+        tier: x.campus.tier,
+      }))
+      .sort((a, c) => a.name.localeCompare(c.name)),
     campusNames: b.campuses
       .map((x) => x.campus.name)
       .sort((a, c) => a.localeCompare(c)),
