@@ -364,10 +364,12 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
   try {
     const admin = await requireAdminCapabilityUser(BENEFITS_WRITE_CAPABILITY);
 
+    const id = String(formData.get("id") ?? "").trim();
     const enrollmentType = String(formData.get("enrollmentType") ?? "").trim();
     const businessLine = String(formData.get("businessLine") ?? "").trim();
     const modality = String(formData.get("modality") ?? "").trim();
     const campusId = String(formData.get("campusId") ?? "__ALL__").trim();
+    const submittedCampusTier = String(formData.get("campusTier") ?? "").trim();
     const plan = Number(formData.get("plan") ?? "");
     const scholarshipPercent = Number(formData.get("scholarshipPercent") ?? "");
     const minAverage = Number(formData.get("minAverage") ?? "");
@@ -405,8 +407,8 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
       };
     }
 
-    let campusTier = "ANY";
-    if (campusId && campusId !== "__ALL__") {
+    let campusTier = submittedCampusTier || "ANY";
+    if (!submittedCampusTier && campusId && campusId !== "__ALL__") {
       const campus = await prisma.campus.findFirst({
         where: { id: campusId, isActive: true },
         select: { tier: true, name: true },
@@ -416,10 +418,14 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
       }
       campusTier = String(campus.tier ?? "").trim();
       if (!campusTier) {
+        if (modality === CanonicalModality.online || campus.name.toLowerCase() === "online") {
+          campusTier = "ANY";
+        } else {
         return {
           ok: false,
           error: "El plantel seleccionado no tiene tier configurado.",
         };
+        }
       }
     }
 
@@ -434,11 +440,17 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
       sourceVersion: "canonical",
     };
 
-    const before = await prisma.scholarshipRule.findFirst({ where });
+    const before = id
+      ? await prisma.scholarshipRule.findUnique({ where: { id } })
+      : await prisma.scholarshipRule.findFirst({ where });
+    if (id && !before) {
+      return { ok: false, error: "La regla ya no existe. Recarga la página." };
+    }
     const saved = before
       ? await prisma.scholarshipRule.update({
           where: { id: before.id },
           data: {
+            ...where,
             scholarshipPercent,
             origin: "admin-benefits",
           },
@@ -493,4 +505,43 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
     }, "Failed to save base scholarship rule");
     return { ok: false, error: "No fue posible guardar la beca por promedio." };
   }
+}
+
+export async function deleteBaseScholarshipAction(formData: FormData) {
+  const admin = await requireAdminCapabilityUser(BENEFITS_WRITE_CAPABILITY);
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  const before = await prisma.scholarshipRule.findUnique({ where: { id } });
+  if (!before) return;
+
+  await prisma.scholarshipRule.delete({ where: { id } });
+
+  await writeAdminAuditLog({
+    module: AdminConfigModule.BENEFITS,
+    action: AdminAuditAction.DELETE,
+    actor: admin,
+    entityType: "ScholarshipRule",
+    entityId: before.id,
+    before: {
+      id: before.id,
+      enrollmentType: before.enrollmentType,
+      businessLine: before.businessLine,
+      modality: before.modality,
+      plan: before.plan,
+      campusTier: before.campusTier,
+      minAverage: before.minAverage === null ? null : Number(before.minAverage),
+      maxAverage: before.maxAverage === null ? null : Number(before.maxAverage),
+      scholarshipPercent:
+        before.scholarshipPercent === null ? null : Number(before.scholarshipPercent),
+      sourceVersion: before.sourceVersion,
+    },
+    after: null,
+  });
+
+  revalidatePath("/admin/benefits");
+  revalidatePath("/admin/prices");
+  revalidatePath("/");
+  revalidatePath("/unidep");
 }

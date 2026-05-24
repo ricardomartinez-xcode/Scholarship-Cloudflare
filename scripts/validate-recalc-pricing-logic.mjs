@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 
-const MAX_REGRESO_SCHOLARSHIP = 25;
-
 function basePriceFromRule(rule) {
   if (!rule) return null;
   if (Number.isFinite(Number(rule.basePriceMxn))) return Number(rule.basePriceMxn);
@@ -20,27 +18,19 @@ function basePriceFromRules(rules) {
 }
 
 function quote({
-  enrollmentType,
   average,
   basePriceMxn,
   scholarshipPercent,
-  fixedScholarshipPercent = 0,
   additionalBenefitPercent = 0,
   extraChargeAmount = 0,
 }) {
-  const usesFixedScholarship = fixedScholarshipPercent > 0;
-  const sinAccessToScholarship = average < 7 && !usesFixedScholarship;
-  const boundedScholarship = usesFixedScholarship
-    ? fixedScholarshipPercent
-    : enrollmentType === "nuevo_ingreso"
-      ? scholarshipPercent
-      : Math.min(scholarshipPercent, MAX_REGRESO_SCHOLARSHIP);
-  const effectiveScholarshipPercent = sinAccessToScholarship ? 0 : boundedScholarship;
+  const sinAccessToScholarship = average < 7;
+  const effectiveScholarshipPercent = sinAccessToScholarship ? 0 : scholarshipPercent;
   const scholarshipAmountMxn = basePriceMxn * (effectiveScholarshipPercent / 100);
   const additionalBenefitAmountMxn = basePriceMxn * (additionalBenefitPercent / 100);
   const subtotalMxn = basePriceMxn - scholarshipAmountMxn - additionalBenefitAmountMxn;
   return {
-    scholarshipSource: sinAccessToScholarship ? "none" : usesFixedScholarship ? "fixed" : "average",
+    scholarshipSource: sinAccessToScholarship ? "none" : "average",
     sinAccessToScholarship,
     effectiveScholarshipPercent,
     scholarshipAmountMxn,
@@ -55,20 +45,7 @@ assert.equal(Math.round(basePriceFromRules([
   { discountedPriceMxn: 850, scholarshipPercent: 15 },
 ]) * 100) / 100, 1000);
 
-const fixed = quote({
-  enrollmentType: "reingreso",
-  average: 6.5,
-  basePriceMxn: 3000,
-  scholarshipPercent: 0,
-  fixedScholarshipPercent: 40,
-});
-assert.equal(fixed.sinAccessToScholarship, false);
-assert.equal(fixed.scholarshipSource, "fixed");
-assert.equal(fixed.scholarshipAmountMxn, 1200);
-assert.equal(fixed.totalMxn, 1800);
-
 const additional = quote({
-  enrollmentType: "nuevo_ingreso",
   average: 9,
   basePriceMxn: 2000,
   scholarshipPercent: 30,
@@ -77,13 +54,12 @@ const additional = quote({
 assert.equal(additional.additionalBenefitAmountMxn, 200);
 assert.equal(additional.totalMxn, 1200);
 
-const capped = quote({
-  enrollmentType: "regreso",
+const regreso = quote({
   average: 9.4,
   basePriceMxn: 1000,
   scholarshipPercent: 50,
 });
-assert.equal(capped.effectiveScholarshipPercent, 25);
-assert.equal(capped.totalMxn, 750);
+assert.equal(regreso.effectiveScholarshipPercent, 50);
+assert.equal(regreso.totalMxn, 500);
 
-console.log("OK: lógica de precio base, beca fija, beneficios adicionales y topes validada.");
+console.log("OK: lógica canónica de precio base, beca por promedio y beneficios validada.");

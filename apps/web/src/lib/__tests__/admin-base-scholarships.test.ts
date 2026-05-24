@@ -57,6 +57,22 @@ describe("serializeBaseScholarshipRows", () => {
         percentages: [15, 25],
         ranges: ["8 - 8.9", "9 - 10"],
         ruleCount: 2,
+        rules: [
+          {
+            id: "rule_1",
+            minAverage: 8,
+            maxAverage: 8.9,
+            scholarshipPercent: 15,
+            rangeLabel: "8 - 8.9",
+          },
+          {
+            id: "rule_2",
+            minAverage: 9,
+            maxAverage: 10,
+            scholarshipPercent: 25,
+            rangeLabel: "9 - 10",
+          },
+        ],
       },
       {
         id: "reingreso|salud|presencial|12|T1",
@@ -68,6 +84,15 @@ describe("serializeBaseScholarshipRows", () => {
         percentages: [20],
         ranges: ["Sin rango"],
         ruleCount: 1,
+        rules: [
+          {
+            id: "rule_3",
+            minAverage: null,
+            maxAverage: null,
+            scholarshipPercent: 20,
+            rangeLabel: "Sin rango",
+          },
+        ],
       },
     ]);
   });

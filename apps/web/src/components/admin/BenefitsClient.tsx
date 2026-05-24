@@ -35,6 +35,15 @@ type BaseScholarshipRow = {
   percentages: number[];
   ranges: string[];
   ruleCount: number;
+  rules: BaseScholarshipRuleRow[];
+};
+
+type BaseScholarshipRuleRow = {
+  id: string;
+  minAverage: number | null;
+  maxAverage: number | null;
+  scholarshipPercent: number | null;
+  rangeLabel: string;
 };
 
 type ActionResult = { ok: boolean; error?: string };
@@ -133,6 +142,7 @@ export default function BenefitsClient({
   campusOptions,
   upsertBenefitAction,
   upsertBaseScholarshipAction,
+  deleteBaseScholarshipAction,
   deleteBenefitAction,
 }: {
   benefits: Benefit[];
@@ -140,6 +150,7 @@ export default function BenefitsClient({
   campusOptions: { value: string; label: string; kind: string; tier?: string | null }[];
   upsertBenefitAction: (formData: FormData) => Promise<ActionResult>;
   upsertBaseScholarshipAction: (formData: FormData) => Promise<ActionResult>;
+  deleteBaseScholarshipAction: (formData: FormData) => Promise<void>;
   deleteBenefitAction: (formData: FormData) => Promise<void>;
 }) {
   const router = useRouter();
@@ -208,6 +219,8 @@ export default function BenefitsClient({
   const [basePercent, setBasePercent] = useState("");
   const [baseMinAverage, setBaseMinAverage] = useState("");
   const [baseMaxAverage, setBaseMaxAverage] = useState("");
+  const [editingBaseScholarshipId, setEditingBaseScholarshipId] = useState("");
+  const [editingBaseCampusTier, setEditingBaseCampusTier] = useState("");
 
   const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
     upsertBenefitAction,
@@ -230,6 +243,11 @@ export default function BenefitsClient({
     }, 0);
     return () => window.clearTimeout(timer);
   }, [saveState?.ok]);
+
+  useEffect(() => {
+    if (!baseScholarshipSaveState?.ok) return;
+    setEditingBaseScholarshipId("");
+  }, [baseScholarshipSaveState?.ok]);
 
   function handleBenefitTypeChange(value: string) {
     setBenefitType(value);
@@ -286,6 +304,28 @@ export default function BenefitsClient({
   const normalizedCampusIds = campusIds.includes("__ALL__")
     ? ["__ALL__"]
     : campusIds.filter((value) => value !== "__ALL__");
+
+  function startCreateBaseScholarship() {
+    setEditingBaseScholarshipId("");
+    setEditingBaseCampusTier("");
+    setBasePlan("");
+    setBasePercent("");
+    setBaseMinAverage("");
+    setBaseMaxAverage("");
+  }
+
+  function startEditBaseScholarship(row: BaseScholarshipRow, rule: BaseScholarshipRuleRow) {
+    setEditingBaseScholarshipId(rule.id);
+    setEditingBaseCampusTier(row.campusTier);
+    setBaseEnrollmentType(row.enrollmentType);
+    setBaseBusinessLine(row.businessLine);
+    setBaseModality(row.modality);
+    setBaseCampus("__ALL__");
+    setBasePlan(String(row.plan));
+    setBasePercent(rule.scholarshipPercent === null ? "" : String(rule.scholarshipPercent));
+    setBaseMinAverage(rule.minAverage === null ? "" : String(rule.minAverage));
+    setBaseMaxAverage(rule.maxAverage === null ? "" : String(rule.maxAverage));
+  }
 
   async function validateImportCsv() {
     setImportLoading(true);
@@ -533,7 +573,24 @@ export default function BenefitsClient({
           <span className="ui-pill">{baseScholarships.length} grupos</span>
         </div>
 
-        <form onSubmit={handleBaseScholarshipSubmit} className="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(360px,0.85fr)_minmax(520px,1.15fr)]">
+        <form onSubmit={handleBaseScholarshipSubmit} className="grid content-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-slate-100">
+              {editingBaseScholarshipId ? "Editar regla" : "Nueva regla"}
+            </div>
+            {editingBaseScholarshipId ? (
+              <button
+                type="button"
+                onClick={startCreateBaseScholarship}
+                className="ui-button-secondary min-h-[30px] px-3 text-xs"
+              >
+                Cancelar
+              </button>
+            ) : null}
+          </div>
+          <input type="hidden" name="id" value={editingBaseScholarshipId} />
+          <input type="hidden" name="campusTier" value={editingBaseCampusTier} />
           <input type="hidden" name="enrollmentType" value={baseEnrollmentType} />
           <input type="hidden" name="businessLine" value={baseBusinessLine} />
           <input type="hidden" name="modality" value={baseModality} />
@@ -572,9 +629,17 @@ export default function BenefitsClient({
                 labelId={baseCampusId}
                 placeholder="Todos"
                 value={baseCampus}
-                onChange={setBaseCampus}
+                onChange={(value) => {
+                  setBaseCampus(value);
+                  setEditingBaseCampusTier("");
+                }}
                 options={campusSelectOptions}
               />
+              {editingBaseScholarshipId && editingBaseCampusTier ? (
+                <span className="text-xs text-slate-400">
+                  Editando tier {editingBaseCampusTier === "ANY" ? "General" : editingBaseCampusTier}
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -661,55 +726,85 @@ export default function BenefitsClient({
         </form>
 
         {baseScholarships.length ? (
-          <div className="ui-table-wrap ui-scrollbar">
-            <table className="ui-table min-w-[1040px]">
-              <thead>
-                <tr>
-                  <th className="ui-cell-nowrap text-left">Ingreso</th>
-                  <th className="ui-cell-nowrap text-left">Línea</th>
-                  <th className="ui-cell-nowrap text-left">Modalidad</th>
-                  <th className="ui-cell-nowrap text-left">Plan</th>
-                  <th className="ui-cell-nowrap text-left">Plantel</th>
-                  <th className="text-left">Rangos</th>
-                  <th className="ui-cell-nowrap text-left">% Beca</th>
-                  <th className="ui-cell-nowrap text-right">Reglas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {baseScholarships.map((row) => (
-                  <tr key={row.id}>
-                    <td className="ui-cell-nowrap text-slate-100">
-                      {resolveLabel(
-                        row.enrollmentType,
-                        ENROLLMENT_TYPE_OPTIONS,
-                        row.enrollmentType,
-                      )}
-                    </td>
-                    <td className="ui-cell-nowrap text-slate-100">
-                      {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
-                    </td>
-                    <td className="ui-cell-nowrap text-slate-100">
-                      {resolveLabel(row.modality, MODALITY_OPTIONS, row.modality)}
-                    </td>
-                    <td className="ui-cell-nowrap text-slate-100">
-                      {row.plan}
-                    </td>
-                    <td className="ui-cell-nowrap text-slate-100">
-                      {row.campusTier === "ANY" ? "Todos" : row.campusTier}
-                    </td>
-                    <td className="text-slate-200">{row.ranges.join(", ")}</td>
-                    <td className="ui-cell-nowrap text-slate-100">
+          <div className="ui-scrollbar max-h-[520px] min-w-0 overflow-y-auto rounded-2xl border border-white/10 bg-white/5">
+            <div className="sticky top-0 z-10 grid grid-cols-[1.2fr_0.9fr_0.7fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+              <span>Alcance</span>
+              <span>Rangos</span>
+              <span>% Beca</span>
+              <span className="text-right">Reglas</span>
+            </div>
+            <div className="divide-y divide-white/10">
+              {baseScholarships.map((row) => (
+                <details key={row.id} className="group">
+                  <summary className="grid cursor-pointer list-none grid-cols-[1.2fr_0.9fr_0.7fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">
+                        {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)} ·{" "}
+                        {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
+                      </div>
+                      <div className="mt-1 truncate text-xs text-slate-400">
+                        {resolveLabel(row.modality, MODALITY_OPTIONS, row.modality)} · Plan {row.plan} ·{" "}
+                        {row.campusTier === "ANY" ? "General" : row.campusTier}
+                      </div>
+                    </div>
+                    <div className="min-w-0 truncate text-slate-300">
+                      {row.ranges.join(", ")}
+                    </div>
+                    <div className="min-w-0 truncate font-mono text-slate-100">
                       {row.percentages.length
                         ? row.percentages.map((value) => `${value}%`).join(", ")
-                        : "Sin beca"}
-                    </td>
-                    <td className="ui-cell-nowrap text-right text-slate-100">
-                      {row.ruleCount}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        : "0%"}
+                    </div>
+                    <div className="flex items-center justify-end gap-2 text-right">
+                      <span className="ui-pill">{row.ruleCount}</span>
+                      <span className="text-slate-400 transition group-open:rotate-90">›</span>
+                    </div>
+                  </summary>
+                  <div className="grid gap-2 px-4 pb-4">
+                    {row.rules.map((rule) => (
+                      <div
+                        key={rule.id}
+                        className="grid gap-2 rounded-xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-200 sm:grid-cols-[1fr_auto]"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-lg bg-white/10 px-2 py-1 font-mono text-xs text-slate-100">
+                            {rule.rangeLabel}
+                          </span>
+                          <span className="rounded-lg bg-emerald-500/15 px-2 py-1 font-mono text-xs text-emerald-100">
+                            {rule.scholarshipPercent ?? 0}%
+                          </span>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEditBaseScholarship(row, rule)}
+                            className="ui-button-secondary min-h-[30px] px-3 text-xs"
+                          >
+                            Editar
+                          </button>
+                          <form
+                            action={deleteBaseScholarshipAction}
+                            onSubmit={(event) => {
+                              if (!window.confirm("¿Eliminar esta regla de beca por promedio?")) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="id" value={rule.id} />
+                            <button
+                              type="submit"
+                              className="min-h-[30px] rounded-xl border border-red-300 bg-red-100 px-3 text-xs font-semibold text-red-950 transition hover:bg-red-200"
+                            >
+                              Eliminar
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
@@ -717,6 +812,7 @@ export default function BenefitsClient({
             scholarshipRule para el ciclo activo.
           </div>
         )}
+        </div>
       </section>
 
       {benefits.length ? (

@@ -22,6 +22,15 @@ export type BaseScholarshipRow = {
   percentages: number[];
   ranges: string[];
   ruleCount: number;
+  rules: BaseScholarshipRuleRow[];
+};
+
+export type BaseScholarshipRuleRow = {
+  id: string;
+  minAverage: number | null;
+  maxAverage: number | null;
+  scholarshipPercent: number | null;
+  rangeLabel: string;
 };
 
 function toNumber(value: unknown) {
@@ -71,6 +80,7 @@ export function serializeBaseScholarshipRows(
         percentages: [],
         ranges: [],
         ruleCount: 0,
+        rules: [],
       };
 
     const percentage = toNumber(rule.scholarshipPercent);
@@ -83,6 +93,19 @@ export function serializeBaseScholarshipRows(
     if (!row.ranges.includes(range)) {
       row.ranges.push(range);
     }
+    row.rules.push({
+      id: rule.id,
+      minAverage: toNumber(rule.minAverage),
+      maxAverage: toNumber(rule.maxAverage),
+      scholarshipPercent: percentage,
+      rangeLabel: range,
+    });
+    row.rules.sort((a, b) => {
+      const minA = a.minAverage ?? -1;
+      const minB = b.minAverage ?? -1;
+      if (minA !== minB) return minA - minB;
+      return (a.maxAverage ?? -1) - (b.maxAverage ?? -1);
+    });
     row.ruleCount += 1;
     rows.set(key, row);
   }

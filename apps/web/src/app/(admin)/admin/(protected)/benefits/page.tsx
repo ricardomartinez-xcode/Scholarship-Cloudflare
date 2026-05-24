@@ -13,6 +13,7 @@ import {
   rollbackConfigVersionAction,
 } from "../config-actions";
 import {
+  deleteBaseScholarshipAction,
   deleteBenefitAction,
   upsertBaseScholarshipAction,
   upsertBenefitAction,
@@ -150,6 +151,7 @@ export default async function BenefitsPage() {
         }))}
         upsertBenefitAction={upsertBenefitAction}
         upsertBaseScholarshipAction={upsertBaseScholarshipAction}
+        deleteBaseScholarshipAction={deleteBaseScholarshipAction}
         deleteBenefitAction={deleteBenefitAction}
       />
     </div>
