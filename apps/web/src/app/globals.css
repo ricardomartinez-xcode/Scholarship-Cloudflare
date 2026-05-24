@@ -5527,3 +5527,88 @@ html body .ui-campaign-table__time {
 html body .ui-campaign-table__error {
   color: #7f1d1d !important;
 }
+
+/* Final admin readability pass: admin pages use the institutional light theme, not the old dark surface. */
+html body .ui-admin-surface {
+  border-color: var(--ui-border) !important;
+  background: #ffffff !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow) !important;
+}
+
+html body .ui-admin-surface h1,
+html body .ui-admin-surface h2,
+html body .ui-admin-surface h3,
+html body .ui-admin-surface [class*="text-slate-100"],
+html body .ui-admin-surface [class*="text-white"] {
+  color: var(--ui-text-primary) !important;
+}
+
+html body .ui-admin-surface p,
+html body .ui-admin-surface [class*="text-slate-300"],
+html body .ui-admin-surface [class*="text-slate-400"],
+html body .ui-admin-surface [class*="text-slate-500"] {
+  color: var(--ui-text-secondary) !important;
+}
+
+html body .ui-admin-table-shell {
+  border-color: var(--ui-border) !important;
+  background: #ffffff !important;
+  overflow-x: auto;
+}
+
+html body .ui-admin-table-shell table {
+  color: var(--ui-text-primary) !important;
+}
+
+html body .ui-admin-table-shell thead {
+  background: #eaf3f8 !important;
+  color: var(--ui-institutional-blue-deep) !important;
+}
+
+html body .ui-admin-table-shell th,
+html body .ui-admin-table-shell td {
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text-primary) !important;
+  vertical-align: top;
+}
+
+html body .ui-admin-table-shell tbody tr {
+  background: #ffffff !important;
+}
+
+html body .ui-admin-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ui-institutional-blue-deep);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    background var(--ui-dur) var(--ui-ease),
+    border-color var(--ui-dur) var(--ui-ease),
+    color var(--ui-dur) var(--ui-ease);
+}
+
+html body .ui-admin-icon-action:hover {
+  border-color: var(--ui-border-strong);
+  background: #f4f9fc;
+}
+
+html body .ui-admin-icon-action--danger {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+html body .ui-admin-icon-action--danger:hover {
+  border-color: #fca5a5;
+  background: #fee2e2;
+}

@@ -310,7 +310,7 @@ export default function DirectoryClient({
                 setEditing({});
                 setError("");
               }}
-              className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30"
+              className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0F3C55]"
             >
               + Agregar
             </button>
@@ -356,7 +356,7 @@ export default function DirectoryClient({
             <button
               type="submit"
               disabled={importPending || !importFile}
-              className="rounded-full border border-cyan-500/30 bg-cyan-500/20 px-4 py-2 text-sm text-cyan-100 transition hover:bg-cyan-500/30 disabled:opacity-50"
+              className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0F3C55] disabled:border-[#D7E4ED] disabled:bg-[#EAF3F8] disabled:text-[#657D8F] disabled:opacity-100"
             >
               {importPending ? "Validando..." : "Validar archivo"}
             </button>
@@ -510,91 +510,91 @@ export default function DirectoryClient({
         </div>
 
         {sections.table ? (
-          <div className="ui-scrollbar max-h-[70vh] max-w-full overflow-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[1040px] border-collapse text-sm">
-              <thead className="sticky top-0 bg-slate-950/95 text-slate-300 backdrop-blur">
-                <tr>
-                  <th className="w-[180px] p-3 text-left font-semibold">Plantel</th>
-                  <th className="w-[140px] p-3 text-left font-semibold">Área</th>
-                  <th className="w-[180px] p-3 text-left font-semibold">Rol / Cargo</th>
-                  <th className="w-[200px] p-3 text-left font-semibold">Nombre</th>
-                  <th className="p-3 text-left font-semibold">Contacto</th>
-                  <th className="w-[140px] p-3 text-left font-semibold">Fuente</th>
-                  <th className="w-[160px] p-3 text-right font-semibold">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => (
-                  <tr key={c.id} className="border-t border-white/10 align-top">
-                    <td className="p-3 text-xs text-slate-100">{c.campus.name}</td>
-                    <td className="p-3 text-slate-300">{c.zone ?? "—"}</td>
-                    <td className="p-3 text-slate-300">{c.role ?? "—"}</td>
-                    <td className="p-3 text-slate-100">{c.name ?? "—"}</td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-2">
-                        {getDisplayMethods(c).length ? (
-                          getDisplayMethods(c).map(({ value, href }) => {
-                            if (!href) {
-                              return (
-                                <span
-                                  key={value}
-                                  className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300"
-                                >
-                                  {value}
-                                </span>
-                              );
-                            }
-                            return (
-                              <a
-                                key={value}
-                                href={href}
-                                target={href.startsWith("http") ? "_blank" : undefined}
-                                rel={href.startsWith("http") ? "noreferrer" : undefined}
-                                className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 transition hover:border-emerald-400/40 hover:text-emerald-300"
-                              >
-                                {value}
-                              </a>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-slate-500">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-xs text-slate-400">{c.source ?? "Manual"}</td>
-                    <td className="p-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditing(c);
-                            setError("");
-                          }}
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(c.id)}
-                          disabled={isPending}
-                          className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/20"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!filtered.length ? (
-                  <tr>
-                    <td className="p-4 text-slate-300" colSpan={7}>
-                      Sin resultados.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+          <div className="ui-scrollbar grid max-h-[70vh] gap-3 overflow-auto rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] p-3">
+            {filtered.map((c) => (
+              <article
+                key={c.id}
+                className="grid gap-3 rounded-2xl border border-[#D7E4ED] bg-white p-4 text-sm text-[#123348] lg:grid-cols-[minmax(150px,0.75fr)_minmax(130px,0.6fr)_minmax(160px,0.75fr)_minmax(190px,0.85fr)_minmax(220px,1.1fr)_auto]"
+              >
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657D8F]">Plantel</div>
+                  <div className="mt-1 font-semibold">{c.campus.name}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657D8F]">Área</div>
+                  <div className="mt-1">{c.zone ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657D8F]">Rol / Cargo</div>
+                  <div className="mt-1">{c.role ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657D8F]">Nombre</div>
+                  <div className="mt-1 font-semibold">{c.name ?? "—"}</div>
+                  <div className="mt-1 text-xs text-[#657D8F]">{c.source ?? "Manual"}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657D8F]">Contacto</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {getDisplayMethods(c).length ? (
+                      getDisplayMethods(c).map(({ value, href }) => {
+                        const className =
+                          "max-w-full break-all rounded-full border border-[#D7E4ED] bg-[#F4F9FC] px-2.5 py-1 text-xs font-medium text-[#123348]";
+                        if (!href) {
+                          return (
+                            <span key={value} className={className}>
+                              {value}
+                            </span>
+                          );
+                        }
+                        return (
+                          <a
+                            key={value}
+                            href={href}
+                            target={href.startsWith("http") ? "_blank" : undefined}
+                            rel={href.startsWith("http") ? "noreferrer" : undefined}
+                            className={`${className} transition hover:border-[#114E6D] hover:text-[#114E6D]`}
+                          >
+                            {value}
+                          </a>
+                        );
+                      })
+                    ) : (
+                      <span className="text-xs text-[#657D8F]">—</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 lg:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(c);
+                      setError("");
+                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#D7E4ED] bg-white text-[#114E6D] transition hover:bg-[#F4F9FC]"
+                    aria-label={`Editar ${c.name ?? c.campus.name}`}
+                    title="Editar"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id)}
+                    disabled={isPending}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                    aria-label={`Eliminar ${c.name ?? c.campus.name}`}
+                    title="Eliminar"
+                  >
+                    ×
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!filtered.length ? (
+              <div className="rounded-2xl border border-dashed border-[#D7E4ED] bg-white p-4 text-sm text-[#657D8F]">
+                Sin resultados.
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-slate-950/20 px-4 py-3 text-sm text-slate-400">

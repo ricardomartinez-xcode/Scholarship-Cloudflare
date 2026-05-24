@@ -220,8 +220,8 @@ export default function CtasClient({
       </div>
 
       <div className="ui-admin-table-shell">
-        <table className="w-full min-w-[720px] md:min-w-[860px] border-collapse text-sm">
-          <thead className="bg-slate-950/40 text-slate-300">
+        <table className="w-full min-w-[860px] border-collapse text-sm">
+          <thead>
             <tr>
               <th className="p-3 text-left font-semibold">CTA</th>
               <th className="p-3 text-left font-semibold">Mapa visual</th>
@@ -317,17 +317,21 @@ export default function CtasClient({
                       <button
                         type="button"
                         onClick={() => startEdit(c)}
-                        className="ui-admin-action ui-admin-action--secondary min-h-[36px] px-3 text-xs"
+                        className="ui-admin-icon-action"
+                        aria-label={`Editar CTA ${c.label}`}
+                        title="Editar"
                       >
-                        Editar
+                        ✎
                       </button>
                       <form action={deletePublicCtaAction} onSubmit={(e) => { if (!window.confirm("¿Eliminar este CTA?")) e.preventDefault(); }}>
                         <input type="hidden" name="id" value={c.id} />
                         <button
                           type="submit"
-                          className="ui-admin-action ui-admin-action--danger min-h-[36px] px-3 text-xs"
+                          className="ui-admin-icon-action ui-admin-icon-action--danger"
+                          aria-label={`Eliminar CTA ${c.label}`}
+                          title="Eliminar"
                         >
-                          Eliminar
+                          ×
                         </button>
                       </form>
                     </div>
@@ -355,7 +359,7 @@ export default function CtasClient({
         }}
         kicker={editing ? "Editar" : "Nuevo"}
         title="CTA"
-        description="Define el texto, la ubicación y la visibilidad real del CTA."
+        description="Configura el CTA que se renderiza en la ubicación seleccionada de la app."
         size="xl"
       >
         {saveState?.ok === false && saveState.error ? (
@@ -368,16 +372,29 @@ export default function CtasClient({
               <input type="hidden" name="id" value={editing?.id ?? ""} />
 
               <div className="ui-admin-list-card">
-              <label className="grid gap-2 text-sm">
-                Texto visible del CTA
-                <input
+          <label className="grid gap-2 text-sm">
+            Texto visible del CTA
+            <input
                   name="label"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   className="ui-control"
                   placeholder="Ej. Hablar con un asesor"
                 />
-              </label>
+          </label>
+
+          <div className="rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] p-4 text-sm text-[#123348]">
+            <div className="text-xs font-bold uppercase tracking-[0.1em] text-[#657D8F]">
+              Vista real
+            </div>
+            <div className="mt-2 font-semibold">
+              {selectedLocationMeta.pageLabel} · {selectedLocationMeta.sectionLabel}
+            </div>
+            <div className="mt-1 text-[#657D8F]">
+              Slot: {selectedLocationMeta.slotLabel}. El CTA se pinta ahí si está activo y el
+              usuario cumple la visibilidad configurada.
+            </div>
+          </div>
 
               <div className="grid gap-2">
                 <div id={locationId} className="text-sm">

@@ -369,6 +369,38 @@ function hasExpectedHeader(row: string[], expected: string[]) {
   );
 }
 
+function findHeaderIndex(row: string[], aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeHeader);
+  return row.findIndex((cell) => normalizedAliases.includes(normalizeHeader(cell)));
+}
+
+function buildHeaderReader(row: string[]) {
+  const codeIndex = findHeaderIndex(row, ["codigo", "código", "code", "clave", "id"]);
+  const conceptIndex = findHeaderIndex(row, ["concepto", "concept", "descripcion", "descripción", "nombre"]);
+  const sectionIndex = findHeaderIndex(row, ["seccion", "sección", "section", "categoria", "categoría", "tipo"]);
+  const costIndex = findHeaderIndex(row, [
+    "costo mxn",
+    "costo",
+    "cost_mxn",
+    "cost mxn",
+    "cost",
+    "precio",
+    "importe",
+    "monto",
+  ]);
+
+  if ([codeIndex, conceptIndex, sectionIndex, costIndex].some((index) => index < 0)) {
+    return null;
+  }
+
+  return (dataRow: string[]) => ({
+    code: String(dataRow[codeIndex] ?? "").trim(),
+    concept: String(dataRow[conceptIndex] ?? "").trim(),
+    section: String(dataRow[sectionIndex] ?? "").trim(),
+    cost_mxn: parseMxnValue(dataRow[costIndex] ?? ""),
+  });
+}
+
 function getImportPayload(formData: FormData) {
   return String(formData.get("payload") ?? formData.get("json") ?? "").trim();
 }
@@ -526,7 +558,8 @@ export async function seedFeesJsonAction(formData: FormData) {
         return { ok: false, error: "El CSV no contiene filas." };
       }
 
-      const hasHeader = hasExpectedHeader(rows[0] ?? [], [
+      const headerReader = buildHeaderReader(rows[0] ?? []);
+      const hasHeader = Boolean(headerReader) || hasExpectedHeader(rows[0] ?? [], [
         "Código",
         "Concepto",
         "Sección",
@@ -540,12 +573,16 @@ export async function seedFeesJsonAction(formData: FormData) {
       items = rows
         .slice(startIndex)
         .filter((row) => row.some((cell) => String(cell ?? "").trim()))
-        .map((row) => ({
-          code: String(row[0] ?? "").trim(),
-          concept: String(row[1] ?? "").trim(),
-          section: String(row[2] ?? "").trim(),
-          cost_mxn: parseMxnValue(row[3] ?? ""),
-        }));
+        .map((row) =>
+          headerReader
+            ? headerReader(row)
+            : {
+                code: String(row[0] ?? "").trim(),
+                concept: String(row[1] ?? "").trim(),
+                section: String(row[2] ?? "").trim(),
+                cost_mxn: parseMxnValue(row[3] ?? ""),
+              },
+        );
     }
 
     let created = 0;

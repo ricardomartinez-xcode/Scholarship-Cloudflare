@@ -74,7 +74,7 @@ export default function AnnouncementsClient({
           <div className="text-xs uppercase tracking-[0.28em] text-slate-400">M3B</div>
           <h1 className="mt-1 text-lg font-semibold">Comunicados</h1>
           <p className="mt-1 text-sm text-slate-300">
-            Configura mensajes visibles por ubicación, segmento y regla de aparición.
+            Configura mensajes reales que aparecen como banner o pop-out en la ubicación elegida.
           </p>
         </div>
         <button
@@ -140,13 +140,22 @@ export default function AnnouncementsClient({
                     );
                     setOpen(true);
                   }}
-                  className="ui-admin-action ui-admin-action--secondary min-h-[34px] px-3 text-xs"
+                  className="ui-admin-icon-action"
+                  aria-label={`Editar comunicado ${row.title}`}
+                  title="Editar"
                 >
-                  Editar
+                  ✎
                 </button>
                 <form action={deleteAnnouncementAction} onSubmit={(event) => { if (!window.confirm("¿Eliminar este comunicado?")) event.preventDefault(); }}>
                   <input type="hidden" name="id" value={row.id} />
-                  <button type="submit" className="ui-admin-action ui-admin-action--danger min-h-[34px] px-3 text-xs">Eliminar</button>
+                  <button
+                    type="submit"
+                    className="ui-admin-icon-action ui-admin-icon-action--danger"
+                    aria-label={`Eliminar comunicado ${row.title}`}
+                    title="Eliminar"
+                  >
+                    ×
+                  </button>
                 </form>
               </div>
             </div>
@@ -162,7 +171,7 @@ export default function AnnouncementsClient({
         open={open}
         onOpenChange={setOpen}
         title="Comunicado"
-        description="Configura visibilidad, ubicación y formato del comunicado."
+        description="Configura el comunicado que se muestra en la app según ubicación, formato y reglas."
         kicker="M3B"
         size="lg"
       >
@@ -183,6 +192,21 @@ export default function AnnouncementsClient({
             <div className="text-sm">Ubicación</div>
             <CtaLocationPicker value={location} onChange={setLocation} />
             <input type="hidden" name="location" value={location} />
+          </div>
+
+          <div className="rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] p-4 text-sm text-[#123348]">
+            <div className="text-xs font-bold uppercase tracking-[0.1em] text-[#657D8F]">
+              Dónde aparece
+            </div>
+            <div className="mt-2">
+              <span className="font-semibold">
+                {CTA_LOCATIONS.find((item) => item.value === location)?.label ?? location}
+              </span>{" "}
+              como {display === "popout" ? "pop-out" : "banner"}.
+            </div>
+            <div className="mt-1 text-[#657D8F]">
+              Si está activo, se filtra por organización, segmento y límite de apariciones.
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

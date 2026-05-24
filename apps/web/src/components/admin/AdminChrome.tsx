@@ -190,18 +190,21 @@ export default function AdminChrome({
                       </button>
                     </Dialog.Close>
                     <div className="flex items-center gap-3 border-b border-[color:var(--ui-border)] px-2 py-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-secondary)]">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-[color:var(--ui-border)] bg-[#114E6D] text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-sm">
+                        Admin
+                      </div>
+                      <div className="ui-shell-brand min-w-0">
+                        <div className="ui-shell-brand__eyebrow">Scholarship</div>
+                        <div className="flex min-w-0 items-center gap-2">
                         <Image
                           src="/branding/logo-recalc.png"
                           alt="ReCalc"
                           width={120}
                           height={40}
-                          className="h-6 w-auto object-contain"
+                              className="h-5 w-auto shrink-0 object-contain"
                         />
-                      </div>
-                      <div className="ui-shell-brand min-w-0">
-                        <div className="ui-shell-brand__eyebrow">Scholarship</div>
-                        <div className="ui-shell-brand__title">ReCalc Admin</div>
+                          <div className="ui-shell-brand__title">ReCalc Admin</div>
+                        </div>
                       </div>
                     </div>
                     <div className="ui-scrollbar mt-3 flex-1 overflow-y-auto">

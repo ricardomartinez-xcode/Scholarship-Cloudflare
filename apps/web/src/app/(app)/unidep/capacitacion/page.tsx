@@ -20,11 +20,6 @@ const MODULE_ITEMS = [
     title: "Evaluaciones",
     requiresRolplay: false,
   },
-  {
-    href: "/unidep/capacitacion/sesiones",
-    title: "Sesiones",
-    requiresRolplay: false,
-  },
 ] as const;
 
 export default function CapacitacionPage() {

@@ -134,10 +134,10 @@ function getSeedGuide(mode: SeedMode, format: SeedFormat) {
     return {
       title: "Importa un CSV para crear o actualizar Trámites / Cuotas.",
       detail:
-        "El orden esperado es: Código | Concepto | Sección | Costo MXN. Puedes usar coma, punto y coma o barra vertical como separador.",
+        "Acepta columnas en cualquier orden si el archivo trae encabezados equivalentes a código, concepto, sección y costo. Puedes usar coma, punto y coma, tabulador o barra vertical como separador.",
       sample:
-        "Código|Concepto|Sección|Costo MXN\nEX001|Examen ordinario|EXÁMENES|150\nTR001|Titulación|TRÁMITES|2500",
-      placeholder: "Código|Concepto|Sección|Costo MXN",
+        "concepto,costo,sección,código\nExamen ordinario,150,EXÁMENES,EX001\nTitulación,2500,TRÁMITES,TR001",
+      placeholder: "concepto,costo,sección,código",
     };
   }
 
@@ -1162,13 +1162,14 @@ export default function FeesClient({
 
       {tab === "seed" && (
         <div className="grid gap-4">
-          <div className="rounded-2xl border border-emerald-500/20 bg-blue-950/5 px-4 py-3 text-sm text-slate-200">
+          <div className="rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
             Usa esta pestaña para cargas masivas de costos, activaciones, propiedades o
-            actualizaciones completas en formato JSON o CSV.
+            actualizaciones completas en formato JSON o CSV. Para CSV con encabezados, no importa
+            el orden de columnas mientras existan código, concepto, sección y costo.
           </div>
 
           <div className="grid gap-3">
-            <div className="text-sm font-semibold text-slate-200">Qué quieres modificar</div>
+            <div className="text-sm font-semibold text-[#123348]">Qué quieres modificar</div>
             <div className="flex flex-wrap gap-2">
               {(["fees", "campus", "materias"] as SeedMode[]).map((mode) => (
                 <button
@@ -1177,8 +1178,8 @@ export default function FeesClient({
                   onClick={() => changeSeedMode(mode)}
                   className={`rounded-full px-4 py-2 text-sm transition ${
                     seedMode === mode
-                      ? "border border-blue-900/40 bg-blue-950/20 text-emerald-100"
-                      : "border border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
+                      ? "border border-[#114E6D] bg-[#114E6D] text-white"
+                      : "border border-[#D7E4ED] bg-white text-[#123348] hover:bg-[#F4F9FC]"
                   }`}
                 >
                   {SEED_MODE_LABELS[mode]}
@@ -1188,7 +1189,7 @@ export default function FeesClient({
           </div>
 
           <div className="grid gap-3">
-            <div className="text-sm font-semibold text-slate-200">Formato de entrada</div>
+            <div className="text-sm font-semibold text-[#123348]">Formato de entrada</div>
             <div className="flex flex-wrap gap-2">
               {(["json", "csv"] as SeedFormat[]).map((format) => (
                 <button
@@ -1197,8 +1198,8 @@ export default function FeesClient({
                   onClick={() => changeSeedFormat(format)}
                   className={`rounded-full px-4 py-2 text-sm uppercase transition ${
                     seedFormat === format
-                      ? "border border-blue-900/40 bg-blue-950/20 text-emerald-100"
-                      : "border border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
+                      ? "border border-[#114E6D] bg-[#114E6D] text-white"
+                      : "border border-[#D7E4ED] bg-white text-[#123348] hover:bg-[#F4F9FC]"
                   }`}
                 >
                   {format}
@@ -1207,10 +1208,10 @@ export default function FeesClient({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-300">
-            <div className="font-semibold text-slate-100">{seedGuide.title}</div>
+          <div className="rounded-2xl border border-[#D7E4ED] bg-white px-4 py-4 text-sm text-[#657D8F]">
+            <div className="font-semibold text-[#123348]">{seedGuide.title}</div>
             <div className="mt-2">{seedGuide.detail}</div>
-            <pre className="mt-3 overflow-x-auto rounded-xl bg-black/40 p-3 text-xs text-slate-300">
+            <pre className="mt-3 overflow-x-auto rounded-xl border border-[#D7E4ED] bg-[#F4F9FC] p-3 text-xs text-[#123348]">
               {seedGuide.sample}
             </pre>
           </div>
