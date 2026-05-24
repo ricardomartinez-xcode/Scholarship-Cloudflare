@@ -5241,10 +5241,42 @@ a.ui-button-danger:not(:disabled):hover {
   padding: 6px 8px;
 }
 
+.ui-inbox-dock__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 10px;
+}
+
+.ui-inbox-dock__tab {
+  min-height: 32px;
+  border: 1px solid #D7E4ED;
+  border-radius: 7px;
+  background: #F7FBFD;
+  color: #365770;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 6px 8px;
+}
+
+.ui-inbox-dock__tab[aria-selected="true"] {
+  border-color: #114E6D;
+  background: #114E6D;
+  color: #FFFFFF;
+}
+
 .ui-inbox-dock__threads {
   display: grid;
   gap: 8px;
   padding-block: 10px;
+}
+
+.ui-inbox-dock__thread-list {
+  display: grid;
+  max-height: 220px;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .ui-inbox-dock__thread {
@@ -5265,6 +5297,11 @@ a.ui-button-danger:not(:disabled):hover {
 .ui-inbox-dock__thread:hover {
   border-color: rgba(17, 78, 109, 0.28);
   background: #FFFFFF;
+}
+
+.ui-inbox-dock__thread-button {
+  cursor: pointer;
+  font: inherit;
 }
 
 .ui-inbox-dock__thread--active {
@@ -5331,7 +5368,7 @@ a.ui-button-danger:not(:disabled):hover {
 .ui-inbox-dock__quick-reply {
   display: grid;
   gap: 8px;
-  margin-bottom: 10px;
+  padding-block: 10px;
 }
 
 .ui-inbox-dock__textarea {
@@ -5357,6 +5394,22 @@ a.ui-button-danger:not(:disabled):hover {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+}
+
+.ui-inbox-dock__feedback {
+  border: 1px solid #F3C7C7;
+  border-radius: 7px;
+  background: #FFF5F5;
+  color: #8F1D1D;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 9px;
+}
+
+.ui-inbox-dock__feedback--ok {
+  border-color: #B9E0A5;
+  background: #F3FAEA;
+  color: #315C0B;
 }
 
 .ui-inbox-dock__secondary,
