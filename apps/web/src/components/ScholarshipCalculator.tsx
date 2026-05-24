@@ -545,20 +545,19 @@ const findNearestRule = (rules: FlatRule[], promedio: number) => {
 };
  
 const baseFromRules = (rules: FlatRule[]) => {
-  const ref = rules[0];
-  if (!ref) return null;
-  const monto = toNum(ref.monto);
-  const pct = toNum(ref.porcentaje);
-  if (monto === null || pct === null || pct >= 100) return null;
-  return monto / (1 - pct / 100);
-};
- 
-const baseFromRule = (rule: FlatRule | null) => {
-  if (!rule) return null;
-  const monto = toNum(rule.monto);
-  const pct = toNum(rule.porcentaje);
-  if (monto === null || pct === null || pct >= 100) return null;
-  return monto / (1 - pct / 100);
+  const basePrices = rules
+    .map((rule) => {
+      const monto = toNum(rule.monto);
+      const pct = toNum(rule.porcentaje);
+      if (monto === null || pct === null || pct >= 100) return null;
+      return monto / (1 - pct / 100);
+    })
+    .filter((value): value is number => value !== null)
+    .map((value) => Math.round(value * 100) / 100);
+
+  if (!basePrices.length) return null;
+
+  return Math.max(...basePrices);
 };
  
 export default function ScholarshipCalculator({
@@ -1285,7 +1284,7 @@ export default function ScholarshipCalculator({
         : getOfertaNeto(meta, needsPlantelKey, nivel, planNum);
  
     if (typeof base !== "number") {
-      base = baseFromRule(match) ?? baseFromRules(candidatos);
+      base = baseFromRules(candidatos);
     }
     if (typeof base !== "number") {
       return { error: "No fue posible determinar el costo base de esta combinación." };

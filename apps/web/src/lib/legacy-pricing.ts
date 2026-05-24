@@ -18,7 +18,6 @@
 import { getSql } from "@/lib/neon";
 import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrides";
 import {
-  basePriceFromRule,
   basePriceFromRules,
   findNearestRule,
   findRuleForAverage,
@@ -483,11 +482,6 @@ export async function computeLegacyScholarshipQuote(
   const basePriceMxn =
     subjectPrice ??
     offerNet ??
-    basePriceFromRule(
-      matchedRule && "discountedPriceMxn" in matchedRule
-        ? matchedRule
-        : null,
-    ) ??
     basePriceFromRules(mappedRules);
 
   if (basePriceMxn === null) {

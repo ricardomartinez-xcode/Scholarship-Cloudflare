@@ -195,5 +195,12 @@ export function basePriceFromRule(rule: CanonicalScholarshipRuleLike | null) {
 }
 
 export function basePriceFromRules(rules: CanonicalScholarshipRuleLike[]) {
-  return basePriceFromRule(rules[0] ?? null);
+  const basePrices = rules
+    .map(basePriceFromRule)
+    .filter((value): value is number => value !== null)
+    .map((value) => Math.round(value * 100) / 100);
+
+  if (!basePrices.length) return null;
+
+  return Math.max(...basePrices);
 }

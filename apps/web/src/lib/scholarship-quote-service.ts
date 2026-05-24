@@ -25,7 +25,6 @@ import {
   legacyDiscountedOverrideKey,
 } from "@/lib/base-price-overrides";
 import {
-  basePriceFromRule,
   basePriceFromRules,
   findNearestRule,
   findRuleForAverage,
@@ -251,11 +250,6 @@ export async function resolveScholarshipQuote(
   const basePriceMxn =
     toNumber(returnSubjectPrice?.priceMxn) ??
     basePriceOverride ??
-    basePriceFromRule(
-      matchedRule && "discountedPriceMxn" in matchedRule
-        ? matchedRule
-        : null,
-    ) ??
     basePriceFromRules(normalizedCandidateRules);
 
   if (basePriceMxn === null) {
