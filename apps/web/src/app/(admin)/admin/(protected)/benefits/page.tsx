@@ -80,7 +80,9 @@ export default async function BenefitsPage() {
     }),
   ]);
 
-  const normalizedBenefits = benefits.map((b) => ({
+  const normalizedBenefits = benefits
+    .filter((benefit) => benefit.benefitType !== "fixed_scholarship")
+    .map((b) => ({
     id: b.id,
     appliesToAll: b.appliesToAll,
     benefitType: b.benefitType as "percentage" | "first_payment",
