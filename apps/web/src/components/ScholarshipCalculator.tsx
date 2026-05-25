@@ -360,7 +360,7 @@ const businessLineLabels: Record<string, string> = {
 
 const modalityLabels: Record<string, string> = {
   presencial: "Presencial",
-  mixta: "Mixta",
+  mixta: "Ejecutiva",
   online: "Online",
   ejecutivo: "Ejecutivo",
 };
@@ -664,7 +664,6 @@ export default function ScholarshipCalculator({
     if (!nivel) return [];
     const filtered = availablePricingOptions.filter((option) => option.businessLine === nivel);
     const all = uniqSorted(filtered.map((option) => option.modality));
-    if (nivel === "salud") return all.filter((m) => m === "presencial");
     return visibleQuoteModalities(all, nivel);
   }, [availablePricingOptions, nivel]);
 
