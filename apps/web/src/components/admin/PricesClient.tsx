@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
 import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
 import {
@@ -435,31 +436,16 @@ export default function PricesClient({
         </div>
       </div>
 
-      <div
-        className="mt-5 flex flex-wrap gap-2 border-b border-white/10 pb-2"
-        role="tablist"
-        aria-label="Vistas de precios"
-      >
-        {[
+      <div className="mt-5">
+        <AdminSegmentedTabs
+          ariaLabel="Vistas de precios"
+          activeId={activePanel}
+          onChange={(panel) => setActivePanel(panel as PricePanel)}
+          items={[
           { id: "list", label: `Listado (${filtered.length})` },
           { id: "imports", label: "Importación" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={activePanel === item.id}
-            onClick={() => setActivePanel(item.id as PricePanel)}
-            className={[
-              "rounded-t-xl border px-4 py-2 text-sm font-semibold transition",
-              activePanel === item.id
-                ? "border-white/10 bg-slate-950/30 text-slate-100"
-                : "border-transparent text-slate-400 hover:text-slate-200",
-            ].join(" ")}
-          >
-            {item.label}
-          </button>
-        ))}
+          ]}
+        />
       </div>
 
       {activePanel === "imports" ? (

@@ -4,6 +4,7 @@ import { type ChangeEvent, type FormEvent, useState, useTransition } from "react
 
 import { useRouter } from "next/navigation";
 
+import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import {
   compareAdminPricingScope,
   formatAdminPricingPlantel,
@@ -544,22 +545,15 @@ export default function FeesClient({
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-2">
-        {TAB_ORDER.map((currentTab) => (
-          <button
-            key={currentTab}
-            type="button"
-            onClick={() => setTab(currentTab)}
-            className={`rounded-t-xl border px-4 py-2 text-sm transition ${
-              tab === currentTab
-                ? "border-blue-900/40 bg-blue-950/20 text-emerald-200"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            {TAB_LABELS[currentTab]}
-          </button>
-        ))}
-      </div>
+      <AdminSegmentedTabs
+        ariaLabel="Vistas de costos académicos"
+        activeId={tab}
+        onChange={(currentTab) => setTab(currentTab as Tab)}
+        items={TAB_ORDER.map((currentTab) => ({
+          id: currentTab,
+          label: TAB_LABELS[currentTab],
+        }))}
+      />
 
       {tab === "fees" && (
         <div className="grid gap-4">

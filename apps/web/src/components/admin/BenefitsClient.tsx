@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
 import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
 import SmartMultiSelect from "@/components/SmartMultiSelect";
@@ -726,32 +727,18 @@ export default function BenefitsClient({
         </button>
       </div>
 
-      <div
-        className="mt-5 flex flex-wrap gap-2 border-b border-[color:var(--ui-border)] pb-2"
-        role="tablist"
-        aria-label="Vistas de beneficios"
-      >
-        {[
+      <div className="mt-5">
+        <AdminSegmentedTabs
+          ariaLabel="Vistas de beneficios"
+          activeId={activePanel}
+          onChange={(panel) => setActivePanel(panel as BenefitsPanel)}
+          tone="light"
+          items={[
           { id: "benefits", label: `Listado (${sortedBenefits.length})` },
           { id: "base", label: `% por promedio (${baseScholarships.length})` },
           { id: "imports", label: "Importaciones" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={activePanel === item.id}
-            onClick={() => setActivePanel(item.id as BenefitsPanel)}
-            className={[
-              "rounded-t-xl border px-4 py-2 text-sm font-semibold transition",
-              activePanel === item.id
-                ? "border-[color:var(--ui-border)] bg-[color:var(--ui-surface-secondary)] text-[color:var(--ui-text-primary)]"
-                : "border-transparent text-[color:var(--ui-text-secondary)] hover:text-[color:var(--ui-text-primary)]",
-            ].join(" ")}
-          >
-            {item.label}
-          </button>
-        ))}
+          ]}
+        />
       </div>
 
       {activePanel === "imports" ? (
