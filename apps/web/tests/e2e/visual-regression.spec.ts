@@ -1,4 +1,4 @@
-import { expect, test, type TestInfo } from "@playwright/test";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,6 +29,12 @@ function requireBaselines(
   );
 }
 
+async function waitForStablePublicSurface(page: Page, text: string | RegExp) {
+  await expect(page.getByText(text).first()).toBeVisible({ timeout: 15000 });
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForTimeout(250);
+}
+
 test("visual: public desktop surfaces stay stable", async ({ page }, testInfo) => {
   requireBaselines(testInfo, [
     "public-home-desktop.png",
@@ -38,18 +44,21 @@ test("visual: public desktop surfaces stay stable", async ({ page }, testInfo) =
   await page.setViewportSize({ width: 1440, height: 960 });
 
   await page.goto("/");
+  await waitForStablePublicSurface(page, /ReCalc UNIDEP/i);
   await expect(page).toHaveScreenshot("public-home-desktop.png", {
     animations: "disabled",
     caret: "hide",
   });
 
   await page.goto("/auth/sign-in");
+  await waitForStablePublicSurface(page, /Continuar con Google/i);
   await expect(page).toHaveScreenshot("public-signin-desktop.png", {
     animations: "disabled",
     caret: "hide",
   });
 
   await page.goto("/admin/auth");
+  await waitForStablePublicSurface(page, /Valida tu acceso administrativo/i);
   await expect(page).toHaveScreenshot("admin-auth-desktop.png", {
     animations: "disabled",
     caret: "hide",
@@ -65,12 +74,14 @@ test("visual: public mobile surfaces stay stable", async ({ page }, testInfo) =>
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.goto("/");
+  await waitForStablePublicSurface(page, /ReCalc UNIDEP/i);
   await expect(page).toHaveScreenshot("public-home-mobile.png", {
     animations: "disabled",
     caret: "hide",
   });
 
   await page.goto("/auth/sign-in");
+  await waitForStablePublicSurface(page, /Continuar con Google/i);
   await expect(page).toHaveScreenshot("public-signin-mobile.png", {
     animations: "disabled",
     caret: "hide",
@@ -78,6 +89,7 @@ test("visual: public mobile surfaces stay stable", async ({ page }, testInfo) =>
   });
 
   await page.goto("/admin/auth");
+  await waitForStablePublicSurface(page, /Valida tu acceso administrativo/i);
   await expect(page).toHaveScreenshot("admin-auth-mobile.png", {
     animations: "disabled",
     caret: "hide",
