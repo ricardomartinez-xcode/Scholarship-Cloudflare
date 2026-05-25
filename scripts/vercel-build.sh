@@ -5,7 +5,6 @@
 # then applies versioned Prisma migrations before building the web app.
 
 set -e
-set -x  # Enable debug output
 
 # ── DIRECT_URL (plain postgres://, used by Prisma migrations) ────────────────
 # Vercel's Neon integration exposes POSTGRES_URL_NON_POOLING (direct, non-pooled).
@@ -68,6 +67,8 @@ sql\`CREATE SCHEMA IF NOT EXISTS recalc_admin\`
 " || true
 
 # ── Apply versioned Prisma migrations ────────────────────────────────────────
+node scripts/recover-extension-session-token-migration.js
+
 echo "[vercel-build] Running: prisma migrate deploy --schema packages/db/prisma/schema.prisma"
 prisma migrate deploy --schema packages/db/prisma/schema.prisma
 
