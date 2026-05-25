@@ -13,6 +13,11 @@ import {
   formatAdminPricingTier,
   normalizeAdminPricingRegion,
 } from "@/lib/admin-pricing-display";
+import {
+  BASE_SCHOLARSHIP_AVERAGE_RANGES,
+  findBaseScholarshipAverageRange,
+  resolveBaseScholarshipAverageRange,
+} from "@/lib/admin-base-scholarships";
 
 type Benefit = {
   id: string;
@@ -219,10 +224,10 @@ export default function BenefitsClient({
   const baseBusinessLineId = useId();
   const baseModalityId = useId();
   const baseCampusId = useId();
+  const baseTierId = useId();
   const basePlanId = useId();
   const basePercentId = useId();
-  const baseMinAverageId = useId();
-  const baseMaxAverageId = useId();
+  const baseAverageRangeId = useId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Benefit | null>(null);
 
@@ -242,6 +247,28 @@ export default function BenefitsClient({
     }))],
     [campusOptions],
   );
+  const baseTierOptions = useMemo(() => {
+    const tiers = new Set<string>();
+    for (const row of baseScholarships) {
+      const tier = String(row.campusTier ?? "").trim().toUpperCase();
+      if (tier && tier !== "ANY" && tier !== "GENERAL") {
+        tiers.add(tier);
+      }
+    }
+    for (const campus of campusOptions) {
+      const tier = String(campus.tier ?? "").trim().toUpperCase();
+      if (tier && tier !== "ANY" && tier !== "GENERAL") {
+        tiers.add(tier);
+      }
+    }
+
+    return [
+      { value: "ANY", label: "General" },
+      ...Array.from(tiers)
+        .sort((left, right) => left.localeCompare(right, "es-MX", { numeric: true }))
+        .map((tier) => ({ value: tier, label: tier })),
+    ];
+  }, [baseScholarships, campusOptions]);
 
   const [campusIds, setCampusIds] = useState<string[]>([]);
   const [extraPercent, setExtraPercent] = useState<string>("");
@@ -271,7 +298,7 @@ export default function BenefitsClient({
   const [baseMinAverage, setBaseMinAverage] = useState("");
   const [baseMaxAverage, setBaseMaxAverage] = useState("");
   const [editingBaseScholarshipId, setEditingBaseScholarshipId] = useState("");
-  const [editingBaseCampusTier, setEditingBaseCampusTier] = useState("");
+  const [editingBaseCampusTier, setEditingBaseCampusTier] = useState("ANY");
   const sortedBenefits = useMemo(
     () => [...benefits].sort((left, right) => compareAdminPricingScope(benefitScope(left), benefitScope(right))),
     [benefits],
@@ -380,7 +407,8 @@ export default function BenefitsClient({
 
   function startCreateBaseScholarship() {
     setEditingBaseScholarshipId("");
-    setEditingBaseCampusTier("");
+    setEditingBaseCampusTier("ANY");
+    setBaseCampus("__ALL__");
     setBasePlan("");
     setBasePercent("");
     setBaseMinAverage("");
@@ -398,6 +426,27 @@ export default function BenefitsClient({
     setBasePercent(rule.scholarshipPercent === null ? "" : String(rule.scholarshipPercent));
     setBaseMinAverage(rule.minAverage === null ? "" : String(rule.minAverage));
     setBaseMaxAverage(rule.maxAverage === null ? "" : String(rule.maxAverage));
+  }
+
+  const baseAverageRangeValue =
+    findBaseScholarshipAverageRange(baseMinAverage, baseMaxAverage)?.value ?? "";
+
+  function handleBaseAverageRangeChange(value: string) {
+    const range = resolveBaseScholarshipAverageRange(value);
+    setBaseMinAverage(range?.minAverage ?? "");
+    setBaseMaxAverage(range?.maxAverage ?? "");
+  }
+
+  function handleBaseCampusChange(value: string) {
+    setBaseCampus(value);
+    if (value === "__ALL__") {
+      setEditingBaseCampusTier("ANY");
+      return;
+    }
+
+    const campus = campusOptions.find((option) => option.value === value);
+    const tier = String(campus?.tier ?? "").trim().toUpperCase();
+    setEditingBaseCampusTier(tier || "ANY");
   }
 
   async function validateImportCsv() {
@@ -727,17 +776,20 @@ export default function BenefitsClient({
                 labelId={baseCampusId}
                 placeholder="Todos"
                 value={baseCampus}
-                onChange={(value) => {
-                  setBaseCampus(value);
-                  setEditingBaseCampusTier("");
-                }}
+                onChange={handleBaseCampusChange}
                 options={campusSelectOptions}
               />
-              {editingBaseScholarshipId && editingBaseCampusTier ? (
-                <span className="text-xs text-slate-400">
-                  Editando tier {editingBaseCampusTier === "ANY" ? "General" : editingBaseCampusTier}
-                </span>
-              ) : null}
+            </div>
+
+            <div className="grid gap-2 text-sm">
+              <span id={baseTierId}>Tier</span>
+              <SmartSelect
+                labelId={baseTierId}
+                placeholder="Selecciona tier"
+                value={editingBaseCampusTier}
+                onChange={setEditingBaseCampusTier}
+                options={baseTierOptions}
+              />
             </div>
           </div>
 
@@ -788,28 +840,19 @@ export default function BenefitsClient({
                 placeholder="Ej. 25"
               />
             </label>
-            <label className="grid gap-2 text-sm">
-              <span id={baseMinAverageId}>Promedio mínimo</span>
-              <input
-                aria-labelledby={baseMinAverageId}
-                value={baseMinAverage}
-                onChange={(event) => setBaseMinAverage(event.target.value)}
-                inputMode="decimal"
-                className="ui-control"
-                placeholder="Ej. 8.0"
+            <div className="grid gap-2 text-sm md:col-span-2 xl:col-span-2">
+              <span id={baseAverageRangeId}>Promedio</span>
+              <SmartSelect
+                labelId={baseAverageRangeId}
+                placeholder="Selecciona rango"
+                value={baseAverageRangeValue}
+                onChange={handleBaseAverageRangeChange}
+                options={BASE_SCHOLARSHIP_AVERAGE_RANGES.map(({ value, label }) => ({
+                  value,
+                  label,
+                }))}
               />
-            </label>
-            <label className="grid gap-2 text-sm">
-              <span id={baseMaxAverageId}>Promedio máximo</span>
-              <input
-                aria-labelledby={baseMaxAverageId}
-                value={baseMaxAverage}
-                onChange={(event) => setBaseMaxAverage(event.target.value)}
-                inputMode="decimal"
-                className="ui-control"
-                placeholder="Ej. 8.9"
-              />
-            </label>
+            </div>
           </div>
 
           <div className="flex justify-end">
