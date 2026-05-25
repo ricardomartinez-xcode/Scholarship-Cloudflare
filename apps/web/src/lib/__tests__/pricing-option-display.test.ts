@@ -3,17 +3,29 @@ import { describe, expect, it } from "vitest";
 import { visibleQuoteCampuses, visibleQuoteModalities } from "@/lib/pricing-option-display";
 
 describe("visibleQuoteModalities", () => {
-  it("hides online for non-licenciatura lines when campus modalities exist", () => {
-    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "salud")).toEqual([
+  it("keeps the allowed modalities for licenciatura", () => {
+    expect(visibleQuoteModalities(["online", "mixta", "presencial"],
       "presencial",
       "mixta",
+      "online",                                  
     ]);
   });
 
-  it("keeps online visible for licenciatura even when campus modalities exist", () => {
-    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "licenciatura")).toEqual([
+  it("keeps only presencial and online for bachillerato", () => {
+    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "prepa")).toEqual([
       "presencial",
-      "mixta",
+      "online",
+    ]);
+  });
+
+  it("keeps only presencial for salud", () => {
+    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "salud")).toEqual([
+      "presencial",
+    ]);
+  });
+
+  it("keeps only online for posgrado", () => {
+    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "posgrado")).toEqual([
       "online",
     ]);
   });
