@@ -47,6 +47,23 @@ function getSharedStoreConfig() {
   return url && token ? { url: url.replace(/\/+$/, ""), token } : null;
 }
 
+export function getRateLimitStoreState() {
+  const missing = [
+    process.env.UPSTASH_REDIS_REST_URL?.trim()
+      ? null
+      : "UPSTASH_REDIS_REST_URL",
+    process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
+      ? null
+      : "UPSTASH_REDIS_REST_TOKEN",
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    sharedStoreConfigured: missing.length === 0,
+    missing,
+    store: missing.length === 0 ? "upstash" : "memory",
+  };
+}
+
 function normalizeSharedKey(key: string) {
   return `recalc:rate-limit:${Buffer.from(key).toString("base64url")}`;
 }

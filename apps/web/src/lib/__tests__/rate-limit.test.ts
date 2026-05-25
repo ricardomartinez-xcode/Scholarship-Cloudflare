@@ -4,6 +4,7 @@ import {
   __getRateLimitBucketCountForTests,
   __resetRateLimitForTests,
   checkRateLimit,
+  getRateLimitStoreState,
 } from "@/lib/rate-limit";
 
 describe("checkRateLimit", () => {
@@ -76,5 +77,22 @@ describe("checkRateLimit", () => {
     const result = await checkRateLimit("shared:key", { limit: 5, windowMs: 60_000 });
 
     expect(result).toEqual({ ok: false, retryAfterMs: 1_000 });
+  });
+
+  it("reports whether the shared Upstash store is configured without exposing secrets", () => {
+    expect(getRateLimitStoreState()).toEqual({
+      sharedStoreConfigured: false,
+      missing: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      store: "memory",
+    });
+
+    process.env.UPSTASH_REDIS_REST_URL = "https://redis.example";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "token";
+
+    expect(getRateLimitStoreState()).toEqual({
+      sharedStoreConfigured: true,
+      missing: [],
+      store: "upstash",
+    });
   });
 });

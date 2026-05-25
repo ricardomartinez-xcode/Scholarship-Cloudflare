@@ -6,6 +6,7 @@ import { getGoogleIntegrationConfigState, getGoogleOAuthSetupSummary } from "@/l
 import { getSql } from "@/lib/neon";
 import { prisma } from "@/lib/prisma";
 import { getCrmWebhookProposal } from "@/lib/product-reporting";
+import { getRateLimitStoreState } from "@/lib/rate-limit";
 import { getWebPushConfigState } from "@/lib/web-push";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,15 @@ export async function GET() {
       detail: `Web Push error: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
+
+  // ── 1d. Shared rate limiting store ───────────────────────────────────────
+  const rateLimitStore = getRateLimitStoreState();
+  results.rateLimitStore = {
+    ok: rateLimitStore.sharedStoreConfigured,
+    detail: rateLimitStore.sharedStoreConfigured
+      ? "Rate limit productivo usando Upstash Redis."
+      : `Rate limit usa fallback local. Faltan: ${rateLimitStore.missing.join(", ")}`,
+  };
 
   // ── 2. Neon Auth service reachability ─────────────────────────────────────
   try {
