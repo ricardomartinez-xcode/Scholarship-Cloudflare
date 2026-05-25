@@ -74,10 +74,18 @@ export function normalizeBusinessLine(
 export function normalizeCanonicalModality(
   raw: string | null | undefined,
 ): CanonicalModalityValue | null {
-  const value = String(raw ?? "").trim().toLowerCase();
+  const value = normalizeAliasValue(raw);
   if (!value) return null;
   if (value.includes("online")) return "online";
-  if (value === "mixta" || value === "ejecutivo") return "mixta";
+  if (
+    value === "mixta" ||
+    value === "ejecutivo" ||
+    value === "ejecutiva" ||
+    value === "mixto" ||
+    value === "mixto ejecutivo"
+  ) {
+    return "mixta";
+  }
   if (value === "presencial" || value === "escolarizado") return "presencial";
   return null;
 }

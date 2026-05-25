@@ -24,6 +24,7 @@ type QuotePayload = {
   average?: number | string;
   subjectCount?: number | string | null;
   extraCharge?: number | string | { amount?: number | string } | null;
+  selectedProgramId?: string | null;
   clientSurface?: string;
 };
 
@@ -56,6 +57,7 @@ async function recordQuoteGeneratedEvent(params: {
     average: number;
     subjectCount: number | null;
     extraChargeAmount: number;
+    selectedProgramId: string | null;
     clientSurface: string;
   };
   result: Extract<
@@ -77,6 +79,7 @@ async function recordQuoteGeneratedEvent(params: {
       average: params.input.average,
       subjectCount: params.input.subjectCount,
       extraChargeAmount: params.input.extraChargeAmount,
+      selectedProgramId: params.input.selectedProgramId,
       clientSurface: params.input.clientSurface,
       source: params.result.source,
       tier: params.result.tier,
@@ -135,6 +138,10 @@ export async function POST(request: Request) {
     const average = toOptionalNumber(payload.average);
     const subjectCount = toOptionalNumber(payload.subjectCount);
     const extraChargeAmount = toOptionalNumber(payload.extraCharge) ?? 0;
+    const selectedProgramId =
+      typeof payload.selectedProgramId === "string" && payload.selectedProgramId.trim()
+        ? payload.selectedProgramId.trim()
+        : null;
     const clientSurface = String(payload.clientSurface ?? "web_app").trim() || "web_app";
 
     const missing = [
@@ -205,6 +212,7 @@ export async function POST(request: Request) {
       average,
       subjectCount,
       extraChargeAmount,
+      selectedProgramId,
       clientSurface,
     } as {
       enrollmentType: NonNullable<typeof enrollmentType>;
@@ -215,6 +223,7 @@ export async function POST(request: Request) {
       average: NonNullable<typeof average>;
       subjectCount: number | null;
       extraChargeAmount: number;
+      selectedProgramId: string | null;
       clientSurface: string;
     };
 

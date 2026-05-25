@@ -16,10 +16,20 @@ import {
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
+import { getUnidepProgramPlanUrl } from "@/lib/unidep-program-catalog";
 
 export const dynamic = "force-dynamic";
 
 function buildPricingKey(option: {
+  businessLine: string;
+  modality: string;
+  plan: number;
+  programId?: string | null;
+}) {
+  return `${option.businessLine}|${option.modality}|${option.plan}|${option.programId ?? ""}`;
+}
+
+function buildPriceOnlyKey(option: {
   businessLine: string;
   modality: string;
   plan: number;
@@ -51,6 +61,44 @@ function normalizeRulesForBasePrice(
     scholarshipPercent: toNumber(rule.scholarshipPercent),
     discountedPriceMxn: toNumber(rule.discountedPriceMxn),
   }));
+}
+
+function getOfferingModalities(offering: {
+  delivery: string;
+  escolarizado: boolean;
+  ejecutivo: boolean;
+}): CanonicalModalityValue[] {
+  if (offering.delivery === "ONLINE") return ["online"];
+  const modalities = new Set<CanonicalModalityValue>();
+  if (offering.escolarizado || !offering.ejecutivo) modalities.add("presencial");
+  if (offering.ejecutivo) modalities.add("mixta");
+  return Array.from(modalities);
+}
+
+function buildStudyProgram(program: {
+  id: string;
+  name: string;
+  businessLine: string | null;
+  level: string | null;
+  category: string | null;
+  planPdfUrl: string | null;
+  planDriveLink: string | null;
+  planUrl: string | null;
+}) {
+  const businessLine =
+    normalizeBusinessLine(program.businessLine) ??
+    normalizeBusinessLine(program.level) ??
+    normalizeBusinessLine(program.category);
+  const planPdfUrl = getUnidepProgramPlanUrl(program);
+
+  if (!businessLine || !planPdfUrl) return null;
+
+  return {
+    id: program.id,
+    name: program.name,
+    businessLine,
+    planPdfUrl,
+  };
 }
 
 export async function GET() {
@@ -102,7 +150,7 @@ export async function GET() {
       },
     }),
     prisma.campus.findMany({
-      where: { isActive: true, code: { not: "ONLINE" } },
+      where: { isActive: true },
       orderBy: [{ name: "asc" }],
       select: { id: true, code: true, metaKey: true, name: true, tier: true },
     }),
@@ -116,7 +164,7 @@ export async function GET() {
       where: {
         isActive: true,
         cycle: { in: visibleCycles },
-        campus: { isActive: true, code: { not: "ONLINE" } },
+        campus: { isActive: true },
       },
       select: {
         campusId: true,
@@ -126,17 +174,21 @@ export async function GET() {
         lineOfBusiness: true,
         program: {
           select: {
+            id: true,
+            name: true,
             businessLine: true,
+            level: true,
+            category: true,
+            planPdfUrl: true,
+            planDriveLink: true,
+            planUrl: true,
           },
         },
       },
     }),
   ]);
 
-  const academicOfferByCampus = new Map<
-    string,
-    { businessLines: Set<string>; modalities: Set<CanonicalModalityValue> }
-  >();
+  const academicOfferByCampus = new Map<string, typeof activeOfferings>();
   const pricingOptions = buildQuotePricingOptions(rules, priceOverrides);
   const priceOverrideSnapshots = priceOverrides.map(
     (override): PriceOverrideSnapshot => ({
@@ -151,95 +203,140 @@ export async function GET() {
   );
 
   for (const offering of activeOfferings) {
-    const businessLine =
-      offering.program.businessLine ?? normalizeBusinessLine(offering.lineOfBusiness);
-    if (!businessLine) continue;
-
-    const entry =
-      academicOfferByCampus.get(offering.campusId) ??
-      { businessLines: new Set<string>(), modalities: new Set<CanonicalModalityValue>() };
-    entry.businessLines.add(businessLine);
-    if (offering.delivery === "ONLINE") {
-      entry.modalities.add("online");
-    } else {
-      if (offering.escolarizado || !offering.ejecutivo) entry.modalities.add("presencial");
-      if (offering.ejecutivo) entry.modalities.add("mixta");
-    }
+    const entry = academicOfferByCampus.get(offering.campusId) ?? [];
+    entry.push(offering);
     academicOfferByCampus.set(offering.campusId, entry);
   }
+
+  const responseCampuses = campuses
+    .map((campus) => {
+      const academicOffer = academicOfferByCampus.get(campus.id) ?? [];
+      const runtimeTier =
+        campus.code === "ONLINE" ? "ANY" : normalizeTier(campus.tier ?? null);
+      const campusPricingOptions = Array.from(
+        new Map(
+          pricingOptions
+            .filter((option) => {
+              const tierCandidates = new Set([runtimeTier, "ANY"]);
+              const candidateRules = rules.filter(
+                (rule) =>
+                  rule.businessLine === option.businessLine &&
+                  rule.modality === option.modality &&
+                  Number(rule.plan) === option.plan &&
+                  tierCandidates.has(normalizeTier(rule.campusTier)),
+              );
+              const fallbackRules = rules.filter(
+                (rule) =>
+                  rule.businessLine === option.businessLine &&
+                  rule.modality === option.modality &&
+                  Number(rule.plan) === option.plan,
+              );
+              const ruleBasePrice = basePriceFromRules(
+                normalizeRulesForBasePrice(
+                  candidateRules.length ? candidateRules : fallbackRules,
+                ),
+              );
+              const overrideBasePrice = findPublishedBasePriceOverride(
+                priceOverrideSnapshots,
+                {
+                  businessLine: option.businessLine,
+                  modality: option.modality,
+                  plan: option.plan,
+                  tier: runtimeTier,
+                  campus: campus.name,
+                  campusAliases: [campus.name, campus.metaKey, campus.code].filter(Boolean),
+                },
+              );
+
+              return ruleBasePrice !== null || overrideBasePrice !== null;
+            })
+            .map((option) => [buildPriceOnlyKey(option), option]),
+        ).values(),
+      );
+      const campusPricingByKey = new Map(
+        campusPricingOptions.map((option) => [buildPriceOnlyKey(option), option]),
+      );
+      const studyPrograms = new Map<
+        string,
+        { id: string; name: string; businessLine: string; planPdfUrl: string }
+      >();
+      const pricingWithPrograms = new Map<
+        string,
+        {
+          businessLine: string;
+          modality: string;
+          plan: number;
+          programId: string;
+        }
+      >();
+
+      for (const offering of academicOffer) {
+        const studyProgram = buildStudyProgram({
+          ...offering.program,
+          businessLine:
+            offering.program.businessLine ?? normalizeBusinessLine(offering.lineOfBusiness),
+        });
+        if (!studyProgram) continue;
+
+        for (const modality of getOfferingModalities(offering)) {
+          for (const option of campusPricingByKey.values()) {
+            if (
+              option.businessLine !== studyProgram.businessLine ||
+              option.modality !== modality
+            ) {
+              continue;
+            }
+            studyPrograms.set(studyProgram.id, studyProgram);
+            pricingWithPrograms.set(
+              buildPricingKey({ ...option, programId: studyProgram.id }),
+              {
+                businessLine: option.businessLine,
+                modality: option.modality,
+                plan: option.plan,
+                programId: studyProgram.id,
+              },
+            );
+          }
+        }
+      }
+
+      const pricedOptions = Array.from(pricingWithPrograms.values());
+      return {
+        value: campus.metaKey || campus.code || campus.name,
+        label: campus.name,
+        businessLines: Array.from(new Set(pricedOptions.map((option) => option.businessLine))).sort(),
+        modalities: Array.from(new Set(pricedOptions.map((option) => option.modality))).sort(),
+        studyPrograms: Array.from(studyPrograms.values()).sort((left, right) =>
+          left.name.localeCompare(right.name, "es"),
+        ),
+        pricingOptions: pricedOptions.sort(
+          (left, right) =>
+            left.businessLine.localeCompare(right.businessLine, "es") ||
+            left.modality.localeCompare(right.modality, "es") ||
+            left.plan - right.plan ||
+            left.programId.localeCompare(right.programId, "es"),
+        ),
+      };
+    })
+    .filter((campus) => campus.businessLines.length > 0 && campus.pricingOptions.length > 0);
+
+  const studyPrograms = Array.from(
+    new Map(
+      responseCampuses.flatMap((campus) =>
+        campus.studyPrograms.map((program) => [program.id, program] as const),
+      ),
+    ).values(),
+  ).sort(
+    (left, right) =>
+      left.businessLine.localeCompare(right.businessLine, "es") ||
+      left.name.localeCompare(right.name, "es"),
+  );
 
   return NextResponse.json({
     ok: true,
     combinations: pricingOptions,
-    campuses: campuses
-      .map((campus) => {
-        const academicOffer = academicOfferByCampus.get(campus.id);
-        const campusPricingOptions = Array.from(
-          new Map(
-            pricingOptions
-              .filter((option) => {
-                const runtimeTier = normalizeTier(campus.tier ?? null);
-                const tierCandidates = new Set([runtimeTier, "ANY"]);
-                const candidateRules = rules.filter(
-                  (rule) =>
-                    rule.businessLine === option.businessLine &&
-                    rule.modality === option.modality &&
-                    Number(rule.plan) === option.plan &&
-                    tierCandidates.has(normalizeTier(rule.campusTier)),
-                );
-                const fallbackRules = rules.filter(
-                  (rule) =>
-                    rule.businessLine === option.businessLine &&
-                    rule.modality === option.modality &&
-                    Number(rule.plan) === option.plan,
-                );
-                const ruleBasePrice = basePriceFromRules(
-                  normalizeRulesForBasePrice(
-                    candidateRules.length ? candidateRules : fallbackRules,
-                  ),
-                );
-                const overrideBasePrice = findPublishedBasePriceOverride(
-                  priceOverrideSnapshots,
-                  {
-                    businessLine: option.businessLine,
-                    modality: option.modality,
-                    plan: option.plan,
-                    tier: runtimeTier,
-                    campus: campus.name,
-                    campusAliases: [campus.name, campus.metaKey, campus.code].filter(Boolean),
-                  },
-                );
-
-                return ruleBasePrice !== null || overrideBasePrice !== null;
-              })
-              .map((option) => [buildPricingKey(option), option]),
-          ).values(),
-        );
-        const academicOfferKeys = new Set<string>();
-        for (const businessLine of academicOffer?.businessLines ?? []) {
-          for (const modality of academicOffer?.modalities ?? []) {
-            for (const option of campusPricingOptions) {
-              if (option.businessLine === businessLine && option.modality === modality) {
-                academicOfferKeys.add(buildPricingKey(option));
-              }
-            }
-          }
-        }
-        return {
-          value: campus.metaKey || campus.code || campus.name,
-          label: campus.name,
-          businessLines: Array.from(academicOffer?.businessLines ?? []).sort(),
-          modalities: Array.from(academicOffer?.modalities ?? []).sort(),
-          pricingOptions: campusPricingOptions
-            .filter((option) => academicOfferKeys.has(buildPricingKey(option)))
-            .map((option) => ({
-              businessLine: option.businessLine,
-              modality: option.modality,
-              plan: option.plan,
-            })),
-        };
-      })
-      .filter((campus) => campus.businessLines.length > 0 && campus.pricingOptions.length > 0),
+    studyPrograms,
+    campuses: responseCampuses,
     subjectCounts: subjectPrices.map((row) => row.subjectCount),
   });
 }

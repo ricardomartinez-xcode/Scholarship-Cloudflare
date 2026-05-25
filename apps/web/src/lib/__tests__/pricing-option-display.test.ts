@@ -103,4 +103,60 @@ describe("visibleQuoteModalities", () => {
       },
     ]);
   });
+
+  it("filters campus options by selected study plan program", () => {
+    expect(
+      visibleQuoteCampuses(
+        [
+          {
+            value: "CHH",
+            label: "Chihuahua",
+            businessLines: ["prepa"],
+            modalities: ["presencial"],
+            pricingOptions: [
+              {
+                businessLine: "prepa",
+                modality: "presencial",
+                plan: 6,
+                programId: "program_prepa",
+              },
+            ],
+          },
+          {
+            value: "TJN",
+            label: "Tijuana",
+            businessLines: ["prepa"],
+            modalities: ["presencial"],
+            pricingOptions: [
+              {
+                businessLine: "prepa",
+                modality: "presencial",
+                plan: 6,
+                programId: "other_program",
+              },
+            ],
+          },
+        ],
+        "presencial",
+        "prepa",
+        6,
+        "program_prepa",
+      ),
+    ).toEqual([
+      {
+        value: "CHH",
+        label: "Chihuahua",
+        businessLines: ["prepa"],
+        modalities: ["presencial"],
+        pricingOptions: [
+          {
+            businessLine: "prepa",
+            modality: "presencial",
+            plan: 6,
+            programId: "program_prepa",
+          },
+        ],
+      },
+    ]);
+  });
 });

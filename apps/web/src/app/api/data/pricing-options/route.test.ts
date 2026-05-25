@@ -108,7 +108,16 @@ describe("GET /api/data/pricing-options", () => {
         escolarizado: true,
         ejecutivo: false,
         lineOfBusiness: "Bachillerato",
-        program: { businessLine: "prepa" },
+        program: {
+          id: "program_prepa",
+          name: "Bachillerato UNIDEP",
+          businessLine: "prepa",
+          level: "Bachillerato",
+          category: "Bachillerato",
+          planPdfUrl: "https://example.com/prepa.pdf",
+          planDriveLink: null,
+          planUrl: null,
+        },
       },
       {
         campusId: "campus_lic",
@@ -116,7 +125,16 @@ describe("GET /api/data/pricing-options", () => {
         escolarizado: true,
         ejecutivo: false,
         lineOfBusiness: "Licenciatura",
-        program: { businessLine: "licenciatura" },
+        program: {
+          id: "program_lic",
+          name: "Administracion",
+          businessLine: "licenciatura",
+          level: "Licenciatura",
+          category: "Licenciatura",
+          planPdfUrl: "https://example.com/lic.pdf",
+          planDriveLink: null,
+          planUrl: null,
+        },
       },
       {
         campusId: "campus_without_price",
@@ -124,7 +142,33 @@ describe("GET /api/data/pricing-options", () => {
         escolarizado: true,
         ejecutivo: false,
         lineOfBusiness: "Bachillerato",
-        program: { businessLine: "prepa" },
+        program: {
+          id: "program_prepa",
+          name: "Bachillerato UNIDEP",
+          businessLine: "prepa",
+          level: "Bachillerato",
+          category: "Bachillerato",
+          planPdfUrl: "https://example.com/prepa.pdf",
+          planDriveLink: null,
+          planUrl: null,
+        },
+      },
+      {
+        campusId: "campus_lic",
+        delivery: "CAMPUS",
+        escolarizado: true,
+        ejecutivo: false,
+        lineOfBusiness: "Salud",
+        program: {
+          id: "program_salud_without_pdf",
+          name: "Enfermeria",
+          businessLine: "salud",
+          level: "Licenciatura",
+          category: "Salud",
+          planPdfUrl: null,
+          planDriveLink: null,
+          planUrl: null,
+        },
       },
     ]);
   });
@@ -137,7 +181,15 @@ describe("GET /api/data/pricing-options", () => {
         label: string;
         businessLines: string[];
         modalities: string[];
+        studyPrograms: Array<{ id: string; name: string; businessLine: string }>;
+        pricingOptions: Array<{
+          businessLine: string;
+          modality: string;
+          plan: number;
+          programId: string;
+        }>;
       }>;
+      studyPrograms: Array<{ id: string; name: string; businessLine: string }>;
     };
 
     expect(response.status).toBe(200);
@@ -147,8 +199,21 @@ describe("GET /api/data/pricing-options", () => {
         label: "Chihuahua",
         businessLines: ["prepa"],
         modalities: ["presencial"],
+        studyPrograms: [
+          {
+            id: "program_prepa",
+            name: "Bachillerato UNIDEP",
+            businessLine: "prepa",
+            planPdfUrl: "https://example.com/prepa.pdf",
+          },
+        ],
         pricingOptions: [
-          { businessLine: "prepa", modality: "presencial", plan: 6 },
+          {
+            businessLine: "prepa",
+            modality: "presencial",
+            plan: 6,
+            programId: "program_prepa",
+          },
         ],
       },
       {
@@ -156,9 +221,36 @@ describe("GET /api/data/pricing-options", () => {
         label: "Tijuana",
         businessLines: ["licenciatura"],
         modalities: ["presencial"],
-        pricingOptions: [
-          { businessLine: "licenciatura", modality: "presencial", plan: 9 },
+        studyPrograms: [
+          {
+            id: "program_lic",
+            name: "Administracion",
+            businessLine: "licenciatura",
+            planPdfUrl: "https://example.com/lic.pdf",
+          },
         ],
+        pricingOptions: [
+          {
+            businessLine: "licenciatura",
+            modality: "presencial",
+            plan: 9,
+            programId: "program_lic",
+          },
+        ],
+      },
+    ]);
+    expect(data.studyPrograms).toEqual([
+      {
+        id: "program_lic",
+        name: "Administracion",
+        businessLine: "licenciatura",
+        planPdfUrl: "https://example.com/lic.pdf",
+      },
+      {
+        id: "program_prepa",
+        name: "Bachillerato UNIDEP",
+        businessLine: "prepa",
+        planPdfUrl: "https://example.com/prepa.pdf",
       },
     ]);
   });

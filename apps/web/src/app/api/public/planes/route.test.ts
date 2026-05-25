@@ -7,6 +7,9 @@ const { getSessionUserMock, logPublicRouteTimingMock, prismaMock } = vi.hoisted(
     program: {
       findMany: vi.fn(),
     },
+    programOffering: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -66,6 +69,11 @@ describe("GET /api/public/planes", () => {
         planUrl: null,
       },
     ]);
+    prismaMock.programOffering.findMany.mockResolvedValue([
+      {
+        programId: "program_prepa",
+      },
+    ]);
   });
 
   it("uses the current Prisma catalog and normalizes Bachillerato/prepa line filters", async () => {
@@ -84,5 +92,35 @@ describe("GET /api/public/planes", () => {
         businessLine: "prepa",
       }),
     ]);
+  });
+
+  it("filters study plans by active campus offerings when campus and cycle are provided", async () => {
+    const response = await GET(
+      new Request(
+        "http://localhost/api/public/planes?line=prepa&campus=chihuahua&cycle=C1&modality=presencial",
+      ),
+    );
+    const data = (await response.json()) as {
+      programs: Array<{ id: string; name: string; businessLine: string | null }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.programOffering.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          cycle: "C1",
+          campus: expect.objectContaining({
+            isActive: true,
+            OR: expect.arrayContaining([
+              { metaKey: "chihuahua" },
+              { code: "chihuahua" },
+              { name: "chihuahua" },
+            ]),
+          }),
+        }),
+      }),
+    );
+    expect(data.programs.map((program) => program.id)).toEqual(["program_prepa"]);
   });
 });

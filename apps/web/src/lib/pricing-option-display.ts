@@ -9,6 +9,7 @@ export type QuoteCampusOption = {
     businessLine: string;
     modality: string;
     plan: number;
+    programId?: string;
   }>;
 };
 
@@ -43,12 +44,24 @@ export function visibleQuoteCampuses(
   modality?: string,
   businessLine?: string,
   plan?: number | null,
+  programId?: string | null,
 ): QuoteCampusOption[] {
   if (modality === "online") {
-    return [
+    const onlineCampus: QuoteCampusOption =
       campuses.find((campus) => campus.value === ONLINE_QUOTE_CAMPUS.value) ??
-        ONLINE_QUOTE_CAMPUS,
-    ];
+      ONLINE_QUOTE_CAMPUS;
+    if (!businessLine || !modality || !onlineCampus.pricingOptions?.length) {
+      return [onlineCampus];
+    }
+    return onlineCampus.pricingOptions.some(
+      (option) =>
+        option.businessLine === businessLine &&
+        option.modality === modality &&
+        (!plan || option.plan === plan) &&
+        (!programId || option.programId === programId),
+    )
+      ? [onlineCampus]
+      : [];
   }
 
   return campuses
@@ -62,12 +75,13 @@ export function visibleQuoteCampuses(
       return campus.modalities.includes(modality);
     })
     .filter((campus) => {
-      if (!businessLine || !modality || !plan || !campus.pricingOptions?.length) return true;
+      if (!businessLine || !modality || !campus.pricingOptions?.length) return true;
       return campus.pricingOptions.some(
         (option) =>
           option.businessLine === businessLine &&
           option.modality === modality &&
-          option.plan === plan,
+          (!plan || option.plan === plan) &&
+          (!programId || option.programId === programId),
       );
     })
     .sort((left, right) => left.label.localeCompare(right.label, "es"));

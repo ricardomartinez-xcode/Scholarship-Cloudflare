@@ -42,18 +42,28 @@ type PricingOption = {
   plan: number;
 };
 
+type StudyProgramOption = {
+  id: string;
+  name: string;
+  businessLine: string;
+  planPdfUrl?: string | null;
+};
+
 type PricingOptionsResponse = {
   ok?: boolean;
   combinations?: PricingOption[];
+  studyPrograms?: StudyProgramOption[];
   campuses?: Array<{
     value: string;
     label: string;
     businessLines?: string[];
     modalities?: string[];
+    studyPrograms?: StudyProgramOption[];
     pricingOptions?: Array<{
       businessLine: string;
       modality: string;
       plan: number;
+      programId?: string;
     }>;
   }>;
   subjectCounts?: number[];
@@ -99,7 +109,7 @@ const QUOTE_MISSING_FIELD_LABELS: Record<string, string> = {
   enrollmentType: "tipo de inscripción",
   businessLine: "línea de negocio",
   modality: "modalidad",
-  plan: "plan de estudios",
+  plan: "plan de pago",
   campus: "plantel",
   average: "promedio",
   subjectCount: "materias",
@@ -491,19 +501,23 @@ export default function ScholarshipCalculator({
       label: string;
       businessLines?: string[];
       modalities?: string[];
+      studyPrograms?: StudyProgramOption[];
       pricingOptions?: Array<{
         businessLine: string;
         modality: string;
         plan: number;
+        programId?: string;
       }>;
     }>
   >([]);
+  const [studyPrograms, setStudyPrograms] = useState<StudyProgramOption[]>([]);
   const [subjectCountOptions, setSubjectCountOptions] = useState<number[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [nivel, setNivel] = useState("");
   const [modalidad, setModalidad] = useState("");
+  const [studyProgramId, setStudyProgramId] = useState("");
   const [plan, setPlan] = useState<number | null>(null);
   const [plantel, setPlantel] = useState("");
   const [materias, setMaterias] = useState<number | null>(null);
@@ -544,6 +558,7 @@ export default function ScholarshipCalculator({
   const tipoLabelId = useId();
   const nivelLabelId = useId();
   const modalidadLabelId = useId();
+  const studyProgramLabelId = useId();
   const planLabelId = useId();
   const plantelLabelId = useId();
   // moduloLabelId removed
@@ -559,6 +574,7 @@ export default function ScholarshipCalculator({
       setTipo(scenario.input.enrollmentType);
       setNivel(toUiBusinessLine(scenario.input.businessLine));
       setModalidad(toUiModality(scenario.input.modality));
+      setStudyProgramId(scenario.input.selectedProgramId ?? "");
       setPlan(scenario.input.plan);
       setPlantel(scenario.input.campus ?? "");
       setMaterias(scenario.input.subjectCount ?? null);
@@ -591,6 +607,7 @@ export default function ScholarshipCalculator({
       const data = (await response.json()) as PricingOptionsResponse;
       setPricingOptions(Array.isArray(data.combinations) ? data.combinations : []);
       setCampusOptions(Array.isArray(data.campuses) ? data.campuses : []);
+      setStudyPrograms(Array.isArray(data.studyPrograms) ? data.studyPrograms : []);
       setSubjectCountOptions(Array.isArray(data.subjectCounts) ? data.subjectCounts : []);
     } catch (err) {
       setLoadError(
@@ -621,39 +638,74 @@ export default function ScholarshipCalculator({
   }, [normalizedVisibleOfferCycles]);
 
 
-  const niveles = useMemo(() => {
+  const campusPricingOptions = useMemo(
+    () => campusOptions.flatMap((campus) => campus.pricingOptions ?? []),
+    [campusOptions],
+  );
+
+  const availablePricingOptions = useMemo(() => {
     if (!pricingOptions) return [];
-    return uniqSorted(
-      pricingOptions
-        .filter((option) => option.enrollmentType === tipo)
-        .map((option) => option.businessLine),
+    return campusPricingOptions.filter((campusOption) =>
+      pricingOptions.some(
+        (option) =>
+          option.enrollmentType === tipo &&
+          option.businessLine === campusOption.businessLine &&
+          option.modality === campusOption.modality &&
+          option.plan === campusOption.plan,
+      ),
     );
-  }, [pricingOptions, tipo]);
+  }, [campusPricingOptions, pricingOptions, tipo]);
+
+  const niveles = useMemo(() => {
+    return uniqSorted(availablePricingOptions.map((option) => option.businessLine));
+  }, [availablePricingOptions]);
 
   const modalidades = useMemo(() => {
-    if (!pricingOptions || !nivel) return [];
-    const filtered = pricingOptions.filter(
-      (option) => option.enrollmentType === tipo && option.businessLine === nivel,
-    );
+    if (!nivel) return [];
+    const filtered = availablePricingOptions.filter((option) => option.businessLine === nivel);
     const all = uniqSorted(filtered.map((option) => option.modality));
     if (nivel === "salud") return all.filter((m) => m === "presencial");
     return visibleQuoteModalities(all, nivel);
-  }, [pricingOptions, tipo, nivel]);
+  }, [availablePricingOptions, nivel]);
+
+  const studyPlanOptions = useMemo(() => {
+    if (!nivel || !modalidad) return [];
+    const availableProgramIds = new Set(
+      availablePricingOptions
+        .filter(
+          (option) =>
+            option.businessLine === nivel &&
+            option.modality === modalidad &&
+            option.programId,
+        )
+        .map((option) => option.programId as string),
+    );
+    return studyPrograms
+      .filter((program) => program.businessLine === nivel && availableProgramIds.has(program.id))
+      .map((program) => ({
+        value: program.id,
+        label: program.name,
+      }));
+  }, [availablePricingOptions, modalidad, nivel, studyPrograms]);
 
   const planes = useMemo(() => {
-    if (!pricingOptions || !nivel || !modalidad) return [];
-    const filtered = pricingOptions.filter(
+    if (!nivel || !modalidad || !studyProgramId) return [];
+    const selectedCampus = campusOptions.find((campus) => campus.value === plantel);
+    const sourceOptions = selectedCampus?.pricingOptions?.length
+      ? selectedCampus.pricingOptions
+      : availablePricingOptions;
+    const filtered = sourceOptions.filter(
       (option) =>
-        option.enrollmentType === tipo &&
         option.businessLine === nivel &&
-        option.modality === modalidad
+        option.modality === modalidad &&
+        option.programId === studyProgramId
     );
     return Array.from(new Set(filtered.map((option) => Number(option.plan)))).sort((a, b) => a - b);
-  }, [pricingOptions, tipo, nivel, modalidad]);
+  }, [availablePricingOptions, campusOptions, nivel, modalidad, plantel, studyProgramId]);
 
   const planteles = useMemo(() => {
-    return visibleQuoteCampuses(campusOptions, modalidad, nivel, plan);
-  }, [campusOptions, modalidad, nivel, plan]);
+    return visibleQuoteCampuses(campusOptions, modalidad, nivel, plan, studyProgramId);
+  }, [campusOptions, modalidad, nivel, plan, studyProgramId]);
 
   useEffect(() => {
     if (applyingScenarioRef.current || !plantel) return;
@@ -672,6 +724,7 @@ export default function ScholarshipCalculator({
     if (applyingScenarioRef.current) return;
     setNivel("");
     setModalidad("");
+    setStudyProgramId("");
     setPlan(null);
     setPlantel("");
     setMaterias(null);
@@ -681,6 +734,7 @@ export default function ScholarshipCalculator({
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setModalidad("");
+    setStudyProgramId("");
     setPlan(null);
     setPlantel("");
     setMaterias(null);
@@ -688,6 +742,7 @@ export default function ScholarshipCalculator({
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
+    setStudyProgramId("");
     setPlan(null);
     setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
@@ -695,9 +750,21 @@ export default function ScholarshipCalculator({
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
+    setPlan(null);
     setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
-  }, [plan, modalidad]);
+  }, [studyProgramId, modalidad]);
+
+  useEffect(() => {
+    if (applyingScenarioRef.current) return;
+    setMaterias(null);
+  }, [plan]);
+
+  useEffect(() => {
+    if (applyingScenarioRef.current) return;
+    setPlan(null);
+    setMaterias(null);
+  }, [plantel]);
 
   useEffect(() => {
     if (!cargoEnabled) {
@@ -768,10 +835,10 @@ export default function ScholarshipCalculator({
     [modalidad]
   );
   const canLoadOfferPanel = useMemo(() => {
-    if (!nivel || !modalidad || !plan) return false;
+    if (!nivel || !modalidad || !studyProgramId) return false;
     if (modalidad === "online") return true;
     return !requierePlantel(nivel, modalidad) || Boolean(plantel);
-  }, [nivel, modalidad, plan, plantel]);
+  }, [nivel, modalidad, studyProgramId, plantel]);
 
   useEffect(() => {
     if (!useCanonicalQuote) {
@@ -819,6 +886,7 @@ export default function ScholarshipCalculator({
             average: promedio.trim(),
             subjectCount: materias,
             extraCharge: cargoEnabled ? cargoAmount : null,
+            selectedProgramId: studyProgramId || null,
           }),
         });
 
@@ -857,6 +925,7 @@ export default function ScholarshipCalculator({
     cargoType,
     cargoAmount,
     nivel,
+    studyProgramId,
   ]);
 
   useEffect(() => {
@@ -952,18 +1021,22 @@ export default function ScholarshipCalculator({
         };
         if (!active) return;
 
-        const items = (data.offerings ?? []).map((row) => ({
-          offeringId: row.id,
-          programId: row.program.id,
-          programName: row.program.name,
-          modality: row.modality,
-          schedule: row.schedule ?? null,
-          planLink: row.planLink ?? null,
-        }));
+        const items = (data.offerings ?? [])
+          .map((row) => ({
+            offeringId: row.id,
+            programId: row.program.id,
+            programName: row.program.name,
+            modality: row.modality,
+            schedule: row.schedule ?? null,
+            planLink: row.planLink ?? null,
+          }))
+          .filter((item) => item.programId === studyProgramId);
         setOfferPrograms(items);
         setOfferProgramId((current) => {
-          if (!current) return "";
-          return items.some((item) => item.offeringId === current) ? current : "";
+          if (!current) return items[0]?.offeringId ?? "";
+          return items.some((item) => item.offeringId === current)
+            ? current
+            : items[0]?.offeringId ?? "";
         });
       } catch (err) {
         if (!active) return;
@@ -982,13 +1055,19 @@ export default function ScholarshipCalculator({
       active = false;
       controller.abort();
     };
-  }, [canLoadOfferPanel, benefitLookupKey, benefitBusinessLine, selectedOfferCycle]);
+  }, [
+    canLoadOfferPanel,
+    benefitLookupKey,
+    benefitBusinessLine,
+    selectedOfferCycle,
+    studyProgramId,
+  ]);
 
   useEffect(() => {
     const selected =
       offerPrograms.find((item) => item.offeringId === offerProgramId) ?? null;
-    setOfferSelectedProgramId(selected?.programId ?? "");
-  }, [offerProgramId, offerPrograms]);
+    setOfferSelectedProgramId(selected?.programId ?? studyProgramId);
+  }, [offerProgramId, offerPrograms, studyProgramId]);
 
   const quoteCalculation = useMemo<Calculation | null>(() => {
     if (!quoteResult) return null;
@@ -1032,7 +1111,7 @@ export default function ScholarshipCalculator({
   ];
   const nivelOptions = niveles.map((n) => ({ value: n, label: n }));
   const modalidadOptions = modalidades.map((m) => ({ value: m, label: m }));
-  const planOptions = planes.map((p) => ({ value: String(p), label: String(p) }));
+  const planOptions = planes.map((p) => ({ value: String(p), label: `Plan ${p}` }));
   const plantelOptions = planteles.map((campus) => ({
     value: campus.value,
     label: campus.label,
@@ -1061,6 +1140,8 @@ export default function ScholarshipCalculator({
       ];
   const selectedOfferProgram =
     offerPrograms.find((item) => item.offeringId === offerProgramId) ?? null;
+  const selectedStudyProgram =
+    studyPrograms.find((program) => program.id === studyProgramId) ?? null;
 
   const porcentajeBenefit = benefitBundle?.benefit ?? null;
   const firstPaymentBenefit = benefitBundle?.firstPaymentBenefit ?? null;
@@ -1109,8 +1190,9 @@ export default function ScholarshipCalculator({
       subjectCount: materias,
       extraChargeAmount: cargoEnabled ? cargoAmountValue : 0,
       chargeType: cargoEnabled ? cargoType || null : null,
-      selectedProgramId: offerSelectedProgramId || null,
-      selectedProgramName: selectedOfferProgram?.programName ?? null,
+      selectedProgramId: studyProgramId || offerSelectedProgramId || null,
+      selectedProgramName:
+        selectedStudyProgram?.name ?? selectedOfferProgram?.programName ?? null,
     };
   }, [
     benefitBusinessLine,
@@ -1124,7 +1206,9 @@ export default function ScholarshipCalculator({
     plan,
     plantel,
     promedio,
+    selectedStudyProgram?.name,
     selectedOfferProgram?.programName,
+    studyProgramId,
     tipo,
   ]);
   const currentSimulatorResult = useMemo<SimulatorResultSnapshot | null>(() => {
@@ -1320,7 +1404,8 @@ export default function ScholarshipCalculator({
   ]);
   const resultCampusLabel =
     modalidad === "online" ? "Online" : plantel || null;
-  const resultProgramLabel = selectedOfferProgram?.programName ?? null;
+  const resultProgramLabel =
+    selectedStudyProgram?.name ?? selectedOfferProgram?.programName ?? null;
   const resultScheduleLabel = selectedOfferProgram?.schedule ?? null;
   const whatsappNotes = [
     compactText(resultPanelBenefitDurationSentence),
@@ -1836,15 +1921,14 @@ export default function ScholarshipCalculator({
             </label>
 
             <label className="grid min-w-0 gap-2 ui-label">
-              <span id={planLabelId}>Plan de estudios</span>
+              <span id={studyProgramLabelId}>Plan de estudios</span>
               <SmartSelect
-                labelId={planLabelId}
-                value={plan !== null ? String(plan) : ""}
-                placeholder="Selecciona plan"
+                labelId={studyProgramLabelId}
+                value={studyProgramId}
+                placeholder="Selecciona plan de estudio"
                 disabled={!modalidad}
-                error={Boolean(calcErr?.missing?.includes("plan"))}
-                options={planOptions}
-                onChange={(v) => setPlan(v ? Number(v) : null)}
+                options={studyPlanOptions}
+                onChange={(v) => setStudyProgramId(v)}
               />
             </label>
 
@@ -1863,12 +1947,28 @@ export default function ScholarshipCalculator({
                 disabled={
                   !nivel ||
                   !modalidad ||
-                  !plan ||
+                  !studyProgramId ||
                   (modalidad !== "online" && !requierePlantel(nivel, modalidad))
                 }
                 error={Boolean(calcErr?.missing?.includes("plantel"))}
                 options={plantelOptions}
                 onChange={(v) => setPlantel(v)}
+              />
+            </label>
+
+            <label className="grid min-w-0 gap-2 ui-label">
+              <span id={planLabelId}>Plan de pago</span>
+              <SmartSelect
+                labelId={planLabelId}
+                value={plan !== null ? String(plan) : ""}
+                placeholder="Selecciona plan"
+                disabled={
+                  !studyProgramId ||
+                  (modalidad !== "online" && requierePlantel(nivel, modalidad) && !plantel)
+                }
+                error={Boolean(calcErr?.missing?.includes("plan"))}
+                options={planOptions}
+                onChange={(v) => setPlan(v ? Number(v) : null)}
               />
             </label>
           </div>

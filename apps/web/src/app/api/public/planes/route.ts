@@ -13,18 +13,68 @@ import {
   getUnidepProgramCatalog,
   getUnidepProgramPlanUrl,
 } from "@/lib/unidep-program-catalog";
+import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-async function loadPlanesPayload(lineRaw: string, query: string) {
-  const programs = await getUnidepProgramCatalog({
-    businessLine: lineRaw,
-    query,
-    onlyWithPlan: true,
+async function getOfferedProgramIds(params: {
+  campus: string;
+  cycle: string;
+  modality: string;
+}) {
+  const campus = params.campus.trim();
+  const cycle = params.cycle.trim();
+  if (!campus || !cycle) return null;
+
+  const modality = normalizeCanonicalModality(params.modality);
+  const modalityWhere =
+    modality === "online"
+      ? { delivery: "ONLINE" as const }
+      : modality === "mixta"
+        ? { delivery: "CAMPUS" as const, ejecutivo: true }
+        : modality === "presencial"
+          ? {
+              delivery: "CAMPUS" as const,
+              OR: [{ escolarizado: true }, { ejecutivo: false }],
+            }
+          : {};
+
+  const offerings = await prisma.programOffering.findMany({
+    where: {
+      isActive: true,
+      cycle,
+      campus: {
+        isActive: true,
+        OR: [{ metaKey: campus }, { code: campus }, { name: campus }],
+      },
+      ...modalityWhere,
+    },
+    select: { programId: true },
   });
 
+  return new Set(offerings.map((offering) => offering.programId));
+}
+
+async function loadPlanesPayload(params: {
+  lineRaw: string;
+  query: string;
+  campus: string;
+  cycle: string;
+  modality: string;
+}) {
+  const programs = await getUnidepProgramCatalog({
+    businessLine: params.lineRaw,
+    query: params.query,
+    onlyWithPlan: true,
+  });
+  const offeredProgramIds = await getOfferedProgramIds(params);
+  const visiblePrograms = offeredProgramIds
+    ? programs.filter((program) => offeredProgramIds.has(program.id))
+    : programs;
+
   return {
-    programs: programs.map((program) => ({
+    programs: visiblePrograms.map((program) => ({
       id: program.id,
       name: program.name,
       category: program.category,
@@ -35,13 +85,22 @@ async function loadPlanesPayload(lineRaw: string, query: string) {
   };
 }
 
-function getCachedPlanesPayload(lineRaw: string, query: string) {
+function getCachedPlanesPayload(params: {
+  lineRaw: string;
+  query: string;
+  campus: string;
+  cycle: string;
+  modality: string;
+}) {
   return unstable_cache(
-    () => loadPlanesPayload(lineRaw, query),
+    () => loadPlanesPayload(params),
     [
       "public-planes",
-      normalizePublicCacheKeyPart(lineRaw),
-      normalizePublicCacheKeyPart(query),
+      normalizePublicCacheKeyPart(params.lineRaw),
+      normalizePublicCacheKeyPart(params.query),
+      normalizePublicCacheKeyPart(params.campus),
+      normalizePublicCacheKeyPart(params.cycle),
+      normalizePublicCacheKeyPart(params.modality),
     ],
     {
       revalidate: PUBLIC_ROUTE_CACHE_REVALIDATE_SECONDS,
@@ -56,6 +115,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const lineRaw = (searchParams.get("line") ?? "").trim();
   const query = (searchParams.get("q") ?? "").trim();
+  const campus = (searchParams.get("campus") ?? "").trim();
+  const cycle = (searchParams.get("cycle") ?? "").trim();
+  const modality = (searchParams.get("modality") ?? "").trim();
 
   let statusCode = 200;
   let actorUserId: string | null = null;
@@ -75,7 +137,13 @@ export async function GET(request: Request) {
     actorUserId = auth.user.id;
     actorEmail = auth.email;
 
-    const payload = await getCachedPlanesPayload(lineRaw, query);
+    const payload = await getCachedPlanesPayload({
+      lineRaw,
+      query,
+      campus,
+      cycle,
+      modality,
+    });
     return NextResponse.json(payload);
   } catch (error) {
     statusCode = 500;
@@ -91,6 +159,9 @@ export async function GET(request: Request) {
       metadata: {
         line: lineRaw || null,
         query: query || null,
+        campus: campus || null,
+        cycle: cycle || null,
+        modality: modality || null,
       },
     });
   }
