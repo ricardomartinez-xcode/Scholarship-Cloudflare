@@ -9,22 +9,43 @@ const TABLE = "extension_session_token";
 const FOREIGN_KEY = "extension_session_token_userId_fkey";
 
 async function migrationStatus(sql) {
-  try {
-    const rows = await sql`
-      SELECT "migration_name", "finished_at", "rolled_back_at"
-      FROM "recalc_admin"."_prisma_migrations"
-      WHERE "migration_name" = ${MIGRATION_NAME}
-      ORDER BY "started_at" DESC
-      LIMIT 1
-    `;
-    return rows[0] ?? null;
-  } catch (error) {
-    if (String(error?.message ?? "").includes("_prisma_migrations")) {
-      console.log("[vercel-build] No Prisma migration table found yet; skipping migration recovery.");
-      return null;
+  const queries = [
+    {
+      schema: "public",
+      run: () => sql`
+        SELECT "migration_name", "finished_at", "rolled_back_at"
+        FROM "public"."_prisma_migrations"
+        WHERE "migration_name" = ${MIGRATION_NAME}
+        ORDER BY "started_at" DESC
+        LIMIT 1
+      `,
+    },
+    {
+      schema: "recalc_admin",
+      run: () => sql`
+        SELECT "migration_name", "finished_at", "rolled_back_at"
+        FROM "recalc_admin"."_prisma_migrations"
+        WHERE "migration_name" = ${MIGRATION_NAME}
+        ORDER BY "started_at" DESC
+        LIMIT 1
+      `,
+    },
+  ];
+
+  for (const query of queries) {
+    try {
+      const rows = await query.run();
+      if (rows[0]) return { ...rows[0], schema: query.schema };
+    } catch (error) {
+      if (String(error?.message ?? "").includes("_prisma_migrations")) {
+        continue;
+      }
+      throw error;
     }
-    throw error;
   }
+
+  console.log("[vercel-build] No Prisma migration table found yet; skipping migration recovery.");
+  return null;
 }
 
 async function hasExpectedObjects(sql) {
@@ -53,10 +74,7 @@ async function main() {
 
   const sql = neon(process.env.DIRECT_URL);
   const status = await migrationStatus(sql);
-  const hasFailed =
-    status &&
-    status.finished_at === null &&
-    status.rolled_back_at === null;
+  const hasFailed = status && status.finished_at === null;
 
   if (!hasFailed) {
     console.log(`[vercel-build] Migration ${MIGRATION_NAME} does not need recovery.`);
@@ -71,7 +89,9 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[vercel-build] Resolving ${MIGRATION_NAME} as applied; database objects already exist.`);
+  console.log(
+    `[vercel-build] Resolving ${MIGRATION_NAME} as applied; database objects already exist.`,
+  );
   const result = spawnSync(
     "prisma",
     [
