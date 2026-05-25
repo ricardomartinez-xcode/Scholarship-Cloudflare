@@ -69,7 +69,7 @@ function CalculatorIconWithImage({ className }: { className?: string }) {
     return (
       <Image
         src="/icons/icono-calculadora.png"
-        alt="Calculadora"
+        alt="Cotizador"
         width={24}
         height={24}
         className={className}

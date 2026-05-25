@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import { BASE_PRICE_OVERRIDE_SCOPE } from "@/lib/base-price-overrides";
+import { buildQuotePricingOptions } from "@/lib/pricing-options";
 import { prisma } from "@/lib/prisma";
-import { ENROLLMENT_TYPES } from "@/lib/pricing-normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ error: "inactive" }, { status: 403 });
   }
 
-  const [rules, campuses, subjectPrices] = await Promise.all([
+  const [rules, priceOverrides, campuses, subjectPrices] = await Promise.all([
     prisma.scholarshipRule.findMany({
       where: { sourceVersion: "canonical" },
       distinct: ["businessLine", "modality", "plan"],
@@ -31,6 +32,15 @@ export async function GET() {
         businessLine: true,
         modality: true,
         plan: true,
+      },
+    }),
+    prisma.adminPriceOverride.findMany({
+      where: {
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        isActive: true,
+      },
+      select: {
+        targetKeys: true,
       },
     }),
     prisma.campus.findMany({
@@ -48,14 +58,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    combinations: ENROLLMENT_TYPES.flatMap((enrollmentType) =>
-      rules.map((rule) => ({
-        enrollmentType,
-        businessLine: rule.businessLine,
-        modality: rule.modality,
-        plan: rule.plan,
-      })),
-    ),
+    combinations: buildQuotePricingOptions(rules, priceOverrides),
     campuses: campuses.map((campus) => ({
       value: campus.metaKey || campus.code || campus.name,
       label: campus.name,

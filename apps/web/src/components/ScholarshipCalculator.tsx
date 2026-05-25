@@ -14,7 +14,11 @@ import {
   formatBenefitDurationLabel,
   formatBenefitDurationSentence,
 } from "@/lib/benefit-duration";
-import { visibleQuoteModalities } from "@/lib/pricing-option-display";
+import {
+  ONLINE_QUOTE_CAMPUS,
+  visibleQuoteCampuses,
+  visibleQuoteModalities,
+} from "@/lib/pricing-option-display";
 import {
   buildSimulatorFingerprint,
   type SimulatorInputSnapshot,
@@ -611,7 +615,7 @@ export default function ScholarshipCalculator({
     );
     const all = uniqSorted(filtered.map((option) => option.modality));
     if (nivel === "salud") return all.filter((m) => m === "presencial");
-    return visibleQuoteModalities(all);
+    return visibleQuoteModalities(all, nivel);
   }, [pricingOptions, tipo, nivel]);
 
   const planes = useMemo(() => {
@@ -626,10 +630,8 @@ export default function ScholarshipCalculator({
   }, [pricingOptions, tipo, nivel, modalidad]);
 
   const planteles = useMemo(() => {
-    return campusOptions
-      .filter((campus) => campus.value && campus.value !== "ONLINE")
-      .sort((a, b) => a.label.localeCompare(b.label, "es"));
-  }, [campusOptions]);
+    return visibleQuoteCampuses(campusOptions, modalidad);
+  }, [campusOptions, modalidad]);
 
   const materiasOptions = useMemo(
     () => (subjectCountOptions.length ? subjectCountOptions : [1, 2, 3, 4, 5, 6, 7]),
@@ -657,15 +659,15 @@ export default function ScholarshipCalculator({
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlan(null);
-    setPlantel("");
+    setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
   }, [modalidad]);
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
-    setPlantel("");
+    setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
-  }, [plan]);
+  }, [plan, modalidad]);
 
   useEffect(() => {
     if (!cargoEnabled) {
@@ -1726,7 +1728,7 @@ export default function ScholarshipCalculator({
     <div className="ui-form-grid ui-form-grid--main-aside">
       <section className="ui-card relative min-w-0 p-[var(--ui-card-pad)]">
         <FloatingCalculator />
-        <h1 className="ui-section-title font-semibold">Calculadora</h1>
+        <h1 className="ui-section-title font-semibold">Cotizador</h1>
 
         <div className="mt-3 flex flex-wrap items-center gap-2.5">
           <span className="ui-pill ui-pill--accent">Oferta visible en /unidep</span>
@@ -1822,11 +1824,18 @@ export default function ScholarshipCalculator({
                 labelId={plantelLabelId}
                 value={plantel}
                 placeholder={
-                  requierePlantel(nivel, modalidad)
+                  modalidad === "online"
+                    ? ONLINE_QUOTE_CAMPUS.label
+                    : requierePlantel(nivel, modalidad)
                     ? "Selecciona plantel"
                     : "No es necesario para este nivel o modalidad"
                 }
-                disabled={!nivel || !modalidad || !plan || !requierePlantel(nivel, modalidad)}
+                disabled={
+                  !nivel ||
+                  !modalidad ||
+                  !plan ||
+                  (modalidad !== "online" && !requierePlantel(nivel, modalidad))
+                }
                 error={Boolean(calcErr?.missing?.includes("plantel"))}
                 options={plantelOptions}
                 onChange={(v) => setPlantel(v)}

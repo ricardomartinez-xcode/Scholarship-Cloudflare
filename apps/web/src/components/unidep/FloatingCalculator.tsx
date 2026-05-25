@@ -204,7 +204,7 @@ export default function FloatingCalculator() {
       ]
         .filter(Boolean)
         .join(" ")}
-      aria-label="Calculadora flotante"
+      aria-label="Cotizador flotante"
     >
       {isOpen ? (
         <div className="ui-floating-calculator__panel">
@@ -212,15 +212,15 @@ export default function FloatingCalculator() {
             <div
               className="ui-floating-calculator__drag-handle"
             >
-              <div className="ui-floating-calculator__eyebrow">Cotizador</div>
-              <div className="ui-floating-calculator__title">Calculadora</div>
+              <div className="ui-floating-calculator__eyebrow">Apoyo rapido</div>
+              <div className="ui-floating-calculator__title">Cotizador</div>
             </div>
             <div className="ui-floating-calculator__head-actions">
               <button
                 type="button"
                 className="ui-floating-calculator__close"
                 onClick={() => setIsOpen(false)}
-                aria-label="Contraer calculadora"
+                aria-label="Contraer cotizador"
               >
                 <Image
                   src="/branding/floating-calculator.png"
@@ -270,7 +270,7 @@ export default function FloatingCalculator() {
           className="ui-floating-calculator__rail"
           onClick={() => setIsOpen(true)}
           aria-expanded={isOpen}
-          title="Abrir calculadora"
+          title="Abrir cotizador"
         >
           <Image
             src="/branding/floating-calculator.png"
@@ -282,7 +282,7 @@ export default function FloatingCalculator() {
             priority
             draggable={false}
           />
-          <span className="sr-only">Calculadora</span>
+          <span className="sr-only">Cotizador</span>
         </button>
       ) : null}
     </aside>
