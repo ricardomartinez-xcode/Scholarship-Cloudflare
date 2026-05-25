@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, type KeyboardEvent } from "react";
+
 type AdminSegmentedTabItem = {
   id: string;
   label: string;
@@ -18,6 +20,42 @@ export default function AdminSegmentedTabs({
   onChange: (id: string) => void;
   tone?: "dark" | "light";
 }) {
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function moveToTab(index: number) {
+    const item = items[index];
+    if (!item) return;
+
+    onChange(item.id);
+    window.requestAnimationFrame(() => {
+      tabRefs.current[index]?.focus();
+    });
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (!items.length) return;
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      moveToTab((index + 1) % items.length);
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveToTab((index - 1 + items.length) % items.length);
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      moveToTab(0);
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      moveToTab(items.length - 1);
+    }
+  }
+
   return (
     <div
       className={[
@@ -27,15 +65,20 @@ export default function AdminSegmentedTabs({
       role="tablist"
       aria-label={ariaLabel}
     >
-      {items.map((item) => {
+      {items.map((item, index) => {
         const selected = activeId === item.id;
         return (
           <button
             key={item.id}
+            ref={(element) => {
+              tabRefs.current[index] = element;
+            }}
             type="button"
             role="tab"
             aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
             onClick={() => onChange(item.id)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             className={[
               "rounded-t-xl border px-4 py-2 text-sm font-semibold transition",
               selected

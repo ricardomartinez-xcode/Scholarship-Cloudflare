@@ -24,4 +24,16 @@ describe("admin UI patterns", () => {
       );
     }
   });
+
+  it("keeps shared admin tabs keyboard navigable", () => {
+    const source = read("apps/web/src/components/admin/AdminSegmentedTabs.tsx");
+
+    expect(source).toContain("role=\"tablist\"");
+    expect(source).toContain("role=\"tab\"");
+    expect(source).toContain("tabIndex={selected ? 0 : -1}");
+    expect(source).toContain("ArrowRight");
+    expect(source).toContain("ArrowLeft");
+    expect(source).toContain("Home");
+    expect(source).toContain("End");
+  });
 });
