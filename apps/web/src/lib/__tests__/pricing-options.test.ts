@@ -63,4 +63,36 @@ describe("buildQuotePricingOptions", () => {
       ),
     ).toHaveLength(3);
   });
-});
+  
+  it("normalizes imported price rule aliases before exposing quote options", () => {
+    const options = buildQuotePricingOptions([
+      { businessLine: "preparatoria", modality: "presencial", plan: 6 },
+      { businessLine: "maestria", modality: "online", plan: 4 },
+      { businessLine: "Licenciatura", modality: "Ejecutiva", plan: 11 },
+    ]);
+
+    expect(options).toEqual(
+      expect.arrayContaining([
+        {
+          enrollmentType: "nuevo_ingreso",
+          businessLine: "prepa",
+          modality: "presencial",
+          plan: 6,
+        },
+        {
+          enrollmentType: "nuevo_ingreso",
+          businessLine: "posgrado",
+          modality: "online",
+          plan: 4,
+        },
+        {
+          enrollmentType: "nuevo_ingreso",
+          businessLine: "licenciatura",
+          modality: "mixta",
+          plan: 11,
+        },
+      ]),
+    );
+  });
+
+ });
