@@ -25,6 +25,7 @@
     "admin:bootstrap": "node scripts/bootstrap-admin.js",
     "campus:seed": "node scripts/seed-campuses.js",
     "extension:package": "powershell -ExecutionPolicy Bypass -File scripts/package-chrome-extension.ps1",
+    "extension:verify": "node scripts/verify-extension-variants.mjs",
     "import:output": "tsx scripts/import-output.ts",
     "test": "vitest run -c vitest.config.ts",
     "lint:all": "npm run lint",
