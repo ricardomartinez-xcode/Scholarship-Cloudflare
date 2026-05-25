@@ -2,10 +2,10 @@ import { test, expect } from "@playwright/test";
 
 test("public landing has no app chrome and sign-in route exists", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Opera UNIDEP desde una sola sesión/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /ReCalc UNIDEP/i })).toBeVisible();
 
   // Branding: logo + favicon links (favicon may require hard refresh in real browsers).
-  await expect(page.getByAltText("ReCalc")).toBeVisible();
+  await expect(page.locator("header").getByAltText("ReCalc")).toBeVisible();
   const iconHrefs = await page.$$eval('link[rel~="icon"]', (els) =>
     els.map((e) => e.getAttribute("href") || "")
   );
@@ -20,9 +20,9 @@ test("public landing has no app chrome and sign-in route exists", async ({ page 
 
   await Promise.all([
     page.waitForURL(/\/auth\/sign-in/),
-    page.getByRole("link", { name: /Iniciar sesión/i }).first().click(),
+    page.getByRole("link", { name: /Ingresar|Iniciar sesión/i }).first().click(),
   ]);
-  await expect(page.getByRole("heading", { name: /Acceso/i })).toBeVisible();
+  await expect(page.getByLabel(/Correo/i)).toBeVisible();
 });
 
 test("sign-in works and /unidep loads app chrome (requires E2E_EMAIL/E2E_PASSWORD)", async ({

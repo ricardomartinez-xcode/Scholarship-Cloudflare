@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       forwardedFor?.split(",")[0]?.trim() ??
       request.headers.get("x-real-ip") ??
       "unknown";
-    const limiter = checkRateLimit(`extension-signin:${ip}:${email}`, {
+    const limiter = await checkRateLimit(`extension-signin:${ip}:${email}`, {
       limit: 5,
       windowMs: 10 * 60_000,
     });

@@ -7,7 +7,7 @@ import {
 
 export const BASE_PRICE_OVERRIDE_SCOPE = "base_price";
 
-function toLegacyBusinessLine(businessLine: CanonicalBusinessLine | string) {
+function toHistoricalBusinessLineKey(businessLine: CanonicalBusinessLine | string) {
   if (businessLine === "prepa") return "preparatoria";
   if (businessLine === "posgrado") return "maestria";
   return String(businessLine);
@@ -39,7 +39,7 @@ function matchesBasePriceTarget(
     tier?: string | null;
   },
 ) {
-  const expectedNivel = toLegacyBusinessLine(params.businessLine);
+  const expectedBusinessLineKey = toHistoricalBusinessLineKey(params.businessLine);
   const expectedTier = normalizeTierKey(params.tier);
   const targetNivel = normalizeKey(keys.nivel_key ?? keys.businessLine ?? keys.nivel);
   const targetModality = normalizeKey(
@@ -49,7 +49,7 @@ function matchesBasePriceTarget(
   const targetTier = normalizeTierKey(keys.tier);
 
   return (
-    targetNivel === normalizeKey(expectedNivel) &&
+    targetNivel === normalizeKey(expectedBusinessLineKey) &&
     targetModality === normalizeKey(params.modality) &&
     targetPlan === normalizeKey(params.plan) &&
     targetTier === expectedTier

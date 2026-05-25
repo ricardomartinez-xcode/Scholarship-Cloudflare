@@ -2,13 +2,12 @@
 # vercel-build.sh
 #
 # Resolves DATABASE_URL and DIRECT_URL from Vercel/Neon integration env vars,
-# then syncs the Prisma schema directly to Neon with `prisma db push`
-# (no migration files or _prisma_migrations table required).
+# then applies versioned Prisma migrations before building the web app.
 
 set -e
 set -x  # Enable debug output
 
-# ── DIRECT_URL (plain postgres://, used by prisma db push) ────────────────────
+# ── DIRECT_URL (plain postgres://, used by Prisma migrations) ────────────────
 # Vercel's Neon integration exposes POSTGRES_URL_NON_POOLING (direct, non-pooled).
 # We prefer that; fall back to DATABASE_URL_UNPOOLED or the main DATABASE_URL
 # when it is already a plain postgres:// connection string.
@@ -56,8 +55,8 @@ if [ -z "$DATABASE_URL" ]; then
   fi
 fi
 
-# ── Ensure the recalc_admin schema exists before db push ─────────────────────
-# `prisma db push` does not auto-create custom Postgres schemas.
+# ── Ensure the recalc_admin schema exists before migrations ──────────────────
+# Prisma migrations expect the custom Postgres schema to exist.
 # We create it with the Neon serverless driver (already a project dependency).
 echo "[vercel-build] Ensuring recalc_admin schema exists in Neon..."
 node -e "
@@ -68,16 +67,9 @@ sql\`CREATE SCHEMA IF NOT EXISTS recalc_admin\`
   .catch(err => { console.error('[vercel-build] Schema note:', err.message); process.exit(0); });
 " || true
 
-# ── Sync Prisma schema to Neon (replaces prisma migrate deploy) ───────────────
-# Using db push avoids the _prisma_migrations table and the complex stale-record
-# resolution that was needed with migrate deploy.
-echo "[vercel-build] Running: prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss --skip-generate"
-if prisma db push --schema packages/db/prisma/schema.prisma --accept-data-loss --skip-generate; then
-  echo "[vercel-build] Prisma db push succeeded"
-else
-  PRISMA_EXIT_CODE=$?
-  echo "[vercel-build] WARNING: Prisma db push failed with exit code $PRISMA_EXIT_CODE. Continuing with build anyway..."
-fi
+# ── Apply versioned Prisma migrations ────────────────────────────────────────
+echo "[vercel-build] Running: prisma migrate deploy --schema packages/db/prisma/schema.prisma"
+prisma migrate deploy --schema packages/db/prisma/schema.prisma
 
 echo "[vercel-build] Running: npm --workspace @relead/web run build"
 npm --workspace @relead/web run build

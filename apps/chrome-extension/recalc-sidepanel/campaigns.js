@@ -288,7 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await chrome.storage.local.get([EXTENSION_SESSION_TOKEN_KEY]);
       return normalizeSessionToken(data?.[EXTENSION_SESSION_TOKEN_KEY] ?? "");
     }
-    return normalizeSessionToken(window.localStorage.getItem(EXTENSION_SESSION_TOKEN_KEY) ?? "");
+    return "";
   }
 
   async function getStoredTemplateLibrary() {

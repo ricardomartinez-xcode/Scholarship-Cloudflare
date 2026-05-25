@@ -51,10 +51,10 @@ describe("findPublishedBasePriceOverride", () => {
     ).toBe(1890);
   });
 
-  it("ignores legacy enrollment keys for canonical price-list overrides", () => {
+  it("uses canonical price-list overrides without depending on historical enrollment keys", () => {
     const overrides: PriceOverrideSnapshot[] = [
       {
-        id: "legacy-program-price",
+        id: "historical-program-price",
         scope: BASE_PRICE_OVERRIDE_SCOPE,
         targetKeys: {
           programa_key: "reingreso",

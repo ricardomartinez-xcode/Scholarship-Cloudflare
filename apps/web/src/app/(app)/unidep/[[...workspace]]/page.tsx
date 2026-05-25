@@ -4,7 +4,7 @@ import UnidepWorkspace from "@/components/unidep/UnidepWorkspace";
 import { requireAuth } from "@/lib/authz";
 import { getQuoteMode } from "@/lib/runtime-modes";
 import {
-  resolveWorkspaceRouteFromLegacy,
+  resolveWorkspaceRouteFromCompatQuery,
   resolveWorkspaceSectionFromSlug,
 } from "@/lib/unidep-navigation";
 import { loadUnidepWorkspaceData } from "@/lib/unidep-page-data";
@@ -30,14 +30,14 @@ export default async function UnidepPage({
     searchParams ?? Promise.resolve(undefined),
   ]);
   const sectionSlug = workspace?.[0];
-  const legacyTab = readQueryValue(rawSearchParams?.tab);
-  const legacySection = readQueryValue(rawSearchParams?.section);
+  const queryTab = readQueryValue(rawSearchParams?.tab);
+  const querySection = readQueryValue(rawSearchParams?.section);
   const newUser = readQueryValue(rawSearchParams?.newUser) === "1";
 
   if (!sectionSlug) {
-    const legacyRoute = resolveWorkspaceRouteFromLegacy(legacyTab, legacySection);
-    if (legacyRoute !== "/unidep") {
-      redirect(legacyRoute);
+    const compatRoute = resolveWorkspaceRouteFromCompatQuery(queryTab, querySection);
+    if (compatRoute !== "/unidep") {
+      redirect(compatRoute);
     }
   }
 

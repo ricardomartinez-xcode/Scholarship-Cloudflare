@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
-import { buildVisibilityRule, getPlacementForLegacyLocation } from "@/lib/admin-placement";
+import { buildVisibilityRule, getPlacementForCompatLocation } from "@/lib/admin-placement";
 import { prisma } from "@/lib/prisma";
 import { isCtaLocation } from "@/config/adminCatalogs";
 import { isUserCapability } from "@/lib/user-capabilities";
@@ -153,7 +153,7 @@ export async function upsertPublicCtaAction(formData: FormData) {
       return { ok: false, error: "Ubicación inválida." };
     }
     const location = locationRaw as AdminPublicCtaLocation;
-    const placement = getPlacementForLegacyLocation(location);
+    const placement = getPlacementForCompatLocation(location);
 
     if (kind === AdminPublicCtaKind.link) {
       if (!url) return { ok: false, error: "URL es requerida cuando kind=link." };

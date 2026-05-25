@@ -115,8 +115,8 @@ export default function CtasClient({
     ) {
       filtered.push({
         key: requiredCapability,
-        label: `${capabilityLabelByKey.get(requiredCapability) ?? requiredCapability} (legacy)`,
-        help: "Filtro heredado. Conviene revisarlo y migrarlo a una regla visual vigente.",
+        label: `${capabilityLabelByKey.get(requiredCapability) ?? requiredCapability} (compatibilidad)`,
+        help: "Filtro de compatibilidad. Conviene revisarlo y migrarlo a una regla visual vigente.",
       });
     }
 

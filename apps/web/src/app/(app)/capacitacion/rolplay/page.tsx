@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyCapacitacionRolplayPage() {
+export default function CompatCapacitacionRolplayPage() {
   redirect("/unidep/capacitacion/rolplay");
 }

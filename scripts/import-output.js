@@ -7,7 +7,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { randomUUID } = require("node:crypto");
 const { execSync } = require("node:child_process");
-const xlsx = require("xlsx");
+const ExcelJS = require("exceljs");
 const { PrismaClient, CampusKind, ProgramOfferingDelivery } = require("@prisma/client");
 
 const OUTPUT_BASE = (() => {
@@ -106,24 +106,23 @@ function deriveLineOfBusiness(programName, category) {
   return null;
 }
 
-function workbookRows(filePath, sheetName) {
-  const workbook = xlsx.readFile(filePath, {
-    cellDates: false,
-    raw: false,
-    dense: false,
-  });
-  const sheet = workbook.Sheets[sheetName];
-  if (!sheet) return [];
-  return xlsx.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+async function readWorkbook(filePath) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  return workbook;
 }
 
-function workbookSheetNames(filePath) {
-  const workbook = xlsx.readFile(filePath, {
-    cellDates: false,
-    raw: false,
-    dense: false,
+function worksheetRows(worksheet) {
+  if (!worksheet) return [];
+  const rows = [];
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    const values = [];
+    for (let index = 1; index <= worksheet.columnCount; index += 1) {
+      values.push(cleanCell(row.getCell(index).text));
+    }
+    rows.push(values);
   });
-  return workbook.SheetNames;
+  return rows;
 }
 
 function findFirstExisting(paths) {
@@ -227,8 +226,9 @@ function parseCampusSheet(rows, sheetName) {
   return Array.from(dedup.values());
 }
 
-function parseProgramsCatalog(filePath) {
-  const rows = workbookRows(filePath, "Programas");
+async function parseProgramsCatalog(filePath) {
+  const workbook = await readWorkbook(filePath);
+  const rows = worksheetRows(workbook.getWorksheet("Programas"));
   const byProgram = new Map();
   for (let i = 1; i < rows.length; i += 1) {
     const category = cleanCell(rows[i][0]);
@@ -273,8 +273,9 @@ function buildCampusResolver(campusNames) {
   };
 }
 
-function parseDirectory(filePath, resolveCampusName) {
-  const rows = workbookRows(filePath, "Directorio");
+async function parseDirectory(filePath, resolveCampusName) {
+  const workbook = await readWorkbook(filePath);
+  const rows = worksheetRows(workbook.getWorksheet("Directorio"));
   const contacts = [];
   const warnings = [];
   for (let i = 1; i < rows.length; i += 1) {
@@ -360,12 +361,13 @@ async function main() {
   const bulletinsDir = path.join(OUTPUT_BASE, "boletines", "BOLETINES DE CUOTAS 2026-2");
   const publicBulletinsDir = path.join(process.cwd(), "public", "boletines");
 
-  const sheetNames = workbookSheetNames(offerFile);
+  const offerWorkbook = await readWorkbook(offerFile);
+  const sheetNames = offerWorkbook.worksheets.map((worksheet) => worksheet.name);
   const offerRows = [];
   for (const name of sheetNames) {
     const normalized = normalizeKey(name);
     if (normalized === "comparativo 22 vs 24") continue;
-    const rows = workbookRows(offerFile, name);
+    const rows = worksheetRows(offerWorkbook.getWorksheet(name));
     if (normalized === "online") {
       offerRows.push(...parseOnlineSheet(rows));
     } else {
@@ -385,8 +387,8 @@ async function main() {
   }
 
   const resolveCampusName = buildCampusResolver(uniqueCampusNames);
-  const programsByName = parseProgramsCatalog(programsFile);
-  const { contacts, warnings: directoryWarnings } = parseDirectory(
+  const programsByName = await parseProgramsCatalog(programsFile);
+  const { contacts, warnings: directoryWarnings } = await parseDirectory(
     directoryFile,
     resolveCampusName
   );

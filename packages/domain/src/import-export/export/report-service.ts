@@ -4,12 +4,12 @@ import { exportRowsToCsv } from "@relead/domain/import-export/export/csv-exporte
 import { exportRowsToXlsx } from "@relead/domain/import-export/export/xlsx-exporter";
 import type { ReportFilters, ReportRow } from "@relead/domain/import-export/export/types";
 
-export function generateReportExport(rows: ReportRow[], filters: ReportFilters, format: "csv" | "xlsx") {
+export async function generateReportExport(rows: ReportRow[], filters: ReportFilters, format: "csv" | "xlsx") {
   validateReportFilters(filters);
   const filtered = filterRows(rows, filters);
   if (format === "csv") return { mime: "text/csv", body: exportRowsToCsv(filtered) };
   return {
     mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    body: exportRowsToXlsx(filtered),
+    body: await exportRowsToXlsx(filtered),
   };
 }

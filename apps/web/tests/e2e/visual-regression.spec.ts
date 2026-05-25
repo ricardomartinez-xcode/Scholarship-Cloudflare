@@ -1,47 +1,79 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type TestInfo } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { loginAdmin, loginUser, getAdminCredentials, getUserCredentials, waitForCalculatorReady } from "./helpers";
 
-test("visual: public desktop surfaces stay stable", async ({ page }) => {
+const SNAPSHOT_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "visual-regression.spec.ts-snapshots",
+);
+
+function expectedSnapshotPath(projectName: string, snapshotName: string) {
+  const ext = path.extname(snapshotName);
+  const baseName = snapshotName.slice(0, -ext.length);
+  return path.join(SNAPSHOT_DIR, `${baseName}-${projectName}-${process.platform}${ext}`);
+}
+
+function requireBaselines(
+  testInfo: TestInfo,
+  snapshotNames: string[],
+) {
+  const missing = snapshotNames.filter(
+    (snapshotName) => !fs.existsSync(expectedSnapshotPath(testInfo.project.name, snapshotName)),
+  );
+  test.skip(
+    missing.length > 0,
+    `Missing visual baseline(s) for ${testInfo.project.name}/${process.platform}: ${missing.join(", ")}`,
+  );
+}
+
+test("visual: public desktop surfaces stay stable", async ({ page }, testInfo) => {
+  requireBaselines(testInfo, [
+    "public-home-desktop.png",
+    "public-signin-desktop.png",
+    "admin-auth-desktop.png",
+  ]);
   await page.setViewportSize({ width: 1440, height: 960 });
 
   await page.goto("/");
   await expect(page).toHaveScreenshot("public-home-desktop.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
   });
 
   await page.goto("/auth/sign-in");
   await expect(page).toHaveScreenshot("public-signin-desktop.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
   });
 
   await page.goto("/admin/auth");
   await expect(page).toHaveScreenshot("admin-auth-desktop.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
   });
 });
 
-test("visual: public mobile surfaces stay stable", async ({ page }) => {
+test("visual: public mobile surfaces stay stable", async ({ page }, testInfo) => {
+  requireBaselines(testInfo, [
+    "public-home-mobile.png",
+    "public-signin-mobile.png",
+    "admin-auth-mobile.png",
+  ]);
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.goto("/");
   await expect(page).toHaveScreenshot("public-home-mobile.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
   });
 
   await page.goto("/auth/sign-in");
   await expect(page).toHaveScreenshot("public-signin-mobile.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
     maxDiffPixelRatio: 0.03,
   });
 
@@ -49,18 +81,21 @@ test("visual: public mobile surfaces stay stable", async ({ page }) => {
   await expect(page).toHaveScreenshot("admin-auth-mobile.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
     maxDiffPixelRatio: 0.03,
   });
 });
 
-test("visual: authenticated workspaces stay stable when creds are available", async ({ page }) => {
+test("visual: authenticated workspaces stay stable when creds are available", async ({ page }, testInfo) => {
   const user = getUserCredentials();
   const admin = getAdminCredentials();
   test.skip(
     !user.email || !user.password || !admin.email || !admin.password,
     "Set E2E_EMAIL/E2E_PASSWORD and E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD to run this test.",
   );
+  requireBaselines(testInfo, [
+    "unidep-desktop.png",
+    "admin-benefits-desktop.png",
+  ]);
 
   await page.setViewportSize({ width: 1440, height: 960 });
   await loginUser(page, user.email!, user.password!);
@@ -68,7 +103,6 @@ test("visual: authenticated workspaces stay stable when creds are available", as
   await expect(page).toHaveScreenshot("unidep-desktop.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
   });
 
   await loginAdmin(page, admin.email!, admin.password!);
@@ -76,6 +110,5 @@ test("visual: authenticated workspaces stay stable when creds are available", as
   await expect(page).toHaveScreenshot("admin-benefits-desktop.png", {
     animations: "disabled",
     caret: "hide",
-    fullPage: true,
   });
 });

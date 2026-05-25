@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyCapacitacionPage() {
+export default function CompatCapacitacionPage() {
   redirect("/unidep/capacitacion");
 }

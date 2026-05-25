@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export function parseDelimited(text: string, delimiter = ",") {
   const [headerLine, ...lines] = text.split(/\r?\n/).filter(Boolean);
@@ -18,12 +18,23 @@ export async function parseImportFile(file: File) {
   }
   if (ext === "xlsx") {
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: "array" });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: "" });
-    const headers = json.length ? Object.keys(json[0]) : [];
-    const rows = json.map((row) =>
-      Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value ?? "").trim()])),
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as Parameters<typeof workbook.xlsx.load>[0]);
+    const firstSheet = workbook.worksheets[0];
+    if (!firstSheet) return { headers: [], rows: [] };
+
+    const rowsArray: string[][] = [];
+    firstSheet.eachRow({ includeEmpty: false }, (row) => {
+      const values: string[] = [];
+      for (let index = 1; index <= firstSheet.columnCount; index += 1) {
+        values.push(String(row.getCell(index).text ?? "").trim());
+      }
+      rowsArray.push(values);
+    });
+
+    const [headers = [], ...bodyRows] = rowsArray;
+    const rows = bodyRows.map((row) =>
+      Object.fromEntries(headers.map((header, index) => [header, row[index]?.trim() ?? ""])),
     );
     return { headers, rows };
   }
