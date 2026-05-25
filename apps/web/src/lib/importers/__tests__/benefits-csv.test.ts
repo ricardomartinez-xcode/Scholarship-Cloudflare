@@ -49,8 +49,8 @@ describe("prepareBenefitsCsvImport", () => {
 
   it("preserves scoped display fields without adding them to the benefit identity", async () => {
     const csv = [
-      "region,planteles,tier,benefit_type,applies_to_all,enrollment_type,business_line,modality,extra_percent",
-      "Norte,Chihuahua,T2,percentage,false,nuevo_ingreso,licenciatura,presencial,15",
+      "linea,region,plantel,tier,benefit_type,applies_to_all,enrollment_type,modality,extra_percent",
+      "licenciatura,Norte,Chihuahua,T2,percentage,false,nuevo_ingreso,presencial,15",
     ].join("\n");
 
     const result = await prepareBenefitsCsvImport({
@@ -88,8 +88,8 @@ describe("prepareBenefitsCsvImport", () => {
       },
     ]);
     const csv = [
-      "region,planteles,tier,benefit_type,applies_to_all,enrollment_type,business_line,modality,extra_percent,notes",
-      "Norte,Chihuahua,T2,percentage,true,nuevo_ingreso,licenciatura,presencial,15,Global activo",
+      "linea,region,plantel,tier,benefit_type,applies_to_all,enrollment_type,modality,extra_percent,notes",
+      "licenciatura,Norte,Chihuahua,T2,percentage,true,nuevo_ingreso,presencial,15,Global activo",
     ].join("\n");
 
     const result = await prepareBenefitsCsvImport({

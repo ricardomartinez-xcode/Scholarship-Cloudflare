@@ -35,8 +35,8 @@ describe("preparePricesCsvImport", () => {
     ]);
 
     const csv = [
-      "region,plantel,nivel_key,modalidad_key,plan,tier,new_price,is_active,notes",
-      "Region 1,Chihuahua,preparatoria,presencial,9,T2,1890,true,Bachillerato",
+      "linea,region,plantel,tier,precio,modalidad_key,plan,is_active,notes",
+      "preparatoria,Region 1,Chihuahua,T2,1890,presencial,9,true,Bachillerato",
     ].join("\n");
     const file = new File([csv], "precios.csv", { type: "text/csv" });
 

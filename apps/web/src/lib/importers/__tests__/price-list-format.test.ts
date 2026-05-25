@@ -80,7 +80,7 @@ describe("price list workbook format", () => {
         {
           name: "Carga flexible",
           rows: [
-            ["Nivel", "Modalidad", "Plan", "Plantel", "Tier", "Precio Lista"],
+            ["Línea de negocio", "Modalidad", "Plan", "Plantel", "Tier", "Precio Lista"],
             ["Licenciatura", "Ejecutiva", 11, "Chihuahua", "TIER 2", "$4,700.00"],
           ],
         },
@@ -88,7 +88,7 @@ describe("price list workbook format", () => {
     });
 
     expect(priceListRowsToCsv(rows)).toContain(
-      "region,plantel,nivel_key,modalidad_key,plan,tier,new_price,is_active,notes",
+      "linea,region,plantel,tier,new_price,modalidad_key,plan,is_active,notes",
     );
     expect(rows[0]).toMatchObject({
       plantel: "Chihuahua",

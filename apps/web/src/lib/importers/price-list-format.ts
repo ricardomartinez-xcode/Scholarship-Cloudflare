@@ -159,7 +159,13 @@ export function normalizePriceListWorkbookRows(
       const idxPlantel = findColumn(headers, ["plantel", "campus", "sede"]);
       const idxRegion = findColumn(headers, ["region", "región"]);
       const idxTier = findColumn(headers, ["tier"]);
-      const idxNivel = findColumn(headers, ["nivel", "nivelkey", "nivelkey"]);
+      const idxNivel = findColumn(headers, [
+        "nivel",
+        "nivelkey",
+        "linea",
+        "lineanegocio",
+        "lineadenegocio",
+      ]);
       const idxModalidad = findColumn(headers, [
         "modalidad",
         "modalidadkey",
@@ -217,13 +223,13 @@ export function normalizePriceListWorkbookRows(
 
 export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
   const header = [
+    "linea",
     "region",
     "plantel",
-    "nivel_key",
-    "modalidad_key",
-    "plan",
     "tier",
     "new_price",
+    "modalidad_key",
+    "plan",
     "is_active",
     "notes",
   ];
@@ -231,13 +237,13 @@ export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
     header.join(","),
     ...rows.map((row) =>
       [
+        row.nivelKey,
         row.region ?? "",
         row.plantel ?? "",
-        row.nivelKey,
-        row.modalidadKey,
-        row.plan,
         row.tier ?? "",
         row.newPrice,
+        row.modalidadKey,
+        row.plan,
         row.isActive ? "true" : "false",
         row.notes ?? "",
       ]

@@ -212,6 +212,15 @@ function benefitPreviewPlantelLabel(row: BenefitImportPreviewRow) {
   return "Sin planteles";
 }
 
+function compareBusinessLine(
+  left: string | null,
+  right: string | null,
+) {
+  const leftLabel = resolveLabel(left, BUSINESS_LINE_OPTIONS, "Todas");
+  const rightLabel = resolveLabel(right, BUSINESS_LINE_OPTIONS, "Todas");
+  return leftLabel.localeCompare(rightLabel, "es-MX", { sensitivity: "base" });
+}
+
 export default function BenefitsClient({
   benefits,
   baseScholarships,
@@ -333,12 +342,19 @@ export default function BenefitsClient({
   const [editingBaseScholarshipId, setEditingBaseScholarshipId] = useState("");
   const [editingBaseCampusTier, setEditingBaseCampusTier] = useState("ANY");
   const sortedBenefits = useMemo(
-    () => [...benefits].sort((left, right) => compareAdminPricingScope(benefitScope(left), benefitScope(right))),
+    () =>
+      [...benefits].sort((left, right) => {
+        const businessLine = compareBusinessLine(left.businessLine, right.businessLine);
+        if (businessLine !== 0) return businessLine;
+        return compareAdminPricingScope(benefitScope(left), benefitScope(right));
+      }),
     [benefits],
   );
   const sortedBaseScholarships = useMemo(
     () =>
       [...baseScholarships].sort((left, right) => {
+        const businessLine = compareBusinessLine(left.businessLine, right.businessLine);
+        if (businessLine !== 0) return businessLine;
         const scope = compareAdminPricingScope(
           { region: "General", plantel: "Todos", tier: left.campusTier, modality: left.modality },
           { region: "General", plantel: "Todos", tier: right.campusTier, modality: right.modality },
@@ -346,7 +362,6 @@ export default function BenefitsClient({
         if (scope !== 0) return scope;
         return (
           [
-            left.businessLine.localeCompare(right.businessLine),
             left.modality.localeCompare(right.modality),
             left.plan - right.plan,
           ].find((result) => result !== 0) ?? 0
@@ -721,11 +736,11 @@ export default function BenefitsClient({
               Orden canónico
             </div>
             <div className="mt-1 font-mono text-[11px]">
-              Region | Planteles | Tier | Beneficio adicional
+              Línea de Negocio | Region | Plantel | Tier | Beneficio adicional
             </div>
           </div>
           <div className="font-mono text-[11px] leading-5">
-            region,planteles,tier,benefit_type,extra_percent,enrollment_type,business_line,modality
+            linea,region,plantel,tier,benefit_type,extra_percent,enrollment_type,modality
           </div>
         </div>
         {importError ? (
@@ -774,8 +789,9 @@ export default function BenefitsClient({
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
                       <th className="ui-cell-nowrap text-left">Acción</th>
+                      <th className="ui-cell-nowrap text-left">Línea de negocio</th>
                       <th className="ui-cell-nowrap text-left">Region</th>
-                      <th className="ui-cell-nowrap text-left">Planteles</th>
+                      <th className="ui-cell-nowrap text-left">Plantel</th>
                       <th className="ui-cell-nowrap text-left">Tier</th>
                       <th className="ui-cell-nowrap text-left">Beneficio</th>
                       <th className="ui-cell-nowrap text-left">Tipo</th>
@@ -787,6 +803,9 @@ export default function BenefitsClient({
                       <tr key={`${row.rowNumber}-${row.action}`}>
                         <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                         <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, "Todas")}
+                        </td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {normalizeAdminPricingRegion(row.region)}
                         </td>
@@ -888,11 +907,11 @@ export default function BenefitsClient({
             <div>
               <div className="font-semibold text-slate-100">Orden canónico</div>
               <div className="mt-1 font-mono text-[11px]">
-                Region | Plantel | Tier | % de beca por promedio
+                Línea de Negocio | Region | Plantel | Tier | % de beca por promedio
               </div>
             </div>
             <div className="font-mono text-[11px] leading-5">
-              region,plantel,tier,ingreso,linea,modalidad,plan,promedio,porcentaje
+              linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio
             </div>
           </div>
           {baseImportError ? (
@@ -941,13 +960,14 @@ export default function BenefitsClient({
                       <tr>
                         <th className="ui-cell-nowrap text-left">Fila</th>
                         <th className="ui-cell-nowrap text-left">Acción</th>
+                        <th className="ui-cell-nowrap text-left">Línea de negocio</th>
                         <th className="ui-cell-nowrap text-left">Region</th>
                         <th className="ui-cell-nowrap text-left">Plantel</th>
                         <th className="ui-cell-nowrap text-left">Tier</th>
+                        <th className="ui-cell-nowrap text-right">% Beca</th>
                         <th className="ui-cell-nowrap text-left">Ingreso</th>
                         <th className="ui-cell-nowrap text-left">Detalle</th>
                         <th className="ui-cell-nowrap text-left">Promedio</th>
-                        <th className="ui-cell-nowrap text-right">% Beca</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -955,6 +975,9 @@ export default function BenefitsClient({
                         <tr key={`${row.rowNumber}-${row.action}`}>
                           <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                           <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
+                          </td>
                           <td className="ui-cell-nowrap text-slate-200">
                             {normalizeAdminPricingRegion(row.region)}
                           </td>
@@ -968,17 +991,17 @@ export default function BenefitsClient({
                               modality: row.modality,
                             })}
                           </td>
+                          <td className="ui-cell-nowrap text-right font-mono text-slate-100">
+                            {row.scholarshipPercent}%
+                          </td>
                           <td className="ui-cell-nowrap text-slate-200">
                             {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)}
                           </td>
                           <td className="ui-cell-nowrap text-slate-200">
-                            {row.businessLine} · {row.modality} · plan {row.plan}
+                            {row.modality} · plan {row.plan}
                           </td>
                           <td className="ui-cell-nowrap font-mono text-slate-100">
                             {row.minAverage} - {row.maxAverage}
-                          </td>
-                          <td className="ui-cell-nowrap text-right font-mono text-slate-100">
-                            {row.scholarshipPercent}%
                           </td>
                         </tr>
                       ))}
@@ -1030,13 +1053,13 @@ export default function BenefitsClient({
 
           <div className="ui-form-grid ui-form-grid--two">
             <div className="grid gap-2 text-sm">
-              <span id={baseEnrollmentTypeId}>Tipo de inscripción</span>
+              <span id={baseBusinessLineId}>Línea de negocio</span>
               <SmartSelect
-                labelId={baseEnrollmentTypeId}
-                placeholder="Selecciona tipo"
-                value={baseEnrollmentType}
-                onChange={setBaseEnrollmentType}
-                options={ENROLLMENT_TYPE_OPTIONS.filter((option) => option.value !== "__ALL__")}
+                labelId={baseBusinessLineId}
+                placeholder="Selecciona línea"
+                value={baseBusinessLine}
+                onChange={setBaseBusinessLine}
+                options={BUSINESS_LINE_OPTIONS.filter((option) => option.value !== "__ALL__")}
               />
             </div>
 
@@ -1065,13 +1088,13 @@ export default function BenefitsClient({
 
           <div className="ui-form-grid ui-form-grid--two">
             <div className="grid gap-2 text-sm">
-              <span id={baseBusinessLineId}>Línea de negocio</span>
+              <span id={baseEnrollmentTypeId}>Tipo de inscripción</span>
               <SmartSelect
-                labelId={baseBusinessLineId}
-                placeholder="Selecciona línea"
-                value={baseBusinessLine}
-                onChange={setBaseBusinessLine}
-                options={BUSINESS_LINE_OPTIONS.filter((option) => option.value !== "__ALL__")}
+                labelId={baseEnrollmentTypeId}
+                placeholder="Selecciona tipo"
+                value={baseEnrollmentType}
+                onChange={setBaseEnrollmentType}
+                options={ENROLLMENT_TYPE_OPTIONS.filter((option) => option.value !== "__ALL__")}
               />
             </div>
 
@@ -1138,7 +1161,8 @@ export default function BenefitsClient({
 
         {baseScholarships.length ? (
           <div className="ui-scrollbar max-h-[520px] min-w-0 overflow-y-auto rounded-2xl border border-white/10 bg-white/5">
-            <div className="sticky top-0 z-10 grid grid-cols-[0.7fr_0.9fr_0.7fr_1.4fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+            <div className="sticky top-0 z-10 grid grid-cols-[1fr_0.7fr_0.9fr_0.7fr_1.2fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+              <span>Línea de negocio</span>
               <span>Region</span>
               <span>Plantel</span>
               <span>Tier</span>
@@ -1148,7 +1172,10 @@ export default function BenefitsClient({
             <div className="divide-y divide-white/10">
               {sortedBaseScholarships.map((row) => (
                 <details key={row.id} className="group">
-                  <summary className="grid cursor-pointer list-none grid-cols-[0.7fr_0.9fr_0.7fr_1.4fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                  <summary className="grid cursor-pointer list-none grid-cols-[1fr_0.7fr_0.9fr_0.7fr_1.2fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                    <div className="ui-cell-nowrap font-semibold">
+                      {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
+                    </div>
                     <div className="ui-cell-nowrap text-slate-300">General</div>
                     <div className="ui-cell-nowrap text-slate-300">Todos</div>
                     <div className="ui-cell-nowrap text-slate-300">
@@ -1159,19 +1186,13 @@ export default function BenefitsClient({
                     </div>
                     <div className="min-w-0">
                       <div className="truncate font-semibold">
-                        {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)} ·{" "}
-                        {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
+                        {row.percentages.length
+                          ? row.percentages.map((value) => `${value}%`).join(", ")
+                          : "0%"}
                       </div>
                       <div className="mt-1 truncate text-xs text-slate-400">
+                        {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)} ·{" "}
                         {resolveLabel(row.modality, MODALITY_OPTIONS, row.modality)} · Plan {row.plan} ·{" "}
-                        {row.campusTier === "ANY" ? "General" : row.campusTier}
-                      </div>
-                    </div>
-                    <div className="min-w-0 truncate font-mono text-slate-100">
-                      {row.percentages.length
-                        ? row.percentages.map((value) => `${value}%`).join(", ")
-                        : "0%"}
-                      <div className="mt-1 truncate text-xs font-normal text-slate-400">
                         {row.ranges.join(", ")}
                       </div>
                     </div>
@@ -1240,13 +1261,13 @@ export default function BenefitsClient({
           <table className="ui-table min-w-[1240px]">
             <thead>
               <tr>
+                <th className="ui-cell-nowrap text-left">Línea de negocio</th>
                 <th className="ui-cell-nowrap text-left">Region</th>
-                <th className="min-w-[220px] text-left">Planteles</th>
+                <th className="min-w-[220px] text-left">Plantel</th>
                 <th className="ui-cell-nowrap text-left">Tier</th>
                 <th className="ui-cell-nowrap text-left">Beneficio</th>
                 <th className="ui-cell-nowrap text-left">Tipo</th>
                 <th className="ui-cell-nowrap text-left">Ingreso</th>
-                <th className="ui-cell-nowrap text-left">Línea</th>
                 <th className="ui-cell-nowrap text-left">Modalidad</th>
                 <th className="ui-cell-nowrap text-left">Duración</th>
                 <th className="ui-cell-nowrap text-left">Estado</th>
@@ -1257,6 +1278,9 @@ export default function BenefitsClient({
             <tbody>
               {sortedBenefits.map((benefit) => (
                 <tr key={benefit.id}>
+                  <td className="ui-cell-nowrap text-slate-100">
+                    {resolveLabel(benefit.businessLine, BUSINESS_LINE_OPTIONS, "Todas")}
+                  </td>
                   <td className="ui-cell-nowrap text-slate-100">
                     {normalizeAdminPricingRegion(null)}
                   </td>
@@ -1284,9 +1308,6 @@ export default function BenefitsClient({
                       ENROLLMENT_TYPE_OPTIONS,
                       "Cualquier ingreso",
                     )}
-                  </td>
-                  <td className="ui-cell-nowrap text-slate-100">
-                    {resolveLabel(benefit.businessLine, BUSINESS_LINE_OPTIONS, "Todas")}
                   </td>
                   <td className="ui-cell-nowrap text-slate-100">
                     {resolveLabel(benefit.modality, MODALITY_OPTIONS, "Todas")}
@@ -1403,20 +1424,31 @@ export default function BenefitsClient({
           />
           <input type="hidden" name="isActive" value={isActive} />
 
-          <SmartMultiSelect
-            label="Plantel(es)"
-            labelId={labelId}
-            options={campusSelectOptions.map((option) => ({
-              ...option,
-              disabled:
-                campusIds.includes("__ALL__") && option.value !== "__ALL__" ? true : false,
-            }))}
-            value={campusIds}
-            onChange={setCampusIds}
-            placeholder="Selecciona uno o varios"
-          />
-
           <div className="ui-form-grid ui-form-grid--two ui-form-grid--four">
+            <div className="grid gap-2 text-sm">
+              <span id={businessLineId}>Línea de negocio</span>
+              <SmartSelect
+                labelId={businessLineId}
+                placeholder="Todas"
+                value={businessLine || ""}
+                onChange={setBusinessLine}
+                options={BUSINESS_LINE_OPTIONS}
+              />
+            </div>
+
+            <SmartMultiSelect
+              label="Plantel(es)"
+              labelId={labelId}
+              options={campusSelectOptions.map((option) => ({
+                ...option,
+                disabled:
+                  campusIds.includes("__ALL__") && option.value !== "__ALL__" ? true : false,
+              }))}
+              value={campusIds}
+              onChange={setCampusIds}
+              placeholder="Selecciona uno o varios"
+            />
+
             <div className="grid gap-2 text-sm">
               <span id={benefitTypeId}>Tipo de beneficio</span>
               <SmartSelect
@@ -1436,17 +1468,6 @@ export default function BenefitsClient({
                 value={enrollmentType || ""}
                 onChange={setEnrollmentType}
                 options={ENROLLMENT_TYPE_OPTIONS}
-              />
-            </div>
-
-            <div className="grid gap-2 text-sm">
-              <span id={businessLineId}>Línea de negocio</span>
-              <SmartSelect
-                labelId={businessLineId}
-                placeholder="Todas"
-                value={businessLine || ""}
-                onChange={setBusinessLine}
-                options={BUSINESS_LINE_OPTIONS}
               />
             </div>
 

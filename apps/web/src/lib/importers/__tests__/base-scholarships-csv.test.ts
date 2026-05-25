@@ -20,8 +20,8 @@ describe("prepareBaseScholarshipsCsvImport", () => {
 
   it("imports canonical base scholarship rows separately from additional benefits", async () => {
     const csv = [
-      "region,plantel,tier,ingreso,linea,modalidad,plan,promedio,porcentaje",
-      "General,Todos,T1,nuevo_ingreso,licenciatura,presencial,9,8-8.9,20",
+      "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "licenciatura,General,Todos,T1,20,nuevo_ingreso,presencial,9,8-8.9",
     ].join("\n");
 
     const result = await prepareBaseScholarshipsCsvImport({
@@ -52,8 +52,8 @@ describe("prepareBaseScholarshipsCsvImport", () => {
 
   it("uses ANY tier for online rows because Online is a campus exception", async () => {
     const csv = [
-      "ingreso,linea,modalidad,plan,promedio,porcentaje,tier",
-      "nuevo_ingreso,licenciatura,online,11,9-10,55,T2",
+      "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "licenciatura,Online,Online,T2,55,nuevo_ingreso,online,11,9-10",
     ].join("\n");
 
     const result = await prepareBaseScholarshipsCsvImport({

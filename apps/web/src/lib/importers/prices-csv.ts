@@ -68,11 +68,11 @@ const HEADER_ALIASES = {
   region: ["region", "región"],
   programaKey: ["programakey", "programa", "programa_key"],
   plantel: ["plantel", "campus", "sede"],
-  nivelKey: ["nivelkey", "nivel", "nivel_key"],
+  nivelKey: ["nivelkey", "nivel", "nivel_key", "linea", "lineanegocio", "businessline", "business_line"],
   modalidadKey: ["modalidadkey", "modalidad", "modalidad_key"],
   plan: ["plan"],
   tier: ["tier"],
-  newPrice: ["newprice", "precio", "preciolista", "monto", "new_price"],
+  newPrice: ["newprice", "precio", "preciolista", "precio_lista", "monto", "new_price"],
   isActive: ["isactive", "activo", "active"],
   notes: ["notes", "nota", "notas"],
 } as const;
@@ -206,7 +206,7 @@ export async function preparePricesCsvImport(
 
   if (idxNivel < 0 || idxModalidad < 0 || idxPlan < 0 || idxNewPrice < 0) {
     throw new Error(
-      "Faltan columnas obligatorias: nivel_key, modalidad_key, plan, new_price.",
+      "Faltan columnas obligatorias: linea, modalidad_key, plan, precio.",
     );
   }
 
@@ -232,7 +232,7 @@ export async function preparePricesCsvImport(
 
     if (!nivelKey || !modalidadKey || !plan) {
       errors.push(
-        `Fila ${rowNumber}: nivel_key, modalidad_key y plan son obligatorios.`,
+        `Fila ${rowNumber}: linea, modalidad_key y plan son obligatorios.`,
       );
       continue;
     }
@@ -240,7 +240,7 @@ export async function preparePricesCsvImport(
     const newPriceRaw = readCell(row, idxNewPrice);
     const newPrice = Number(newPriceRaw);
     if (!newPriceRaw || !Number.isFinite(newPrice) || newPrice < 0) {
-      errors.push(`Fila ${rowNumber}: new_price debe ser numérico y no negativo.`);
+      errors.push(`Fila ${rowNumber}: precio debe ser numérico y no negativo.`);
       continue;
     }
 

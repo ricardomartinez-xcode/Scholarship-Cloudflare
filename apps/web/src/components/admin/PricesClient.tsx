@@ -192,6 +192,17 @@ function priceSourceLabel(row: PriceRow) {
   return "Sin precio";
 }
 
+function comparePriceRows(left: PriceRow, right: PriceRow) {
+  return (
+    [
+      left.nivel_key.localeCompare(right.nivel_key),
+      compareAdminPricingScope(left, right),
+      left.modalidad_key.localeCompare(right.modalidad_key),
+      left.plan.localeCompare(right.plan, undefined, { numeric: true }),
+    ].find((result) => result !== 0) ?? 0
+  );
+}
+
 export default function PricesClient({
   becaRules,
   montoOverrides,
@@ -247,17 +258,7 @@ export default function PricesClient({
         });
       }
     }
-    return Array.from(rows.values()).sort((a, b) => {
-      const scope = compareAdminPricingScope(a, b);
-      if (scope !== 0) return scope;
-      return (
-        [
-          a.nivel_key.localeCompare(b.nivel_key),
-          a.modalidad_key.localeCompare(b.modalidad_key),
-          a.plan.localeCompare(b.plan, undefined, { numeric: true }),
-        ].find((result) => result !== 0) ?? 0
-      );
-    });
+    return Array.from(rows.values()).sort(comparePriceRows);
   }, [becaRules, montoOverrides]);
 
   const [filterNivel, setFilterNivel] = useState("");
@@ -481,11 +482,11 @@ export default function PricesClient({
           <div>
             <div className="font-semibold text-slate-100">Orden canónico</div>
             <div className="mt-1 font-mono text-[11px]">
-              Region | Plantel | Tier | Precio lista
+              Línea de Negocio | Region | Plantel | Tier | Precio lista
             </div>
           </div>
           <div className="font-mono text-[11px] leading-5">
-            region,plantel,tier,precio,nivel,modalidad,plan
+            linea,region,plantel,tier,precio,modalidad,plan
           </div>
         </div>
         {importError ? (
@@ -534,6 +535,7 @@ export default function PricesClient({
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
                       <th className="ui-cell-nowrap text-left">Acción</th>
+                      <th className="ui-cell-nowrap text-left">Línea de negocio</th>
                       <th className="ui-cell-nowrap text-left">Region</th>
                       <th className="ui-cell-nowrap text-left">Plantel</th>
                       <th className="ui-cell-nowrap text-left">Tier</th>
@@ -547,6 +549,7 @@ export default function PricesClient({
                       <tr key={`${row.rowNumber}-${row.plantel ?? "general"}-${row.plan}`}>
                         <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                         <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
+                        <td className="ui-cell-nowrap text-slate-200">{row.nivelKey}</td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {normalizeAdminPricingRegion(row.region)}
                         </td>
@@ -560,7 +563,7 @@ export default function PricesClient({
                           {fmt(row.newPrice)}
                         </td>
                         <td className="text-slate-200">
-                          {row.nivelKey} · {row.modalidadKey} · plan {row.plan}
+                          {row.modalidadKey} · plan {row.plan}
                         </td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {row.isActive ? "Sí" : "No"}
@@ -602,11 +605,11 @@ export default function PricesClient({
         <table className="ui-table w-full min-w-[1120px]">
           <thead>
             <tr>
+              <th className="ui-cell-nowrap text-left">Línea de negocio</th>
               <th className="ui-cell-nowrap text-left">Region</th>
               <th className="ui-cell-nowrap text-left">Plantel</th>
               <th className="ui-cell-nowrap text-left">Tier</th>
               <th className="ui-cell-nowrap text-right">Precio lista</th>
-              <th className="ui-cell-nowrap text-left">Nivel</th>
               <th className="ui-cell-nowrap text-left">Modalidad</th>
               <th className="ui-cell-nowrap text-left">Plan</th>
               <th className="ui-cell-nowrap text-left">Fuente</th>
@@ -618,6 +621,7 @@ export default function PricesClient({
               pageRows.map((rule) => {
                 return (
                   <tr key={rule.id}>
+                    <td className="ui-cell-nowrap text-slate-200">{rule.nivel_key}</td>
                     <td className="ui-cell-nowrap text-slate-200">
                       {normalizeAdminPricingRegion(rule.region)}
                     </td>
@@ -630,7 +634,6 @@ export default function PricesClient({
                     <td className="ui-cell-nowrap text-right font-mono text-slate-100">
                       {fmt(rule.basePriceMxn)}
                     </td>
-                    <td className="ui-cell-nowrap text-slate-200">{rule.nivel_key}</td>
                     <td className="ui-cell-nowrap text-slate-200">{rule.modalidad_key}</td>
                     <td className="ui-cell-nowrap text-xs text-slate-300">
                       {rule.plan}

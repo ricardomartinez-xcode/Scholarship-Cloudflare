@@ -70,7 +70,7 @@ const HEADER_ALIASES = {
   plantel: ["plantel", "campus", "sede"],
   tier: ["tier"],
   enrollmentType: ["enrollmenttype", "tipoingreso", "ingreso"],
-  businessLine: ["businessline", "lineanegocio", "linea", "nivel"],
+  businessLine: ["businessline", "lineanegocio", "lineadenegocio", "linea", "nivel"],
   modality: ["modality", "modalidad"],
   plan: ["plan"],
   averageRange: ["promedio", "rango", "average", "averagerange"],
@@ -219,7 +219,7 @@ export async function prepareBaseScholarshipsCsvImport(input: {
     idxScholarshipPercent < 0
   ) {
     throw new Error(
-      "Faltan columnas obligatorias: ingreso, linea, modalidad, plan y porcentaje.",
+      "Faltan columnas obligatorias: linea, ingreso, modalidad, plan y porcentaje.",
     );
   }
 
