@@ -18,6 +18,10 @@ import {
   PUBLIC_ROUTE_CACHE_REVALIDATE_SECONDS,
   PUBLIC_ROUTE_CACHE_TAGS,
 } from "@/lib/public-route-cache";
+import {
+  normalizeBusinessLine,
+  normalizeCanonicalModality,
+} from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +43,15 @@ function getModalityLabel(offering: {
 type OfertaPayload = {
   availableCycles: string[];
   selectedCycle: string | null;
+  campuses: Array<{
+    id: string;
+    code: string;
+    metaKey: string;
+    name: string;
+    slug: string;
+    tier: string | null;
+    kind: "campus" | "online";
+  }>;
   programs: Array<{
     programId: string;
     name: string;
@@ -52,12 +65,65 @@ type OfertaPayload = {
     modality: string;
     schedule: string | null;
     planLink: string | null;
+    campus: {
+      id: string;
+      code: string;
+      metaKey: string;
+      name: string;
+      slug: string;
+      tier: string | null;
+      kind: "campus" | "online";
+    };
     program: { id: string; name: string };
   }>;
 };
 
 type OfertaProgramPayload = OfertaPayload["programs"][number];
 type OfertaOfferingPayload = OfertaPayload["offerings"][number];
+type OfertaCampusPayload = OfertaPayload["campuses"][number];
+
+function getOfferingCanonicalModalities(offering: {
+  delivery: "CAMPUS" | "ONLINE";
+  escolarizado: boolean;
+  ejecutivo: boolean;
+}): Array<"online" | "presencial" | "mixta"> {
+  if (offering.delivery === "ONLINE") return ["online"];
+  const modalities = new Set<"online" | "presencial" | "mixta">();
+  if (offering.escolarizado) modalities.add("presencial");
+  if (offering.ejecutivo) modalities.add("mixta");
+  if (!offering.escolarizado && !offering.ejecutivo) modalities.add("presencial");
+  return Array.from(modalities);
+}
+
+function buildCampusPayload(campus: {
+  id: string;
+  code: string;
+  metaKey: string;
+  name: string;
+  slug: string;
+  tier: string | null;
+  kind: "campus" | "online";
+}): OfertaCampusPayload {
+  return {
+    id: campus.id,
+    code: campus.code,
+    metaKey: campus.metaKey,
+    name: campus.name,
+    slug: campus.slug,
+    tier: campus.tier,
+    kind: campus.kind,
+  };
+}
+
+function matchesLineFilter(
+  lineRaw: string,
+  candidateValues: Array<string | null | undefined>,
+) {
+  if (!lineRaw) return true;
+  const normalizedInput = normalizeBusinessLine(lineRaw);
+  if (!normalizedInput) return false;
+  return candidateValues.some((value) => normalizeBusinessLine(value) === normalizedInput);
+}
 
 function resolveRequestedCycle(
   cycleRaw: string,
@@ -72,6 +138,7 @@ function resolveRequestedCycle(
 async function loadOfertaPayload(
   campusRaw: string,
   lineRaw: string,
+  modalityRaw: string,
   cycleRaw: string,
 ): Promise<OfertaPayload> {
   const published = await getPublishedConfigSnapshot(AdminConfigModule.OFFER);
@@ -81,11 +148,12 @@ async function loadOfertaPayload(
       ? snapshot.visibleCycles
       : await getAcademicOfferVisibleCycles()) satisfies AcademicOfferCycle[];
     const requestedCycle = resolveRequestedCycle(cycleRaw, availableCycles);
+    const requestedModality = normalizeCanonicalModality(modalityRaw);
     if (!requestedCycle) {
-      return { availableCycles, selectedCycle: null, programs: [], offerings: [] };
+      return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
     }
     if (!availableCycles.includes(requestedCycle)) {
-      return { availableCycles, selectedCycle: null, programs: [], offerings: [] };
+      return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
     }
     const normalizedCampus = normalizeKey(campusRaw);
     const selectedCampus = campusRaw
@@ -99,29 +167,49 @@ async function loadOfertaPayload(
       : null;
 
     if (campusRaw && !selectedCampus) {
-      return { availableCycles, selectedCycle: requestedCycle, programs: [], offerings: [] };
+      return {
+        availableCycles,
+        selectedCycle: requestedCycle,
+        campuses: [],
+        programs: [],
+        offerings: [],
+      };
     }
 
-    const lineEnum = VALID_LINES.includes(lineRaw as (typeof VALID_LINES)[number])
-      ? (lineRaw as BenefitBusinessLine)
+    const normalizedLine = normalizeBusinessLine(lineRaw);
+    const lineEnum = normalizedLine && VALID_LINES.includes(normalizedLine)
+      ? (normalizedLine as BenefitBusinessLine)
       : null;
 
     const programMap = new Map(snapshot.programs.map((program) => [program.id, program]));
     const campusMap = new Map(snapshot.campuses.map((campus) => [campus.id, campus]));
+    const campuses = snapshot.campuses.map(buildCampusPayload);
 
     const filteredOfferings = snapshot.offerings.filter((offering) => {
       if (!offering.isActive) return false;
       if (offering.cycle !== requestedCycle) return false;
       if (selectedCampus && offering.campusId !== selectedCampus.id) return false;
-      if (!lineRaw) return true;
+
       const program = programMap.get(offering.programId);
       if (!program) return false;
-      return (
-        (offering.lineOfBusiness ?? "").toLowerCase() === lineRaw.toLowerCase() ||
-        (lineEnum !== null && program.businessLine === lineEnum) ||
-        (program.level ?? "").toLowerCase() === lineRaw.toLowerCase() ||
-        (program.category ?? "").toLowerCase().includes(lineRaw.toLowerCase())
-      );
+      if (
+        !matchesLineFilter(lineRaw, [
+          offering.lineOfBusiness,
+          lineEnum ? String(lineEnum) : null,
+          program.businessLine,
+          program.level,
+          program.category,
+        ])
+      ) {
+        return false;
+      }
+      if (
+        requestedModality &&
+        !getOfferingCanonicalModalities(offering).includes(requestedModality)
+      ) {
+        return false;
+      }
+      return true;
     });
 
     const seenPrograms = new Set<string>();
@@ -146,27 +234,30 @@ async function loadOfertaPayload(
     const offerings = filteredOfferings
       .map((offering) => {
         const program = programMap.get(offering.programId);
-        if (!program || !campusMap.has(offering.campusId)) return null;
+        const campus = campusMap.get(offering.campusId);
+        if (!program || !campus) return null;
         return {
           id: offering.id,
           modality: getModalityLabel(offering),
           schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
           planLink: program.planPdfUrl ?? program.planDriveLink ?? program.planUrl ?? null,
+          campus: buildCampusPayload(campus),
           program: { id: program.id, name: program.name },
         };
       })
       .filter((offering): offering is OfertaOfferingPayload => Boolean(offering));
 
-    return { availableCycles, selectedCycle: requestedCycle, programs, offerings };
+    return { availableCycles, selectedCycle: requestedCycle, campuses, programs, offerings };
   }
 
   const availableCycles = await getAcademicOfferVisibleCycles();
   const requestedCycle = resolveRequestedCycle(cycleRaw, availableCycles);
+  const requestedModality = normalizeCanonicalModality(modalityRaw);
   if (!requestedCycle) {
-    return { availableCycles, selectedCycle: null, programs: [], offerings: [] };
+    return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
   }
   if (!availableCycles.includes(requestedCycle)) {
-    return { availableCycles, selectedCycle: null, programs: [], offerings: [] };
+    return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
   }
 
   let campusId: string | null = null;
@@ -202,27 +293,28 @@ async function loadOfertaPayload(
     }
   }
 
-  const lineEnum = VALID_LINES.includes(lineRaw as (typeof VALID_LINES)[number])
-    ? (lineRaw as BenefitBusinessLine)
+  const normalizedLine = normalizeBusinessLine(lineRaw);
+  const lineEnum = normalizedLine && VALID_LINES.includes(normalizedLine)
+    ? (normalizedLine as BenefitBusinessLine)
     : null;
 
   const offeringWhere = {
     isActive: true,
     cycle: requestedCycle,
     ...(campusId ? { campusId } : {}),
-    ...(lineRaw
+    ...(normalizedLine
       ? {
           OR: [
-            { lineOfBusiness: { equals: lineRaw, mode: "insensitive" as const } },
+            { lineOfBusiness: { equals: normalizedLine, mode: "insensitive" as const } },
             ...(lineEnum ? [{ program: { businessLine: lineEnum } }] : []),
             {
               program: {
-                level: { equals: lineRaw, mode: "insensitive" as const },
+                level: { equals: normalizedLine, mode: "insensitive" as const },
               },
             },
             {
               program: {
-                category: { contains: lineRaw, mode: "insensitive" as const },
+                category: { contains: normalizedLine, mode: "insensitive" as const },
               },
             },
           ],
@@ -241,6 +333,17 @@ async function loadOfertaPayload(
       ejecutivo: true,
       escolarizadoSchedule: true,
       ejecutivoSchedule: true,
+      campus: {
+        select: {
+          id: true,
+          code: true,
+          metaKey: true,
+          name: true,
+          slug: true,
+          tier: true,
+          kind: true,
+        },
+      },
       program: {
         select: {
           id: true,
@@ -257,6 +360,7 @@ async function loadOfertaPayload(
   });
 
   const seen = new Set<string>();
+  const campusMap = new Map<string, OfertaCampusPayload>();
   const programs: Array<{
     programId: string;
     name: string;
@@ -267,6 +371,13 @@ async function loadOfertaPayload(
   }> = [];
 
   for (const offering of offeringsRaw) {
+    if (
+      requestedModality &&
+      !getOfferingCanonicalModalities(offering).includes(requestedModality)
+    ) {
+      continue;
+    }
+    campusMap.set(offering.campus.id, buildCampusPayload(offering.campus));
     if (seen.has(offering.programId)) continue;
     seen.add(offering.programId);
     programs.push({
@@ -285,28 +396,51 @@ async function loadOfertaPayload(
 
   programs.sort((left, right) => left.name.localeCompare(right.name, "es"));
 
-  const offerings = offeringsRaw.map((offering) => ({
-    id: offering.id,
-    modality: getModalityLabel(offering),
-    schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
-    planLink:
-      offering.program.planPdfUrl ??
-      offering.program.planDriveLink ??
-      offering.program.planUrl ??
-      null,
-    program: { id: offering.program.id, name: offering.program.name },
-  }));
+  const offerings = offeringsRaw
+    .map((offering) => {
+      if (
+        requestedModality &&
+        !getOfferingCanonicalModalities(offering).includes(requestedModality)
+      ) {
+        return null;
+      }
+      return {
+        id: offering.id,
+        modality: getModalityLabel(offering),
+        schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
+        planLink:
+          offering.program.planPdfUrl ??
+          offering.program.planDriveLink ??
+          offering.program.planUrl ??
+          null,
+        campus: buildCampusPayload(offering.campus),
+        program: { id: offering.program.id, name: offering.program.name },
+      };
+    })
+    .filter((offering): offering is OfertaOfferingPayload => Boolean(offering));
 
-  return { availableCycles, selectedCycle: requestedCycle, programs, offerings };
+  return {
+    availableCycles,
+    selectedCycle: requestedCycle,
+    campuses: Array.from(campusMap.values()),
+    programs,
+    offerings,
+  };
 }
 
-function getCachedOfertaPayload(campusRaw: string, lineRaw: string, cycleRaw: string) {
+function getCachedOfertaPayload(
+  campusRaw: string,
+  lineRaw: string,
+  modalityRaw: string,
+  cycleRaw: string,
+) {
   return unstable_cache(
-    () => loadOfertaPayload(campusRaw, lineRaw, cycleRaw),
+    () => loadOfertaPayload(campusRaw, lineRaw, modalityRaw, cycleRaw),
     [
       "public-oferta",
       normalizePublicCacheKeyPart(campusRaw),
       normalizePublicCacheKeyPart(lineRaw),
+      normalizePublicCacheKeyPart(modalityRaw),
       normalizePublicCacheKeyPart(cycleRaw),
     ],
     {
@@ -322,6 +456,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const campusRaw = (searchParams.get("campus") ?? "").trim();
   const lineRaw = (searchParams.get("line") ?? "").trim();
+  const modalityRaw = (searchParams.get("modality") ?? "").trim();
   const cycleRaw = (searchParams.get("cycle") ?? "").trim();
 
   let statusCode = 200;
@@ -342,7 +477,12 @@ export async function GET(request: Request) {
     actorUserId = auth.user.id;
     actorEmail = auth.email;
 
-    const payload = await getCachedOfertaPayload(campusRaw, lineRaw, cycleRaw);
+    const payload = await getCachedOfertaPayload(
+      campusRaw,
+      lineRaw,
+      modalityRaw,
+      cycleRaw,
+    );
     return NextResponse.json(payload);
   } catch (error) {
     statusCode = 500;
@@ -358,6 +498,7 @@ export async function GET(request: Request) {
       metadata: {
         campus: campusRaw || null,
         line: lineRaw || null,
+        modality: modalityRaw || null,
         cycle: cycleRaw || null,
       },
     });

@@ -50,6 +50,15 @@ type OfertaOffering = {
   modality: string;
   schedule: string | null;
   planLink: string | null;
+  campus?: {
+    id: string;
+    code: string;
+    metaKey: string;
+    name: string;
+    slug: string;
+    tier: string | null;
+    kind: "campus" | "online";
+  };
   program: {
     id: string;
     name: string;
@@ -145,6 +154,20 @@ const FEE_SECTION_LABELS: Record<string, string> = {
   TRAMITES: "Trámites",
   DIVERSOS: "Diversos",
 };
+
+const BUSINESS_LINE_LABELS: Record<string, string> = {
+  salud: "Salud",
+  licenciatura: "Licenciatura",
+  prepa: "Bachillerato",
+  bachillerato: "Bachillerato",
+  posgrado: "Posgrado",
+};
+
+function formatBusinessLineLabel(value: string | null | undefined) {
+  const key = String(value ?? "").trim().toLowerCase();
+  if (!key) return "";
+  return BUSINESS_LINE_LABELS[key] ?? value ?? "";
+}
 
 function useCampuses() {
   const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -320,7 +343,7 @@ function OfertaAcademicaSection() {
               { value: "", label: "Todas" },
               { value: "salud", label: "Salud" },
               { value: "licenciatura", label: "Licenciatura" },
-              { value: "prepa", label: "Preparatoria" },
+              { value: "prepa", label: "Bachillerato" },
               { value: "posgrado", label: "Posgrado" },
             ]}
           />
@@ -374,7 +397,7 @@ function OfertaAcademicaSection() {
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-300">
                     Línea:{" "}
                     <span className="font-semibold text-slate-100">
-                      {currentProgram.businessLine}
+                      {formatBusinessLineLabel(currentProgram.businessLine)}
                     </span>
                   </div>
                 ) : null}
@@ -693,7 +716,7 @@ function PlanesSection() {
               { value: "", label: "Todas las líneas" },
               { value: "salud", label: "Salud" },
               { value: "licenciatura", label: "Licenciatura" },
-              { value: "prepa", label: "Preparatoria" },
+              { value: "prepa", label: "Bachillerato" },
               { value: "posgrado", label: "Posgrado" },
             ]}
           />

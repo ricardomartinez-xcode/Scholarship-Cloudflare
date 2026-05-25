@@ -19,6 +19,7 @@ import {
   visibleQuoteCampuses,
   visibleQuoteModalities,
 } from "@/lib/pricing-option-display";
+import { normalizeBusinessLine } from "@/lib/pricing-normalize";
 import {
   buildSimulatorFingerprint,
   type SimulatorInputSnapshot,
@@ -325,11 +326,15 @@ const enrollmentTypeLabels: Record<TipoInscripcion, string> = {
 
 const businessLineLabels: Record<string, string> = {
   licenciatura: "Licenciatura",
+  lic: "Licenciatura",
   salud: "Salud",
-  preparatoria: "Preparatoria",
-  prepa: "Preparatoria",
+  preparatoria: "Bachillerato",
+  prepa: "Bachillerato",
+  bachillerato: "Bachillerato",
+  bachiller: "Bachillerato",
   posgrado: "Posgrado",
   maestria: "Maestria",
+  "maestría": "Maestria",
   doctorado: "Doctorado",
 };
 
@@ -394,22 +399,17 @@ const uniqSorted = (items: string[]) =>
 
 const requierePlantel = (nivel: string, modalidad: string) => {
   if (!nivel || !modalidad) return false;
+  const canonicalLevel = normalizeBusinessLine(nivel);
   return (
-    (nivel === "licenciatura" ||
-      nivel === "salud" ||
-      nivel === "prepa") &&
+    (canonicalLevel === "licenciatura" ||
+      canonicalLevel === "salud" ||
+      canonicalLevel === "prepa") &&
     modalidad !== "online"
   );
 };
 
 const toBenefitBusinessLine = (nivel: string) => {
-  if (!nivel) return "";
-  if (nivel === "salud") return "salud";
-  if (nivel === "licenciatura") return "licenciatura";
-  if (nivel === "preparatoria" || nivel === "prepa") return "prepa";
-  if (nivel === "posgrado" || nivel === "maestria" || nivel === "doctorado")
-    return "posgrado";
-  return "";
+  return normalizeBusinessLine(nivel) ?? "";
 };
 
 const toBenefitModality = (modalidad: string) => {
@@ -2374,4 +2374,3 @@ export default function ScholarshipCalculator({
     </>
   );
 }
-

@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return { value, label: `${value} ${index === 0 ? "materia" : "materias"}` };
   });
   const businessLineLabels = {
-    prepa: "Prepa",
+    prepa: "Bachillerato",
     licenciatura: "Licenciatura",
     maestria: "Maestría",
     posgrado: "Posgrado",
@@ -143,9 +143,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const uniq = (items) => Array.from(new Set(items.filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), "es"));
   const canonBusinessLine = (value) => {
     const key = normalizeKey(value);
-    if (["prepa", "preparatoria", "bachillerato"].includes(key)) return "prepa";
-    if (["maestria", "maestrias", "posgrado"].includes(key)) return "posgrado";
-    if (["licenciatura", "licenciaturas"].includes(key)) return "licenciatura";
+    if (["prepa", "preparatoria", "bachillerato", "bachiller"].includes(key)) return "prepa";
+    if (["maestria", "maestrias", "posgrado", "doctorado"].includes(key)) return "posgrado";
+    if (["lic", "licenciatura", "licenciaturas"].includes(key)) return "licenciatura";
     if (key === "salud") return "salud";
     return key;
   };

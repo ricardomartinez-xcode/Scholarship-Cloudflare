@@ -21,7 +21,7 @@ type Program = {
 const LINE_LABELS: Record<string, string> = {
   salud: "Salud",
   licenciatura: "Licenciatura",
-  prepa: "Preparatoria",
+  prepa: "Bachillerato",
   posgrado: "Posgrado",
 };
 
@@ -173,7 +173,7 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
               <option value="">Todas</option>
               <option value="salud">Salud</option>
               <option value="licenciatura">Licenciatura</option>
-              <option value="prepa">Preparatoria</option>
+              <option value="prepa">Bachillerato</option>
               <option value="posgrado">Posgrado</option>
             </select>
           </div>
@@ -359,7 +359,7 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   <option value="">Sin asignar</option>
                   <option value="salud">Salud</option>
                   <option value="licenciatura">Licenciatura</option>
-                  <option value="prepa">Preparatoria</option>
+                  <option value="prepa">Bachillerato</option>
                   <option value="posgrado">Posgrado</option>
                 </select>
                 <span className="text-xs text-slate-400">

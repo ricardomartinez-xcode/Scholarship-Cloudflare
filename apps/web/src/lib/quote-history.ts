@@ -24,7 +24,14 @@ const GENERIC_DRAFT_LABELS = new Set(["escenario actual", "escenario en curso"])
 const BUSINESS_LINE_LABELS: Record<string, string> = {
   salud: "Salud",
   licenciatura: "Licenciatura",
-  prepa: "Prepa",
+  lic: "Licenciatura",
+  prepa: "Bachillerato",
+  preparatoria: "Bachillerato",
+  bachillerato: "Bachillerato",
+  bachiller: "Bachillerato",
+  maestria: "Posgrado",
+  "maestría": "Posgrado",
+  doctorado: "Posgrado",
   posgrado: "Posgrado",
 };
 

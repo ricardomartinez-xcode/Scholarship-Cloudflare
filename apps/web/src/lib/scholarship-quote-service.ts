@@ -27,6 +27,7 @@ import {
   type CanonicalModalityValue,
   type EnrollmentTypeValue,
 } from "@/lib/pricing-normalize";
+import { findStaticBasePrice } from "@/lib/static-costs";
 
 export type ScholarshipQuoteInput = {
   enrollmentType: EnrollmentTypeValue;
@@ -127,15 +128,6 @@ export async function resolveScholarshipQuote(
     ]),
   ]);
 
-  if (!allRules.length) {
-    return {
-      ok: false,
-      error: "No hay reglas para esta combinación.",
-      hint: "Intenta cambiar línea de negocio, modalidad o plan de estudios.",
-      source: "canonical",
-    };
-  }
-
   let candidateRules = allRules.filter((rule) =>
     tierCandidates.includes(normalizeTier(rule.campusTier)),
   );
@@ -178,7 +170,7 @@ export async function resolveScholarshipQuote(
     }
   }
 
-  if (!sinAccessToScholarship && !matchedRule) {
+  if (!sinAccessToScholarship && averageCandidateRules.length > 0 && !matchedRule) {
     return {
       ok: false,
       error: "No se encontró costo para ese promedio en esta combinación.",
@@ -221,7 +213,12 @@ export async function resolveScholarshipQuote(
   const basePriceMxn =
     toNumber(returnSubjectPrice?.priceMxn) ??
     basePriceOverride ??
-    basePriceFromRules(normalizedCandidateRules);
+    basePriceFromRules(normalizedCandidateRules) ??
+    findStaticBasePrice({
+      businessLine: input.businessLine,
+      modality: input.modality,
+      plan: input.plan,
+    });
 
   if (basePriceMxn === null) {
     return {

@@ -41,23 +41,34 @@ export type CanonicalScholarshipRuleLike = {
   discountedPriceMxn: number | null;
 };
 
+const BUSINESS_LINE_ALIASES: Record<string, CanonicalBusinessLine> = {
+  salud: "salud",
+  licenciatura: "licenciatura",
+  lic: "licenciatura",
+  prepa: "prepa",
+  preparatoria: "prepa",
+  bachillerato: "prepa",
+  bachiller: "prepa",
+  posgrado: "posgrado",
+  maestria: "posgrado",
+  maestría: "posgrado",
+  doctorado: "posgrado",
+};
+
+function normalizeAliasValue(raw: string | null | undefined) {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export function normalizeBusinessLine(
   raw: string | null | undefined,
 ): CanonicalBusinessLine | null {
-  const value = String(raw ?? "").trim().toLowerCase();
+  const value = normalizeAliasValue(raw);
   if (!value) return null;
-  if (value === "salud") return "salud";
-  if (value === "licenciatura") return "licenciatura";
-  if (value === "prepa" || value === "preparatoria") return "prepa";
-  if (
-    value === "posgrado" ||
-    value === "maestria" ||
-    value === "maestría" ||
-    value === "doctorado"
-  ) {
-    return "posgrado";
-  }
-  return null;
+  return BUSINESS_LINE_ALIASES[value] ?? null;
 }
 
 export function normalizeCanonicalModality(

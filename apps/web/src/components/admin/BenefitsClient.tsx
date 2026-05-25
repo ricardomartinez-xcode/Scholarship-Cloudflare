@@ -133,7 +133,7 @@ const BUSINESS_LINE_OPTIONS = [
   { value: "__ALL__", label: "Todas" },
   { value: "salud", label: "Salud" },
   { value: "licenciatura", label: "Licenciatura" },
-  { value: "prepa", label: "Preparatoria" },
+  { value: "prepa", label: "Bachillerato" },
   { value: "posgrado", label: "Posgrado" },
 ];
 

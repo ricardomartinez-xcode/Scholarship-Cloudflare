@@ -43,9 +43,14 @@ function titleCase(value: string | null | undefined) {
 function formatBusinessLine(value: string | null | undefined) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized) return null;
-  if (normalized === "prepa") return "Preparatoria";
+  if (["prepa", "preparatoria", "bachillerato", "bachiller"].includes(normalized)) {
+    return "Bachillerato";
+  }
   if (normalized === "salud") return "Salud";
-  if (normalized === "licenciatura") return "Licenciatura";
+  if (["licenciatura", "lic"].includes(normalized)) return "Licenciatura";
+  if (["maestria", "maestría", "doctorado", "posgrado"].includes(normalized)) {
+    return "Posgrado";
+  }
   return titleCase(normalized);
 }
 
