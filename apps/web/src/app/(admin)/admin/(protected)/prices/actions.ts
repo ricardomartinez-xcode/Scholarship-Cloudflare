@@ -68,6 +68,7 @@ export async function getBecaRules(): Promise<BecaRule[]> {
   try {
     await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
     const rows = await prisma.scholarshipRule.findMany({
+      where: { sourceVersion: "canonical" },
       orderBy: [
         { businessLine: "asc" },
         { modality: "asc" },
@@ -116,6 +117,8 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     const modalidad_key = String(formData.get("modalidad_key") ?? "").trim();
     const plan = String(formData.get("plan") ?? "").trim();
     const tier = String(formData.get("tier") ?? "").trim();
+    const region = String(formData.get("region") ?? "").trim();
+    const plantel = String(formData.get("plantel") ?? "").trim();
     const newPrice = String(formData.get("newPrice") ?? "").trim();
     const existingId = String(formData.get("existingId") ?? "").trim();
 
@@ -129,7 +132,9 @@ export async function upsertMontoOverrideAction(formData: FormData) {
       return { ok: false, error: "Faltan claves de precio a editar." };
     }
 
-    const targetKeys: Prisma.InputJsonValue = { nivel_key, modalidad_key, plan, tier };
+    const targetKeys: Record<string, string> = { nivel_key, modalidad_key, plan, tier };
+    if (region) targetKeys.region = region;
+    if (plantel) targetKeys.plantel = plantel;
     const before = existingId
       ? await prisma.adminPriceOverride.findUnique({
           where: { id: existingId },
@@ -221,7 +226,7 @@ export async function upsertMontoOverrideAction(formData: FormData) {
       action: "upsertMontoOverride",
       result: "failure",
     }, "Failed to save price override");
-    return { ok: false, error: "No fue posible guardar el ajuste." };
+    return { ok: false, error: "No fue posible guardar el precio lista." };
   }
 }
 
@@ -343,7 +348,7 @@ export async function upsertPriceOverrideAction(formData: FormData) {
       action: "upsertPriceOverride",
       result: "failure",
     }, "Failed to save generic price override");
-    return { ok: false, error: "No fue posible guardar el ajuste." };
+    return { ok: false, error: "No fue posible guardar el precio." };
   }
 }
 

@@ -88,8 +88,24 @@ export type BenefitSnapshot = {
   campusIds: string[];
 };
 
+export type BaseScholarshipSnapshot = {
+  id: string;
+  enrollmentType: EnrollmentType;
+  businessLine: BenefitBusinessLine;
+  modality: BenefitModality;
+  plan: number;
+  campusTier: string;
+  minAverage: number | null;
+  maxAverage: number | null;
+  scholarshipPercent: number | null;
+  discountedPriceMxn: number | null;
+  origin: string | null;
+  sourceVersion: string;
+};
+
 export type BenefitsDraftSnapshot = {
   benefits: BenefitSnapshot[];
+  baseScholarships?: BaseScholarshipSnapshot[];
 };
 
 export type PublicCtaSnapshot = {
@@ -379,27 +395,54 @@ async function restorePricesSnapshot(snapshot: PricesDraftSnapshot) {
 }
 
 async function captureBenefitsSnapshot(): Promise<BenefitsDraftSnapshot> {
-  const benefits = await prisma.adminAdditionalBenefit.findMany({
-    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-    select: {
-      id: true,
-      appliesToAll: true,
-      benefitType: true,
-      enrollmentType: true,
-      extraPercent: true,
-      firstPaymentAmount: true,
-      isActive: true,
-      notes: true,
-      businessLine: true,
-      modality: true,
-      duration: true,
-      updatedBy: true,
-      campuses: {
-        orderBy: [{ campusId: "asc" }],
-        select: { campusId: true },
+  const [benefits, baseScholarships] = await Promise.all([
+    prisma.adminAdditionalBenefit.findMany({
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        appliesToAll: true,
+        benefitType: true,
+        enrollmentType: true,
+        extraPercent: true,
+        firstPaymentAmount: true,
+        isActive: true,
+        notes: true,
+        businessLine: true,
+        modality: true,
+        duration: true,
+        updatedBy: true,
+        campuses: {
+          orderBy: [{ campusId: "asc" }],
+          select: { campusId: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.scholarshipRule.findMany({
+      where: { sourceVersion: "canonical" },
+      orderBy: [
+        { enrollmentType: "asc" },
+        { businessLine: "asc" },
+        { modality: "asc" },
+        { plan: "asc" },
+        { campusTier: "asc" },
+        { minAverage: "asc" },
+      ],
+      select: {
+        id: true,
+        enrollmentType: true,
+        businessLine: true,
+        modality: true,
+        plan: true,
+        campusTier: true,
+        minAverage: true,
+        maxAverage: true,
+        scholarshipPercent: true,
+        discountedPriceMxn: true,
+        origin: true,
+        sourceVersion: true,
+      },
+    }),
+  ]);
 
   return {
     benefits: benefits.map((benefit) => ({
@@ -417,6 +460,22 @@ async function captureBenefitsSnapshot(): Promise<BenefitsDraftSnapshot> {
       updatedBy: benefit.updatedBy,
       campusIds: benefit.campuses.map((campus) => campus.campusId),
     })),
+    baseScholarships: baseScholarships.map((rule) => ({
+      id: rule.id,
+      enrollmentType: rule.enrollmentType,
+      businessLine: rule.businessLine,
+      modality: rule.modality as BenefitModality,
+      plan: rule.plan,
+      campusTier: rule.campusTier,
+      minAverage: rule.minAverage === null ? null : Number(rule.minAverage),
+      maxAverage: rule.maxAverage === null ? null : Number(rule.maxAverage),
+      scholarshipPercent:
+        rule.scholarshipPercent === null ? null : Number(rule.scholarshipPercent),
+      discountedPriceMxn:
+        rule.discountedPriceMxn === null ? null : Number(rule.discountedPriceMxn),
+      origin: rule.origin,
+      sourceVersion: rule.sourceVersion,
+    })),
   };
 }
 
@@ -425,28 +484,50 @@ async function restoreBenefitsSnapshot(snapshot: BenefitsDraftSnapshot) {
   await prisma.$transaction(async (tx) => {
     await tx.adminAdditionalBenefitCampus.deleteMany({});
     await tx.adminAdditionalBenefit.deleteMany({});
-    if (!snapshot.benefits.length) return;
-    await tx.adminAdditionalBenefit.createMany({
-      data: snapshot.benefits.map((benefit) => ({
-        id: benefit.id,
-        appliesToAll: benefit.appliesToAll,
-        benefitType: benefit.benefitType,
-        enrollmentType: benefit.enrollmentType,
-        extraPercent: benefit.extraPercent,
-        firstPaymentAmount: benefit.firstPaymentAmount,
-        isActive: benefit.isActive,
-        notes: benefit.notes,
-        businessLine: benefit.businessLine,
-        modality: benefit.modality,
-        duration: benefit.duration,
-        updatedBy: benefit.updatedBy,
-      })),
-    });
-    const campusLinks = snapshot.benefits.flatMap((benefit) =>
-      benefit.campusIds.map((campusId) => ({ benefitId: benefit.id, campusId })),
-    );
-    if (campusLinks.length) {
-      await tx.adminAdditionalBenefitCampus.createMany({ data: campusLinks });
+    if (snapshot.benefits.length) {
+      await tx.adminAdditionalBenefit.createMany({
+        data: snapshot.benefits.map((benefit) => ({
+          id: benefit.id,
+          appliesToAll: benefit.appliesToAll,
+          benefitType: benefit.benefitType,
+          enrollmentType: benefit.enrollmentType,
+          extraPercent: benefit.extraPercent,
+          firstPaymentAmount: benefit.firstPaymentAmount,
+          isActive: benefit.isActive,
+          notes: benefit.notes,
+          businessLine: benefit.businessLine,
+          modality: benefit.modality,
+          duration: benefit.duration,
+          updatedBy: benefit.updatedBy,
+        })),
+      });
+      const campusLinks = snapshot.benefits.flatMap((benefit) =>
+        benefit.campusIds.map((campusId) => ({ benefitId: benefit.id, campusId })),
+      );
+      if (campusLinks.length) {
+        await tx.adminAdditionalBenefitCampus.createMany({ data: campusLinks });
+      }
+    }
+    if (snapshot.baseScholarships) {
+      await tx.scholarshipRule.deleteMany({ where: { sourceVersion: "canonical" } });
+      if (snapshot.baseScholarships.length) {
+        await tx.scholarshipRule.createMany({
+          data: snapshot.baseScholarships.map((rule) => ({
+            id: rule.id,
+            enrollmentType: rule.enrollmentType,
+            businessLine: rule.businessLine,
+            modality: rule.modality,
+            plan: rule.plan,
+            campusTier: rule.campusTier,
+            minAverage: rule.minAverage,
+            maxAverage: rule.maxAverage,
+            scholarshipPercent: rule.scholarshipPercent,
+            discountedPriceMxn: rule.discountedPriceMxn,
+            origin: rule.origin,
+            sourceVersion: rule.sourceVersion,
+          })),
+        });
+      }
     }
   });
 }
@@ -897,19 +978,33 @@ function priceDiffItems(snapshot: PricesDraftSnapshot): DiffItem[] {
 }
 
 function benefitDiffItems(snapshot: BenefitsDraftSnapshot): DiffItem[] {
-  return snapshot.benefits.map((benefit) => ({
-    key: `benefit:${benefit.id}`,
-    label: [
-      benefit.benefitType === "first_payment"
-        ? `Primer pago ${benefit.firstPaymentAmount}`
-        : `${benefit.extraPercent}%`,
-      benefit.enrollmentType ?? "cualquier ingreso",
-      benefit.businessLine ?? "todas las lineas",
-      benefit.modality ?? "todas las modalidades",
-      benefit.duration ?? "cualquier duracion",
-    ].join(" · "),
-    payload: benefit,
-  }));
+  return [
+    ...snapshot.benefits.map((benefit) => ({
+      key: `benefit:${benefit.id}`,
+      label: [
+        benefit.benefitType === "first_payment"
+          ? `Primer pago ${benefit.firstPaymentAmount}`
+          : `${benefit.extraPercent}%`,
+        benefit.enrollmentType ?? "cualquier ingreso",
+        benefit.businessLine ?? "todas las lineas",
+        benefit.modality ?? "todas las modalidades",
+        benefit.duration ?? "cualquier duracion",
+      ].join(" · "),
+      payload: benefit,
+    })),
+    ...(snapshot.baseScholarships ?? []).map((rule) => ({
+      key: `base-scholarship:${rule.id}`,
+      label: [
+        "% por promedio",
+        rule.enrollmentType,
+        rule.businessLine,
+        rule.modality,
+        `plan ${rule.plan}`,
+        rule.campusTier,
+      ].join(" · "),
+      payload: rule,
+    })),
+  ];
 }
 
 function ctaDiffItems(snapshot: CtasDraftSnapshot): DiffItem[] {

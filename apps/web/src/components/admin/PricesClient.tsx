@@ -43,6 +43,8 @@ type PriceRow = {
   plan: string;
   tier: string | null;
   basePriceMxn: number | null;
+  sourceOverrideId: string | null;
+  source: "canonical" | "derived" | "missing";
 };
 
 type ActionResult = { ok: boolean; error?: string };
@@ -86,16 +88,95 @@ function normalizeTierKey(value: unknown) {
   return normalized || null;
 }
 
+function normalizeScopeValue(value: unknown) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
+}
+
+function targetKeysRecord(targetKeys: unknown) {
+  return targetKeys && typeof targetKeys === "object"
+    ? (targetKeys as Record<string, unknown>)
+    : {};
+}
+
+function priceScopeKey(scope: {
+  region?: unknown;
+  plantel?: unknown;
+  nivel_key: unknown;
+  modalidad_key: unknown;
+  plan: unknown;
+  tier?: unknown;
+}) {
+  return [
+    normalizeScopeValue(scope.region) ?? "",
+    normalizeScopeValue(scope.plantel) ?? "",
+    String(scope.nivel_key ?? "").trim(),
+    String(scope.modalidad_key ?? "").trim(),
+    String(scope.plan ?? "").trim(),
+    normalizeTierKey(scope.tier) ?? "",
+  ].join("|");
+}
+
+function priceScopeKeyFromRecord(keys: Record<string, unknown>) {
+  return priceScopeKey({
+    region: keys.region,
+    plantel: keys.plantel,
+    nivel_key: keys.nivel_key,
+    modalidad_key: keys.modalidad_key,
+    plan: keys.plan,
+    tier: keys.tier,
+  });
+}
+
+function priceCombinationKey(scope: {
+  nivel_key: unknown;
+  modalidad_key: unknown;
+  plan: unknown;
+  tier?: unknown;
+}) {
+  return [
+    String(scope.nivel_key ?? "").trim(),
+    String(scope.modalidad_key ?? "").trim(),
+    String(scope.plan ?? "").trim(),
+    normalizeTierKey(scope.tier) ?? "",
+  ].join("|");
+}
+
+function toPriceNumber(value: unknown) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function priceRowFromOverride(override: MontoOverride): PriceRow | null {
+  const keys = targetKeysRecord(override.targetKeys);
+  const nivel = normalizeScopeValue(keys.nivel_key);
+  const modalidad = normalizeScopeValue(keys.modalidad_key);
+  const plan = normalizeScopeValue(keys.plan);
+  if (!nivel || !modalidad || !plan) return null;
+
+  return {
+    id: `price:${override.id}`,
+    region: normalizeScopeValue(keys.region),
+    plantel: normalizeScopeValue(keys.plantel),
+    nivel_key: nivel,
+    modalidad_key: modalidad,
+    plan,
+    tier: normalizeTierKey(keys.tier),
+    basePriceMxn: toPriceNumber(override.newPrice),
+    sourceOverrideId: override.id,
+    source: "canonical",
+  };
+}
+
 function findOverride(rule: PriceRow, overrides: MontoOverride[]): MontoOverride | null {
+  if (rule.sourceOverrideId) {
+    return overrides.find((override) => override.id === rule.sourceOverrideId) ?? null;
+  }
+
   return (
     overrides.find((o) => {
-      const keys = o.targetKeys as Record<string, string>;
-      return (
-        keys.nivel_key === rule.nivel_key &&
-        keys.modalidad_key === rule.modalidad_key &&
-        keys.plan === rule.plan &&
-        normalizeTierKey(keys.tier) === normalizeTierKey(rule.tier)
-      );
+      const keys = targetKeysRecord(o.targetKeys);
+      return priceScopeKeyFromRecord(keys) === priceScopeKey(rule);
     }) ?? null
   );
 }
@@ -103,6 +184,12 @@ function findOverride(rule: PriceRow, overrides: MontoOverride[]): MontoOverride
 function fmt(v: number | null | undefined) {
   if (v === null || v === undefined) return "—";
   return `$${Number(v).toLocaleString("es-MX")}`;
+}
+
+function priceSourceLabel(row: PriceRow) {
+  if (row.source === "canonical") return "Canónico";
+  if (row.source === "derived") return "Derivado";
+  return "Sin precio";
 }
 
 export default function PricesClient({
@@ -120,18 +207,34 @@ export default function PricesClient({
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const priceRows = useMemo(() => {
     const rows = new Map<string, PriceRow>();
+    const canonicalCombinations = new Set<string>();
+    for (const override of montoOverrides) {
+      const row = priceRowFromOverride(override);
+      if (!row) continue;
+      rows.set(priceScopeKey(row), row);
+      canonicalCombinations.add(priceCombinationKey(row));
+    }
+
     for (const rule of becaRules) {
       const tier = normalizeTierKey(rule.tier);
-      const key = [
-        rule.nivel_key,
-        rule.modalidad_key,
-        rule.plan,
-        tier ?? "",
-      ].join("|");
+      const combinationKey = priceCombinationKey({
+        nivel_key: rule.nivel_key,
+        modalidad_key: rule.modalidad_key,
+        plan: rule.plan,
+        tier,
+      });
+      if (canonicalCombinations.has(combinationKey)) continue;
+
+      const key = priceScopeKey({
+        nivel_key: rule.nivel_key,
+        modalidad_key: rule.modalidad_key,
+        plan: rule.plan,
+        tier,
+      });
       const current = rows.get(key);
       if (!current || current.basePriceMxn === null) {
         rows.set(key, {
-          id: key,
+          id: `rule:${key}`,
           region: null,
           plantel: null,
           nivel_key: rule.nivel_key,
@@ -139,6 +242,8 @@ export default function PricesClient({
           plan: rule.plan,
           tier,
           basePriceMxn: rule.basePriceMxn,
+          sourceOverrideId: null,
+          source: rule.basePriceMxn === null ? "missing" : "derived",
         });
       }
     }
@@ -153,7 +258,7 @@ export default function PricesClient({
         ].find((result) => result !== 0) ?? 0
       );
     });
-  }, [becaRules]);
+  }, [becaRules, montoOverrides]);
 
   const [filterNivel, setFilterNivel] = useState("");
   const [page, setPage] = useState(0);
@@ -176,7 +281,7 @@ export default function PricesClient({
 
   const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
     upsertMontoOverrideAction,
-    "No fue posible guardar el ajuste."
+    "No fue posible guardar el precio lista."
   );
 
   useEffect(() => {
@@ -206,12 +311,12 @@ export default function PricesClient({
     const override = findOverride(rule, montoOverrides);
     setEditingRule(rule);
     setEditingOverride(override);
-    setNewPrice(override ? String(override.newPrice) : String(rule.basePriceMxn ?? ""));
+    setNewPrice(rule.basePriceMxn === null ? "" : String(rule.basePriceMxn));
     setOpen(true);
   }
 
   function removeOverride(override: MontoOverride) {
-    if (!window.confirm("¿Quitar el ajuste y volver al precio base?")) return;
+    if (!window.confirm("¿Eliminar este precio lista canónico?")) return;
     startDeleteTransition(async () => {
       const fd = new FormData();
       fd.set("id", override.id);
@@ -317,15 +422,11 @@ export default function PricesClient({
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
         <div>
-          <h1 className="mt-1 text-lg font-semibold">Precios lista y ajustes</h1>
+          <h1 className="mt-1 text-lg font-semibold">Precios lista canónicos</h1>
           <p className="mt-1 text-sm text-slate-300">
             Precios lista activos de la calculadora. Usa{" "}
-            <strong className="text-slate-100">Editar</strong> para crear un ajuste sobre el
-            precio lista. El badge{" "}
-            <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-              Editado
-            </span>{" "}
-            indica que la calculadora usará el precio ajustado.
+            <strong className="text-slate-100">Editar</strong> para crear o actualizar el
+            precio lista canónico del alcance seleccionado.
           </p>
         </div>
       </div>
@@ -428,7 +529,7 @@ export default function PricesClient({
             ) : null}
             {importPreviewRows.length ? (
               <div className="ui-table-wrap ui-scrollbar max-h-[360px]">
-                <table className="ui-table ui-table--compact min-w-[940px]">
+                <table className="ui-table ui-table--compact w-full min-w-[940px]">
                   <thead>
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
@@ -497,8 +598,8 @@ export default function PricesClient({
       </div>
 
       {/* Table */}
-      <div className="ui-table-wrap ui-scrollbar mt-4 max-h-[620px]">
-        <table className="ui-table min-w-[1120px]">
+      <div className="ui-table-wrap ui-scrollbar mt-4 max-h-[620px] w-full">
+        <table className="ui-table w-full min-w-[1120px]">
           <thead>
             <tr>
               <th className="ui-cell-nowrap text-left">Region</th>
@@ -508,14 +609,13 @@ export default function PricesClient({
               <th className="ui-cell-nowrap text-left">Nivel</th>
               <th className="ui-cell-nowrap text-left">Modalidad</th>
               <th className="ui-cell-nowrap text-left">Plan</th>
-              <th className="ui-cell-nowrap text-right">Ajuste activo</th>
+              <th className="ui-cell-nowrap text-left">Fuente</th>
               <th className="ui-cell-nowrap text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.length ? (
               pageRows.map((rule) => {
-                const override = findOverride(rule, montoOverrides);
                 return (
                   <tr key={rule.id}>
                     <td className="ui-cell-nowrap text-slate-200">
@@ -535,19 +635,19 @@ export default function PricesClient({
                     <td className="ui-cell-nowrap text-xs text-slate-300">
                       {rule.plan}
                     </td>
-                    <td className="ui-cell-nowrap text-right">
-                      {override ? (
-                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                          <span className="font-mono text-emerald-300">
-                            {fmt(Number(override.newPrice))}
-                          </span>
-                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
-                            Editado
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 whitespace-nowrap">—</span>
-                      )}
+                    <td className="ui-cell-nowrap text-slate-300">
+                      <span
+                        className={[
+                          "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                          rule.source === "canonical"
+                            ? "bg-emerald-500/15 text-emerald-200"
+                            : rule.source === "derived"
+                              ? "bg-cyan-500/15 text-cyan-200"
+                              : "bg-amber-500/15 text-amber-200",
+                        ].join(" ")}
+                      >
+                        {priceSourceLabel(rule)}
+                      </span>
                     </td>
                     <td className="ui-cell-nowrap text-right">
                       <div className="flex justify-end gap-2">
@@ -558,14 +658,17 @@ export default function PricesClient({
                         >
                           Editar
                         </button>
-                        {override && (
+                        {rule.sourceOverrideId && (
                           <button
                             type="button"
                             disabled={deleteTransition}
-                            onClick={() => removeOverride(override)}
+                            onClick={() => {
+                              const override = findOverride(rule, montoOverrides);
+                              if (override) removeOverride(override);
+                            }}
                             className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 whitespace-nowrap"
                           >
-                            Quitar
+                            Eliminar
                           </button>
                         )}
                       </div>
@@ -609,7 +712,7 @@ export default function PricesClient({
         </div>
       )}
 
-      {/* Edit / Create Override Dialog */}
+      {/* Edit / create canonical list price dialog */}
       <AdminDialogShell
         open={open}
         onOpenChange={(nextOpen) => {
@@ -618,21 +721,33 @@ export default function PricesClient({
             clearSaveState();
           }
         }}
-        kicker={editingOverride ? "Modificar ajuste" : "Nuevo ajuste"}
-        title="Ajuste de precio lista"
+        kicker={editingOverride ? "Modificar precio" : "Nuevo precio"}
+        title="Precio lista canónico"
         description={
           editingRule
-            ? `${editingRule.nivel_key} · ${editingRule.modalidad_key} · ${editingRule.plan}/${editingRule.tier ?? "General"}`
+            ? `${normalizeAdminPricingRegion(editingRule.region)} · ${formatAdminPricingPlantel(editingRule)} · ${formatAdminPricingTier(editingRule)}`
             : "Actualiza el precio lista que usará la calculadora."
         }
         size="md"
       >
         {editingRule && (
-          <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
-            <span className="text-slate-400">Precio lista actual: </span>
-            <span className="font-mono font-semibold text-slate-100">
-              {fmt(editingRule.basePriceMxn)}
-            </span>
+          <div className="mb-4 grid gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm sm:grid-cols-2">
+            <div>
+              <span className="block text-xs uppercase tracking-[0.2em] text-slate-400">
+                Alcance
+              </span>
+              <span className="mt-1 block text-slate-100">
+                {editingRule.nivel_key} · {editingRule.modalidad_key} · plan {editingRule.plan}
+              </span>
+            </div>
+            <div>
+              <span className="block text-xs uppercase tracking-[0.2em] text-slate-400">
+                Precio actual
+              </span>
+              <span className="mt-1 block font-mono font-semibold text-slate-100">
+                {fmt(editingRule.basePriceMxn)}
+              </span>
+            </div>
           </div>
         )}
 
@@ -644,6 +759,8 @@ export default function PricesClient({
 
         <form onSubmit={handleSubmit} className="grid gap-4">
               <input type="hidden" name="programa_key" value="" />
+              <input type="hidden" name="region" value={editingRule?.region ?? ""} />
+              <input type="hidden" name="plantel" value={editingRule?.plantel ?? ""} />
               <input type="hidden" name="nivel_key" value={editingRule?.nivel_key ?? ""} />
               <input
                 type="hidden"
@@ -674,7 +791,7 @@ export default function PricesClient({
                   disabled={saving}
                   className="w-full rounded-2xl bg-blue-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 disabled:opacity-60"
                 >
-                  {saving ? "Guardando..." : "Guardar ajuste"}
+                  {saving ? "Guardando..." : "Guardar precio lista"}
                 </button>
               </div>
         </form>

@@ -59,6 +59,22 @@ type BaseScholarshipRuleRow = {
 
 type ActionResult = { ok: boolean; error?: string };
 
+type BaseScholarshipImportPreviewRow = {
+  rowNumber: number;
+  action: "create" | "update" | "noop";
+  region: string | null;
+  plantel: string | null;
+  tier: string;
+  enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso";
+  businessLine: string;
+  modality: string;
+  plan: number;
+  minAverage: number;
+  maxAverage: number;
+  scholarshipPercent: number;
+  notes: string | null;
+};
+
 type BenefitImportPreviewRow = {
   rowNumber: number;
   action: "create" | "update" | "noop";
@@ -91,6 +107,10 @@ type BenefitImportSummary = {
   previewRows?: BenefitImportPreviewRow[];
   applied?: boolean;
   rolledBack?: boolean;
+};
+
+type BaseScholarshipImportSummary = Omit<BenefitImportSummary, "previewRows"> & {
+  previewRows?: BaseScholarshipImportPreviewRow[];
 };
 
 type ApiError = { ok: false; error: string };
@@ -211,6 +231,7 @@ export default function BenefitsClient({
 }) {
   const router = useRouter();
   const importFileRef = useRef<HTMLInputElement | null>(null);
+  const baseScholarshipImportFileRef = useRef<HTMLInputElement | null>(null);
   const labelId = useId();
   const percentId = useId();
   const activeId = useId();
@@ -289,6 +310,18 @@ export default function BenefitsClient({
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
   const [importApplied, setImportApplied] = useState(false);
   const [importRolledBack, setImportRolledBack] = useState(false);
+  const [baseImportLoading, setBaseImportLoading] = useState(false);
+  const [baseApplyImportLoading, setBaseApplyImportLoading] = useState(false);
+  const [baseRollbackImportLoading, setBaseRollbackImportLoading] = useState(false);
+  const [baseImportError, setBaseImportError] = useState<string | null>(null);
+  const [baseImportSummary, setBaseImportSummary] =
+    useState<BaseScholarshipImportSummary | null>(null);
+  const [baseImportPreviewRows, setBaseImportPreviewRows] = useState<
+    BaseScholarshipImportPreviewRow[]
+  >([]);
+  const [baseImportSessionId, setBaseImportSessionId] = useState<string | null>(null);
+  const [baseImportApplied, setBaseImportApplied] = useState(false);
+  const [baseImportRolledBack, setBaseImportRolledBack] = useState(false);
   const [baseEnrollmentType, setBaseEnrollmentType] = useState("nuevo_ingreso");
   const [baseBusinessLine, setBaseBusinessLine] = useState("licenciatura");
   const [baseModality, setBaseModality] = useState("presencial");
@@ -533,6 +566,90 @@ export default function BenefitsClient({
     }
   }
 
+  async function validateBaseScholarshipImportCsv() {
+    setBaseImportLoading(true);
+    setBaseImportError(null);
+    setBaseImportApplied(false);
+    setBaseImportRolledBack(false);
+    setBaseImportSummary(null);
+    try {
+      const file = baseScholarshipImportFileRef.current?.files?.[0] ?? null;
+      if (!file) {
+        throw new Error("Selecciona un archivo CSV de % de beca por promedio.");
+      }
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch("/api/admin/benefits/base-scholarships/import", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as BaseScholarshipImportSummary | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible validar el CSV.");
+      }
+      setBaseImportSummary(payload);
+      setBaseImportPreviewRows(payload.previewRows ?? []);
+      setBaseImportSessionId(payload.sessionId);
+    } catch (error) {
+      setBaseImportError(error instanceof Error ? error.message : "No fue posible validar el CSV.");
+    } finally {
+      setBaseImportLoading(false);
+    }
+  }
+
+  async function applyBaseScholarshipImportSession() {
+    if (!baseImportSessionId) return;
+    setBaseApplyImportLoading(true);
+    setBaseImportError(null);
+    try {
+      const response = await fetch(
+        `/api/admin/benefits/base-scholarships/import/${baseImportSessionId}/apply`,
+        { method: "POST" },
+      );
+      const payload = (await response.json()) as BaseScholarshipImportSummary | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible aplicar la sesión.");
+      }
+      setBaseImportSummary((previous) =>
+        previous ? { ...previous, ...payload, applied: true } : { ...payload, applied: true },
+      );
+      setBaseImportApplied(true);
+      setBaseImportRolledBack(false);
+      router.refresh();
+    } catch (error) {
+      setBaseImportError(
+        error instanceof Error ? error.message : "No fue posible aplicar la importación.",
+      );
+    } finally {
+      setBaseApplyImportLoading(false);
+    }
+  }
+
+  async function rollbackBaseScholarshipImportSession() {
+    if (!baseImportSessionId) return;
+    setBaseRollbackImportLoading(true);
+    setBaseImportError(null);
+    try {
+      const response = await fetch(
+        `/api/admin/benefits/base-scholarships/import/${baseImportSessionId}/rollback`,
+        { method: "POST" },
+      );
+      const payload = (await response.json()) as { ok: true } | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible revertir la sesión.");
+      }
+      setBaseImportRolledBack(true);
+      setBaseImportApplied(false);
+      router.refresh();
+    } catch (error) {
+      setBaseImportError(
+        error instanceof Error ? error.message : "No fue posible ejecutar rollback.",
+      );
+    } finally {
+      setBaseRollbackImportLoading(false);
+    }
+  }
+
   return (
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
@@ -557,10 +674,10 @@ export default function BenefitsClient({
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-[0.24em] text-[color:var(--ui-text-secondary)]">
-              Import CSV
+              Importar beneficios adicionales
             </div>
             <p className="mt-1 text-sm text-[color:var(--ui-text-secondary)]">
-              Flujo: subir archivo, validar diff, confirmar aplicación y rollback lógico.
+              Para porcentajes adicionales o primer pago. No modifica el % de beca por promedio.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -604,7 +721,7 @@ export default function BenefitsClient({
               Orden canónico
             </div>
             <div className="mt-1 font-mono text-[11px]">
-              Region | Planteles | Tier | Beneficio
+              Region | Planteles | Tier | Beneficio adicional
             </div>
           </div>
           <div className="font-mono text-[11px] leading-5">
@@ -718,6 +835,159 @@ export default function BenefitsClient({
             </h2>
           </div>
           <span className="ui-pill">{baseScholarships.length} grupos</span>
+        </div>
+
+        <div className="grid min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                Importar % de beca por promedio
+              </div>
+              <p className="mt-1 text-sm text-slate-300">
+                Para reglas base por promedio. No crea beneficios adicionales ni primer pago.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={validateBaseScholarshipImportCsv}
+                disabled={baseImportLoading || baseApplyImportLoading || baseRollbackImportLoading}
+                className="ui-button-secondary min-h-[34px] px-3 text-xs disabled:opacity-60"
+              >
+                {baseImportLoading ? "Analizando..." : "Validar CSV"}
+              </button>
+              <button
+                type="button"
+                onClick={applyBaseScholarshipImportSession}
+                disabled={Boolean(
+                  !baseImportSessionId ||
+                    baseApplyImportLoading ||
+                    baseImportSummary?.errors?.length,
+                )}
+                className="ui-button-primary min-h-[34px] px-3 text-xs disabled:opacity-60"
+              >
+                {baseApplyImportLoading ? "Aplicando..." : "Aplicar"}
+              </button>
+              <button
+                type="button"
+                onClick={rollbackBaseScholarshipImportSession}
+                disabled={!baseImportSessionId || !baseImportApplied || baseRollbackImportLoading}
+                className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:opacity-60"
+              >
+                {baseRollbackImportLoading ? "Revirtiendo..." : "Rollback"}
+              </button>
+            </div>
+          </div>
+          <input
+            ref={baseScholarshipImportFileRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="ui-control min-w-0 max-w-full text-sm"
+          />
+          <div className="grid gap-2 rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-xs text-slate-300 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+            <div>
+              <div className="font-semibold text-slate-100">Orden canónico</div>
+              <div className="mt-1 font-mono text-[11px]">
+                Region | Plantel | Tier | % de beca por promedio
+              </div>
+            </div>
+            <div className="font-mono text-[11px] leading-5">
+              region,plantel,tier,ingreso,linea,modalidad,plan,promedio,porcentaje
+            </div>
+          </div>
+          {baseImportError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+              {baseImportError}
+            </div>
+          ) : null}
+          {baseImportSummary ? (
+            <div className="grid min-w-0 gap-3">
+              <div className="grid min-w-0 gap-2 sm:grid-cols-2 2xl:grid-cols-5">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-xs text-slate-300">
+                  Procesadas: <strong className="text-slate-100">{baseImportSummary.processed}</strong>
+                </div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-900">
+                  Crear: <strong>{baseImportSummary.created}</strong>
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                  Actualizar: <strong>{baseImportSummary.updated}</strong>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-xs text-slate-300">
+                  Sin cambios: <strong className="text-slate-100">{baseImportSummary.unchanged}</strong>
+                </div>
+                <div className="rounded-xl border border-red-200 bg-red-50 p-2 text-xs text-red-900">
+                  Errores: <strong>{baseImportSummary.errors.length}</strong>
+                </div>
+              </div>
+              {baseImportSummary.warnings.length ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+                  {baseImportSummary.warnings[0]}
+                </div>
+              ) : null}
+              {baseImportSummary.errors.length ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+                  {baseImportSummary.errors[0]}
+                </div>
+              ) : null}
+              {baseImportRolledBack ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+                  Rollback ejecutado para la sesión actual.
+                </div>
+              ) : null}
+              {baseImportPreviewRows.length ? (
+                <div className="ui-table-wrap ui-scrollbar max-h-[320px]">
+                  <table className="ui-table ui-table--compact min-w-[980px]">
+                    <thead>
+                      <tr>
+                        <th className="ui-cell-nowrap text-left">Fila</th>
+                        <th className="ui-cell-nowrap text-left">Acción</th>
+                        <th className="ui-cell-nowrap text-left">Region</th>
+                        <th className="ui-cell-nowrap text-left">Plantel</th>
+                        <th className="ui-cell-nowrap text-left">Tier</th>
+                        <th className="ui-cell-nowrap text-left">Ingreso</th>
+                        <th className="ui-cell-nowrap text-left">Detalle</th>
+                        <th className="ui-cell-nowrap text-left">Promedio</th>
+                        <th className="ui-cell-nowrap text-right">% Beca</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {baseImportPreviewRows.slice(0, 30).map((row) => (
+                        <tr key={`${row.rowNumber}-${row.action}`}>
+                          <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
+                          <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {normalizeAdminPricingRegion(row.region)}
+                          </td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {row.plantel || "Todos"}
+                          </td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {formatAdminPricingTier({
+                              tier: row.tier,
+                              plantel: row.plantel,
+                              modality: row.modality,
+                            })}
+                          </td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)}
+                          </td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {row.businessLine} · {row.modality} · plan {row.plan}
+                          </td>
+                          <td className="ui-cell-nowrap font-mono text-slate-100">
+                            {row.minAverage} - {row.maxAverage}
+                          </td>
+                          <td className="ui-cell-nowrap text-right font-mono text-slate-100">
+                            {row.scholarshipPercent}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(360px,0.85fr)_minmax(520px,1.15fr)]">
