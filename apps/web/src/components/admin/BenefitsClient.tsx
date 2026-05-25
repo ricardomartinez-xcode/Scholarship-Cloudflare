@@ -119,6 +119,8 @@ type ApiError = {
   details?: { errors?: unknown } | null;
 };
 
+type BenefitsPanel = "benefits" | "base" | "imports";
+
 const BASE_SCHOLARSHIP_TEMPLATE_CSV = [
   "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
   "Licenciatura,CDMX,Plantel Centro,T1,15,Nuevo Ingreso,Escolarizada,9,7-7.9",
@@ -288,6 +290,7 @@ export default function BenefitsClient({
   const basePercentId = useId();
   const baseAverageRangeId = useId();
   const [open, setOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<BenefitsPanel>("benefits");
   const [editing, setEditing] = useState<Benefit | null>(null);
 
   const percentOptions = useMemo(
@@ -713,13 +716,45 @@ export default function BenefitsClient({
 
         <button
           type="button"
-          onClick={startCreate}
+          onClick={() => {
+            setActivePanel("benefits");
+            startCreate();
+          }}
           className="ui-button-primary px-4 py-2 text-sm"
         >
           Nuevo
         </button>
       </div>
 
+      <div
+        className="mt-5 flex flex-wrap gap-2 border-b border-[color:var(--ui-border)] pb-2"
+        role="tablist"
+        aria-label="Vistas de beneficios"
+      >
+        {[
+          { id: "benefits", label: `Listado (${sortedBenefits.length})` },
+          { id: "base", label: `% por promedio (${baseScholarships.length})` },
+          { id: "imports", label: "Importaciones" },
+        ].map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={activePanel === item.id}
+            onClick={() => setActivePanel(item.id as BenefitsPanel)}
+            className={[
+              "rounded-t-xl border px-4 py-2 text-sm font-semibold transition",
+              activePanel === item.id
+                ? "border-[color:var(--ui-border)] bg-[color:var(--ui-surface-secondary)] text-[color:var(--ui-text-primary)]"
+                : "border-transparent text-[color:var(--ui-text-secondary)] hover:text-[color:var(--ui-text-primary)]",
+            ].join(" ")}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {activePanel === "imports" ? (
       <section className="mt-5 grid min-w-0 gap-3 overflow-hidden rounded-2xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-secondary)] p-4">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -877,7 +912,9 @@ export default function BenefitsClient({
           </div>
         ) : null}
       </section>
+      ) : null}
 
+      {activePanel === "base" ? (
       <section className="mt-6 grid gap-4 rounded-2xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-secondary)] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -1328,8 +1365,10 @@ export default function BenefitsClient({
         )}
         </div>
       </section>
+      ) : null}
 
-      {sortedBenefits.length ? (
+      {activePanel === "benefits" ? (
+      sortedBenefits.length ? (
         <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-6 max-h-[620px]">
           <table className="ui-table min-w-[1240px]">
             <thead>
@@ -1460,7 +1499,8 @@ export default function BenefitsClient({
             </button>
           </div>
         </div>
-      )}
+      )
+      ) : null}
 
       <AdminDialogShell
         open={open}
