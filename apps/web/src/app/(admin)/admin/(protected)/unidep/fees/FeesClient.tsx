@@ -273,6 +273,9 @@ export default function FeesClient({
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("fees");
   const [selectedCampus, setSelectedCampus] = useState(campuses[0]?.id ?? "");
+  const [feeQuery, setFeeQuery] = useState("");
+  const [feeSectionFilter, setFeeSectionFilter] = useState<FeeSection | "all">("all");
+  const [feeStatusFilter, setFeeStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [materiaFilter, setMateriaFilter] = useState("");
   const [seedMode, setSeedMode] = useState<SeedMode>("fees");
   const [seedFormat, setSeedFormat] = useState<SeedFormat>("json");
@@ -294,9 +297,30 @@ export default function FeesClient({
   const [materiaFeedback, setMateriaFeedback] = useState<FeedbackState>(null);
   const [materiaPending, startMateriaTransition] = useTransition();
 
+  const feeStats = {
+    total: fees.length,
+    active: fees.filter((fee) => fee.isActive).length,
+    inactive: fees.filter((fee) => !fee.isActive).length,
+    sections: new Set(fees.map((fee) => fee.section)).size,
+  };
+  const activeCampusFees = campusFees.filter((fee) => fee.isActive).length;
   const uniquePlanteles = [...new Set(materias.map((row) => row.plantel))].sort((a, b) =>
     a.localeCompare(b, "es-MX"),
   );
+  const visibleFees = fees.filter((fee) => {
+    const q = feeQuery.trim().toLowerCase();
+    const matchesQuery =
+      !q ||
+      [fee.code, fee.concept, SECTION_LABELS[fee.section]]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    const matchesSection = feeSectionFilter === "all" || fee.section === feeSectionFilter;
+    const matchesStatus =
+      feeStatusFilter === "all" ||
+      (feeStatusFilter === "active" ? fee.isActive : !fee.isActive);
+    return matchesQuery && matchesSection && matchesStatus;
+  });
   const visibleMaterias = materias.filter(
     (row) => !materiaFilter || row.plantel === materiaFilter,
   ).sort((left, right) =>
@@ -545,6 +569,23 @@ export default function FeesClient({
 
   return (
     <div className="grid gap-6">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          { label: "Conceptos", value: feeStats.total, detail: `${feeStats.active} activos` },
+          { label: "Secciones", value: feeStats.sections, detail: "Exámenes, trámites y diversos" },
+          { label: "Planteles", value: campuses.length, detail: `${activeCampusFees} activaciones` },
+          { label: "Materia", value: materias.length, detail: "Reglas de regreso" },
+        ].map((item) => (
+          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
+              {item.label}
+            </div>
+            <div className="mt-2 text-2xl font-semibold text-slate-100">{item.value}</div>
+            <div className="mt-1 text-xs text-slate-400">{item.detail}</div>
+          </div>
+        ))}
+      </div>
+
       <AdminSegmentedTabs
         ariaLabel="Vistas de costos académicos"
         activeId={tab}
@@ -557,10 +598,11 @@ export default function FeesClient({
 
       {tab === "fees" && (
         <div className="grid gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+          <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+            <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-3xl">
-              Aquí puedes hacer altas individuales, activar o desactivar conceptos y editar
-              únicamente el costo. Para cambios masivos usa{" "}
+              Catálogo maestro de cuotas. Aquí puedes buscar, filtrar, activar o editar costos
+              puntuales. Para reemplazos masivos usa{" "}
               <span className="font-semibold text-slate-100">Seed desde JSON / CSV</span>.
             </div>
             <button
@@ -573,6 +615,47 @@ export default function FeesClient({
             >
               Agregar uno
             </button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px]">
+              <label className="grid gap-1 text-xs text-slate-400">
+                Buscar
+                <input
+                  value={feeQuery}
+                  onChange={(event) => setFeeQuery(event.target.value)}
+                  className="ui-control"
+                  placeholder="Código, concepto o sección"
+                />
+              </label>
+              <label className="grid gap-1 text-xs text-slate-400">
+                Sección
+                <select
+                  value={feeSectionFilter}
+                  onChange={(event) => setFeeSectionFilter(event.target.value as FeeSection | "all")}
+                  className="ui-control"
+                >
+                  <option value="all">Todas</option>
+                  {Object.entries(SECTION_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-xs text-slate-400">
+                Estado
+                <select
+                  value={feeStatusFilter}
+                  onChange={(event) =>
+                    setFeeStatusFilter(event.target.value as "all" | "active" | "inactive")
+                  }
+                  className="ui-control"
+                >
+                  <option value="all">Todos</option>
+                  <option value="active">Activos</option>
+                  <option value="inactive">Inactivos</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <FeedbackBanner feedback={feeFeedback} />
@@ -692,30 +775,25 @@ export default function FeesClient({
             </div>
           )}
 
-          <div className="text-sm text-slate-300">{fees.length} registro(s)</div>
+          <div className="text-sm text-slate-300">
+            {visibleFees.length} de {fees.length} registro(s)
+          </div>
 
           <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[1080px] border-collapse text-sm">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
                 <tr>
-                  <th className="p-3 text-left font-semibold">Region</th>
-                  <th className="p-3 text-left font-semibold">Plantel</th>
-                  <th className="p-3 text-left font-semibold">Tier</th>
-                  <th className="p-3 text-left font-semibold">Costo MXN</th>
                   <th className="p-3 text-left font-semibold">Código</th>
                   <th className="p-3 text-left font-semibold">Concepto</th>
                   <th className="p-3 text-left font-semibold">Sección</th>
+                  <th className="p-3 text-left font-semibold">Costo MXN</th>
                   <th className="p-3 text-left font-semibold">Activo</th>
                   <th className="p-3 text-left font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {fees.map((fee) => (
+                {visibleFees.map((fee) => (
                   <tr key={fee.id} className="border-t border-white/10">
-                    <td className="p-3 text-slate-200">{normalizeAdminPricingRegion(null)}</td>
-                    <td className="p-3 text-slate-200">Todos</td>
-                    <td className="p-3 text-slate-200">General</td>
-                    <td className="p-3 text-slate-100">{formatMoney(fee.costMxn)}</td>
                     <td className="p-3 font-mono text-xs text-slate-300">{fee.code}</td>
                     <td className="p-3 text-slate-100">{fee.concept}</td>
                     <td className="p-3">
@@ -723,6 +801,7 @@ export default function FeesClient({
                         {SECTION_LABELS[fee.section]}
                       </span>
                     </td>
+                    <td className="p-3 text-slate-100">{formatMoney(fee.costMxn)}</td>
                     <td className="p-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
@@ -758,10 +837,10 @@ export default function FeesClient({
                     </td>
                   </tr>
                 ))}
-                {!fees.length && (
+                {!visibleFees.length && (
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={9}>
-                      Sin registros. Usa el botón de alta individual o la carga masiva.
+                    <td className="p-4 text-slate-300" colSpan={6}>
+                      Sin registros para los filtros actuales.
                     </td>
                   </tr>
                 )}

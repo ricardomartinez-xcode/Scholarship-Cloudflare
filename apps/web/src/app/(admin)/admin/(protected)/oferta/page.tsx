@@ -33,7 +33,8 @@ export default async function OfertaPage() {
   const configModule = AdminConfigModule.OFFER;
   const moduleMeta = getAdminConfigModuleMeta(configModule);
 
-  const [admin, publicationState, previewRows, visibleCycles] = await Promise.all([
+  const [admin, publicationState, previewRows, visibleCycles, campuses, programs] =
+    await Promise.all([
     getAdminUser(),
     getConfigPublicationState(configModule),
     prisma.programOffering.findMany({
@@ -47,7 +48,11 @@ export default async function OfertaPage() {
         delivery: true,
         escolarizado: true,
         ejecutivo: true,
+        escolarizadoSchedule: true,
+        ejecutivoSchedule: true,
         lineOfBusiness: true,
+        campusId: true,
+        programId: true,
         campus: { select: { code: true, name: true } },
         program: {
           select: {
@@ -60,6 +65,24 @@ export default async function OfertaPage() {
       },
     }),
     getAcademicOfferVisibleCycles(),
+    prisma.campus.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, code: true, name: true, kind: true },
+    }),
+    prisma.program.findMany({
+      orderBy: [{ name: "asc" }],
+      take: 600,
+      select: {
+        id: true,
+        name: true,
+        businessLine: true,
+        category: true,
+        level: true,
+        planPdfUrl: true,
+        brochurePdfUrl: true,
+      },
+    }),
   ]);
 
   return (
@@ -106,15 +129,37 @@ export default async function OfertaPage() {
         initialVisibleCycles={visibleCycles}
         initialPreviewRows={previewRows.map((row) => ({
           id: row.id,
+          campusId: row.campusId,
+          programId: row.programId,
           campusCode: row.campus.code,
           campusName: row.campus.name,
           cycle: row.cycle,
           programName: row.program.name,
           line: row.lineOfBusiness ?? row.program.businessLine ?? null,
           modality: getModalityLabel(row),
+          delivery: row.delivery,
+          escolarizado: row.escolarizado,
+          ejecutivo: row.ejecutivo,
+          escolarizadoSchedule: row.escolarizadoSchedule,
+          ejecutivoSchedule: row.ejecutivoSchedule,
           isActive: row.isActive,
           hasPlanPdf: Boolean(row.program.planPdfUrl),
           hasBrochurePdf: Boolean(row.program.brochurePdfUrl),
+        }))}
+        campusOptions={campuses.map((campus) => ({
+          id: campus.id,
+          code: campus.code,
+          name: campus.name,
+          kind: campus.kind,
+        }))}
+        programOptions={programs.map((program) => ({
+          id: program.id,
+          name: program.name,
+          businessLine: program.businessLine,
+          category: program.category,
+          level: program.level,
+          hasPlanPdf: Boolean(program.planPdfUrl),
+          hasBrochurePdf: Boolean(program.brochurePdfUrl),
         }))}
       />
     </div>

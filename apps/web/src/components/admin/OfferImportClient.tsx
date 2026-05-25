@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   ACADEMIC_OFFER_CYCLES,
   type AcademicOfferCycle,
 } from "@/config/academicOffer";
+import {
+  deleteAcademicOfferAction,
+  upsertAcademicOfferAction,
+} from "@/app/(admin)/admin/(protected)/oferta/actions";
 
 type Summary = {
   ok: true;
@@ -48,27 +52,119 @@ type Summary = {
 
 type OfferPreviewRow = {
   id: string;
+  campusId: string;
+  programId: string;
   campusCode: string;
   campusName: string;
   cycle: string;
   programName: string;
   line: string | null;
   modality: string;
+  delivery: "CAMPUS" | "ONLINE";
+  escolarizado: boolean;
+  ejecutivo: boolean;
+  escolarizadoSchedule: string | null;
+  ejecutivoSchedule: string | null;
   isActive: boolean;
   hasPlanPdf: boolean;
   hasBrochurePdf: boolean;
+};
+
+type CampusOption = {
+  id: string;
+  code: string;
+  name: string;
+  kind: "campus" | "online";
+};
+
+type ProgramOption = {
+  id: string;
+  name: string;
+  businessLine: string | null;
+  category: string | null;
+  level: string | null;
+  hasPlanPdf: boolean;
+  hasBrochurePdf: boolean;
+};
+
+type ManualOfferDraft = {
+  mode: "create" | "edit";
+  id: string;
+  campusId: string;
+  programId: string;
+  cycle: AcademicOfferCycle;
+  delivery: "CAMPUS" | "ONLINE";
+  escolarizado: boolean;
+  ejecutivo: boolean;
+  escolarizadoSchedule: string;
+  ejecutivoSchedule: string;
+  lineOfBusiness: string;
+  isActive: boolean;
 };
 
 type ApiError = { ok: false; error: string };
 
 const colLetter = (n: number) => String.fromCharCode(64 + n);
 
+const LINE_LABELS: Record<string, string> = {
+  licenciatura: "Licenciatura",
+  salud: "Salud",
+  prepa: "Bachillerato",
+  posgrado: "Posgrado",
+};
+
+function buildManualDraft(params: {
+  row?: OfferPreviewRow;
+  campusOptions: CampusOption[];
+  programOptions: ProgramOption[];
+}): ManualOfferDraft {
+  const row = params.row;
+  if (row) {
+    return {
+      mode: "edit",
+      id: row.id,
+      campusId: row.campusId,
+      programId: row.programId,
+      cycle: row.cycle as AcademicOfferCycle,
+      delivery: row.delivery,
+      escolarizado: row.escolarizado,
+      ejecutivo: row.ejecutivo,
+      escolarizadoSchedule: row.escolarizadoSchedule ?? "",
+      ejecutivoSchedule: row.ejecutivoSchedule ?? "",
+      lineOfBusiness: row.line ?? "",
+      isActive: row.isActive,
+    };
+  }
+
+  const defaultCampus =
+    params.campusOptions.find((campus) => campus.kind === "campus") ?? params.campusOptions[0];
+  const defaultProgram = params.programOptions[0];
+  return {
+    mode: "create",
+    id: "",
+    campusId: defaultCampus?.id ?? "",
+    programId: defaultProgram?.id ?? "",
+    cycle: "C1",
+    delivery: defaultCampus?.kind === "online" ? "ONLINE" : "CAMPUS",
+    escolarizado: true,
+    ejecutivo: false,
+    escolarizadoSchedule: "",
+    ejecutivoSchedule: "",
+    lineOfBusiness: defaultProgram?.businessLine ?? "",
+    isActive: true,
+  };
+}
+
 export default function OfferImportClient({
   initialPreviewRows = [],
   initialVisibleCycles = ["C1"] as AcademicOfferCycle[],
+  campusOptions = [],
+  programOptions = [],
 }: {
   initialPreviewRows?: OfferPreviewRow[];
   initialVisibleCycles?: AcademicOfferCycle[];
+  campusOptions?: CampusOption[];
+  programOptions?: ProgramOption[];
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -90,6 +186,10 @@ export default function OfferImportClient({
       ACADEMIC_OFFER_CYCLES.includes(value as AcademicOfferCycle),
     ),
   );
+  const [manualDraft, setManualDraft] = useState<ManualOfferDraft | null>(null);
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [manualFeedback, setManualFeedback] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     if (!summary) return null;
@@ -207,6 +307,54 @@ export default function OfferImportClient({
     }
   }
 
+  async function saveManualOffer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!manualDraft) return;
+    setManualLoading(true);
+    setManualError(null);
+    setManualFeedback(null);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      const result = await upsertAcademicOfferAction(formData);
+      if (!result.ok) {
+        throw new Error(result.error ?? "No fue posible guardar la oferta.");
+      }
+      setManualDraft(null);
+      setManualFeedback("Oferta académica guardada correctamente.");
+      router.refresh();
+    } catch (err) {
+      setManualError(err instanceof Error ? err.message : "No fue posible guardar la oferta.");
+    } finally {
+      setManualLoading(false);
+    }
+  }
+
+  async function deleteManualOffer(row: OfferPreviewRow) {
+    const confirmed = window.confirm(
+      `Eliminar la oferta de ${row.programName} en ${row.campusName} (${row.cycle})?`,
+    );
+    if (!confirmed) return;
+
+    setManualLoading(true);
+    setManualError(null);
+    setManualFeedback(null);
+    try {
+      const formData = new FormData();
+      formData.set("id", row.id);
+      const result = await deleteAcademicOfferAction(formData);
+      if (!result.ok) {
+        throw new Error(result.error ?? "No fue posible eliminar la oferta.");
+      }
+      setManualFeedback("Oferta académica eliminada correctamente.");
+      router.refresh();
+    } catch (err) {
+      setManualError(err instanceof Error ? err.message : "No fue posible eliminar la oferta.");
+    } finally {
+      setManualLoading(false);
+    }
+  }
+
   const filteredPreviewRows = useMemo(() => {
     const q = previewQuery.trim().toLowerCase();
     if (!q) return previewRows;
@@ -229,6 +377,293 @@ export default function OfferImportClient({
 
   return (
     <section className="ui-card ui-card-pad">
+      <div className="grid gap-4 rounded-3xl border border-white/10 bg-slate-950/20 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.28em] text-slate-400">
+              Gestión manual
+            </div>
+            <h1 className="mt-1 text-lg font-semibold">Oferta académica</h1>
+            <p className="mt-1 max-w-3xl text-sm text-slate-300">
+              Agrega, modifica o elimina ofertas puntuales sin pasar por importación.
+              La carga Excel sigue disponible para cambios masivos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setManualError(null);
+              setManualFeedback(null);
+              setManualDraft(buildManualDraft({ campusOptions, programOptions }));
+            }}
+            className="rounded-2xl border border-cyan-500/30 bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/30"
+          >
+            Agregar oferta
+          </button>
+        </div>
+
+        {manualFeedback ? (
+          <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-3 py-2 text-sm text-emerald-200">
+            {manualFeedback}
+          </div>
+        ) : null}
+        {manualError ? (
+          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {manualError}
+          </div>
+        ) : null}
+
+        {manualDraft ? (
+          <form onSubmit={saveManualOffer} className="grid gap-4 rounded-2xl border border-white/10 bg-black/15 p-4">
+            <input type="hidden" name="id" value={manualDraft.id} />
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-100">
+                  {manualDraft.mode === "edit" ? "Editar oferta" : "Nueva oferta"}
+                </div>
+                <div className="text-xs text-slate-400">
+                  La combinación plantel + programa + ciclo es única.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManualDraft(null)}
+                className="text-sm text-slate-400 transition hover:text-slate-200"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <label className="grid gap-2 text-sm">
+                Plantel
+                <select
+                  name="campusId"
+                  value={manualDraft.campusId}
+                  onChange={(event) => {
+                    const campus = campusOptions.find((item) => item.id === event.target.value);
+                    setManualDraft((current) =>
+                      current
+                        ? {
+                            ...current,
+                            campusId: event.target.value,
+                            delivery: campus?.kind === "online" ? "ONLINE" : current.delivery,
+                            escolarizado: campus?.kind === "online" ? false : current.escolarizado,
+                            ejecutivo: campus?.kind === "online" ? false : current.ejecutivo,
+                          }
+                        : current,
+                    );
+                  }}
+                  className="ui-control"
+                  required
+                >
+                  {campusOptions.map((campus) => (
+                    <option key={campus.id} value={campus.id}>
+                      {campus.name} · {campus.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                Ciclo
+                <select
+                  name="cycle"
+                  value={manualDraft.cycle}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current
+                        ? { ...current, cycle: event.target.value as AcademicOfferCycle }
+                        : current,
+                    )
+                  }
+                  className="ui-control"
+                  required
+                >
+                  {ACADEMIC_OFFER_CYCLES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                Estado
+                <select
+                  name="isActive"
+                  value={manualDraft.isActive ? "true" : "false"}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current ? { ...current, isActive: event.target.value === "true" } : current,
+                    )
+                  }
+                  className="ui-control"
+                >
+                  <option value="true">Activa</option>
+                  <option value="false">Inactiva</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="grid gap-2 text-sm">
+              Programa / plan de estudios
+              <select
+                name="programId"
+                value={manualDraft.programId}
+                onChange={(event) => {
+                  const program = programOptions.find((item) => item.id === event.target.value);
+                  setManualDraft((current) =>
+                    current
+                      ? {
+                          ...current,
+                          programId: event.target.value,
+                          lineOfBusiness: program?.businessLine ?? current.lineOfBusiness,
+                        }
+                      : current,
+                  );
+                }}
+                className="ui-control"
+                required
+              >
+                {programOptions.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {program.name}
+                    {program.businessLine ? ` · ${LINE_LABELS[program.businessLine] ?? program.businessLine}` : ""}
+                    {program.hasPlanPdf ? " · PDF" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <label className="grid gap-2 text-sm">
+                Línea
+                <select
+                  name="lineOfBusiness"
+                  value={manualDraft.lineOfBusiness}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current ? { ...current, lineOfBusiness: event.target.value } : current,
+                    )
+                  }
+                  className="ui-control"
+                >
+                  <option value="">Usar programa</option>
+                  {Object.entries(LINE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                Delivery
+                <select
+                  name="delivery"
+                  value={manualDraft.delivery}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current
+                        ? {
+                            ...current,
+                            delivery: event.target.value as "CAMPUS" | "ONLINE",
+                            escolarizado:
+                              event.target.value === "ONLINE" ? false : current.escolarizado,
+                            ejecutivo: event.target.value === "ONLINE" ? false : current.ejecutivo,
+                          }
+                        : current,
+                    )
+                  }
+                  className="ui-control"
+                >
+                  <option value="CAMPUS">Plantel</option>
+                  <option value="ONLINE">Online</option>
+                </select>
+              </label>
+
+              <div className="grid gap-2 text-sm">
+                Modalidades
+                <div className="flex min-h-11 flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-3">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="escolarizado"
+                      value="true"
+                      checked={manualDraft.escolarizado}
+                      disabled={manualDraft.delivery === "ONLINE"}
+                      onChange={(event) =>
+                        setManualDraft((current) =>
+                          current ? { ...current, escolarizado: event.target.checked } : current,
+                        )
+                      }
+                    />
+                    Escolarizado
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="ejecutivo"
+                      value="true"
+                      checked={manualDraft.ejecutivo}
+                      disabled={manualDraft.delivery === "ONLINE"}
+                      onChange={(event) =>
+                        setManualDraft((current) =>
+                          current ? { ...current, ejecutivo: event.target.checked } : current,
+                        )
+                      }
+                    />
+                    Ejecutivo
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="grid gap-2 text-sm">
+                Horario escolarizado
+                <input
+                  name="escolarizadoSchedule"
+                  value={manualDraft.escolarizadoSchedule}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current ? { ...current, escolarizadoSchedule: event.target.value } : current,
+                    )
+                  }
+                  className="ui-control"
+                  disabled={manualDraft.delivery === "ONLINE"}
+                />
+              </label>
+              <label className="grid gap-2 text-sm">
+                Horario ejecutivo
+                <input
+                  name="ejecutivoSchedule"
+                  value={manualDraft.ejecutivoSchedule}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current ? { ...current, ejecutivoSchedule: event.target.value } : current,
+                    )
+                  }
+                  className="ui-control"
+                  disabled={manualDraft.delivery === "ONLINE"}
+                />
+              </label>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={manualLoading}
+                className="rounded-2xl border border-cyan-500/30 bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/30 disabled:opacity-60"
+              >
+                {manualLoading ? "Guardando..." : "Guardar oferta"}
+              </button>
+            </div>
+          </form>
+        ) : null}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.28em] text-slate-400">
@@ -564,7 +999,7 @@ export default function OfferImportClient({
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-white/10">
-              <table className="w-full min-w-[860px] border-collapse text-sm">
+              <table className="w-full min-w-[980px] border-collapse text-sm">
                 <thead className="bg-slate-950/40 text-slate-300">
                   <tr>
                     <th className="p-3 text-left font-semibold">Campus</th>
@@ -575,6 +1010,7 @@ export default function OfferImportClient({
                     <th className="p-3 text-left font-semibold">Plan PDF</th>
                     <th className="p-3 text-left font-semibold">Brochure</th>
                     <th className="p-3 text-left font-semibold">Estado</th>
+                    <th className="p-3 text-left font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -601,11 +1037,34 @@ export default function OfferImportClient({
                           {row.isActive ? "Activa" : "Inactiva"}
                         </span>
                       </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualError(null);
+                              setManualFeedback(null);
+                              setManualDraft(buildManualDraft({ row, campusOptions, programOptions }));
+                            }}
+                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteManualOffer(row)}
+                            disabled={manualLoading}
+                            className="rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1 text-xs text-red-100 transition hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                   {!filteredPreviewRows.length ? (
                     <tr>
-                      <td className="p-4 text-slate-300" colSpan={8}>
+                      <td className="p-4 text-slate-300" colSpan={9}>
                         Sin resultados para los filtros actuales.
                       </td>
                     </tr>
@@ -670,7 +1129,7 @@ export default function OfferImportClient({
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[860px] border-collapse text-sm">
+            <table className="w-full min-w-[980px] border-collapse text-sm">
               <thead className="bg-slate-950/40 text-slate-300">
                 <tr>
                   <th className="p-3 text-left font-semibold">Campus</th>
@@ -681,6 +1140,7 @@ export default function OfferImportClient({
                   <th className="p-3 text-left font-semibold">Plan PDF</th>
                   <th className="p-3 text-left font-semibold">Brochure</th>
                   <th className="p-3 text-left font-semibold">Estado</th>
+                  <th className="p-3 text-left font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -706,6 +1166,29 @@ export default function OfferImportClient({
                       >
                         {row.isActive ? "Activa" : "Inactiva"}
                       </span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualError(null);
+                            setManualFeedback(null);
+                            setManualDraft(buildManualDraft({ row, campusOptions, programOptions }));
+                          }}
+                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteManualOffer(row)}
+                          disabled={manualLoading}
+                          className="rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1 text-xs text-red-100 transition hover:bg-red-500/20 disabled:opacity-50"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

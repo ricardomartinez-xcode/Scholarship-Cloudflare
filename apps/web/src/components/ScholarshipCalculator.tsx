@@ -1109,7 +1109,7 @@ export default function ScholarshipCalculator({
     { value: "regreso", label: "Regreso" },
     { value: "reingreso", label: "Reingreso" },
   ];
-  const nivelOptions = niveles.map((n) => ({ value: n, label: n }));
+  const nivelOptions = niveles.map((n) => ({ value: n, label: humanizeLabel(n) }));
   const modalidadOptions = modalidades.map((m) => ({ value: m, label: m }));
   const planOptions = planes.map((p) => ({ value: String(p), label: `Plan ${p}` }));
   const plantelOptions = planteles.map((campus) => ({
