@@ -657,8 +657,8 @@ export default function ScholarshipCalculator({
   }, [campusPricingOptions, pricingOptions, tipo]);
 
   const niveles = useMemo(() => {
-    return uniqSorted(availablePricingOptions.map((option) => option.businessLine));
-  }, [availablePricingOptions]);
+    return uniqSorted(studyPrograms.map((program) => program.businessLine));
+  }, [studyPrograms]);
 
   const modalidades = useMemo(() => {
     if (!nivel) return [];
@@ -1119,11 +1119,6 @@ export default function ScholarshipCalculator({
   const materiasOptionsUi = materiasOptions.map((m) => ({
     value: String(m),
     label: String(m),
-  }));
-  const offerProgramOptions = offerPrograms.map((item) => ({
-    value: item.offeringId,
-    label: item.programName,
-    keywords: `${item.modality} ${item.schedule ?? ""}`,
   }));
   const cargoOptions = academicFees.length
     ? academicFees.map((fee) => ({
@@ -1980,10 +1975,10 @@ export default function ScholarshipCalculator({
                   Oferta del plantel
                 </div>
               </div>
-              {selectedOfferProgram ? (
+              {selectedStudyProgram ? (
                 <div className="text-xs text-slate-400">
-                  Programa seleccionado:{" "}
-                  <span className="text-slate-200">{selectedOfferProgram.programName}</span>
+                  Plan seleccionado:{" "}
+                  <span className="text-slate-200">{selectedStudyProgram.name}</span>
                 </div>
               ) : null}
             </div>
@@ -1994,21 +1989,17 @@ export default function ScholarshipCalculator({
               ) : (
               <div className="mt-4 grid min-w-0 gap-[var(--ui-card-gap)] xl:grid-cols-[minmax(0,1.24fr)_minmax(248px,0.76fr)]">
                 <div className="grid min-w-0 gap-3">
-                  <label className="grid min-w-0 gap-2 ui-label">
-                    <span id={ofertaLabelId}>Programa</span>
-                    <SmartSelect
-                      labelId={ofertaLabelId}
-                      value={offerProgramId}
-                      placeholder={
-                        offerProgramsLoading
-                          ? "Cargando oferta..."
-                          : "Selecciona programa"
-                      }
-                      disabled={offerProgramsLoading || !offerProgramOptions.length}
-                      options={offerProgramOptions}
-                      onChange={(v) => setOfferProgramId(v)}
-                    />
-                  </label>
+                  <div className="grid min-w-0 gap-2 ui-label">
+                    <span id={ofertaLabelId}>Plan de estudios</span>
+                    <div
+                      aria-labelledby={ofertaLabelId}
+                      className="ui-control flex min-h-11 items-center text-[color:var(--ui-text-primary)]"
+                    >
+                      {offerProgramsLoading
+                        ? "Cargando oferta..."
+                        : selectedStudyProgram?.name ?? "Sin plan seleccionado"}
+                    </div>
+                  </div>
                   {offerProgramsError ? (
                     <div className="text-xs text-red-200">{offerProgramsError}</div>
                   ) : null}
@@ -2054,7 +2045,7 @@ export default function ScholarshipCalculator({
                   </div>
                 </div>
                 <div className="sr-only" aria-live="polite">
-                  Programa seleccionado: {offerSelectedProgramId || "ninguno"}
+                  Plan seleccionado: {offerSelectedProgramId || studyProgramId || "ninguno"}
                 </div>
               </div>
             )}

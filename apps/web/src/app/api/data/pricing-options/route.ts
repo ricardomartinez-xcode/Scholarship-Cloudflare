@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getAcademicOfferVisibleCycles } from "@/lib/academic-offer-config";
 import { getSessionUser } from "@/lib/authz";
 import {
   BASE_PRICE_OVERRIDE_SCOPE,
@@ -16,7 +15,10 @@ import {
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
-import { getUnidepProgramPlanUrl } from "@/lib/unidep-program-catalog";
+import {
+  getUnidepProgramCatalog,
+  getUnidepProgramPlanUrl,
+} from "@/lib/unidep-program-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -113,8 +115,14 @@ export async function GET() {
     return NextResponse.json({ error: "inactive" }, { status: 403 });
   }
 
-  const visibleCycles = await getAcademicOfferVisibleCycles();
-  const [rules, priceOverrides, campuses, subjectPrices, activeOfferings] = await Promise.all([
+  const [
+    rules,
+    priceOverrides,
+    campuses,
+    subjectPrices,
+    activeOfferings,
+    catalogPrograms,
+  ] = await Promise.all([
     prisma.scholarshipRule.findMany({
       where: { sourceVersion: "canonical" },
       orderBy: [
@@ -163,7 +171,6 @@ export async function GET() {
     prisma.programOffering.findMany({
       where: {
         isActive: true,
-        cycle: { in: visibleCycles },
         campus: { isActive: true },
       },
       select: {
@@ -186,6 +193,7 @@ export async function GET() {
         },
       },
     }),
+    getUnidepProgramCatalog({ onlyWithPlan: true }),
   ]);
 
   const academicOfferByCampus = new Map<string, typeof activeOfferings>();
@@ -320,11 +328,23 @@ export async function GET() {
     })
     .filter((campus) => campus.businessLines.length > 0 && campus.pricingOptions.length > 0);
 
-  const studyPrograms = Array.from(
+  const pricedStudyPrograms = Array.from(
     new Map(
       responseCampuses.flatMap((campus) =>
         campus.studyPrograms.map((program) => [program.id, program] as const),
       ),
+    ).values(),
+  );
+  const studyPrograms = Array.from(
+    new Map(
+      [
+        ...catalogPrograms
+          .map((program) => buildStudyProgram(program))
+          .filter((program): program is NonNullable<ReturnType<typeof buildStudyProgram>> =>
+            Boolean(program),
+          ),
+        ...pricedStudyPrograms,
+      ].map((program) => [program.id, program] as const),
     ).values(),
   ).sort(
     (left, right) =>
