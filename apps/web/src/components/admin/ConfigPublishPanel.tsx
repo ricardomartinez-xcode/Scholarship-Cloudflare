@@ -62,6 +62,7 @@ export default function ConfigPublishPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publishPending, startPublishTransition] = useTransition();
+  const [repairPending, startRepairTransition] = useTransition();
   const [rollbackPendingId, setRollbackPendingId] = useState<string | null>(null);
 
   const diff = state.diffSummary;
@@ -84,6 +85,23 @@ export default function ConfigPublishPanel({
         return;
       }
       setMessage("Snapshot publicado correctamente.");
+      router.refresh();
+    });
+  }
+
+  function handleRepairPublish() {
+    setMessage(null);
+    setError(null);
+    startRepairTransition(async () => {
+      const formData = new FormData();
+      formData.set("module", module);
+      formData.set("notes", "Reparar publicación: republicar snapshot draft actual.");
+      const result = await publishConfigModuleAction(formData);
+      if (!result.ok) {
+        setError(result.error ?? "No fue posible reparar la publicación.");
+        return;
+      }
+      setMessage("Publicación reparada con el snapshot actual.");
       router.refresh();
     });
   }
@@ -140,14 +158,32 @@ export default function ConfigPublishPanel({
 
           <button
             type="button"
-            disabled={!canPublish || publishPending || !hasDraftChanges}
+            disabled={!canPublish || publishPending || repairPending || !hasDraftChanges}
             onClick={handlePublish}
             className="ui-button-primary min-h-9 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {publishPending ? "Publicando..." : "Publicar draft"}
           </button>
+
+          <button
+            type="button"
+            disabled={!canPublish || publishPending || repairPending}
+            onClick={handleRepairPublish}
+            title="Republica el snapshot actual aunque no haya diferencias visibles."
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {repairPending ? "Reparando..." : "Reparar publicación"}
+          </button>
         </div>
       </div>
+
+      {canPublish && !hasDraftChanges ? (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950">
+          No hay diferencias visibles. Si un rollback dejó la publicación bloqueada,
+          <span className="font-semibold"> Reparar publicación </span>
+          republica el snapshot actual.
+        </div>
+      ) : null}
 
       {!canPublish ? (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">

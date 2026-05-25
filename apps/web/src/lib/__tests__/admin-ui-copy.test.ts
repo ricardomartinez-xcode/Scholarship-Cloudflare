@@ -34,4 +34,14 @@ describe("admin UI copy", () => {
 
     expect(matches).toEqual([]);
   });
+
+  it("exposes a repair publish action for no-diff draft states", () => {
+    const source = fs.readFileSync(
+      path.join(rootDir, "apps/web/src/components/admin/ConfigPublishPanel.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("Reparar publicación");
+    expect(source).toContain("Republica el snapshot actual");
+  });
 });
