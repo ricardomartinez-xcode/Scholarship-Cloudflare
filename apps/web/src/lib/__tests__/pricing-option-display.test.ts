@@ -39,4 +39,68 @@ describe("visibleQuoteModalities", () => {
       ),
     ).toEqual([{ value: "TJN", label: "Tijuana" }]);
   });
+
+  it("filters campus options by active academic offer business line", () => {
+    expect(
+      visibleQuoteCampuses(
+        [
+          {
+            value: "CHH",
+            label: "Chihuahua",
+            businessLines: ["prepa", "licenciatura"],
+            modalities: ["presencial"],
+          },
+          {
+            value: "TJN",
+            label: "Tijuana",
+            businessLines: ["licenciatura"],
+            modalities: ["presencial"],
+          },
+        ],
+        "presencial",
+        "prepa",
+      ),
+    ).toEqual([
+      {
+        value: "CHH",
+        label: "Chihuahua",
+        businessLines: ["prepa", "licenciatura"],
+        modalities: ["presencial"],
+      },
+    ]);
+  });
+
+  it("filters campus options by base-price availability for the selected plan", () => {
+    expect(
+      visibleQuoteCampuses(
+        [
+          {
+            value: "CHH",
+            label: "Chihuahua",
+            businessLines: ["prepa"],
+            modalities: ["presencial"],
+            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
+          },
+          {
+            value: "TJN",
+            label: "Tijuana",
+            businessLines: ["prepa"],
+            modalities: ["presencial"],
+            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 9 }],
+          },
+        ],
+        "presencial",
+        "prepa",
+        6,
+      ),
+    ).toEqual([
+      {
+        value: "CHH",
+        label: "Chihuahua",
+        businessLines: ["prepa"],
+        modalities: ["presencial"],
+        pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
+      },
+    ]);
+  });
 });

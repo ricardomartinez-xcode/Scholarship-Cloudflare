@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { basePriceFromRules } from "@/lib/pricing-normalize";
+import { basePriceFromRules, normalizeBusinessLine } from "@/lib/pricing-normalize";
+
+describe("normalizeBusinessLine", () => {
+  it("normalizes Bachillerato as prepa", () => {
+    expect(normalizeBusinessLine("Bachillerato")).toBe("prepa");
+    expect(normalizeBusinessLine("bachillerato")).toBe("prepa");
+  });
+});
 
 describe("basePriceFromRules", () => {
   const baseRule = {

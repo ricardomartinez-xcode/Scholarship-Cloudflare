@@ -68,7 +68,20 @@ export function normalizeBusinessLine(
 ): CanonicalBusinessLine | null {
   const value = normalizeAliasValue(raw);
   if (!value) return null;
-  return BUSINESS_LINE_ALIASES[value] ?? null;
+  if (value === "salud") return "salud";
+  if (value === "licenciatura") return "licenciatura";
+  if (value === "prepa" || value === "preparatoria" || value === "bachillerato") {
+    return "prepa";
+  }
+  if (
+    value === "posgrado" ||
+    value === "maestria" ||
+    value === "maestría" ||
+    value === "doctorado"
+  ) {
+    return "posgrado";
+  }
+  return null;
 }
 
 export function normalizeCanonicalModality(

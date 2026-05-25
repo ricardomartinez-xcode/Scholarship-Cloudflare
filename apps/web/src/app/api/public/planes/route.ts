@@ -1,10 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { BenefitBusinessLine, Prisma } from "@prisma/client";
-
 import { getSessionUser } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
 import {
   buildPublicRequestId,
   logPublicRouteTiming,
@@ -13,121 +10,17 @@ import {
   PUBLIC_ROUTE_CACHE_TAGS,
 } from "@/lib/public-route-cache";
 import {
-  normalizeBusinessLine,
-  normalizeCanonicalModality,
-} from "@/lib/pricing-normalize";
-import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
+  getUnidepProgramCatalog,
+  getUnidepProgramPlanUrl,
+} from "@/lib/unidep-program-catalog";
 
 export const dynamic = "force-dynamic";
 
-const VALID_LINES = ["salud", "licenciatura", "prepa", "posgrado"] as const;
-
-function getOfferingCanonicalModalities(offering: {
-  delivery: "CAMPUS" | "ONLINE";
-  escolarizado: boolean;
-  ejecutivo: boolean;
-}): Array<"online" | "presencial" | "mixta"> {
-  if (offering.delivery === "ONLINE") return ["online"];
-  const modalities = new Set<"online" | "presencial" | "mixta">();
-  if (offering.escolarizado) modalities.add("presencial");
-  if (offering.ejecutivo) modalities.add("mixta");
-  if (!offering.escolarizado && !offering.ejecutivo) modalities.add("presencial");
-  return Array.from(modalities);
-}
-
-function matchesLineFilter(
-  lineRaw: string,
-  candidateValues: Array<string | null | undefined>,
-) {
-  if (!lineRaw) return true;
-  const normalizedInput = normalizeBusinessLine(lineRaw);
-  if (!normalizedInput) return false;
-  return candidateValues.some((value) => normalizeBusinessLine(value) === normalizedInput);
-}
-
-async function loadPlanesPayload(
-  lineRaw: string,
-  query: string,
-  campusRaw: string,
-  modalityRaw: string,
-  cycleRaw: string,
-) {
-  const normalizedLine = normalizeBusinessLine(lineRaw);
-  const lineEnum = normalizedLine && VALID_LINES.includes(normalizedLine)
-    ? (normalizedLine as BenefitBusinessLine)
-    : null;
-  const normalizedModality = normalizeCanonicalModality(modalityRaw);
-  const normalizedCycle = normalizeAcademicOfferCycle(cycleRaw);
-  const normalizedCampus = campusRaw.trim();
-
-  const andConditions: Prisma.ProgramOfferingWhereInput[] = [
-    {
-      isActive: true,
-    },
-  ];
-
-  if (normalizedCycle) {
-    andConditions.push({ cycle: normalizedCycle });
-  }
-
-  if (normalizedCampus) {
-    andConditions.push({
-      campus: {
-        OR: [
-          { code: { equals: normalizedCampus, mode: "insensitive" } },
-          { metaKey: { equals: normalizedCampus, mode: "insensitive" } },
-          { name: { equals: normalizedCampus, mode: "insensitive" } },
-          { slug: { equals: normalizedCampus, mode: "insensitive" } },
-        ],
-      },
-    });
-  }
-
-  if (query) {
-    andConditions.push({
-      OR: [
-        { program: { name: { contains: query, mode: "insensitive" } } },
-        { program: { category: { contains: query, mode: "insensitive" } } },
-      ],
-    });
-  }
-
-  const offerings = await prisma.programOffering.findMany({
-    where: { AND: andConditions },
-    orderBy: [{ program: { name: "asc" } }],
-    select: {
-      id: true,
-      cycle: true,
-      delivery: true,
-      escolarizado: true,
-      ejecutivo: true,
-      lineOfBusiness: true,
-      campus: {
-        select: {
-          id: true,
-          code: true,
-          metaKey: true,
-          name: true,
-          slug: true,
-          tier: true,
-          kind: true,
-        },
-      },
-      program: {
-        select: {
-          id: true,
-          name: true,
-          category: true,
-          businessLine: true,
-          level: true,
-          planPdfUrl: true,
-          planDriveLink: true,
-          planUrl: true,
-          _count: { select: { offerings: true } },
-        },
-      },
-    },
-    take: 800,
+async function loadPlanesPayload(lineRaw: string, query: string) {
+  const programs = await getUnidepProgramCatalog({
+    businessLine: lineRaw,
+    query,
+    onlyWithPlan: true,
   });
 
   const campuses = new Map<
@@ -220,12 +113,14 @@ async function loadPlanesPayload(
   }
 
   return {
-    campuses: Array.from(campuses.values()).sort((left, right) =>
-      left.name.localeCompare(right.name, "es"),
-    ),
-    programs: Array.from(programs.values()).sort((left, right) =>
-      left.name.localeCompare(right.name, "es"),
-    ),
+    programs: programs.map((program) => ({
+      id: program.id,
+      name: program.name,
+      category: program.category,
+      businessLine: program.businessLine,
+      planPdfUrl: getUnidepProgramPlanUrl(program),
+      hasPlan: Boolean(getUnidepProgramPlanUrl(program)),
+    })),
   };
 }
 

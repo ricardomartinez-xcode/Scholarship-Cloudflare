@@ -1,7 +1,7 @@
 import { AdminCapability } from "@prisma/client";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
-import { prisma } from "@/lib/prisma";
+import { getUnidepProgramCatalog } from "@/lib/unidep-program-catalog";
 import ProgramsClient from "./ProgramsClient";
 import MigrateClient from "../MigrateClient";
 
@@ -9,18 +9,7 @@ export const dynamic = "force-dynamic";
 
 async function loadPrograms() {
   try {
-    return await prisma.program.findMany({
-      orderBy: [{ name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        category: true,
-        level: true,
-        businessLine: true,
-        planPdfUrl: true,
-        brochurePdfUrl: true,
-      },
-    });
+    return await getUnidepProgramCatalog();
   } catch {
     return null;
   }

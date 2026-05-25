@@ -1,10 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { AdminConfigModule, BenefitBusinessLine } from "@prisma/client";
-
 import { getAcademicOfferVisibleCycles } from "@/lib/academic-offer-config";
-import { getPublishedConfigSnapshot, type OfferDraftSnapshot } from "@/lib/admin-config-snapshots";
 import { getSessionUser } from "@/lib/authz";
 import {
   normalizeAcademicOfferCycle,
@@ -23,10 +20,14 @@ import {
   normalizeCanonicalModality,
 } from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
+import {
+  getUnidepProgramCatalog,
+  getUnidepProgramPlanUrl,
+  matchesUnidepProgramLine,
+  normalizeUnidepProgramBusinessLine,
+} from "@/lib/unidep-program-catalog";
 
 export const dynamic = "force-dynamic";
-
-const VALID_LINES = ["salud", "licenciatura", "prepa", "posgrado"] as const;
 
 function getModalityLabel(offering: {
   delivery: "CAMPUS" | "ONLINE";
@@ -78,7 +79,6 @@ type OfertaPayload = {
   }>;
 };
 
-type OfertaProgramPayload = OfertaPayload["programs"][number];
 type OfertaOfferingPayload = OfertaPayload["offerings"][number];
 type OfertaCampusPayload = OfertaPayload["campuses"][number];
 
@@ -141,115 +141,6 @@ async function loadOfertaPayload(
   modalityRaw: string,
   cycleRaw: string,
 ): Promise<OfertaPayload> {
-  const published = await getPublishedConfigSnapshot(AdminConfigModule.OFFER);
-  if (published) {
-    const snapshot = published.snapshot as OfferDraftSnapshot;
-    const availableCycles = (Array.isArray(snapshot.visibleCycles)
-      ? snapshot.visibleCycles
-      : await getAcademicOfferVisibleCycles()) satisfies AcademicOfferCycle[];
-    const requestedCycle = resolveRequestedCycle(cycleRaw, availableCycles);
-    const requestedModality = normalizeCanonicalModality(modalityRaw);
-    if (!requestedCycle) {
-      return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
-    }
-    if (!availableCycles.includes(requestedCycle)) {
-      return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
-    }
-    const normalizedCampus = normalizeKey(campusRaw);
-    const selectedCampus = campusRaw
-      ? snapshot.campuses.find(
-          (campus) =>
-            normalizeKey(campus.code) === normalizedCampus ||
-            normalizeKey(campus.metaKey) === normalizedCampus ||
-            normalizeKey(campus.name) === normalizedCampus ||
-            normalizeKey(campus.slug) === normalizedCampus,
-        ) ?? null
-      : null;
-
-    if (campusRaw && !selectedCampus) {
-      return {
-        availableCycles,
-        selectedCycle: requestedCycle,
-        campuses: [],
-        programs: [],
-        offerings: [],
-      };
-    }
-
-    const normalizedLine = normalizeBusinessLine(lineRaw);
-    const lineEnum = normalizedLine && VALID_LINES.includes(normalizedLine)
-      ? (normalizedLine as BenefitBusinessLine)
-      : null;
-
-    const programMap = new Map(snapshot.programs.map((program) => [program.id, program]));
-    const campusMap = new Map(snapshot.campuses.map((campus) => [campus.id, campus]));
-    const campuses = snapshot.campuses.map(buildCampusPayload);
-
-    const filteredOfferings = snapshot.offerings.filter((offering) => {
-      if (!offering.isActive) return false;
-      if (offering.cycle !== requestedCycle) return false;
-      if (selectedCampus && offering.campusId !== selectedCampus.id) return false;
-
-      const program = programMap.get(offering.programId);
-      if (!program) return false;
-      if (
-        !matchesLineFilter(lineRaw, [
-          offering.lineOfBusiness,
-          lineEnum ? String(lineEnum) : null,
-          program.businessLine,
-          program.level,
-          program.category,
-        ])
-      ) {
-        return false;
-      }
-      if (
-        requestedModality &&
-        !getOfferingCanonicalModalities(offering).includes(requestedModality)
-      ) {
-        return false;
-      }
-      return true;
-    });
-
-    const seenPrograms = new Set<string>();
-    const programs = filteredOfferings
-      .map((offering) => {
-        const program = programMap.get(offering.programId);
-        if (!program || seenPrograms.has(program.id)) return null;
-        seenPrograms.add(program.id);
-        return {
-          programId: program.id,
-          name: program.name,
-          category: program.category,
-          businessLine: program.businessLine ? String(program.businessLine) : null,
-          brochurePdfUrl: program.brochurePdfUrl,
-          planPdfUrl:
-            program.planPdfUrl ?? program.planDriveLink ?? program.planUrl ?? null,
-        };
-      })
-      .filter((program): program is OfertaProgramPayload => Boolean(program))
-      .sort((left, right) => left!.name.localeCompare(right!.name, "es"));
-
-    const offerings = filteredOfferings
-      .map((offering) => {
-        const program = programMap.get(offering.programId);
-        const campus = campusMap.get(offering.campusId);
-        if (!program || !campus) return null;
-        return {
-          id: offering.id,
-          modality: getModalityLabel(offering),
-          schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
-          planLink: program.planPdfUrl ?? program.planDriveLink ?? program.planUrl ?? null,
-          campus: buildCampusPayload(campus),
-          program: { id: program.id, name: program.name },
-        };
-      })
-      .filter((offering): offering is OfertaOfferingPayload => Boolean(offering));
-
-    return { availableCycles, selectedCycle: requestedCycle, campuses, programs, offerings };
-  }
-
   const availableCycles = await getAcademicOfferVisibleCycles();
   const requestedCycle = resolveRequestedCycle(cycleRaw, availableCycles);
   const requestedModality = normalizeCanonicalModality(modalityRaw);
@@ -291,12 +182,15 @@ async function loadOfertaPayload(
       );
       if (match) campusId = match.id;
     }
+    if (!campusId) {
+      return { availableCycles, selectedCycle: requestedCycle, programs: [], offerings: [] };
+    }
   }
 
-  const normalizedLine = normalizeBusinessLine(lineRaw);
-  const lineEnum = normalizedLine && VALID_LINES.includes(normalizedLine)
-    ? (normalizedLine as BenefitBusinessLine)
-    : null;
+  const catalog = await getUnidepProgramCatalog();
+  const programMap = new Map(catalog.map((program) => [program.id, program]));
+  const lineEnum = normalizeUnidepProgramBusinessLine(lineRaw);
+  const normalizedLineRaw = normalizeKey(lineRaw);
 
   const offeringWhere = {
     isActive: true,
@@ -305,7 +199,10 @@ async function loadOfertaPayload(
     ...(normalizedLine
       ? {
           OR: [
-            { lineOfBusiness: { equals: normalizedLine, mode: "insensitive" as const } },
+            { lineOfBusiness: { equals: lineRaw, mode: "insensitive" as const } },
+            ...(normalizedLineRaw !== lineRaw.toLowerCase()
+              ? [{ lineOfBusiness: { equals: normalizedLineRaw, mode: "insensitive" as const } }]
+              : []),
             ...(lineEnum ? [{ program: { businessLine: lineEnum } }] : []),
             {
               program: {
@@ -333,30 +230,20 @@ async function loadOfertaPayload(
       ejecutivo: true,
       escolarizadoSchedule: true,
       ejecutivoSchedule: true,
-      campus: {
-        select: {
-          id: true,
-          code: true,
-          metaKey: true,
-          name: true,
-          slug: true,
-          tier: true,
-          kind: true,
-        },
-      },
-      program: {
-        select: {
-          id: true,
-          name: true,
-          category: true,
-          businessLine: true,
-          brochurePdfUrl: true,
-          planPdfUrl: true,
-          planDriveLink: true,
-          planUrl: true,
-        },
-      },
+      lineOfBusiness: true,
     },
+  });
+
+  const filteredOfferings = offeringsRaw.filter((offering) => {
+    const program = programMap.get(offering.programId);
+    if (!program) return false;
+    if (!lineRaw) return true;
+    return (
+      normalizeKey(offering.lineOfBusiness ?? "") === normalizedLineRaw ||
+      (lineEnum !== null &&
+        normalizeUnidepProgramBusinessLine(offering.lineOfBusiness) === lineEnum) ||
+      matchesUnidepProgramLine(program, lineRaw)
+    );
   });
 
   const seen = new Set<string>();
@@ -370,62 +257,38 @@ async function loadOfertaPayload(
     planPdfUrl: string | null;
   }> = [];
 
-  for (const offering of offeringsRaw) {
-    if (
-      requestedModality &&
-      !getOfferingCanonicalModalities(offering).includes(requestedModality)
-    ) {
-      continue;
-    }
-    campusMap.set(offering.campus.id, buildCampusPayload(offering.campus));
+  for (const offering of filteredOfferings) {
     if (seen.has(offering.programId)) continue;
+    const program = programMap.get(offering.programId);
+    if (!program) continue;
     seen.add(offering.programId);
     programs.push({
-      programId: offering.program.id,
-      name: offering.program.name,
-      category: offering.program.category,
-      businessLine: offering.program.businessLine,
-      brochurePdfUrl: offering.program.brochurePdfUrl ?? null,
-      planPdfUrl:
-        offering.program.planPdfUrl ??
-        offering.program.planDriveLink ??
-        offering.program.planUrl ??
-        null,
+      programId: program.id,
+      name: program.name,
+      category: program.category,
+      businessLine: program.businessLine,
+      brochurePdfUrl: program.brochurePdfUrl ?? null,
+      planPdfUrl: getUnidepProgramPlanUrl(program),
     });
   }
 
   programs.sort((left, right) => left.name.localeCompare(right.name, "es"));
 
-  const offerings = offeringsRaw
+  const offerings = filteredOfferings
     .map((offering) => {
-      if (
-        requestedModality &&
-        !getOfferingCanonicalModalities(offering).includes(requestedModality)
-      ) {
-        return null;
-      }
+      const program = programMap.get(offering.programId);
+      if (!program) return null;
       return {
         id: offering.id,
         modality: getModalityLabel(offering),
         schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
-        planLink:
-          offering.program.planPdfUrl ??
-          offering.program.planDriveLink ??
-          offering.program.planUrl ??
-          null,
-        campus: buildCampusPayload(offering.campus),
-        program: { id: offering.program.id, name: offering.program.name },
+        planLink: getUnidepProgramPlanUrl(program),
+        program: { id: program.id, name: program.name },
       };
     })
     .filter((offering): offering is OfertaOfferingPayload => Boolean(offering));
 
-  return {
-    availableCycles,
-    selectedCycle: requestedCycle,
-    campuses: Array.from(campusMap.values()),
-    programs,
-    offerings,
-  };
+  return { availableCycles, selectedCycle: requestedCycle, programs, offerings };
 }
 
 function getCachedOfertaPayload(

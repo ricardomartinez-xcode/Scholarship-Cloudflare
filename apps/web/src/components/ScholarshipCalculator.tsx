@@ -45,7 +45,17 @@ type PricingOption = {
 type PricingOptionsResponse = {
   ok?: boolean;
   combinations?: PricingOption[];
-  campuses?: Array<{ value: string; label: string }>;
+  campuses?: Array<{
+    value: string;
+    label: string;
+    businessLines?: string[];
+    modalities?: string[];
+    pricingOptions?: Array<{
+      businessLine: string;
+      modality: string;
+      plan: number;
+    }>;
+  }>;
   subjectCounts?: number[];
 };
 
@@ -475,7 +485,19 @@ export default function ScholarshipCalculator({
   );
 
   const [pricingOptions, setPricingOptions] = useState<PricingOption[] | null>(null);
-  const [campusOptions, setCampusOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [campusOptions, setCampusOptions] = useState<
+    Array<{
+      value: string;
+      label: string;
+      businessLines?: string[];
+      modalities?: string[];
+      pricingOptions?: Array<{
+        businessLine: string;
+        modality: string;
+        plan: number;
+      }>;
+    }>
+  >([]);
   const [subjectCountOptions, setSubjectCountOptions] = useState<number[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -630,8 +652,16 @@ export default function ScholarshipCalculator({
   }, [pricingOptions, tipo, nivel, modalidad]);
 
   const planteles = useMemo(() => {
-    return visibleQuoteCampuses(campusOptions, modalidad);
-  }, [campusOptions, modalidad]);
+    return visibleQuoteCampuses(campusOptions, modalidad, nivel, plan);
+  }, [campusOptions, modalidad, nivel, plan]);
+
+  useEffect(() => {
+    if (applyingScenarioRef.current || !plantel) return;
+    if (modalidad === "online") return;
+    if (!planteles.some((campus) => campus.value === plantel)) {
+      setPlantel("");
+    }
+  }, [modalidad, plantel, planteles]);
 
   const materiasOptions = useMemo(
     () => (subjectCountOptions.length ? subjectCountOptions : [1, 2, 3, 4, 5, 6, 7]),

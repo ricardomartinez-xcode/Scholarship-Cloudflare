@@ -3,6 +3,13 @@ import type { CanonicalModalityValue } from "@/lib/pricing-normalize";
 export type QuoteCampusOption = {
   value: string;
   label: string;
+  businessLines?: string[];
+  modalities?: string[];
+  pricingOptions?: Array<{
+    businessLine: string;
+    modality: string;
+    plan: number;
+  }>;
 };
 
 export const ONLINE_QUOTE_CAMPUS = { value: "ONLINE", label: "Online" } as const;
@@ -34,6 +41,8 @@ export function visibleQuoteModalities(
 export function visibleQuoteCampuses(
   campuses: QuoteCampusOption[],
   modality?: string,
+  businessLine?: string,
+  plan?: number | null,
 ): QuoteCampusOption[] {
   if (modality === "online") {
     return [
@@ -44,5 +53,22 @@ export function visibleQuoteCampuses(
 
   return campuses
     .filter((campus) => campus.value && campus.value !== ONLINE_QUOTE_CAMPUS.value)
+    .filter((campus) => {
+      if (!businessLine || !campus.businessLines?.length) return true;
+      return campus.businessLines.includes(businessLine);
+    })
+    .filter((campus) => {
+      if (!modality || !campus.modalities?.length) return true;
+      return campus.modalities.includes(modality);
+    })
+    .filter((campus) => {
+      if (!businessLine || !modality || !plan || !campus.pricingOptions?.length) return true;
+      return campus.pricingOptions.some(
+        (option) =>
+          option.businessLine === businessLine &&
+          option.modality === modality &&
+          option.plan === plan,
+      );
+    })
     .sort((left, right) => left.label.localeCompare(right.label, "es"));
 }

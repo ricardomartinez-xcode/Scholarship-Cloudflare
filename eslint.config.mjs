@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
           varsIgnorePattern: "^_",
         },
       ],
+      "@next/next/no-html-link-for-pages": "off",
     },
   },
   {
