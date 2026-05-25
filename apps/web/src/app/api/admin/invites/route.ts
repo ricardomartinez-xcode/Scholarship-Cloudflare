@@ -225,7 +225,7 @@ export async function POST(request: Request) {
     if (!authResult.ok) return authResult.response;
     adminId = authResult.admin.id;
  
-    const limiter = checkRateLimit(`invite:create:${adminId}:${ip}`, {
+    const limiter = await checkRateLimit(`invite:create:${adminId}:${ip}`, {
       limit: 6,
       windowMs: 60_000,
     });

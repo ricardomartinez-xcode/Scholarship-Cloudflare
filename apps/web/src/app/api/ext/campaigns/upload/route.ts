@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const limiter = checkRateLimit(`ext-campaign-upload:${session.user.id}`, {
+  const limiter = await checkRateLimit(`ext-campaign-upload:${session.user.id}`, {
     limit: 10,
     windowMs: 10 * 60_000,
   });

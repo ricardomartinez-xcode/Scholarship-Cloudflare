@@ -121,7 +121,7 @@ Accion recomendada:
 Evidencia:
 - `apps/web/src/lib/runtime-modes.ts` conserva `RuntimeMode = "legacy" | "compare" | "canonical"` para subsistemas no totalmente canonicos.
 - `apps/web/src/config/dashboard-navigation.ts:487` mantiene `workspaceLegacyQueryRedirects`.
-- `apps/web/src/lib/base-price-overrides.ts:10` conserva `toLegacyBusinessLine`.
+- `apps/web/src/lib/base-price-overrides.ts:10` conservaba `toLegacyBusinessLine` como helper de compatibilidad historica.
 - `apps/web/src/app/(admin)/admin/(protected)/unidep/programs/ProgramsClient.tsx` muestra campos como `Nivel legacy` y `Agrupador legacy`.
 - Directorio conserva write/read modes legacy/canonical.
 
@@ -305,14 +305,20 @@ Cambios aplicados tras esta auditoria:
 - Dependencias: `next` y `eslint-config-next` subieron a `16.2.6`; `@neondatabase/auth` a `0.4.1-beta`; `@neondatabase/neon-js` a `0.6.1-beta`; `xlsx` fue retirado.
 - Importadores/exportadores: los usos de SheetJS se reemplazaron por ExcelJS o se movieron al servidor.
 - Rate limit: el limiter en memoria ahora limpia buckets vencidos y acota el numero maximo de buckets.
+- Rate limit productivo: `checkRateLimit` usa Upstash Redis REST cuando `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` estan configurados; si no existen, conserva fallback local para desarrollo/test.
 - Extension: se elimino el fallback sensible de `recalc.extensionSessionToken` hacia `window.localStorage`; queda `chrome.storage.local`.
+- Tokens de extension: los tokens emitidos ahora tienen TTL maximo de 24 horas y se rotan revocando tokens activos equivalentes del mismo usuario/scope/cliente antes de emitir uno nuevo.
 - UI/admin: se retiraron labels visibles con `legacy` en programas, directorio, sidebar y CTAs; queda una prueba de regresion para no reintroducirlos.
 - Compatibilidad: se renombraron helpers/rutas internas de compatibilidad para no usar `legacy` como lenguaje operativo cuando la ruta sigue existiendo por redireccion.
 - Limpieza: se elimino `workspaceLegacyQueryRedirects`, export no usado en navegacion.
 - LCP: la imagen contraida de la calculadora flotante ahora usa `priority` porque aparece sobre el primer viewport; queda prueba de regresion.
+- P1 legacy: se creo `docs/audits/2026-05-25-legacy-residue-inventory.md` con inventario por dominio y se amplio la prueba de copy admin para cubrir acciones de reparacion visibles.
+- Pricing compatibilidad: `toLegacyBusinessLine` se renombro a `toHistoricalBusinessLineKey` para describir su uso real sin cambiar llaves historicas persistidas.
 
 Estado despues de la remediacion:
 - `npm audit --json`: 0 criticas, 0 altas, 9 moderadas.
 - `npm run release:gate`: OK en local, incluyendo build, Playwright publico y Neon verification.
 - Browser local: `/`, `/auth/sign-in` y `/admin/prices` renderizaron sin errores de consola relevantes; `/admin/prices` mantiene el orden `Region | Plantel | Tier | Precio lista`.
-- Riesgo residual: las moderadas restantes vienen de `@neondatabase/auth`/`better-auth` y `exceljs/uuid`. Forzar `better-auth` a `1.6.x` rompe `@neondatabase/auth-ui` porque faltan exports esperados; debe resolverse con update coordinado de Neon Auth UI o reemplazo de componentes auth.
+- Verificacion posterior: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` y `npm audit --audit-level=high --json` pasaron tras cerrar el residuo P0-4/P0-5.
+- Riesgo residual: las moderadas restantes vienen de `@neondatabase/auth`/`better-auth` y `exceljs/uuid`. Forzar `better-auth` a `1.6.x` rompe `@neondatabase/auth-ui` porque faltan exports esperados; debe resolverse con update coordinado de Neon Auth UI o reemplazo de componentes auth. En ambientes productivos falta confirmar que las variables de Upstash esten configuradas; sin ellas el sistema usa fallback local.
+- Riesgo P1 residual: directorio, snapshots de pricing y variantes de extension mantienen compatibilidad historica; no deben borrarse sin confirmar modo canonical productivo y fuente unica de generacion.

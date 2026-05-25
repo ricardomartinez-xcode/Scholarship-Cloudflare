@@ -156,7 +156,7 @@ const REPAIR_ACTIONS: RepairActionDefinition[] = [
       "Regresa a cola campañas extension_runner atascadas en ejecución y libera recipients claimed.",
     severity: "safe_auto_fix",
     preconditions: [
-      "La campaña está en processing/waiting_runner (o running legacy) sin actualización reciente.",
+      "La campaña está en processing/waiting_runner (o running anterior) sin actualización reciente.",
       "Tiene recipients en estado claimed pendientes de reintento.",
     ],
     module: AdminConfigModule.CTAS,
@@ -165,10 +165,10 @@ const REPAIR_ACTIONS: RepairActionDefinition[] = [
     id: "config.normalize_cta_placement",
     name: "Normalizar placements CTA",
     description:
-      "Sincroniza placementPage/section/panel/slot de CTAs con su location legacy.",
+      "Sincroniza placementPage/section/panel/slot de CTAs con su ubicación anterior.",
     severity: "safe_auto_fix",
     preconditions: [
-      "El CTA usa una location legacy con mapeo definido.",
+      "El CTA usa una ubicación anterior con mapeo definido.",
       "Los campos de placement no coinciden con el mapeo esperado.",
     ],
     module: AdminConfigModule.CTAS,

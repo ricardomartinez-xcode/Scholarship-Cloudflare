@@ -25,7 +25,7 @@ export async function POST(
     );
   }
 
-  const limiter = checkRateLimit(`ext-run-events:${session.user.id}`, {
+  const limiter = await checkRateLimit(`ext-run-events:${session.user.id}`, {
     limit: 120,
     windowMs: 60_000,
   });

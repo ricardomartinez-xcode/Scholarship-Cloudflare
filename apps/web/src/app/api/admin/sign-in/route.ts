@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown";
 
-    const rl = checkRateLimit(`admin-signin:${ip}`, { limit: 5, windowMs: 60_000 });
+    const rl = await checkRateLimit(`admin-signin:${ip}`, { limit: 5, windowMs: 60_000 });
     if (!rl.ok) {
       return redirect(request, buildErrorUrl("Demasiados intentos. Intenta en 1 minuto."));
     }

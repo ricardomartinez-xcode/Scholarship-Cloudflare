@@ -7,7 +7,9 @@ import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const EXTENSION_TOKEN_PREFIX = "rx_ext_";
-const DEFAULT_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const MIN_TTL_MS = 1000 * 60 * 5;
+const MAX_TTL_MS = 1000 * 60 * 60 * 24;
+const DEFAULT_TTL_MS = MAX_TTL_MS;
 const MAX_CLIENT_LENGTH = 80;
 const MAX_VERSION_LENGTH = 32;
 const MAX_UA_LENGTH = 240;
@@ -26,6 +28,12 @@ function sha256(value: string) {
 function trimForStorage(value: string | null | undefined, maxLength: number) {
   const trimmed = String(value ?? "").trim();
   return trimmed ? trimmed.slice(0, maxLength) : null;
+}
+
+function clampTtlMs(ttlMs: number | null | undefined) {
+  const requested = Number(ttlMs ?? DEFAULT_TTL_MS);
+  if (!Number.isFinite(requested)) return DEFAULT_TTL_MS;
+  return Math.min(MAX_TTL_MS, Math.max(MIN_TTL_MS, requested));
 }
 
 function parseIssuedExtensionToken(token: string) {
@@ -53,13 +61,25 @@ export async function issueExtensionSessionToken(params: {
   const secret = crypto.randomBytes(32).toString("base64url");
   const token = `${EXTENSION_TOKEN_PREFIX}${id}.${secret}`;
   const tokenHash = sha256(secret);
-  const expiresAt = new Date(Date.now() + Math.max(60_000, params.ttlMs ?? DEFAULT_TTL_MS));
+  const scope = trimForStorage(params.scope, 120) ?? "extension:default";
+  const client = trimForStorage(params.client, MAX_CLIENT_LENGTH);
+  const expiresAt = new Date(Date.now() + clampTtlMs(params.ttlMs));
+
+  await prisma.$executeRaw`
+    update recalc_admin.extension_session_token
+    set "revokedAt" = coalesce("revokedAt", now()), "updatedAt" = now()
+    where "userId" = ${params.userId}::uuid
+      and scope = ${scope}
+      and coalesce(client, '') = coalesce(${client}, '')
+      and "revokedAt" is null
+      and "expiresAt" > now()
+  `;
 
   await prisma.$executeRaw`
     insert into recalc_admin.extension_session_token
       (id, "userId", "tokenHash", scope, client, "extensionVersion", "userAgent", "expiresAt", "updatedAt")
     values
-      (${id}::uuid, ${params.userId}::uuid, ${tokenHash}, ${trimForStorage(params.scope, 120) ?? "extension:default"}, ${trimForStorage(params.client, MAX_CLIENT_LENGTH)}, ${trimForStorage(params.extensionVersion, MAX_VERSION_LENGTH)}, ${trimForStorage(params.userAgent, MAX_UA_LENGTH)}, ${expiresAt}, now())
+      (${id}::uuid, ${params.userId}::uuid, ${tokenHash}, ${scope}, ${client}, ${trimForStorage(params.extensionVersion, MAX_VERSION_LENGTH)}, ${trimForStorage(params.userAgent, MAX_UA_LENGTH)}, ${expiresAt}, now())
   `;
 
   return { token, expiresAt };

@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const quoteLimiter = checkRateLimit(`ext-quote:${session.user.id}`, {
+  const quoteLimiter = await checkRateLimit(`ext-quote:${session.user.id}`, {
     limit: 60,
     windowMs: 60_000,
   });

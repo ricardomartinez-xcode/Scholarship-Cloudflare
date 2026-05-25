@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const limiter = checkRateLimit(`ext-campaign-create:${session.user.id}`, {
+  const limiter = await checkRateLimit(`ext-campaign-create:${session.user.id}`, {
     limit: 30,
     windowMs: 60_000,
   });

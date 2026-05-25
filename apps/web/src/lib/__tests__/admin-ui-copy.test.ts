@@ -11,6 +11,7 @@ const adminUiFiles = [
   "apps/web/src/components/admin/SidebarInfoClient.tsx",
   "apps/web/src/app/(admin)/admin/(protected)/unidep/directory/DirectoryClient.tsx",
   "apps/web/src/app/(admin)/admin/(protected)/unidep/programs/ProgramsClient.tsx",
+  "apps/web/src/services/repairActionsService.ts",
 ];
 
 const forbiddenVisibleCopy = [

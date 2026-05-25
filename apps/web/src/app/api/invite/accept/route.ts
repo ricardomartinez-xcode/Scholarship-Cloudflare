@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const limiter = checkRateLimit(`invite:accept:${ip}`, {
+  const limiter = await checkRateLimit(`invite:accept:${ip}`, {
     limit: 10,
     windowMs: 60_000,
   });

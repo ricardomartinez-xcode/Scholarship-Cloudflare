@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const limiter = checkRateLimit(`ext-campaign-claim:${session.user.id}`, {
+  const limiter = await checkRateLimit(`ext-campaign-claim:${session.user.id}`, {
     limit: 60,
     windowMs: 60_000,
   });
