@@ -57,3 +57,4 @@ La Fase 3 tambien deja medicion reproducible para modularizacion:
 
 - `npm run repo:large-files` lista fuentes grandes excluyendo artefactos generados como `.next`, `dist`, `coverage` y `node_modules`.
 - El primer uso local mantiene como focos `apps/web/src/app/globals.css`, `ScholarshipCalculator.tsx`, `meta-whatsapp.ts`, paneles UNIDEP y archivos grandes de extension.
+- `docs/audits/2026-05-25-large-source-files.md` registra el snapshot inicial y el orden recomendado de extraccion.
