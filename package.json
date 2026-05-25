@@ -41,8 +41,8 @@
     "verify:structure": "node scripts/verify-monorepo-structure.mjs"
   },
   "dependencies": {
-    "@neondatabase/auth": "^0.2.0-beta.1",
-    "@neondatabase/neon-js": "0.2.0-beta.1",
+    "@neondatabase/auth": "^0.4.1-beta",
+    "@neondatabase/neon-js": "^0.6.1-beta",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/client": "^6.19.2",
     "@prisma/extension-accelerate": "^3.0.1",
@@ -54,7 +54,7 @@
     "exceljs": "^4.4.0",
     "geist": "^1.7.0",
     "html-to-image": "^1.11.13",
-    "next": "16.1.6",
+    "next": "^16.2.6",
     "nodemailer": "^8.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -72,13 +72,17 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "^16.2.6",
     "prisma": "^6.19.2",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "5.9.3",
-    "vitest": "^4.0.18",
-    "xlsx": "^0.18.5"
+    "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "@better-auth/passkey": "1.4.18",
+    "better-auth": "1.4.18",
+    "postcss": "^8.5.15"
   },
   "workspaces": [
     "apps/*",

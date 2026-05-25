@@ -484,30 +484,6 @@ export function filterNavGroupsByCapabilities(
     .filter((group) => group.items.length > 0);
 }
 
-export const workspaceLegacyQueryRedirects: Record<string, string> = {
-  agenda: "/unidep/seguimiento",
-  contactos: "/unidep/prospectos",
-  web: "/unidep/web",
-  historial: "/unidep/actividad",
-  inbox: "/unidep/inbox",
-  waba: "/unidep/waba",
-  cotizador: "/unidep",
-  seguimiento: "/unidep/seguimiento",
-  prospectos: "/unidep/prospectos",
-  actividad: "/unidep/actividad",
-  capacitacion: "/unidep/capacitacion",
-  rolplay: "/unidep/capacitacion/rolplay",
-  materiales: "/unidep/capacitacion/materiales",
-  evaluaciones: "/unidep/capacitacion/evaluaciones",
-  sesiones: "/unidep/capacitacion/rolplay",
-  oferta: "/unidep/oferta",
-  formatos: "/unidep/formatos",
-  costos: "/unidep/costos",
-  planes: "/unidep/planes",
-  directorio: "/unidep/directorio",
-  planteles: "/unidep/planteles",
-};
-
 export const dashboardTitles: Record<string, string> = {
   "/unidep": "Cotizador",
   "/unidep/cotizador": "Cotizador",

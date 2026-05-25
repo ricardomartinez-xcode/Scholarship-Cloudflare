@@ -24,7 +24,7 @@ import {
   workspaceNavGroups,
 } from "@/config/dashboard-navigation";
 import {
-  resolveWorkspaceSectionFromLegacy,
+  resolveWorkspaceSectionFromCompatQuery,
   resolveWorkspaceSectionFromPath,
 } from "@/lib/unidep-navigation";
 import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
@@ -234,11 +234,11 @@ export default function AppChrome({
   const workspaceTab = searchParams.get("tab");
   const workspaceSection = searchParams.get("section");
   const pathWorkspaceSection = resolveWorkspaceSectionFromPath(pathname);
-  const legacyWorkspaceSection = resolveWorkspaceSectionFromLegacy(
+  const queryWorkspaceSection = resolveWorkspaceSectionFromCompatQuery(
     workspaceTab,
     workspaceSection,
   );
-  const workspaceActiveSection = pathWorkspaceSection ?? legacyWorkspaceSection;
+  const workspaceActiveSection = pathWorkspaceSection ?? queryWorkspaceSection;
   const effectiveWorkspaceSection =
     workspaceActiveSection ?? WORKSPACE_ITEMS[0]?.key ?? "becas";
   const workspaceWhatsappAllowed = canAccessWorkspaceWhatsapp(userEmail);

@@ -1,7 +1,7 @@
 # Scripts Inventory
 
-**Última actualización:** 2026-03-12  
-**Estado:** vigente  
+**Última actualización:** 2026-05-24
+**Estado:** vigente
 **Convención de nombres:** kebab-case para scripts con alias npm; snake_case sólo para scripts Python sin alias y para el helper `_neon_env.py`.
 
 ---
@@ -10,7 +10,7 @@
 
 | Script | Alias npm | Descripción |
 |--------|-----------|-------------|
-| `vercel-build.sh` | `vercel-build` | Build de Vercel: resuelve `DATABASE_URL`/`DIRECT_URL` y ejecuta `prisma db push`. |
+| `vercel-build.sh` | `vercel-build` | Build de Vercel: resuelve `DATABASE_URL`/`DIRECT_URL`, ejecuta `prisma migrate deploy` y después compila la app web. |
 | `bootstrap-admin.js` | `admin:bootstrap` | Crea el usuario administrador inicial. |
 | `seed-campuses.js` | `campus:seed` | Siembra el catálogo canónico de campus (25 presenciales + 1 online) en `recalc_admin.campus` vía Prisma. |
 | `import-output.ts` | `import:output` | Punto de entrada TypeScript que delega en `import-output.js`. |
@@ -67,7 +67,7 @@ Los siguientes scripts han sido **eliminados** en este bloque por ser duplicados
 ### Setup inicial (primera vez)
 ```
 1. node scripts/seed_neon.js           (seed:neon)
-2. npx prisma db push                  (schema sync)
+2. npm run db:migrate:deploy           (migraciones versionadas)
 3. node scripts/bootstrap-admin.js    (admin:bootstrap)
 4. node scripts/seed-campuses.js      (campus:seed)
 ```
@@ -96,6 +96,7 @@ python3 scripts/apply_migrations_http.py / node scripts/run-migrations-http.mjs
 ## Notas de mantenimiento
 
 - Todos los scripts con alias npm son los oficiales. Preferir `npm run <alias>` sobre ejecución directa.
+- No usar `prisma db push` para ambientes compartidos o producción; aplicar migraciones versionadas.
 - Los scripts Python que usan el HTTP API de Neon dependen de `scripts/_neon_env.py`.
 - `import-output.ts` es el punto de entrada TypeScript; `import-output.js` contiene la lógica real. No duplicar en TypeScript.
 - Ver `docs/ROUTING_MODES_REFERENCE.md` para la guía de variables `*_READ_MODE` y `*_WRITE_MODE` durante la migración.

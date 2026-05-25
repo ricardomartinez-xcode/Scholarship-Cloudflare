@@ -10,7 +10,7 @@ import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { isAllowedEmail } from "@/lib/domain";
 import { logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
-import { getPlacementForLegacyLocation } from "@/lib/admin-placement";
+import { getPlacementForCompatLocation } from "@/lib/admin-placement";
 import {
   type AuthSyncDiagnostics,
   getAuthSyncDiagnostics,
@@ -317,7 +317,7 @@ async function getCtaPlacementDriftCandidates(): Promise<CtaPlacementDriftCandid
 
   return rows
     .filter((row) => {
-      const expected = getPlacementForLegacyLocation(row.location);
+      const expected = getPlacementForCompatLocation(row.location);
       return (
         row.placementPage !== expected.page ||
         row.placementSection !== expected.section ||
@@ -596,7 +596,7 @@ export async function executeRepairAction(params: {
         skippedCount += 1;
         continue;
       }
-      const placement = getPlacementForLegacyLocation(cta.location);
+      const placement = getPlacementForCompatLocation(cta.location);
       await prisma.adminPublicCta.update({
         where: { id: cta.id },
         data: {

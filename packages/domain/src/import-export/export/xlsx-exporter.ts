@@ -1,9 +1,15 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import type { ReportRow } from "@relead/domain/import-export/export/types";
 
-export function exportRowsToXlsx(rows: ReportRow[]) {
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+export async function exportRowsToXlsx(rows: ReportRow[]) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Reporte");
+  const headers = rows.length ? Object.keys(rows[0]) : [];
+  if (headers.length) {
+    worksheet.addRow(headers);
+    for (const row of rows) {
+      worksheet.addRow(headers.map((header) => row[header as keyof ReportRow] ?? ""));
+    }
+  }
+  return Buffer.from(await workbook.xlsx.writeBuffer());
 }

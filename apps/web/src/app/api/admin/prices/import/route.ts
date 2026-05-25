@@ -7,6 +7,7 @@ import {
   BusinessEventType,
   Prisma,
 } from "@prisma/client";
+import ExcelJS from "exceljs";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
 import {
@@ -17,11 +18,64 @@ import {
 } from "@/lib/admin-api";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { writeBusinessEventSafe } from "@/lib/business-events";
+import {
+  normalizePriceListWorkbookRows,
+  priceListRowsToCsv,
+  type PriceListWorkbookSheet,
+} from "@/lib/importers/price-list-format";
 import { preparePricesCsvImport } from "@/lib/importers/prices-csv";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function cellToPrimitive(value: ExcelJS.CellValue): string | number | boolean | Date | null {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if ("result" in value) return cellToPrimitive(value.result as ExcelJS.CellValue);
+  if ("text" in value) return String(value.text ?? "");
+  if ("richText" in value) {
+    return value.richText.map((part) => part.text).join("");
+  }
+  return String(value);
+}
+
+async function normalizePriceImportFile(file: File) {
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".csv")) return file;
+  if (!lowerName.endsWith(".xlsx")) {
+    throw new Error("Formato no soportado. Usa un archivo .xlsx o .csv.");
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+
+  const sheets: PriceListWorkbookSheet[] = workbook.worksheets.map((worksheet) => {
+    const rows: PriceListWorkbookSheet["rows"] = [];
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const values = [];
+      for (let index = 1; index <= worksheet.columnCount; index += 1) {
+        values.push(cellToPrimitive(row.getCell(index).value));
+      }
+      rows.push(values);
+    });
+    return { name: worksheet.name, rows };
+  });
+
+  const normalizedRows = normalizePriceListWorkbookRows({ sheets });
+  if (!normalizedRows.length) {
+    throw new Error("No se encontraron columnas de Precio Lista en el archivo.");
+  }
+
+  const csv = priceListRowsToCsv(normalizedRows);
+  return new File([csv], `${file.name.replace(/\.[^.]+$/, "")}.normalized.csv`, {
+    type: "text/csv",
+  });
+}
 
 export async function POST(request: Request) {
   const requestId = buildAdminRequestId("admin_prices_import");
@@ -46,17 +100,18 @@ export async function POST(request: Request) {
         recoverable: true,
       });
     }
-    if (!maybeFile.name.toLowerCase().endsWith(".csv")) {
+    if (!maybeFile.name.toLowerCase().endsWith(".csv") && !maybeFile.name.toLowerCase().endsWith(".xlsx")) {
       return adminApiError({
         requestId,
         status: 400,
         errorCode: "INVALID_FILE_TYPE",
-        error: "Formato no soportado. Usa un archivo .csv.",
+        error: "Formato no soportado. Usa un archivo .xlsx o .csv.",
         recoverable: true,
       });
     }
 
-    const prepared = await preparePricesCsvImport({ file: maybeFile });
+    const normalizedFile = await normalizePriceImportFile(maybeFile);
+    const prepared = await preparePricesCsvImport({ file: normalizedFile });
     const session = await prisma.adminImportSession.create({
       data: {
         module: AdminConfigModule.PRICES,

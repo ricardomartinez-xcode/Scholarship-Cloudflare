@@ -338,7 +338,7 @@ export default function DirectoryClient({
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-slate-950/25 p-4 text-xs text-slate-400">
-            Si no detecta encabezados, seguirá usando el orden legacy:
+            Si no detecta encabezados, seguirá usando el orden de compatibilidad:
             <code className="mx-1 rounded bg-black/30 px-1">Zona</code>,
             <code className="mx-1 rounded bg-black/30 px-1">Plantel</code>,
             <code className="mx-1 rounded bg-black/30 px-1">Rol</code>,

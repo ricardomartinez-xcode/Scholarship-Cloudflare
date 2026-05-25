@@ -307,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await chrome.storage.local.get([EXTENSION_SESSION_TOKEN_KEY]);
       return normalizeSessionToken(data?.[EXTENSION_SESSION_TOKEN_KEY] ?? "");
     }
-    return normalizeSessionToken(window.localStorage.getItem(EXTENSION_SESSION_TOKEN_KEY) ?? "");
+    return "";
   }
 
   async function setStoredSessionToken(token) {
@@ -316,7 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await chrome.storage.local.set({ [EXTENSION_SESSION_TOKEN_KEY]: state.extensionSessionToken });
       return;
     }
-    window.localStorage.setItem(EXTENSION_SESSION_TOKEN_KEY, state.extensionSessionToken);
+    throw new Error("El almacenamiento seguro de Chrome no está disponible.");
   }
 
   async function clearStoredSessionToken() {
@@ -325,7 +325,6 @@ document.addEventListener("DOMContentLoaded", () => {
       await chrome.storage.local.remove([EXTENSION_SESSION_TOKEN_KEY]);
       return;
     }
-    window.localStorage.removeItem(EXTENSION_SESSION_TOKEN_KEY);
   }
 
   function setView(name) {

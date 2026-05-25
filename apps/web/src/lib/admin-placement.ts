@@ -32,7 +32,7 @@ const placement = (
   breakpoint: AdminPlacementBreakpoint = AdminPlacementBreakpoint.all,
 ): PlacementDescriptor => ({ page, section, panel, slot, breakpoint });
 
-export const LEGACY_LOCATION_PLACEMENTS: Record<AdminPublicCtaLocation, PlacementDescriptor> = {
+export const COMPAT_LOCATION_PLACEMENTS: Record<AdminPublicCtaLocation, PlacementDescriptor> = {
   [AdminPublicCtaLocation.NAV_BANNER]: placement(
     AdminPlacementPage.public_home,
     AdminPlacementSection.navigation,
@@ -155,8 +155,8 @@ export const LEGACY_LOCATION_PLACEMENTS: Record<AdminPublicCtaLocation, Placemen
   ),
 };
 
-export function getPlacementForLegacyLocation(location: AdminPublicCtaLocation) {
-  return LEGACY_LOCATION_PLACEMENTS[location];
+export function getPlacementForCompatLocation(location: AdminPublicCtaLocation) {
+  return COMPAT_LOCATION_PLACEMENTS[location];
 }
 
 export function buildVisibilityRule(input: VisibilityRule) {

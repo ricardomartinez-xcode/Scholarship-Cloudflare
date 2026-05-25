@@ -8,7 +8,7 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
-import { buildVisibilityRule, getPlacementForLegacyLocation } from "@/lib/admin-placement";
+import { buildVisibilityRule, getPlacementForCompatLocation } from "@/lib/admin-placement";
 import { prisma } from "@/lib/prisma";
 import { isCtaLocation } from "@/config/adminCatalogs";
 
@@ -62,7 +62,7 @@ export async function upsertAnnouncementAction(formData: FormData) {
     if (!message) return { ok: false, error: "El mensaje es requerido." };
     if (!isCtaLocation(locationRaw)) return { ok: false, error: "Ubicación inválida." };
     const location = locationRaw as AdminPublicCtaLocation;
-    const placement = getPlacementForLegacyLocation(location);
+    const placement = getPlacementForCompatLocation(location);
 
     const display = parseDisplay(displayRaw);
     if (!display) return { ok: false, error: "Modo de visualización inválido." };

@@ -103,8 +103,8 @@ export default function CtaLocationPicker({
     return [
       ...baseSections,
       {
-        title: "Legacy / oculto",
-        description: "Slot heredado que ya no se recomienda para nuevas piezas.",
+        title: "Compatibilidad / oculto",
+        description: "Slot de compatibilidad que ya no se recomienda para nuevas piezas.",
         keys: [value],
       },
     ];

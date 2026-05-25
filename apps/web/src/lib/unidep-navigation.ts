@@ -53,7 +53,7 @@ export function resolveWorkspaceHref(section: WorkspaceSectionKey) {
   return WORKSPACE_ROUTE_BY_KEY[section];
 }
 
-export function resolveWorkspaceSectionFromLegacy(
+export function resolveWorkspaceSectionFromCompatQuery(
   tab: string | null | undefined,
   section: string | null | undefined,
 ): WorkspaceSectionKey {
@@ -62,11 +62,11 @@ export function resolveWorkspaceSectionFromLegacy(
   return "becas";
 }
 
-export function resolveWorkspaceRouteFromLegacy(
+export function resolveWorkspaceRouteFromCompatQuery(
   tab: string | null | undefined,
   section: string | null | undefined,
 ) {
-  return resolveWorkspaceHref(resolveWorkspaceSectionFromLegacy(tab, section));
+  return resolveWorkspaceHref(resolveWorkspaceSectionFromCompatQuery(tab, section));
 }
 
 export function resolveWorkspaceSectionFromPath(pathname: string): WorkspaceSectionKey | null {

@@ -128,9 +128,9 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
             </div>
             <h2 className="mt-1 text-lg font-semibold">Catálogo de PDFs y metadata</h2>
             <p className="mt-1 max-w-3xl text-sm text-slate-300">
-              Aquí conviven campos legacy y nuevos.{" "}
+              Aquí conviven campos de catálogo y operación.{" "}
               <span className="font-semibold text-slate-100">Categoría</span> funciona como
-              agrupador descriptivo legacy;{" "}
+              agrupador descriptivo;{" "}
               <span className="font-semibold text-slate-100">Línea</span> define la línea de
               negocio operativa; los PDFs se usan por separado en Oferta y Planes.
             </p>
@@ -194,7 +194,7 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   <th className="w-[260px] p-3 text-left font-semibold">Programa</th>
                   <th className="w-[180px] p-3 text-left font-semibold">Categoría</th>
                   <th className="w-[160px] p-3 text-left font-semibold">Línea</th>
-                  <th className="w-[140px] p-3 text-left font-semibold">Nivel legacy</th>
+                  <th className="w-[140px] p-3 text-left font-semibold">Nivel interno</th>
                   <th className="w-[120px] p-3 text-left font-semibold">Plan PDF</th>
                   <th className="w-[120px] p-3 text-left font-semibold">Brochure PDF</th>
                   <th className="w-[160px] p-3 text-right font-semibold">Acciones</th>
@@ -317,7 +317,7 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
           if (!open) setEditing(null);
         }}
         title="Editar programa"
-        description="Aclara la categoría legacy y administra por separado los PDFs de plan y brochure."
+        description="Aclara la categoría de catálogo y administra por separado los PDFs de plan y brochure."
         kicker="Programas"
         size="lg"
       >
@@ -345,7 +345,7 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   placeholder="Ej. Salud, Ingeniería, Maestría"
                 />
                 <span className="text-xs text-slate-400">
-                  Agrupador legacy visible en Oferta y Planes.
+                  Agrupador visible en Oferta y Planes.
                 </span>
               </div>
 

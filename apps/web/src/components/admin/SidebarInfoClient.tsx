@@ -115,7 +115,7 @@ export default function SidebarInfoClient({
 
       {unknownCount ? (
         <div className="mt-4 rounded-2xl border border-sky-500/35 bg-sky-500/10 px-3 py-2 text-sm text-sky-100">
-          Hay {unknownCount} registro(s) legacy con keys no soportadas. No se muestran
+          Hay {unknownCount} registro(s) con keys no soportadas. No se muestran
           para evitar romper el render publico.
         </div>
       ) : null}

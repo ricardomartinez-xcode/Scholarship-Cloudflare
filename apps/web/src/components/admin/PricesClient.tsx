@@ -6,11 +6,6 @@ import { useRouter } from "next/navigation";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
 import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
 import {
-  normalizePriceListWorkbookRows,
-  priceListRowsToCsv,
-  type PriceListWorkbookSheet,
-} from "@/lib/importers/price-list-format";
-import {
   compareAdminPricingScope,
   formatAdminPricingPlantel,
   formatAdminPricingTier,
@@ -227,34 +222,10 @@ export default function PricesClient({
   async function buildNormalizedImportFile(file: File) {
     const lowerName = file.name.toLowerCase();
     if (lowerName.endsWith(".csv")) return file;
-    if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
-      throw new Error("Formato no soportado. Usa un archivo .xlsx, .xls o .csv.");
+    if (!lowerName.endsWith(".xlsx")) {
+      throw new Error("Formato no soportado. Usa un archivo .xlsx o .csv.");
     }
-
-    const xlsx = await import("xlsx");
-    const data = await file.arrayBuffer();
-    const workbook = xlsx.read(data, { type: "array" });
-    const sheets: PriceListWorkbookSheet[] = workbook.SheetNames.map((name) => {
-      const worksheet = workbook.Sheets[name];
-      const rows = xlsx.utils.sheet_to_json<Array<string | number | boolean | null>>(
-        worksheet,
-        {
-          header: 1,
-          blankrows: false,
-          defval: "",
-          raw: true,
-        },
-      );
-      return { name, rows };
-    });
-    const normalizedRows = normalizePriceListWorkbookRows({ sheets });
-    if (!normalizedRows.length) {
-      throw new Error("No se encontraron columnas de Precio Lista en el archivo.");
-    }
-    const csv = priceListRowsToCsv(normalizedRows);
-    return new File([csv], `${file.name.replace(/\.[^.]+$/, "")}.normalized.csv`, {
-      type: "text/csv",
-    });
+    return file;
   }
 
   async function validateImportCsv() {
@@ -402,7 +373,7 @@ export default function PricesClient({
         <input
           ref={importFileRef}
           type="file"
-          accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="ui-control max-w-full text-sm"
         />
         <div className="grid gap-2 rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs text-slate-300 md:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">

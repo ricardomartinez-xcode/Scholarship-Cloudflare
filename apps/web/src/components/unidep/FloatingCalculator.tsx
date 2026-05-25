@@ -279,6 +279,7 @@ export default function FloatingCalculator() {
             height={96}
             aria-hidden="true"
             className="ui-floating-calculator__rail-image"
+            priority
             draggable={false}
           />
           <span className="sr-only">Calculadora</span>
