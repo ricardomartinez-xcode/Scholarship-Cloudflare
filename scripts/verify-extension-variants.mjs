@@ -1,35 +1,13 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const sourceRoot = path.join(
+import {
+  exactCopyFiles,
   repoRoot,
-  "apps",
-  "chrome-extension",
-  "recalc-sidepanel",
-);
-const variantRoots = [
-  path.join(repoRoot, "chrome-extension", "variants", "composer-first"),
-  path.join(repoRoot, "chrome-extension", "variants", "preview-first"),
-];
-
-const exactCopyFiles = [
-  "panel.html",
-  "panel.css",
-  "injected/wa-main.js",
-  "content/bridge.js",
-  "lib/campaigns/buildMessage.js",
-  "lib/storage/attachments.js",
-  "lib/whatsapp/wa-chat.js",
-  "branding/logo-recalc.png",
-  "branding/logo-unidep.png",
-  "icons/icon16.png",
-  "icons/icon32.png",
-  "icons/icon48.png",
-  "icons/icon128.png",
-];
+  sourceRoot,
+  variantRoots,
+} from "./extension-variant-config.mjs";
 
 function hashFile(filePath) {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex");
@@ -49,6 +27,30 @@ function verifyFile(sourcePath, variantPath) {
 }
 
 const failures = [];
+const variantsRoot = path.join(repoRoot, "chrome-extension", "variants");
+const configuredVariantNames = new Set(
+  variantRoots.map((variantRoot) => path.basename(variantRoot)),
+);
+
+if (!existsSync(variantsRoot)) {
+  failures.push(`missing variants root ${path.relative(repoRoot, variantsRoot)}`);
+} else {
+  const existingVariantNames = readdirSync(variantsRoot).filter((name) =>
+    statSync(path.join(variantsRoot, name)).isDirectory(),
+  );
+
+  for (const variantName of existingVariantNames) {
+    if (!configuredVariantNames.has(variantName)) {
+      failures.push(`unexpected variant ${path.join("chrome-extension", "variants", variantName)}`);
+    }
+  }
+}
+
+for (const variantRoot of variantRoots) {
+  if (!existsSync(variantRoot)) {
+    failures.push(`missing configured variant ${path.relative(repoRoot, variantRoot)}`);
+  }
+}
 
 for (const variantRoot of variantRoots) {
   for (const relativePath of exactCopyFiles) {
