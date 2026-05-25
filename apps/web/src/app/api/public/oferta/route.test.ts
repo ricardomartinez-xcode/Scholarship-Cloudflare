@@ -109,6 +109,15 @@ describe("GET /api/public/oferta", () => {
         escolarizadoSchedule: "Matutino",
         ejecutivoSchedule: null,
         lineOfBusiness: "Licenciatura",
+        campus: {
+          id: "campus_1",
+          code: "CHH",
+          metaKey: "chihuahua",
+          name: "Chihuahua",
+          slug: "chihuahua",
+          tier: "T1",
+          kind: "campus",
+        },
       },
     ]);
     prismaMock.program.findMany.mockResolvedValue([

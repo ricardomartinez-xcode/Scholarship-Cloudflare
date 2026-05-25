@@ -15,10 +15,7 @@ import {
   PUBLIC_ROUTE_CACHE_REVALIDATE_SECONDS,
   PUBLIC_ROUTE_CACHE_TAGS,
 } from "@/lib/public-route-cache";
-import {
-  normalizeBusinessLine,
-  normalizeCanonicalModality,
-} from "@/lib/pricing-normalize";
+import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
   getUnidepProgramCatalog,
@@ -115,16 +112,6 @@ function buildCampusPayload(campus: {
   };
 }
 
-function matchesLineFilter(
-  lineRaw: string,
-  candidateValues: Array<string | null | undefined>,
-) {
-  if (!lineRaw) return true;
-  const normalizedInput = normalizeBusinessLine(lineRaw);
-  if (!normalizedInput) return false;
-  return candidateValues.some((value) => normalizeBusinessLine(value) === normalizedInput);
-}
-
 function resolveRequestedCycle(
   cycleRaw: string,
   availableCycles: AcademicOfferCycle[],
@@ -183,7 +170,13 @@ async function loadOfertaPayload(
       if (match) campusId = match.id;
     }
     if (!campusId) {
-      return { availableCycles, selectedCycle: requestedCycle, programs: [], offerings: [] };
+      return {
+        availableCycles,
+        selectedCycle: requestedCycle,
+        campuses: [],
+        programs: [],
+        offerings: [],
+      };
     }
   }
 
@@ -196,7 +189,7 @@ async function loadOfertaPayload(
     isActive: true,
     cycle: requestedCycle,
     ...(campusId ? { campusId } : {}),
-    ...(normalizedLine
+    ...(lineRaw
       ? {
           OR: [
             { lineOfBusiness: { equals: lineRaw, mode: "insensitive" as const } },
@@ -206,12 +199,12 @@ async function loadOfertaPayload(
             ...(lineEnum ? [{ program: { businessLine: lineEnum } }] : []),
             {
               program: {
-                level: { equals: normalizedLine, mode: "insensitive" as const },
+                level: { equals: lineRaw, mode: "insensitive" as const },
               },
             },
             {
               program: {
-                category: { contains: normalizedLine, mode: "insensitive" as const },
+                category: { contains: lineRaw, mode: "insensitive" as const },
               },
             },
           ],
@@ -231,12 +224,29 @@ async function loadOfertaPayload(
       escolarizadoSchedule: true,
       ejecutivoSchedule: true,
       lineOfBusiness: true,
+      campus: {
+        select: {
+          id: true,
+          code: true,
+          metaKey: true,
+          name: true,
+          slug: true,
+          tier: true,
+          kind: true,
+        },
+      },
     },
   });
 
   const filteredOfferings = offeringsRaw.filter((offering) => {
     const program = programMap.get(offering.programId);
     if (!program) return false;
+    if (
+      requestedModality &&
+      !getOfferingCanonicalModalities(offering).includes(requestedModality)
+    ) {
+      return false;
+    }
     if (!lineRaw) return true;
     return (
       normalizeKey(offering.lineOfBusiness ?? "") === normalizedLineRaw ||
@@ -258,6 +268,7 @@ async function loadOfertaPayload(
   }> = [];
 
   for (const offering of filteredOfferings) {
+    campusMap.set(offering.campus.id, buildCampusPayload(offering.campus));
     if (seen.has(offering.programId)) continue;
     const program = programMap.get(offering.programId);
     if (!program) continue;
@@ -283,12 +294,21 @@ async function loadOfertaPayload(
         modality: getModalityLabel(offering),
         schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
         planLink: getUnidepProgramPlanUrl(program),
+        campus: buildCampusPayload(offering.campus),
         program: { id: program.id, name: program.name },
       };
     })
     .filter((offering): offering is OfertaOfferingPayload => Boolean(offering));
 
-  return { availableCycles, selectedCycle: requestedCycle, programs, offerings };
+  return {
+    availableCycles,
+    selectedCycle: requestedCycle,
+    campuses: Array.from(campusMap.values()).sort((left, right) =>
+      left.name.localeCompare(right.name, "es"),
+    ),
+    programs,
+    offerings,
+  };
 }
 
 function getCachedOfertaPayload(
