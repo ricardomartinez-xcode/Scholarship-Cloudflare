@@ -99,4 +99,32 @@ describe("price list workbook format", () => {
       newPrice: 4700,
     });
   });
+
+  it("normalizes online sheets without carrying online as a tier value", () => {
+    const rows = normalizePriceListWorkbookRows({
+      sheets: [
+        {
+          name: "Licenciatura Online",
+          rows: [
+            ["Region", "Plantel", "Tier", "Precio Lista 9 Cuatrimestres"],
+            ["Online", "Online", "ONLINE", 3900],
+          ],
+        },
+      ],
+    });
+
+    expect(rows).toEqual([
+      {
+        plantel: "Online",
+        region: "Online",
+        nivelKey: "licenciatura",
+        modalidadKey: "online",
+        plan: "9",
+        tier: null,
+        newPrice: 3900,
+        isActive: true,
+        notes: "Licenciatura Online",
+      },
+    ]);
+  });
 });

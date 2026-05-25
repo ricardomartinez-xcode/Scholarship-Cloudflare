@@ -69,4 +69,45 @@ describe("prepareBenefitsCsvImport", () => {
     expect(result.payload.rows[0]?.key).not.toContain("Norte");
     expect(result.payload.rows[0]?.key).not.toContain("T2");
   });
+
+  it("matches global benefit rows without plantel, region, or tier in the identity", async () => {
+    prismaMock.adminAdditionalBenefit.findMany.mockResolvedValue([
+      {
+        id: "benefit-global",
+        benefitType: "percentage",
+        enrollmentType: "nuevo_ingreso",
+        businessLine: "licenciatura",
+        modality: "presencial",
+        duration: null,
+        appliesToAll: true,
+        campuses: [],
+        extraPercent: 10,
+        firstPaymentAmount: 0,
+        isActive: true,
+        notes: null,
+      },
+    ]);
+    const csv = [
+      "region,planteles,tier,benefit_type,applies_to_all,enrollment_type,business_line,modality,extra_percent,notes",
+      "Norte,Chihuahua,T2,percentage,true,nuevo_ingreso,licenciatura,presencial,15,Global activo",
+    ].join("\n");
+
+    const result = await prepareBenefitsCsvImport({
+      file: new File([csv], "beneficios.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.ready).toBe(1);
+    expect(result.summary.errors).toEqual([]);
+    expect(result.payload.rows[0]).toMatchObject({
+      action: "update",
+      existingId: "benefit-global",
+      appliesToAll: true,
+      campusIds: [],
+      region: "Norte",
+      tier: "T2",
+    });
+    expect(result.payload.rows[0]?.key).not.toContain("Norte");
+    expect(result.payload.rows[0]?.key).not.toContain("T2");
+    expect(result.payload.rows[0]?.key).not.toContain("campus-1");
+  });
 });

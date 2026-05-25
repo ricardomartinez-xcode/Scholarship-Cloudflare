@@ -314,6 +314,7 @@ Cambios aplicados tras esta auditoria:
 - LCP: la imagen contraida de la calculadora flotante ahora usa `priority` porque aparece sobre el primer viewport; queda prueba de regresion.
 - P1 legacy: se creo `docs/audits/2026-05-25-legacy-residue-inventory.md` con inventario por dominio y se amplio la prueba de copy admin para cubrir acciones de reparacion visibles.
 - Pricing compatibilidad: `toLegacyBusinessLine` se renombro a `toHistoricalBusinessLineKey` para describir su uso real sin cambiar llaves historicas persistidas.
+- Fase 1 local: se reforzaron pruebas canonical para price-list online, beneficios globales y precio por materia; el retiro restante queda bloqueado por confirmacion de modos productivos y fuente unica de extension.
 
 Estado despues de la remediacion:
 - `npm audit --json`: 0 criticas, 0 altas, 9 moderadas.
@@ -321,4 +322,4 @@ Estado despues de la remediacion:
 - Browser local: `/`, `/auth/sign-in` y `/admin/prices` renderizaron sin errores de consola relevantes; `/admin/prices` mantiene el orden `Region | Plantel | Tier | Precio lista`.
 - Verificacion posterior: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` y `npm audit --audit-level=high --json` pasaron tras cerrar el residuo P0-4/P0-5.
 - Riesgo residual: las moderadas restantes vienen de `@neondatabase/auth`/`better-auth` y `exceljs/uuid`. Forzar `better-auth` a `1.6.x` rompe `@neondatabase/auth-ui` porque faltan exports esperados; debe resolverse con update coordinado de Neon Auth UI o reemplazo de componentes auth. En ambientes productivos falta confirmar que las variables de Upstash esten configuradas; sin ellas el sistema usa fallback local.
-- Riesgo P1 residual: directorio, snapshots de pricing y variantes de extension mantienen compatibilidad historica; no deben borrarse sin confirmar modo canonical productivo y fuente unica de generacion.
+- Riesgo P1 residual: directorio y variantes de extension mantienen compatibilidad historica; no deben borrarse sin confirmar modo canonical productivo y fuente unica de generacion.

@@ -26,9 +26,19 @@ Este inventario separa compatibilidad necesaria de residuos candidatos a retiro.
 
 - Se agrego `apps/web/src/services/repairActionsService.ts` a la prueba de copy admin para evitar lenguaje de migracion en acciones visibles.
 - Se reemplazaron textos operativos con `legacy` por `anterior`/`ubicacion anterior`.
+- Se fortalecieron pruebas canonical de price-list online, beneficios globales, y altas/ediciones/bajas de precio por materia.
 - No se tocaron `.env*`, migraciones aplicadas ni contratos de API.
 
-## Pendientes seguros
+## Cierre Fase 1 local
+
+La Fase 1 queda cerrada para el alcance verificable localmente:
+
+- Residuos legacy inventariados por dominio.
+- Lenguaje interno de migracion fuera de copy admin visible.
+- Helpers de pricing renombrados a compatibilidad historica sin cambiar llaves persistidas.
+- Tests reforzados para precios, beneficios, materias/costos e importadores canonicos.
+
+## Pendientes bloqueados por decision/entorno
 
 1. Confirmar modos de directorio en produccion antes de retirar lectura dual.
 2. Definir fuente unica para variantes de extension antes de borrar duplicados.
