@@ -4,57 +4,103 @@ import "@/lib/crypto-random-uuid-polyfill";
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  ForgotPasswordForm,
-  NeonAuthUIProvider,
-} from "@neondatabase/auth/react/ui";
 
 import { authClient } from "@/lib/auth/client";
 import { getPublicBaseUrl } from "@/lib/public-base-url";
 import PasswordField from "@/components/auth/PasswordField";
 
-const formClassNames = {
-  base: "ui-auth-form",
-  label: "ui-auth-form-label",
-  input: "ui-control ui-auth-control",
-  error: "ui-auth-inline-error",
-  button: "ui-button-primary w-full justify-center",
-  primaryButton: "",
-};
-
 const inputCls = "ui-control ui-auth-control pl-3.5 pr-12";
 
-const forgotPasswordLocalization = {
-  EMAIL: "Email",
-  EMAIL_PLACEHOLDER: "nombre@unidep.edu.mx",
-  IS_INVALID: "es inválido",
-  IS_REQUIRED: "es requerido",
-  FORGOT_PASSWORD_ACTION: "Enviar enlace",
-  FORGOT_PASSWORD_EMAIL:
-    "Si existe una cuenta, te enviaremos un enlace para restablecer la contraseña.",
-} as const;
+type PasswordAuthClient = {
+  requestPasswordReset: (input: {
+    email: string;
+    redirectTo: string;
+    fetchOptions?: { throw?: boolean };
+  }) => Promise<{ error?: { message?: string } } | void>;
+  resetPassword: (input: {
+    newPassword: string;
+    token: string;
+  }) => Promise<{ error?: { message?: string } } | void>;
+};
+
+function getPasswordAuthClient() {
+  return authClient as unknown as PasswordAuthClient;
+}
 
 export function ForgotPasswordCardForm() {
-  const typedAuthClient = authClient as unknown as never;
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
+      setError("Ingresa tu correo.");
+      return;
+    }
+
+    setPending(true);
+    setError("");
+    try {
+      const result = await getPasswordAuthClient().requestPasswordReset({
+        email: cleanEmail,
+        redirectTo: `${getPublicBaseUrl()}/auth/reset-password`,
+        fetchOptions: { throw: true },
+      });
+      if (result?.error) {
+        setError(result.error.message ?? "No fue posible enviar el enlace.");
+      } else {
+        setSuccess(true);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error inesperado. Intenta de nuevo.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="ui-note ui-note--success text-sm">
+        Si existe una cuenta, te enviaremos un enlace para restablecer la contraseña.
+      </div>
+    );
+  }
 
   return (
-    <NeonAuthUIProvider
-      authClient={typedAuthClient}
-      basePath="/auth"
-      baseURL={getPublicBaseUrl()}
-      viewPaths={{
-        SIGN_IN: "sign-in",
-        FORGOT_PASSWORD: "forgot-password",
-        RESET_PASSWORD: "reset-password",
-      }}
-      credentials={{ confirmPassword: true, forgotPassword: true }}
-      localizeErrors={false}
-    >
-      <ForgotPasswordForm
-        localization={forgotPasswordLocalization}
-        classNames={formClassNames}
-      />
-    </NeonAuthUIProvider>
+    <form onSubmit={handleSubmit} className="ui-auth-form">
+      {error && (
+        <div className="ui-note ui-note--danger text-sm">
+          {error}
+        </div>
+      )}
+
+      <label className="ui-auth-form-label">
+        Email
+        <input
+          name="email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="nombre@unidep.edu.mx"
+          autoComplete="email"
+          className="ui-control ui-auth-control"
+        />
+      </label>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="ui-button-primary w-full justify-center"
+      >
+        {pending ? "Enviando..." : "Enviar enlace"}
+      </button>
+    </form>
   );
 }
 
@@ -84,16 +130,19 @@ function ResetPasswordForm() {
     setPending(true);
     setError("");
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = authClient as unknown as any;
-      const result = await client.resetPassword({ newPassword: password, token });
+      const result = await getPasswordAuthClient().resetPassword({
+        newPassword: password,
+        token,
+      });
       if (result?.error) {
         setError(result.error.message ?? "No fue posible restablecer la contraseña.");
       } else {
         setSuccess(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error inesperado. Intenta de nuevo.");
+      setError(
+        err instanceof Error ? err.message : "Error inesperado. Intenta de nuevo.",
+      );
     } finally {
       setPending(false);
     }
