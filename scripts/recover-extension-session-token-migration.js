@@ -4,18 +4,19 @@ const { spawnSync } = require("node:child_process");
 const { neon } = require("@neondatabase/serverless");
 
 const MIGRATION_NAME = "20260507_extension_session_tokens";
+const USER_DISPLAY_NAME_MIGRATION = "20260523_user_display_name";
 const SCHEMA = "recalc_admin";
 const TABLE = "extension_session_token";
 const FOREIGN_KEY = "extension_session_token_userId_fkey";
 
-async function migrationStatus(sql) {
+async function migrationStatus(sql, migrationName) {
   const queries = [
     {
       schema: "public",
       run: () => sql`
         SELECT "migration_name", "finished_at", "rolled_back_at"
         FROM "public"."_prisma_migrations"
-        WHERE "migration_name" = ${MIGRATION_NAME}
+        WHERE "migration_name" = ${migrationName}
         ORDER BY "started_at" DESC
         LIMIT 1
       `,
@@ -25,7 +26,7 @@ async function migrationStatus(sql) {
       run: () => sql`
         SELECT "migration_name", "finished_at", "rolled_back_at"
         FROM "recalc_admin"."_prisma_migrations"
-        WHERE "migration_name" = ${MIGRATION_NAME}
+        WHERE "migration_name" = ${migrationName}
         ORDER BY "started_at" DESC
         LIMIT 1
       `,
@@ -48,7 +49,7 @@ async function migrationStatus(sql) {
   return null;
 }
 
-async function hasExpectedObjects(sql) {
+async function hasExtensionSessionTokenObjects(sql) {
   const rows = await sql`
     SELECT
       to_regclass('"recalc_admin"."extension_session_token"') IS NOT NULL AS "tableExists",
@@ -66,31 +67,22 @@ async function hasExpectedObjects(sql) {
   return rows[0] ?? { tableExists: false, foreignKeyExists: false };
 }
 
-async function main() {
-  if (!process.env.DIRECT_URL) {
-    console.log("[vercel-build] DIRECT_URL is not set; skipping migration recovery.");
-    return;
-  }
+async function hasUserDisplayNameColumn(sql) {
+  const rows = await sql`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = ${SCHEMA}
+        AND table_name = 'user'
+        AND column_name = 'displayName'
+    ) AS "columnExists"
+  `;
+  return Boolean(rows[0]?.columnExists);
+}
 
-  const sql = neon(process.env.DIRECT_URL);
-  const status = await migrationStatus(sql);
-  const hasFailed = status && status.finished_at === null;
-
-  if (!hasFailed) {
-    console.log(`[vercel-build] Migration ${MIGRATION_NAME} does not need recovery.`);
-    return;
-  }
-
-  const objects = await hasExpectedObjects(sql);
-  if (!objects.tableExists || !objects.foreignKeyExists) {
-    console.error(
-      `[vercel-build] Migration ${MIGRATION_NAME} failed, but expected database objects are incomplete.`,
-    );
-    process.exit(1);
-  }
-
+function resolveMigrationAsApplied(migrationName) {
   console.log(
-    `[vercel-build] Resolving ${MIGRATION_NAME} as applied; database objects already exist.`,
+    `[vercel-build] Resolving ${migrationName} as applied; database objects already exist.`,
   );
   const result = spawnSync(
     "prisma",
@@ -98,7 +90,7 @@ async function main() {
       "migrate",
       "resolve",
       "--applied",
-      MIGRATION_NAME,
+      migrationName,
       "--schema",
       "packages/db/prisma/schema.prisma",
     ],
@@ -111,6 +103,48 @@ async function main() {
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
+}
+
+async function recoverFailedMigration(sql, migrationName, verifyObjects) {
+  const status = await migrationStatus(sql, migrationName);
+  const hasFailed = status && status.finished_at === null;
+
+  if (!hasFailed) {
+    console.log(`[vercel-build] Migration ${migrationName} does not need recovery.`);
+    return;
+  }
+
+  const expectedObjectsExist = await verifyObjects(sql);
+  if (!expectedObjectsExist) {
+    console.error(
+      `[vercel-build] Migration ${migrationName} failed, but expected database objects are incomplete.`,
+    );
+    process.exit(1);
+  }
+
+  resolveMigrationAsApplied(migrationName);
+}
+
+async function main() {
+  if (!process.env.DIRECT_URL) {
+    console.log("[vercel-build] DIRECT_URL is not set; skipping migration recovery.");
+    return;
+  }
+
+  const sql = neon(process.env.DIRECT_URL);
+  await recoverFailedMigration(
+    sql,
+    MIGRATION_NAME,
+    async () => {
+      const objects = await hasExtensionSessionTokenObjects(sql);
+      return Boolean(objects.tableExists && objects.foreignKeyExists);
+    },
+  );
+  await recoverFailedMigration(
+    sql,
+    USER_DISPLAY_NAME_MIGRATION,
+    () => hasUserDisplayNameColumn(sql),
+  );
 }
 
 main().catch((error) => {
