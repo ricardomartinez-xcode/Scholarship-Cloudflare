@@ -101,4 +101,68 @@ describe("preparePricesCsvImport", () => {
       newPrice: 4290,
     });
   });
+
+  it("accepts the visible UI headers and normalizes canonical values", async () => {
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+
+    const csv = [
+      "Línea de negocio,Region,Plantel,Tier,Precio lista,Modalidad,Plan",
+      "Bachillerato,Región 1,Chihuahua,TIER 2,\"$1,890.00\",Escolarizada,9",
+      "Posgrado,Online,Online,Online,4200,Ejecutiva,4",
+    ].join("\n");
+    const file = new File([csv], "precios-visibles.csv", { type: "text/csv" });
+
+    const result = await preparePricesCsvImport({ file });
+
+    expect(result.payload.rows).toHaveLength(2);
+    expect(result.payload.rows[0]).toMatchObject({
+      action: "create",
+      region: "Región 1",
+      plantel: "Chihuahua",
+      nivelKey: "preparatoria",
+      modalidadKey: "presencial",
+      plan: "9",
+      tier: "T2",
+      newPrice: 1890,
+    });
+    expect(result.payload.rows[1]).toMatchObject({
+      nivelKey: "maestria",
+      modalidadKey: "mixta",
+      plan: "4",
+      tier: null,
+      newPrice: 4200,
+    });
+  });
+
+  it("keeps supporting internal CSV headers", async () => {
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+
+    const csv = [
+      "linea,region,plantel,tier,precio,modalidad_key,plan",
+      "licenciatura,Region 1,Chihuahua,T1,4700,presencial,11",
+    ].join("\n");
+    const file = new File([csv], "precios-internos.csv", { type: "text/csv" });
+
+    const result = await preparePricesCsvImport({ file });
+
+    expect(result.payload.rows[0]).toMatchObject({
+      nivelKey: "licenciatura",
+      modalidadKey: "presencial",
+      plan: "11",
+      tier: "T1",
+      newPrice: 4700,
+    });
+  });
+
+  it("reports missing columns with detected headers and a valid example", async () => {
+    const csv = ["foo,bar", "a,b"].join("\n");
+    const file = new File([csv], "precios-invalidos.csv", { type: "text/csv" });
+
+    await expect(preparePricesCsvImport({ file })).rejects.toMatchObject({
+      name: "PricesCsvValidationError",
+      code: "MISSING_REQUIRED_COLUMNS",
+      status: 422,
+      message: expect.stringContaining("Encabezados detectados: foo, bar."),
+    });
+  });
 });

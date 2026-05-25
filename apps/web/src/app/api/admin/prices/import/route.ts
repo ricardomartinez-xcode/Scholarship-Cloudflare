@@ -23,7 +23,10 @@ import {
   priceListRowsToCsv,
   type PriceListWorkbookSheet,
 } from "@/lib/importers/price-list-format";
-import { preparePricesCsvImport } from "@/lib/importers/prices-csv";
+import {
+  preparePricesCsvImport,
+  PricesCsvValidationError,
+} from "@/lib/importers/prices-csv";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -47,7 +50,10 @@ async function normalizePriceImportFile(file: File) {
   const lowerName = file.name.toLowerCase();
   if (lowerName.endsWith(".csv")) return file;
   if (!lowerName.endsWith(".xlsx")) {
-    throw new Error("Formato no soportado. Usa un archivo .xlsx o .csv.");
+    throw new PricesCsvValidationError(
+      "Formato no soportado. Usa un archivo .xlsx o .csv.",
+      "INVALID_FILE_TYPE",
+    );
   }
 
   const workbook = new ExcelJS.Workbook();
@@ -68,13 +74,20 @@ async function normalizePriceImportFile(file: File) {
 
   const normalizedRows = normalizePriceListWorkbookRows({ sheets });
   if (!normalizedRows.length) {
-    throw new Error("No se encontraron columnas de Precio Lista en el archivo.");
+    throw new PricesCsvValidationError(
+      "No se encontraron filas válidas de Precio lista en el archivo.",
+      "NO_VALID_ROWS",
+    );
   }
 
   const csv = priceListRowsToCsv(normalizedRows);
   return new File([csv], `${file.name.replace(/\.[^.]+$/, "")}.normalized.csv`, {
     type: "text/csv",
   });
+}
+
+function isPricesCsvValidationError(error: unknown): error is PricesCsvValidationError {
+  return error instanceof PricesCsvValidationError;
 }
 
 export async function POST(request: Request) {
@@ -165,6 +178,16 @@ export async function POST(request: Request) {
       { message: "Importación de precios validada." },
     );
   } catch (error) {
+    if (isPricesCsvValidationError(error)) {
+      return adminApiError({
+        requestId,
+        status: error.status,
+        errorCode: error.code,
+        error: error.message,
+        recoverable: true,
+      });
+    }
+
     logAdminApiFailure({
       requestId,
       module: "admin-prices-import",

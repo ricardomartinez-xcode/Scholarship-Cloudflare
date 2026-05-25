@@ -480,13 +480,22 @@ export default function PricesClient({
         />
         <div className="grid gap-2 rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs text-slate-300 md:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
           <div>
-            <div className="font-semibold text-slate-100">Orden canónico</div>
+            <div className="font-semibold text-slate-100">Orden canónico visible</div>
             <div className="mt-1 font-mono text-[11px]">
-              Línea de Negocio | Region | Plantel | Tier | Precio lista
+              Línea de negocio | Region | Plantel | Tier | Precio lista | Modalidad | Plan
             </div>
           </div>
-          <div className="font-mono text-[11px] leading-5">
-            linea,region,plantel,tier,precio,modalidad,plan
+          <div className="grid gap-1">
+            <div>
+              <div className="font-semibold text-slate-100">Encabezados CSV aceptados</div>
+              <div className="mt-1 font-mono text-[11px]">
+                linea, region, plantel, tier, precio, modalidad, plan
+              </div>
+            </div>
+            <div className="text-[11px] leading-5 text-slate-400">
+              Alias: “Línea de negocio” también es válido para linea. “Precio lista”
+              también es válido para precio. “Modalidad” también es válido para modalidad.
+            </div>
           </div>
         </div>
         {importError ? (
@@ -601,8 +610,19 @@ export default function PricesClient({
       </div>
 
       {/* Table */}
-      <div className="ui-table-wrap ui-scrollbar mt-4 max-h-[620px] w-full">
-        <table className="ui-table w-full min-w-[1120px]">
+      <div className="ui-table-wrap ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full overflow-auto">
+        <table className="ui-table !w-full !min-w-full table-fixed">
+          <colgroup>
+            <col className="w-[15%]" />
+            <col className="w-[9%]" />
+            <col className="w-[16%]" />
+            <col className="w-[7%]" />
+            <col className="w-[11%]" />
+            <col className="w-[10%]" />
+            <col className="w-[6%]" />
+            <col className="w-[10%]" />
+            <col className="w-[16%]" />
+          </colgroup>
           <thead>
             <tr>
               <th className="ui-cell-nowrap text-left">Línea de negocio</th>

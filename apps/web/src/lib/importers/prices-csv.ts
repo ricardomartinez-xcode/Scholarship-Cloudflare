@@ -68,7 +68,16 @@ const HEADER_ALIASES = {
   region: ["region", "región"],
   programaKey: ["programakey", "programa", "programa_key"],
   plantel: ["plantel", "campus", "sede"],
-  nivelKey: ["nivelkey", "nivel", "nivel_key", "linea", "lineanegocio", "businessline", "business_line"],
+  nivelKey: [
+    "nivelkey",
+    "nivel",
+    "nivel_key",
+    "linea",
+    "lineanegocio",
+    "lineadenegocio",
+    "businessline",
+    "business_line",
+  ],
   modalidadKey: ["modalidadkey", "modalidad", "modalidad_key"],
   plan: ["plan"],
   tier: ["tier"],
@@ -76,6 +85,27 @@ const HEADER_ALIASES = {
   isActive: ["isactive", "activo", "active"],
   notes: ["notes", "nota", "notas"],
 } as const;
+
+const REQUIRED_HEADER_EXAMPLE = "linea, region, plantel, tier, precio, modalidad, plan";
+
+export class PricesCsvValidationError extends Error {
+  status = 422;
+  code: string;
+
+  constructor(message: string, code = "PRICES_CSV_VALIDATION_ERROR") {
+    super(message);
+    this.name = "PricesCsvValidationError";
+    this.code = code;
+  }
+}
+
+function normalizeText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
 
 function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
   for (const alias of aliases) {
@@ -96,6 +126,45 @@ function parseBoolean(value: string, defaultValue: boolean) {
   if (["1", "true", "si", "sí", "yes", "y"].includes(normalized)) return true;
   if (["0", "false", "no", "n"].includes(normalized)) return false;
   return defaultValue;
+}
+
+function parseMoney(value: string) {
+  const normalized = value.replace(/[$\s]/g, "").replace(/,/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function normalizeNivelKey(value: string) {
+  const key = normalizeText(value);
+  if (key.includes("bachiller") || key.includes("prepa")) return "preparatoria";
+  if (key.includes("licenciatura") || key.includes("lic")) return "licenciatura";
+  if (key.includes("salud")) return "salud";
+  if (key.includes("posgrado") || key.includes("maestria") || key.includes("maestr")) {
+    return "maestria";
+  }
+  return value.trim().toLowerCase();
+}
+
+function normalizeModalidadKey(value: string) {
+  const key = normalizeText(value);
+  if (key.includes("online")) return "online";
+  if (key.includes("ejecut") || key.includes("mixta")) return "mixta";
+  if (key.includes("escolar") || key.includes("presencial")) return "presencial";
+  return value.trim().toLowerCase();
+}
+
+function normalizeTierKey(value: string) {
+  const raw = value.trim().toUpperCase();
+  if (!raw || raw === "ANY" || raw === "GENERAL" || raw === "ONLINE" || raw === "OL") {
+    return null;
+  }
+  const match = raw.match(/(?:TIER|T)\s*([0-9]+)/);
+  return match ? `T${match[1]}` : raw;
+}
+
+function normalizePlan(value: string) {
+  const match = value.trim().match(/[0-9]+/);
+  return match?.[0] ?? value.trim();
 }
 
 function buildPriceScopeKey(input: {
@@ -193,6 +262,7 @@ export async function preparePricesCsvImport(
     headerMap.set(normalizeHeader(cell), index);
   });
 
+  const detectedHeaders = header.map((cell) => String(cell ?? "").trim()).filter(Boolean);
   const idxPrograma = findColumnIndex(headerMap, HEADER_ALIASES.programaKey);
   const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
   const idxPlantel = findColumnIndex(headerMap, HEADER_ALIASES.plantel);
@@ -205,8 +275,14 @@ export async function preparePricesCsvImport(
   const idxNotes = findColumnIndex(headerMap, HEADER_ALIASES.notes);
 
   if (idxNivel < 0 || idxModalidad < 0 || idxPlan < 0 || idxNewPrice < 0) {
-    throw new Error(
-      "Faltan columnas obligatorias: linea, modalidad_key, plan, precio.",
+    throw new PricesCsvValidationError(
+      [
+        "Faltan columnas obligatorias.",
+        "Columnas obligatorias esperadas: linea, modalidad, plan, precio.",
+        `Encabezados detectados: ${detectedHeaders.length ? detectedHeaders.join(", ") : "sin encabezados"}.`,
+        `Encabezado válido esperado: ${REQUIRED_HEADER_EXAMPLE}.`,
+      ].join(" "),
+      "MISSING_REQUIRED_COLUMNS",
     );
   }
 
@@ -225,21 +301,21 @@ export async function preparePricesCsvImport(
     const plantel = readCell(row, idxPlantel) || null;
     const region = readCell(row, idxRegion) || null;
     const programaKey = readCell(row, idxPrograma) || null;
-    const nivelKey = readCell(row, idxNivel);
-    const modalidadKey = readCell(row, idxModalidad);
-    const plan = readCell(row, idxPlan);
-    const tier = readCell(row, idxTier) || null;
+    const nivelKey = normalizeNivelKey(readCell(row, idxNivel));
+    const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad));
+    const plan = normalizePlan(readCell(row, idxPlan));
+    const tier = normalizeTierKey(readCell(row, idxTier));
 
     if (!nivelKey || !modalidadKey || !plan) {
       errors.push(
-        `Fila ${rowNumber}: linea, modalidad_key y plan son obligatorios.`,
+        `Fila ${rowNumber}: linea, modalidad y plan son obligatorios.`,
       );
       continue;
     }
 
     const newPriceRaw = readCell(row, idxNewPrice);
-    const newPrice = Number(newPriceRaw);
-    if (!newPriceRaw || !Number.isFinite(newPrice) || newPrice < 0) {
+    const newPrice = parseMoney(newPriceRaw);
+    if (!newPriceRaw || newPrice === null) {
       errors.push(`Fila ${rowNumber}: precio debe ser numérico y no negativo.`);
       continue;
     }
@@ -272,6 +348,17 @@ export async function preparePricesCsvImport(
       isActive,
       notes,
     });
+  }
+
+  if (errors.length > 0) {
+    throw new PricesCsvValidationError(errors.join(" "), "INVALID_PRICE_ROWS");
+  }
+
+  if (!parsedRows.length) {
+    throw new PricesCsvValidationError(
+      `El archivo no contiene filas válidas. Encabezado válido esperado: ${REQUIRED_HEADER_EXAMPLE}.`,
+      "NO_VALID_ROWS",
+    );
   }
 
   const payloadRows: PreparedPricesImportPayloadRow[] = [];
