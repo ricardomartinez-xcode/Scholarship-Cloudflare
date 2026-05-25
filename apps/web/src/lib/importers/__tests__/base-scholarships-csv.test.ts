@@ -69,4 +69,80 @@ describe("prepareBaseScholarshipsCsvImport", () => {
       tier: "ANY",
     });
   });
+
+  it("normalizes visible enrollment labels to canonical values", async () => {
+    const csv = [
+      "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "licenciatura,General,Todos,T1,20,Nuevo Ingreso,presencial,9,8-8.9",
+      "licenciatura,General,Todos,T1,25,NI,presencial,10,8-8.9",
+    ].join("\n");
+
+    const result = await prepareBaseScholarshipsCsvImport({
+      file: new File([csv], "beca-ingreso.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.errors).toEqual([]);
+    expect(result.payload.rows.map((row) => row.enrollmentType)).toEqual([
+      "nuevo_ingreso",
+      "nuevo_ingreso",
+    ]);
+  });
+
+  it("normalizes visible business line labels to canonical values", async () => {
+    const csv = [
+      "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "Licenciatura Online,Online,Online,,55,Reingreso,Online,11,9-10",
+      "Bachillerato Escolarizado,CDMX,Plantel Norte,T2,20,Regreso,Presencial,6,8-8.9",
+    ].join("\n");
+
+    const result = await prepareBaseScholarshipsCsvImport({
+      file: new File([csv], "beca-linea.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.errors).toEqual([]);
+    expect(result.payload.rows[0]).toMatchObject({
+      businessLine: "licenciatura",
+      enrollmentType: "reingreso",
+      modality: "online",
+      tier: "ANY",
+    });
+    expect(result.payload.rows[1]).toMatchObject({
+      businessLine: "prepa",
+      enrollmentType: "regreso",
+      modality: "presencial",
+      tier: "T2",
+    });
+  });
+
+  it("normalizes visible modality labels to canonical values", async () => {
+    const csv = [
+      "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "licenciatura,General,Todos,T1,20,nuevo_ingreso,Escolarizada,9,8-8.9",
+      "licenciatura,General,Todos,T2,25,nuevo_ingreso,Ejecutiva,9,8-8.9",
+    ].join("\n");
+
+    const result = await prepareBaseScholarshipsCsvImport({
+      file: new File([csv], "beca-modalidad.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.errors).toEqual([]);
+    expect(result.payload.rows.map((row) => row.modality)).toEqual([
+      "presencial",
+      "mixta",
+    ]);
+  });
+
+  it("keeps a clear error when a value is not recognizable", async () => {
+    const csv = [
+      "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "licenciatura,General,Todos,T1,20,Transferencia,presencial,9,8-8.9",
+    ].join("\n");
+
+    const result = await prepareBaseScholarshipsCsvImport({
+      file: new File([csv], "beca-error.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.errors).toContain('Fila 2: ingreso inválido "Transferencia".');
+    expect(result.payload.rows).toEqual([]);
+  });
 });

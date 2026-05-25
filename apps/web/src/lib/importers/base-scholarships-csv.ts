@@ -61,10 +61,6 @@ type ParsedBaseScholarshipRow = Omit<
   "action"
 >;
 
-const BUSINESS_LINE_SET = new Set(Object.values(BenefitBusinessLine));
-const MODALITY_SET = new Set(Object.values(CanonicalModality));
-const ENROLLMENT_SET = new Set(Object.values(EnrollmentType));
-
 const HEADER_ALIASES = {
   region: ["region", "región"],
   plantel: ["plantel", "campus", "sede"],
@@ -93,9 +89,60 @@ function readCell(row: string[], index: number): string {
   return String(row[index] ?? "").trim();
 }
 
-function parseEnum<T extends string>(value: string, allowed: Set<T>) {
-  const normalized = value.trim();
-  return allowed.has(normalized as T) ? (normalized as T) : null;
+function normalizeHumanValue(value: string) {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeEnrollmentTypeValue(value: string) {
+  const normalized = normalizeHumanValue(value);
+  const enrollmentMap: Record<string, EnrollmentType> = {
+    "nuevo ingreso": EnrollmentType.nuevo_ingreso,
+    ni: EnrollmentType.nuevo_ingreso,
+    regreso: EnrollmentType.regreso,
+    reingreso: EnrollmentType.reingreso,
+  };
+  return enrollmentMap[normalized] ?? null;
+}
+
+function normalizeBusinessLineValue(value: string) {
+  const normalized = normalizeHumanValue(value);
+  const businessLineMap: Record<string, BenefitBusinessLine> = {
+    licenciatura: BenefitBusinessLine.licenciatura,
+    "licenciatura escolarizada": BenefitBusinessLine.licenciatura,
+    "licenciatura mixta": BenefitBusinessLine.licenciatura,
+    "licenciatura online": BenefitBusinessLine.licenciatura,
+    prepa: BenefitBusinessLine.prepa,
+    preparatoria: BenefitBusinessLine.prepa,
+    bachillerato: BenefitBusinessLine.prepa,
+    "bachillerato escolarizado": BenefitBusinessLine.prepa,
+    "bachillerato online": BenefitBusinessLine.prepa,
+    posgrado: BenefitBusinessLine.posgrado,
+    maestria: BenefitBusinessLine.posgrado,
+    salud: BenefitBusinessLine.salud,
+  };
+  return businessLineMap[normalized] ?? null;
+}
+
+function normalizeModalityValue(value: string) {
+  const normalized = normalizeHumanValue(value);
+  const modalityMap: Record<string, CanonicalModality> = {
+    presencial: CanonicalModality.presencial,
+    escolarizada: CanonicalModality.presencial,
+    escolarizado: CanonicalModality.presencial,
+    mixta: CanonicalModality.mixta,
+    ejecutiva: CanonicalModality.mixta,
+    ejecutivo: CanonicalModality.mixta,
+    online: CanonicalModality.online,
+    "en linea": CanonicalModality.online,
+  };
+  return modalityMap[normalized] ?? null;
 }
 
 function parseNumber(value: string) {
@@ -249,9 +296,9 @@ export async function prepareBaseScholarshipsCsvImport(input: {
     const enrollmentTypeRaw = readCell(row, idxEnrollmentType);
     const businessLineRaw = readCell(row, idxBusinessLine);
     const modalityRaw = readCell(row, idxModality);
-    const enrollmentType = parseEnum(enrollmentTypeRaw, ENROLLMENT_SET);
-    const businessLine = parseEnum(businessLineRaw, BUSINESS_LINE_SET);
-    const modality = parseEnum(modalityRaw, MODALITY_SET);
+    const enrollmentType = normalizeEnrollmentTypeValue(enrollmentTypeRaw);
+    const businessLine = normalizeBusinessLineValue(businessLineRaw);
+    const modality = normalizeModalityValue(modalityRaw);
     const plan = parseNumber(readCell(row, idxPlan));
     const percent = parseNumber(readCell(row, idxScholarshipPercent));
 

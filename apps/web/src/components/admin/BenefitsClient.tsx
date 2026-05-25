@@ -113,7 +113,18 @@ type BaseScholarshipImportSummary = Omit<BenefitImportSummary, "previewRows"> & 
   previewRows?: BaseScholarshipImportPreviewRow[];
 };
 
-type ApiError = { ok: false; error: string };
+type ApiError = {
+  ok: false;
+  error: string;
+  details?: { errors?: unknown } | null;
+};
+
+const BASE_SCHOLARSHIP_TEMPLATE_CSV = [
+  "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
+  "Licenciatura,CDMX,Plantel Centro,T1,15,Nuevo Ingreso,Escolarizada,9,7-7.9",
+  "Licenciatura Online,Online,Online,,55,Reingreso,Online,11,9-10",
+  "Bachillerato Escolarizado,CDMX,Plantel Norte,T2,20,Regreso,Presencial,6,8-8.9",
+].join("\n");
 
 const BUSINESS_LINE_OPTIONS = [
   { value: "__ALL__", label: "Todas" },
@@ -221,6 +232,24 @@ function compareBusinessLine(
   return leftLabel.localeCompare(rightLabel, "es-MX", { sensitivity: "base" });
 }
 
+function apiErrorDetails(payload: ApiError) {
+  return Array.isArray(payload.details?.errors)
+    ? payload.details.errors.map((error) => String(error))
+    : [];
+}
+
+function downloadCsvTemplate(fileName: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function BenefitsClient({
   benefits,
   baseScholarships,
@@ -323,6 +352,7 @@ export default function BenefitsClient({
   const [baseApplyImportLoading, setBaseApplyImportLoading] = useState(false);
   const [baseRollbackImportLoading, setBaseRollbackImportLoading] = useState(false);
   const [baseImportError, setBaseImportError] = useState<string | null>(null);
+  const [baseImportErrorDetails, setBaseImportErrorDetails] = useState<string[]>([]);
   const [baseImportSummary, setBaseImportSummary] =
     useState<BaseScholarshipImportSummary | null>(null);
   const [baseImportPreviewRows, setBaseImportPreviewRows] = useState<
@@ -584,6 +614,7 @@ export default function BenefitsClient({
   async function validateBaseScholarshipImportCsv() {
     setBaseImportLoading(true);
     setBaseImportError(null);
+    setBaseImportErrorDetails([]);
     setBaseImportApplied(false);
     setBaseImportRolledBack(false);
     setBaseImportSummary(null);
@@ -600,6 +631,7 @@ export default function BenefitsClient({
       });
       const payload = (await response.json()) as BaseScholarshipImportSummary | ApiError;
       if (!response.ok || payload.ok === false) {
+        if (payload.ok === false) setBaseImportErrorDetails(apiErrorDetails(payload));
         throw new Error(payload.ok === false ? payload.error : "No fue posible validar el CSV.");
       }
       setBaseImportSummary(payload);
@@ -616,6 +648,7 @@ export default function BenefitsClient({
     if (!baseImportSessionId) return;
     setBaseApplyImportLoading(true);
     setBaseImportError(null);
+    setBaseImportErrorDetails([]);
     try {
       const response = await fetch(
         `/api/admin/benefits/base-scholarships/import/${baseImportSessionId}/apply`,
@@ -623,6 +656,7 @@ export default function BenefitsClient({
       );
       const payload = (await response.json()) as BaseScholarshipImportSummary | ApiError;
       if (!response.ok || payload.ok === false) {
+        if (payload.ok === false) setBaseImportErrorDetails(apiErrorDetails(payload));
         throw new Error(payload.ok === false ? payload.error : "No fue posible aplicar la sesión.");
       }
       setBaseImportSummary((previous) =>
@@ -644,6 +678,7 @@ export default function BenefitsClient({
     if (!baseImportSessionId) return;
     setBaseRollbackImportLoading(true);
     setBaseImportError(null);
+    setBaseImportErrorDetails([]);
     try {
       const response = await fetch(
         `/api/admin/benefits/base-scholarships/import/${baseImportSessionId}/rollback`,
@@ -783,7 +818,7 @@ export default function BenefitsClient({
               </div>
             ) : null}
             {importPreviewRows.length ? (
-              <div className="ui-table-wrap ui-scrollbar max-h-[360px]">
+              <div className="ui-table-wrap ui-scrollbar max-h-[360px] overflow-auto">
                 <table className="ui-table ui-table--compact min-w-[900px]">
                   <thead>
                     <tr>
@@ -869,6 +904,18 @@ export default function BenefitsClient({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
+                onClick={() =>
+                  downloadCsvTemplate(
+                    "plantilla-beca-por-promedio.csv",
+                    BASE_SCHOLARSHIP_TEMPLATE_CSV,
+                  )
+                }
+                className="ui-button-secondary min-h-[34px] px-3 text-xs"
+              >
+                Descargar plantilla CSV
+              </button>
+              <button
+                type="button"
                 onClick={validateBaseScholarshipImportCsv}
                 disabled={baseImportLoading || baseApplyImportLoading || baseRollbackImportLoading}
                 className="ui-button-secondary min-h-[34px] px-3 text-xs disabled:opacity-60"
@@ -914,9 +961,33 @@ export default function BenefitsClient({
               linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio
             </div>
           </div>
+          <div className="grid gap-1 rounded-xl border border-white/10 bg-slate-950/30 px-3 py-2 text-xs leading-5 text-slate-300">
+            <div>
+              <span className="font-semibold text-slate-100">ingreso:</span>{" "}
+              nuevo_ingreso / regreso / reingreso, o etiquetas visibles como Nuevo ingreso,
+              Regreso, Reingreso y NI.
+            </div>
+            <div>
+              <span className="font-semibold text-slate-100">linea:</span>{" "}
+              licenciatura / prepa / posgrado / salud, o etiquetas visibles como
+              Licenciatura, Bachillerato, Posgrado y Salud.
+            </div>
+            <div>
+              <span className="font-semibold text-slate-100">modalidad:</span>{" "}
+              presencial / mixta / online, o etiquetas visibles como Escolarizada,
+              Ejecutiva y Online.
+            </div>
+          </div>
           {baseImportError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-              {baseImportError}
+            <div className="grid gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+              <div>{baseImportError}</div>
+              {baseImportErrorDetails.length ? (
+                <ul className="grid gap-1 text-xs font-normal">
+                  {baseImportErrorDetails.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           ) : null}
           {baseImportSummary ? (
@@ -944,8 +1015,10 @@ export default function BenefitsClient({
                 </div>
               ) : null}
               {baseImportSummary.errors.length ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
-                  {baseImportSummary.errors[0]}
+                <div className="grid gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+                  {baseImportSummary.errors.map((error) => (
+                    <div key={error}>{error}</div>
+                  ))}
                 </div>
               ) : null}
               {baseImportRolledBack ? (
@@ -954,7 +1027,7 @@ export default function BenefitsClient({
                 </div>
               ) : null}
               {baseImportPreviewRows.length ? (
-                <div className="ui-table-wrap ui-scrollbar max-h-[320px]">
+                <div className="ui-table-wrap ui-scrollbar max-h-[320px] overflow-auto">
                   <table className="ui-table ui-table--compact min-w-[980px]">
                     <thead>
                       <tr>
@@ -1257,7 +1330,7 @@ export default function BenefitsClient({
       </section>
 
       {sortedBenefits.length ? (
-        <div className="ui-table-wrap ui-scrollbar mt-6 max-h-[620px]">
+        <div className="ui-table-wrap ui-scrollbar mt-6 max-h-[620px] overflow-auto">
           <table className="ui-table min-w-[1240px]">
             <thead>
               <tr>
