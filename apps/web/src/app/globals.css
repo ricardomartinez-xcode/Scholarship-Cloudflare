@@ -1732,6 +1732,11 @@ select option {
   scrollbar-gutter: stable both-edges;
 }
 
+.ui-table-wrap--scroll-y {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
 .ui-table {
   width: max-content;
   min-width: 100%;

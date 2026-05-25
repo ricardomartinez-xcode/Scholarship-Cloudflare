@@ -1330,7 +1330,7 @@ export default function BenefitsClient({
       </section>
 
       {sortedBenefits.length ? (
-        <div className="ui-table-wrap ui-scrollbar mt-6 max-h-[620px] overflow-auto">
+        <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-6 max-h-[620px]">
           <table className="ui-table min-w-[1240px]">
             <thead>
               <tr>
