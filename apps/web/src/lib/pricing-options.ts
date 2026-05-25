@@ -74,10 +74,16 @@ export function buildQuotePricingOptions(
   }
 
   for (const rule of rules) {
+    const businessLine = normalizeBusinessLine(rule.businessLine);
+    const modality = normalizeCanonicalModality(rule.modality);
+    const plan = normalizePlan(rule.plan);
+
+    if (!businessLine || !modality || plan === null) continue;
+
     addForAllEnrollmentTypes({
-      businessLine: rule.businessLine,
-      modality: rule.modality,
-      plan: Number(rule.plan),
+      businessLine,
+      modality,
+      plan,
     });
   }
 
