@@ -81,6 +81,8 @@ type PriceImportSummary = {
 
 type ApiError = { ok: false; error: string };
 
+type PricePanel = "list" | "imports";
+
 const PAGE_SIZE = 20;
 
 function normalizeTierKey(value: unknown) {
@@ -263,6 +265,7 @@ export default function PricesClient({
 
   const [filterNivel, setFilterNivel] = useState("");
   const [page, setPage] = useState(0);
+  const [activePanel, setActivePanel] = useState<PricePanel>("list");
 
   const [open, setOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PriceRow | null>(null);
@@ -432,6 +435,34 @@ export default function PricesClient({
         </div>
       </div>
 
+      <div
+        className="mt-5 flex flex-wrap gap-2 border-b border-white/10 pb-2"
+        role="tablist"
+        aria-label="Vistas de precios"
+      >
+        {[
+          { id: "list", label: `Listado (${filtered.length})` },
+          { id: "imports", label: "Importación" },
+        ].map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={activePanel === item.id}
+            onClick={() => setActivePanel(item.id as PricePanel)}
+            className={[
+              "rounded-t-xl border px-4 py-2 text-sm font-semibold transition",
+              activePanel === item.id
+                ? "border-white/10 bg-slate-950/30 text-slate-100"
+                : "border-transparent text-slate-400 hover:text-slate-200",
+            ].join(" ")}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {activePanel === "imports" ? (
       <section className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -538,7 +569,7 @@ export default function PricesClient({
               </div>
             ) : null}
             {importPreviewRows.length ? (
-              <div className="ui-table-wrap ui-scrollbar max-h-[360px]">
+              <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-[360px]">
                 <table className="ui-table ui-table--compact w-full min-w-[940px]">
                   <thead>
                     <tr>
@@ -586,7 +617,10 @@ export default function PricesClient({
           </div>
         ) : null}
       </section>
+      ) : null}
 
+      {activePanel === "list" ? (
+      <>
       {/* Filters */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <select
@@ -610,7 +644,7 @@ export default function PricesClient({
       </div>
 
       {/* Table */}
-      <div className="ui-table-wrap ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full overflow-auto">
+      <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full">
         <table className="ui-table !w-full !min-w-full table-fixed">
           <colgroup>
             <col className="w-[15%]" />
@@ -734,6 +768,8 @@ export default function PricesClient({
           </button>
         </div>
       )}
+      </>
+      ) : null}
 
       {/* Edit / create canonical list price dialog */}
       <AdminDialogShell

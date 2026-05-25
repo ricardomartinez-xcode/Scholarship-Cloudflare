@@ -702,7 +702,7 @@ export default function FeesClient({
 
           <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[1080px] border-collapse text-sm">
-              <thead className="bg-slate-950/40 text-slate-300">
+              <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
                 <tr>
                   <th className="p-3 text-left font-semibold">Region</th>
                   <th className="p-3 text-left font-semibold">Plantel</th>
@@ -895,7 +895,7 @@ export default function FeesClient({
 
           <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[1120px] border-collapse text-sm">
-              <thead className="bg-slate-950/40 text-slate-300">
+              <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
                 <tr>
                   <th className="p-3 text-left font-semibold">Region</th>
                   <th className="p-3 text-left font-semibold">Plantel</th>
@@ -1167,7 +1167,7 @@ export default function FeesClient({
 
           <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[920px] border-collapse text-sm">
-              <thead className="bg-slate-950/40 text-slate-300">
+              <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
                 <tr>
                   <th className="p-3 text-left font-semibold">Region</th>
                   <th className="p-3 text-left font-semibold">Plantel</th>

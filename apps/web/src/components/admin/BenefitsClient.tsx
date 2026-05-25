@@ -853,7 +853,7 @@ export default function BenefitsClient({
               </div>
             ) : null}
             {importPreviewRows.length ? (
-              <div className="ui-table-wrap ui-scrollbar max-h-[360px] overflow-auto">
+              <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-[360px]">
                 <table className="ui-table ui-table--compact min-w-[900px]">
                   <thead>
                     <tr>
@@ -1064,7 +1064,7 @@ export default function BenefitsClient({
                 </div>
               ) : null}
               {baseImportPreviewRows.length ? (
-                <div className="ui-table-wrap ui-scrollbar max-h-[320px] overflow-auto">
+                <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-[320px]">
                   <table className="ui-table ui-table--compact min-w-[980px]">
                     <thead>
                       <tr>
