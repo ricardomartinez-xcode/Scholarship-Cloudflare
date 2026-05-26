@@ -15,6 +15,7 @@ import {
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
+import { findStaticBasePrice } from "@/lib/static-costs";
 import {
   getUnidepProgramCatalog,
   getUnidepProgramPlanUrl,
@@ -261,8 +262,17 @@ export async function GET() {
                   ].filter(Boolean),
                 },
               );
+              const staticBasePrice = findStaticBasePrice({
+                businessLine: option.businessLine,
+                modality: option.modality,
+                plan: option.plan,
+              });
 
-              return ruleBasePrice !== null || overrideBasePrice !== null;
+              return (
+                ruleBasePrice !== null ||
+                overrideBasePrice !== null ||
+                staticBasePrice !== null
+              );
             })
             .map((option) => [buildPriceOnlyKey(option), option]),
         ).values(),

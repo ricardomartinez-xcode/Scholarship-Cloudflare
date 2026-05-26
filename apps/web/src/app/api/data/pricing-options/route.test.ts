@@ -331,7 +331,14 @@ describe("GET /api/data/pricing-options", () => {
             planPdfUrl: "https://example.com/prepa.pdf",
           },
         ],
-        pricingOptions: [],
+        pricingOptions: [
+          {
+            businessLine: "prepa",
+            modality: "presencial",
+            plan: 6,
+            programId: "program_prepa",
+          },
+        ],
       },
       {
         value: "online",
