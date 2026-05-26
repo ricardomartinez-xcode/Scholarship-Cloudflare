@@ -253,7 +253,7 @@ describe("GET /api/data/pricing-options", () => {
     ]);
   });
 
-  it("annotates campuses from active academic offerings and omits campuses without current offer or base price", async () => {
+  it("annotates campuses from active academic offerings and keeps offered programs independent from price", async () => {
     const response = await GET();
     const data = (await response.json()) as {
       campuses: Array<{
@@ -317,6 +317,21 @@ describe("GET /api/data/pricing-options", () => {
             programId: "program_lic",
           },
         ],
+      },
+      {
+        value: "monterrey",
+        label: "Monterrey",
+        businessLines: ["prepa"],
+        modalities: ["presencial"],
+        studyPrograms: [
+          {
+            id: "program_prepa",
+            name: "Bachillerato UNIDEP",
+            businessLine: "prepa",
+            planPdfUrl: "https://example.com/prepa.pdf",
+          },
+        ],
+        pricingOptions: [],
       },
       {
         value: "online",

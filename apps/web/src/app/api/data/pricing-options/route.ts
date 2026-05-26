@@ -277,6 +277,7 @@ export async function GET() {
           programId: string;
         }
       >();
+      const offeredOptions = new Map<string, { businessLine: string; modality: string }>();
 
       for (const offering of academicOffer) {
         const studyProgram = buildStudyProgram({
@@ -285,8 +286,13 @@ export async function GET() {
             offering.program.businessLine ?? normalizeBusinessLine(offering.lineOfBusiness),
         });
         if (!studyProgram) continue;
+        studyPrograms.set(studyProgram.id, studyProgram);
 
         for (const modality of getOfferingModalities(offering)) {
+          offeredOptions.set(`${studyProgram.businessLine}|${modality}`, {
+            businessLine: studyProgram.businessLine,
+            modality,
+          });
           for (const option of campusPricingByKey.values()) {
             if (
               option.businessLine !== studyProgram.businessLine ||
@@ -294,7 +300,6 @@ export async function GET() {
             ) {
               continue;
             }
-            studyPrograms.set(studyProgram.id, studyProgram);
             pricingWithPrograms.set(
               buildPricingKey({ ...option, programId: studyProgram.id }),
               {
@@ -312,8 +317,12 @@ export async function GET() {
       return {
         value: campus.metaKey || campus.code || campus.name,
         label: campus.name,
-        businessLines: Array.from(new Set(pricedOptions.map((option) => option.businessLine))).sort(),
-        modalities: Array.from(new Set(pricedOptions.map((option) => option.modality))).sort(),
+        businessLines: Array.from(
+          new Set(Array.from(offeredOptions.values()).map((option) => option.businessLine)),
+        ).sort(),
+        modalities: Array.from(
+          new Set(Array.from(offeredOptions.values()).map((option) => option.modality)),
+        ).sort(),
         studyPrograms: Array.from(studyPrograms.values()).sort((left, right) =>
           left.name.localeCompare(right.name, "es"),
         ),
@@ -326,7 +335,7 @@ export async function GET() {
         ),
       };
     })
-    .filter((campus) => campus.businessLines.length > 0 && campus.pricingOptions.length > 0);
+    .filter((campus) => campus.studyPrograms.length > 0);
 
   const pricedStudyPrograms = Array.from(
     new Map(

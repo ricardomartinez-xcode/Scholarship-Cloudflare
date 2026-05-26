@@ -85,12 +85,14 @@ describe("visibleQuoteCampuses", () => {
             label: "Chihuahua",
             businessLines: ["prepa", "licenciatura"],
             modalities: ["presencial"],
+            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
           },
           {
             value: "TJN",
             label: "Tijuana",
             businessLines: ["licenciatura"],
             modalities: ["presencial"],
+            pricingOptions: [{ businessLine: "licenciatura", modality: "presencial", plan: 6 }],
           },
         ],
         "presencial",
@@ -102,6 +104,7 @@ describe("visibleQuoteCampuses", () => {
         label: "Chihuahua",
         businessLines: ["prepa", "licenciatura"],
         modalities: ["presencial"],
+        pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
       },
     ]);
   });

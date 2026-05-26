@@ -109,7 +109,8 @@ export function visibleQuoteCampuses(
       return campus.modalities.includes(selectedModality);
     })
     .filter((campus) => {
-      if (!selectedBusinessLine || !selectedModality || !campus.pricingOptions?.length) return true;
+      if (!selectedBusinessLine || !selectedModality) return true;
+      if (!campus.pricingOptions?.length) return false;
       return campus.pricingOptions.some(
         (option) =>
           option.businessLine === selectedBusinessLine &&
