@@ -264,39 +264,6 @@ function buildSeedPreview(params: {
   const payload = params.payload.trim();
   if (!payload) return { ok: false, rows: 0, errors: ["Carga o pega contenido primero."], sample: [] };
 
-  if (params.format === "json") {
-    try {
-      const parsed = JSON.parse(payload) as unknown;
-      const rows = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === "object"
-          ? params.mode === "fees"
-            ? (parsed as { cuotas_tramites_y_diversos?: unknown[] }).cuotas_tramites_y_diversos
-            : params.mode === "materias"
-              ? (parsed as { precios_por_materia?: unknown[] }).precios_por_materia
-              : undefined
-          : undefined;
-
-      if (!Array.isArray(rows)) {
-        return {
-          ok: false,
-          rows: 0,
-          errors: ["El JSON no tiene el arreglo esperado para este tipo de importación."],
-          sample: [],
-        };
-      }
-
-      return {
-        ok: rows.length > 0,
-        rows: rows.length,
-        errors: rows.length ? [] : ["El arreglo no contiene filas."],
-        sample: rows.slice(0, 5).map((row) => [JSON.stringify(row)]),
-      };
-    } catch {
-      return { ok: false, rows: 0, errors: ["JSON inválido."], sample: [] };
-    }
-  }
-
   const rows = parsePreviewCsv(payload);
   if (!rows.length) return { ok: false, rows: 0, errors: ["El CSV no contiene filas."], sample: [] };
   const firstRow = rows[0] ?? [];
@@ -305,10 +272,22 @@ function buildSeedPreview(params: {
     row.some((cell) => String(cell ?? "").trim()),
   );
 
+  const required =
+    params.mode === "unified"
+      ? ["codigo", "concepto", "seccion", "costobase", "plantel"]
+      : ["plantel", "modalidad", "materias", "costomxn"];
+  const normalizedHeader = firstRow.map(normalizePreviewHeader);
+  const missing = hasHeader
+    ? required.filter((header) => !normalizedHeader.includes(header))
+    : [];
+
   return {
-    ok: dataRows.length > 0,
+    ok: dataRows.length > 0 && missing.length === 0,
     rows: dataRows.length,
-    errors: dataRows.length ? [] : ["El CSV no contiene filas de datos."],
+    errors: [
+      ...(dataRows.length ? [] : ["El CSV no contiene filas de datos."]),
+      ...(missing.length ? [`Faltan columnas: ${missing.join(", ")}.`] : []),
+    ],
     sample: dataRows.slice(0, 5),
   };
 }
