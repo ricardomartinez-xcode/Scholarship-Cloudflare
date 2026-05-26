@@ -1,4 +1,11 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
 import { writeBusinessEventSafe } from "@/lib/business-events";
@@ -20,6 +27,7 @@ const GOOGLE_DEFAULT_SCOPES = [
   "profile",
 ];
 export const GOOGLE_CONTACTS_SHEET_NAME = "Contactos";
+const GOOGLE_STATE_TTL_MS = 15 * 60 * 1000;
 
 const GOOGLE_TASKS_SCOPES = ["https://www.googleapis.com/auth/tasks"];
 const GOOGLE_CALENDAR_SCOPES = [
@@ -426,6 +434,61 @@ function getEncryptionKey() {
   return createHash("sha256").update(encryptionSecret).digest();
 }
 
+function getGoogleStateSecret() {
+  return (
+    process.env.GOOGLE_OAUTH_STATE_SECRET?.trim() ||
+    process.env.GOOGLE_INTEGRATION_SECRET?.trim() ||
+    process.env.AUTH_SECRET?.trim() ||
+    process.env.BETTER_AUTH_SECRET?.trim() ||
+    process.env.NEXTAUTH_SECRET?.trim() ||
+    ""
+  );
+}
+
+function buildGoogleStateSigningInput(payload: {
+  userId: string;
+  nextPath: string;
+  intent: GoogleConnectIntent;
+  service: GoogleConnectService;
+  iat: number;
+  exp: number;
+  nonce: string;
+}) {
+  return JSON.stringify({
+    userId: payload.userId,
+    nextPath: payload.nextPath,
+    intent: payload.intent,
+    service: payload.service,
+    iat: payload.iat,
+    exp: payload.exp,
+    nonce: payload.nonce,
+  });
+}
+
+function signGoogleStatePayload(payload: {
+  userId: string;
+  nextPath: string;
+  intent: GoogleConnectIntent;
+  service: GoogleConnectService;
+  iat: number;
+  exp: number;
+  nonce: string;
+}) {
+  const secret = getGoogleStateSecret();
+  if (!secret) return "";
+  return createHmac("sha256", secret)
+    .update(buildGoogleStateSigningInput(payload))
+    .digest("base64url");
+}
+
+function signaturesMatch(left: string, right: string) {
+  if (!left || !right) return false;
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 function encryptSecret(value: string) {
   const iv = randomBytes(12);
   const key = getEncryptionKey();
@@ -454,25 +517,38 @@ function buildStatePayload(
     service?: GoogleConnectService | null;
   },
 ) {
+  const iat = Date.now();
   const payload = {
     userId,
     nextPath: nextPath && nextPath.startsWith("/") ? nextPath : "/profile",
     intent: extras?.intent ?? "manual",
     service: extras?.service ?? "all",
+    iat,
+    exp: iat + GOOGLE_STATE_TTL_MS,
+    nonce: randomBytes(16).toString("base64url"),
   };
-  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return Buffer.from(
+    JSON.stringify({
+      ...payload,
+      sig: signGoogleStatePayload(payload),
+    }),
+  ).toString("base64url");
 }
 
-export function parseGoogleState(state: string) {
+function parseGoogleStatePayload(state: string) {
   const parsed = JSON.parse(Buffer.from(state, "base64url").toString("utf8")) as {
     userId?: string;
     nextPath?: string;
     intent?: string;
     service?: string;
+    iat?: number;
+    exp?: number;
+    nonce?: string;
+    sig?: string;
   };
   const intentCandidate = String(parsed.intent ?? "").trim().toLowerCase();
   const serviceCandidate = String(parsed.service ?? "").trim().toLowerCase();
-  return {
+  const normalized = {
     userId: String(parsed.userId ?? "").trim(),
     nextPath:
       String(parsed.nextPath ?? "").trim().startsWith("/")
@@ -494,6 +570,52 @@ export function parseGoogleState(state: string) {
         ? (serviceCandidate as GoogleConnectService)
         : ("all" as const),
   };
+  const iat = Number(parsed.iat ?? 0);
+  const exp = Number(parsed.exp ?? 0);
+  const nonce = String(parsed.nonce ?? "").trim();
+  const sig = String(parsed.sig ?? "").trim();
+  const expectedSig =
+    iat > 0 && exp > 0 && nonce
+      ? signGoogleStatePayload({
+          ...normalized,
+          iat,
+          exp,
+          nonce,
+        })
+      : "";
+
+  return {
+    ...normalized,
+    signed: Boolean(sig),
+    validSignature: Boolean(sig && expectedSig && signaturesMatch(sig, expectedSig)),
+    expired: Boolean(exp && exp < Date.now()),
+  };
+}
+
+export function parseGoogleState(state: string) {
+  const parsed = parseGoogleStatePayload(state);
+  return {
+    userId: parsed.userId,
+    nextPath: parsed.nextPath,
+    intent: parsed.intent,
+    service: parsed.service,
+  };
+}
+
+export function parseGoogleCallbackState(state: string) {
+  try {
+    return parseGoogleStatePayload(state);
+  } catch {
+    return {
+      userId: "",
+      nextPath: "/profile",
+      intent: "manual" as const,
+      service: "all" as const,
+      signed: false,
+      validSignature: false,
+      expired: false,
+    };
+  }
 }
 
 export function buildGoogleConnectUrl(params: {
