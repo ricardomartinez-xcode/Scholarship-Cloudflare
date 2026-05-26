@@ -94,8 +94,7 @@ export function findPublishedBasePriceOverride(
   },
 ) {
   const campusTargets = normalizeCampusTargets(params);
-  let tierPrice: number | null = null;
-  let generalPrice: number | null = null;
+  let genericPrice: number | null = null;
   let campusPriceIgnoringTier: number | null = null;
 
   for (const override of overrides) {
@@ -107,10 +106,7 @@ export function findPublishedBasePriceOverride(
     if (price === null) continue;
 
     const campusKey = targetCampusKey(keys);
-    const targetTier = normalizeTierKey(keys.tier ?? keys.campusTier);
-    const matchesTier = targetTier
-      ? matchesBasePriceTierTarget(keys, params)
-      : false;
+    const matchesTier = matchesBasePriceTierTarget(keys, params);
 
     if (campusKey) {
       if (!campusTargets.has(campusKey)) continue;
@@ -124,14 +120,9 @@ export function findPublishedBasePriceOverride(
       continue;
     }
 
-    if (targetTier) {
-      if (!matchesTier) continue;
-      if (tierPrice === null) tierPrice = price;
-      continue;
-    }
-
-    if (generalPrice === null) generalPrice = price;
+    if (!matchesTier) continue;
+    if (genericPrice === null) genericPrice = price;
   }
 
-  return campusPriceIgnoringTier ?? tierPrice ?? generalPrice;
+  return campusPriceIgnoringTier ?? genericPrice;
 }

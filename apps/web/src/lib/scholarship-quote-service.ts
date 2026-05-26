@@ -111,11 +111,11 @@ export async function resolveScholarshipQuote(
     input.modality === "online"
       ? "ANY"
       : normalizeTier(campus?.tier ?? null);
+  const tierCandidates = Array.from(new Set([runtimeTier, "ANY"]));
 
   const [allRules, overrides] = await Promise.all([
     prisma.scholarshipRule.findMany({
       where: {
-        enrollmentType: input.enrollmentType,
         businessLine: input.businessLine,
         modality: input.modality,
         plan: Number(input.plan),
@@ -132,7 +132,12 @@ export async function resolveScholarshipQuote(
     ]),
   ]);
 
-  const normalizedRules = allRules.map((rule) => {
+  let candidateRules = allRules.filter((rule) =>
+    tierCandidates.includes(normalizeTier(rule.campusTier)),
+  );
+  if (!candidateRules.length) candidateRules = allRules;
+
+  const normalizedCandidateRules = candidateRules.map((rule) => {
     return {
       enrollmentType: rule.enrollmentType,
       businessLine: rule.businessLine,
@@ -145,16 +150,6 @@ export async function resolveScholarshipQuote(
       discountedPriceMxn: toNumber(rule.discountedPriceMxn),
     };
   });
-
-  const tierRules = normalizedRules.filter(
-    (rule) =>
-      runtimeTier !== "ANY" &&
-      normalizeTier(rule.campusTier) === runtimeTier,
-  );
-  const generalRules = normalizedRules.filter(
-    (rule) => normalizeTier(rule.campusTier) === "ANY",
-  );
-  const normalizedCandidateRules = tierRules.length ? tierRules : generalRules;
   const averageCandidateRules = normalizedCandidateRules;
 
   const average = Math.round(Number(input.average) * 10) / 10;
@@ -219,9 +214,7 @@ export async function resolveScholarshipQuote(
     campus: input.campus ?? campus?.name ?? null,
     campusAliases: buildCampusAliases(campus, input.campus),
   });
-  const ruleBasePrice =
-    basePriceFromRules(tierRules) ??
-    basePriceFromRules(generalRules);
+  const ruleBasePrice = basePriceFromRules(normalizedCandidateRules);
   const staticBasePrice = findStaticBasePrice({
     businessLine: input.businessLine,
     modality: input.modality,
@@ -251,10 +244,8 @@ export async function resolveScholarshipQuote(
         plan: input.plan,
         campus: input.campus ?? null,
         tier: runtimeTier,
-        enrollmentType: input.enrollmentType,
         selectedProgramId: input.selectedProgramId ?? null,
         offeringId: input.offeringId ?? null,
-        reason: "canonical_price_not_found",
       },
     });
   }

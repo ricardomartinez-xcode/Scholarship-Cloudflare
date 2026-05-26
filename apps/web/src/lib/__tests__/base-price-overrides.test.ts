@@ -215,32 +215,4 @@ describe("findPublishedBasePriceOverride", () => {
       }),
     ).toBeNull();
   });
-
-  it("uses a general line/modality/plan override when no campus or tier override exists", () => {
-    const overrides: PriceOverrideSnapshot[] = [
-      {
-        id: "general-posgrado-price",
-        scope: BASE_PRICE_OVERRIDE_SCOPE,
-        targetKeys: {
-          nivel_key: "maestria",
-          modalidad_key: "online",
-          plan: "4",
-        },
-        newPrice: 7100,
-        isActive: true,
-        notes: null,
-        updatedBy: null,
-      },
-    ];
-
-    expect(
-      findPublishedBasePriceOverride(overrides, {
-        businessLine: "posgrado",
-        modality: "online",
-        plan: 4,
-        tier: "T3",
-        campus: "Online",
-      }),
-    ).toBe(7100);
-  });
 });
