@@ -40,6 +40,7 @@ export type ScholarshipQuoteInput = {
   subjectCount?: number | null;
   extraChargeAmount?: number;
   selectedProgramId?: string | null;
+  selectedProgramName?: string | null;
   offeringId?: string | null;
   offerCycle?: string | null;
   sourceVersion?: string;
@@ -213,6 +214,12 @@ export async function resolveScholarshipQuote(
     tier: runtimeTier,
     campus: input.campus ?? campus?.name ?? null,
     campusAliases: buildCampusAliases(campus, input.campus),
+    programId: input.selectedProgramId ?? null,
+    programName: input.selectedProgramName ?? null,
+    programAliases: [
+      input.selectedProgramId ?? null,
+      input.selectedProgramName ?? null,
+    ],
   });
   const ruleBasePrice = basePriceFromRules(normalizedCandidateRules);
   const staticBasePrice = findStaticBasePrice({
@@ -245,6 +252,7 @@ export async function resolveScholarshipQuote(
         campus: input.campus ?? null,
         tier: runtimeTier,
         selectedProgramId: input.selectedProgramId ?? null,
+        selectedProgramName: input.selectedProgramName ?? null,
         offeringId: input.offeringId ?? null,
       },
     });

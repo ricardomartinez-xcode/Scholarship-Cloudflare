@@ -113,6 +113,7 @@ export async function upsertMontoOverrideAction(formData: FormData) {
   try {
     const admin = await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
 
+    const programa_key = String(formData.get("programa_key") ?? "").trim();
     const nivel_key = String(formData.get("nivel_key") ?? "").trim();
     const modalidad_key = String(formData.get("modalidad_key") ?? "").trim();
     const plan = String(formData.get("plan") ?? "").trim();
@@ -133,6 +134,7 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     }
 
     const targetKeys: Record<string, string> = { nivel_key, modalidad_key, plan, tier };
+    if (programa_key) targetKeys.programa_key = programa_key;
     if (region) targetKeys.region = region;
     if (plantel) targetKeys.plantel = plantel;
     const before = existingId

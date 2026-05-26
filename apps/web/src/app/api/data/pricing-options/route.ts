@@ -7,6 +7,7 @@ import {
 } from "@/lib/base-price-overrides";
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
 import { buildQuotePricingOptions } from "@/lib/pricing-options";
+import { normalizeKey } from "@/lib/text-normalize";
 import {
   basePriceFromRules,
   normalizeBusinessLine,
@@ -29,16 +30,48 @@ function buildPricingKey(option: {
   modality: string;
   plan: number;
   programId?: string | null;
+  programKey?: string | null;
 }) {
-  return `${option.businessLine}|${option.modality}|${option.plan}|${option.programId ?? ""}`;
+  return [
+    option.businessLine,
+    option.modality,
+    option.plan,
+    option.programId ?? "",
+    option.programKey ?? "",
+  ].join("|");
 }
 
 function buildPriceOnlyKey(option: {
   businessLine: string;
   modality: string;
   plan: number;
+  programKey?: string | null;
 }) {
-  return `${option.businessLine}|${option.modality}|${option.plan}`;
+  return `${option.businessLine}|${option.modality}|${option.plan}|${option.programKey ?? ""}`;
+}
+
+function normalizeProgramMatchKey(value: unknown) {
+  return normalizeKey(String(value ?? "")).replace(/[^a-z0-9]/g, "");
+}
+
+function programMatchesPricingOption(
+  program: { id: string; name: string },
+  option: { programKey?: string | null },
+) {
+  const target = normalizeProgramMatchKey(option.programKey);
+  if (!target) return true;
+
+  const candidates = [
+    normalizeProgramMatchKey(program.id),
+    normalizeProgramMatchKey(program.name),
+  ].filter(Boolean);
+
+  return candidates.some(
+    (candidate) =>
+      candidate === target ||
+      (target.length >= 5 && candidate.includes(target)) ||
+      (candidate.length >= 5 && target.includes(candidate)),
+  );
 }
 
 function normalizeRulesForBasePrice(
@@ -267,6 +300,7 @@ export async function GET() {
                     campus.code,
                     campus.slug,
                   ].filter(Boolean),
+                  programAliases: option.programKey ? [option.programKey] : [],
                 },
               );
               const staticBasePrice = findStaticBasePrice({
@@ -274,6 +308,10 @@ export async function GET() {
                 modality: option.modality,
                 plan: option.plan,
               });
+
+              if (option.programKey) {
+                return overrideBasePrice !== null;
+              }
 
               return (
                 ruleBasePrice !== null ||
@@ -298,6 +336,7 @@ export async function GET() {
           modality: string;
           plan: number;
           programId: string;
+          programKey?: string | null;
         }
       >();
       const offeredOptions = new Map<string, { businessLine: string; modality: string }>();
@@ -319,7 +358,8 @@ export async function GET() {
           for (const option of campusPricingByKey.values()) {
             if (
               option.businessLine !== studyProgram.businessLine ||
-              option.modality !== modality
+              option.modality !== modality ||
+              !programMatchesPricingOption(studyProgram, option)
             ) {
               continue;
             }
@@ -330,6 +370,7 @@ export async function GET() {
                 modality: option.modality,
                 plan: option.plan,
                 programId: studyProgram.id,
+                ...(option.programKey ? { programKey: option.programKey } : {}),
               },
             );
           }

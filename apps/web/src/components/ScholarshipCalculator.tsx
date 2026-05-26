@@ -40,6 +40,7 @@ type PricingOption = {
   businessLine: string;
   modality: string;
   plan: number;
+  programKey?: string | null;
 };
 
 type StudyProgramOption = {
@@ -64,6 +65,7 @@ type PricingOptionsResponse = {
       modality: string;
       plan: number;
       programId?: string;
+      programKey?: string | null;
     }>;
   }>;
   subjectCounts?: number[];
@@ -518,6 +520,7 @@ export default function ScholarshipCalculator({
         modality: string;
         plan: number;
         programId?: string;
+        programKey?: string | null;
       }>;
     }>
   >([]);
@@ -904,6 +907,7 @@ export default function ScholarshipCalculator({
             subjectCount: materias,
             extraCharge: cargoEnabled ? cargoAmount : null,
             selectedProgramId: studyProgramId || null,
+            selectedProgramName: selectedStudyProgram?.name ?? selectedOfferProgram?.programName ?? null,
             offeringId: offerProgramId || null,
             offerCycle: selectedOfferCycle || null,
           }),

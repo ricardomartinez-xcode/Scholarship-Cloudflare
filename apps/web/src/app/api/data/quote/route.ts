@@ -29,6 +29,7 @@ type QuotePayload = {
   subjectCount?: number | string | null;
   extraCharge?: number | string | { amount?: number | string } | null;
   selectedProgramId?: string | null;
+  selectedProgramName?: string | null;
   offeringId?: string | null;
   offerCycle?: string | null;
   clientSurface?: string;
@@ -64,6 +65,7 @@ async function recordQuoteGeneratedEvent(params: {
     subjectCount: number | null;
     extraChargeAmount: number;
     selectedProgramId: string | null;
+    selectedProgramName: string | null;
     offeringId: string | null;
     offerCycle: string | null;
     resolvedOffering: QuoteAcademicOfferingContext | null;
@@ -89,6 +91,7 @@ async function recordQuoteGeneratedEvent(params: {
       subjectCount: params.input.subjectCount,
       extraChargeAmount: params.input.extraChargeAmount,
       selectedProgramId: params.input.selectedProgramId,
+      selectedProgramName: params.input.selectedProgramName,
       offeringId: params.input.offeringId,
       offerCycle: params.input.offerCycle,
       resolvedOfferingId: params.input.resolvedOffering?.offeringId ?? null,
@@ -156,6 +159,10 @@ export async function POST(request: Request) {
     const selectedProgramId =
       typeof payload.selectedProgramId === "string" && payload.selectedProgramId.trim()
         ? payload.selectedProgramId.trim()
+        : null;
+    const selectedProgramName =
+      typeof payload.selectedProgramName === "string" && payload.selectedProgramName.trim()
+        ? payload.selectedProgramName.trim()
         : null;
     const offeringId =
       typeof payload.offeringId === "string" && payload.offeringId.trim()
@@ -236,6 +243,7 @@ export async function POST(request: Request) {
       subjectCount,
       extraChargeAmount,
       selectedProgramId,
+      selectedProgramName,
       offeringId,
       offerCycle,
       resolvedOffering: null,
@@ -250,6 +258,7 @@ export async function POST(request: Request) {
       subjectCount: number | null;
       extraChargeAmount: number;
       selectedProgramId: string | null;
+      selectedProgramName: string | null;
       offeringId: string | null;
       offerCycle: string | null;
       resolvedOffering: QuoteAcademicOfferingContext | null;
@@ -320,6 +329,7 @@ export async function POST(request: Request) {
             modality: offeringResolution.context.modality,
             campus: offeringResolution.context.campusKey,
             selectedProgramId: offeringResolution.context.programId,
+            selectedProgramName: offeringResolution.context.programName,
             offeringId: offeringResolution.context.offeringId,
             resolvedOffering: offeringResolution.context,
           }
@@ -339,6 +349,7 @@ export async function POST(request: Request) {
         plan: requestInput.plan,
         campus: requestInput.campus,
         selectedProgramId: requestInput.selectedProgramId,
+        selectedProgramName: requestInput.selectedProgramName,
         offeringId: requestInput.offeringId,
         resolvedOfferingId: requestInput.resolvedOffering?.offeringId ?? null,
         clientSurface: requestInput.clientSurface,

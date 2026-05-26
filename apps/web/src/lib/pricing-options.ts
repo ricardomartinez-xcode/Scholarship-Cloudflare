@@ -4,12 +4,14 @@ import {
   normalizeCanonicalModality,
   type EnrollmentTypeValue,
 } from "@/lib/pricing-normalize";
+import { normalizeKey } from "@/lib/text-normalize";
 
 export type QuotePricingOption = {
   enrollmentType: EnrollmentTypeValue;
   businessLine: string;
   modality: string;
   plan: number;
+  programKey?: string | null;
 };
 
 type RuleSource = {
@@ -22,6 +24,15 @@ type PriceOverrideSource = {
   targetKeys: unknown;
 };
 
+const LEGACY_PROGRAMA_KEYS = new Set([
+  "canonical",
+  "canonico",
+  "nuevo ingreso",
+  "nuevo_ingreso",
+  "regreso",
+  "reingreso",
+]);
+
 function targetRecord(targetKeys: unknown) {
   return targetKeys && typeof targetKeys === "object"
     ? (targetKeys as Record<string, unknown>)
@@ -33,12 +44,19 @@ function normalizePlan(value: unknown) {
   return Number.isFinite(plan) && plan > 0 ? plan : null;
 }
 
+function normalizeProgramKey(value: unknown) {
+  const normalized = normalizeKey(String(value ?? ""));
+  if (!normalized || LEGACY_PROGRAMA_KEYS.has(normalized)) return null;
+  return normalized;
+}
+
 function optionKey(option: QuotePricingOption) {
   return [
     option.enrollmentType,
     option.businessLine,
     option.modality,
     option.plan,
+    option.programKey ?? "",
   ].join("|");
 }
 
@@ -47,7 +65,8 @@ function compareOptions(left: QuotePricingOption, right: QuotePricingOption) {
     left.enrollmentType.localeCompare(right.enrollmentType, "es-MX") ||
     left.businessLine.localeCompare(right.businessLine, "es-MX") ||
     left.modality.localeCompare(right.modality, "es-MX") ||
-    left.plan - right.plan
+    left.plan - right.plan ||
+    String(left.programKey ?? "").localeCompare(String(right.programKey ?? ""), "es-MX")
   );
 }
 
@@ -61,6 +80,7 @@ export function buildQuotePricingOptions(
     businessLine: string;
     modality: string;
     plan: number;
+    programKey?: string | null;
   }) {
     for (const enrollmentType of ENROLLMENT_TYPES) {
       const option = {
@@ -68,6 +88,7 @@ export function buildQuotePricingOptions(
         businessLine: params.businessLine,
         modality: params.modality,
         plan: params.plan,
+        ...(params.programKey ? { programKey: params.programKey } : {}),
       };
       options.set(optionKey(option), option);
     }
@@ -96,6 +117,15 @@ export function buildQuotePricingOptions(
       String(keys.modalidad_key ?? keys.modality ?? keys.modalidad ?? ""),
     );
     const plan = normalizePlan(keys.plan);
+    const programKey = normalizeProgramKey(
+      keys.programa_key ??
+        keys.programaKey ??
+        keys.program_key ??
+        keys.programId ??
+        keys.program_id ??
+        keys.programa ??
+        keys.program,
+    );
 
     if (!businessLine || !modality || plan === null) continue;
 
@@ -103,6 +133,7 @@ export function buildQuotePricingOptions(
       businessLine,
       modality,
       plan,
+      programKey,
     });
   }
 

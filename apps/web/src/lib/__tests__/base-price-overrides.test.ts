@@ -344,4 +344,90 @@ describe("findPublishedBasePriceOverride", () => {
     ).toBeNull();
   });
 
+  it("prefers program-specific Salud Plan 9 price only for Psicologia", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "salud-generic-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "salud",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 5600,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "psicologia-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          programa_key: "psicologia",
+          plantel: "Hermosillo",
+          nivel_key: "salud",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 4970,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "salud",
+        modality: "presencial",
+        plan: 9,
+        tier: "T3",
+        campus: "Hermosillo",
+        programName: "Licenciatura en Psicología",
+      }),
+    ).toBe(4970);
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "salud",
+        modality: "presencial",
+        plan: 9,
+        tier: "T3",
+        campus: "Hermosillo",
+        programName: "Licenciatura en Nutrición",
+      }),
+    ).toBe(5600);
+  });
+
+  it("uses a general line/modality/plan price after plantel and tier scopes", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "general-posgrado-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "posgrado",
+          modalidad_key: "online",
+          plan: "4",
+        },
+        newPrice: 4100,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "posgrado",
+        modality: "online",
+        plan: 4,
+        tier: "ANY",
+        campus: "ONLINE",
+      }),
+    ).toBe(4100);
+  });
+
+
 });

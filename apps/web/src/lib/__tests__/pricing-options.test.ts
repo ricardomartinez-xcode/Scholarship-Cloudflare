@@ -123,4 +123,36 @@ describe("buildQuotePricingOptions", () => {
     ).toHaveLength(3);
   });
 
+  it("exposes program-specific price options without making them generic", () => {
+    const options = buildQuotePricingOptions([], [
+      {
+        targetKeys: {
+          programa_key: "psicologia",
+          nivel_key: "salud",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+      },
+    ]);
+
+    expect(options).toContainEqual({
+      enrollmentType: "nuevo_ingreso",
+      businessLine: "salud",
+      modality: "presencial",
+      plan: 9,
+      programKey: "psicologia",
+    });
+    expect(
+      options.some(
+        (option) =>
+          option.businessLine === "salud" &&
+          option.modality === "presencial" &&
+          option.plan === 9 &&
+          !option.programKey,
+      ),
+    ).toBe(false);
+  });
+
+
 });

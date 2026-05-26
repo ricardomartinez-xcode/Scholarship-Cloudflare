@@ -86,7 +86,16 @@ const HEADER_ALIASES = {
   notes: ["notes", "nota", "notas"],
 } as const;
 
-const REQUIRED_HEADER_EXAMPLE = "linea, region, plantel, tier, precio, modalidad, plan";
+const REQUIRED_HEADER_EXAMPLE = "linea, region, plantel, tier, precio, modalidad, plan, programa";
+
+const LEGACY_PROGRAMA_KEYS = new Set([
+  "canonical",
+  "canonico",
+  "nuevo ingreso",
+  "nuevo_ingreso",
+  "regreso",
+  "reingreso",
+]);
 
 export class PricesCsvValidationError extends Error {
   status = 422;
@@ -105,6 +114,12 @@ function normalizeText(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function normalizeProgramaKey(value: string | null) {
+  const key = normalizeText(value ?? "");
+  if (!key || LEGACY_PROGRAMA_KEYS.has(key)) return null;
+  return key;
 }
 
 function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
@@ -169,6 +184,7 @@ function normalizePlan(value: string) {
 
 function buildPriceScopeKey(input: {
   plantel?: string | null;
+  programaKey?: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -176,6 +192,7 @@ function buildPriceScopeKey(input: {
 }) {
   return [
     (input.plantel ?? "").trim().toLowerCase(),
+    (normalizeProgramaKey(input.programaKey ?? null) ?? "").trim().toLowerCase(),
     input.nivelKey.trim().toLowerCase(),
     input.modalidadKey.trim().toLowerCase(),
     input.plan.trim().toLowerCase(),
@@ -226,6 +243,17 @@ async function buildExistingPriceOverridesByScopeKey() {
         : {};
     const key = buildPriceScopeKey({
       plantel: target.plantel ? String(target.plantel) : null,
+      programaKey: target.programa_key
+        ? String(target.programa_key)
+        : target.programaKey
+          ? String(target.programaKey)
+          : target.program_key
+            ? String(target.program_key)
+            : target.programa
+              ? String(target.programa)
+              : target.program
+                ? String(target.program)
+                : null,
       nivelKey: String(target.nivel_key ?? ""),
       modalidadKey: String(target.modalidad_key ?? ""),
       plan: String(target.plan ?? ""),
@@ -300,7 +328,7 @@ export async function preparePricesCsvImport(
 
     const plantel = readCell(row, idxPlantel) || null;
     const region = readCell(row, idxRegion) || null;
-    const programaKey = readCell(row, idxPrograma) || null;
+    const programaKey = normalizeProgramaKey(readCell(row, idxPrograma) || null);
     const nivelKey = normalizeNivelKey(readCell(row, idxNivel));
     const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad));
     const plan = normalizePlan(readCell(row, idxPlan));
@@ -324,6 +352,7 @@ export async function preparePricesCsvImport(
     const notes = readCell(row, idxNotes) || null;
     const key = buildPriceScopeKey({
       plantel,
+      programaKey,
       nivelKey,
       modalidadKey,
       plan,
@@ -369,6 +398,7 @@ export async function preparePricesCsvImport(
   for (const parsedRow of parsedRows) {
     const key = buildPriceScopeKey({
       plantel: parsedRow.plantel,
+      programaKey: parsedRow.programaKey,
       nivelKey: parsedRow.nivelKey,
       modalidadKey: parsedRow.modalidadKey,
       plan: parsedRow.plan,
@@ -430,6 +460,7 @@ export async function applyPreparedPricesImport(params: {
       }
 
       const targetKeys: Record<string, string | null> = {
+        ...(row.programaKey ? { programa_key: row.programaKey } : {}),
         nivel_key: row.nivelKey,
         modalidad_key: row.modalidadKey,
         plan: row.plan,

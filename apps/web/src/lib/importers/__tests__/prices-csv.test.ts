@@ -93,7 +93,7 @@ describe("preparePricesCsvImport", () => {
     expect(result.payload.rows[0]).toMatchObject({
       action: "update",
       existingId: "override-1",
-      programaKey: "reingreso",
+      programaKey: null,
       nivelKey: "licenciatura",
       modalidadKey: "presencial",
       plan: "9",
@@ -151,6 +151,30 @@ describe("preparePricesCsvImport", () => {
       plan: "11",
       tier: "T1",
       newPrice: 4700,
+    });
+  });
+
+
+  it("persists non-legacy programa as a program-specific price scope", async () => {
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+
+    const csv = [
+      "programa,linea,plantel,tier,precio,modalidad,plan",
+      "psicologia,Salud,Hermosillo,T3,4970,Presencial,9",
+    ].join("\n");
+    const file = new File([csv], "precios-psicologia.csv", { type: "text/csv" });
+
+    const result = await preparePricesCsvImport({ file });
+
+    expect(result.payload.rows[0]).toMatchObject({
+      action: "create",
+      programaKey: "psicologia",
+      nivelKey: "salud",
+      modalidadKey: "presencial",
+      plantel: "Hermosillo",
+      plan: "9",
+      tier: "T3",
+      newPrice: 4970,
     });
   });
 

@@ -39,6 +39,7 @@ type PriceRow = {
   id: string;
   region: string | null;
   plantel: string | null;
+  programa_key: string | null;
   nivel_key: string;
   modalidad_key: string;
   plan: string;
@@ -105,6 +106,7 @@ function targetKeysRecord(targetKeys: unknown) {
 function priceScopeKey(scope: {
   region?: unknown;
   plantel?: unknown;
+  programa_key?: unknown;
   nivel_key: unknown;
   modalidad_key: unknown;
   plan: unknown;
@@ -113,6 +115,7 @@ function priceScopeKey(scope: {
   return [
     normalizeScopeValue(scope.region) ?? "",
     normalizeScopeValue(scope.plantel) ?? "",
+    normalizeScopeValue(scope.programa_key) ?? "",
     String(scope.nivel_key ?? "").trim(),
     String(scope.modalidad_key ?? "").trim(),
     String(scope.plan ?? "").trim(),
@@ -124,6 +127,7 @@ function priceScopeKeyFromRecord(keys: Record<string, unknown>) {
   return priceScopeKey({
     region: keys.region,
     plantel: keys.plantel,
+    programa_key: keys.programa_key ?? keys.programaKey ?? keys.program_key ?? keys.programa ?? keys.program,
     nivel_key: keys.nivel_key,
     modalidad_key: keys.modalidad_key,
     plan: keys.plan,
@@ -132,12 +136,14 @@ function priceScopeKeyFromRecord(keys: Record<string, unknown>) {
 }
 
 function priceCombinationKey(scope: {
+  programa_key?: unknown;
   nivel_key: unknown;
   modalidad_key: unknown;
   plan: unknown;
   tier?: unknown;
 }) {
   return [
+    normalizeScopeValue(scope.programa_key) ?? "",
     String(scope.nivel_key ?? "").trim(),
     String(scope.modalidad_key ?? "").trim(),
     String(scope.plan ?? "").trim(),
@@ -161,6 +167,9 @@ function priceRowFromOverride(override: MontoOverride): PriceRow | null {
     id: `price:${override.id}`,
     region: normalizeScopeValue(keys.region),
     plantel: normalizeScopeValue(keys.plantel),
+    programa_key: normalizeScopeValue(
+      keys.programa_key ?? keys.programaKey ?? keys.program_key ?? keys.programa ?? keys.program,
+    ),
     nivel_key: nivel,
     modalidad_key: modalidad,
     plan,
@@ -251,6 +260,7 @@ export default function PricesClient({
           id: `rule:${key}`,
           region: null,
           plantel: null,
+          programa_key: null,
           nivel_key: rule.nivel_key,
           modalidad_key: rule.modalidad_key,
           plan: rule.plan,
@@ -317,6 +327,26 @@ export default function PricesClient({
     setEditingRule(rule);
     setEditingOverride(override);
     setNewPrice(rule.basePriceMxn === null ? "" : String(rule.basePriceMxn));
+    setOpen(true);
+  }
+
+  function openCreateProgramPrice() {
+    clearSaveState();
+    setEditingRule({
+      id: "new:program-price",
+      region: null,
+      plantel: null,
+      programa_key: "psicologia",
+      nivel_key: "salud",
+      modalidad_key: "presencial",
+      plan: "9",
+      tier: null,
+      basePriceMxn: null,
+      sourceOverrideId: null,
+      source: "missing",
+    });
+    setEditingOverride(null);
+    setNewPrice("");
     setOpen(true);
   }
 
@@ -434,6 +464,13 @@ export default function PricesClient({
             precio lista canónico del alcance seleccionado.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={openCreateProgramPrice}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+        >
+          Nuevo precio específico
+        </button>
       </div>
 
       <div className="mt-5">
@@ -499,18 +536,18 @@ export default function PricesClient({
           <div>
             <div className="font-semibold text-slate-100">Orden canónico visible</div>
             <div className="mt-1 font-mono text-[11px]">
-              Línea de negocio | Region | Plantel | Tier | Precio lista | Modalidad | Plan
+              Línea de negocio | Region | Plantel | Programa | Tier | Precio lista | Modalidad | Plan
             </div>
           </div>
           <div className="grid gap-1">
             <div>
               <div className="font-semibold text-slate-100">Encabezados CSV aceptados</div>
               <div className="mt-1 font-mono text-[11px]">
-                linea, region, plantel, tier, precio, modalidad, plan
+                linea, region, plantel, programa, tier, precio, modalidad, plan
               </div>
             </div>
             <div className="text-[11px] leading-5 text-slate-400">
-              Alias: “Línea de negocio” también es válido para linea. “Precio lista”
+              Alias: “Programa” permite acotar un precio a una carrera, por ejemplo psicologia. “Línea de negocio” también es válido para linea. “Precio lista”
               también es válido para precio. “Modalidad” también es válido para modalidad.
             </div>
           </div>
@@ -556,7 +593,7 @@ export default function PricesClient({
             ) : null}
             {importPreviewRows.length ? (
               <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-[360px]">
-                <table className="ui-table ui-table--compact w-full min-w-[940px]">
+                <table className="ui-table ui-table--compact w-full min-w-[1040px]">
                   <thead>
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
@@ -564,6 +601,7 @@ export default function PricesClient({
                       <th className="ui-cell-nowrap text-left">Línea de negocio</th>
                       <th className="ui-cell-nowrap text-left">Region</th>
                       <th className="ui-cell-nowrap text-left">Plantel</th>
+                      <th className="ui-cell-nowrap text-left">Programa</th>
                       <th className="ui-cell-nowrap text-left">Tier</th>
                       <th className="ui-cell-nowrap text-right">Precio lista</th>
                       <th className="text-left">Detalle</th>
@@ -581,6 +619,9 @@ export default function PricesClient({
                         </td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {formatAdminPricingPlantel(row)}
+                        </td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {row.programaKey ?? "Todos"}
                         </td>
                         <td className="ui-cell-nowrap text-slate-200">
                           {formatAdminPricingTier(row)}
@@ -633,21 +674,23 @@ export default function PricesClient({
       <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full">
         <table className="ui-table !w-full !min-w-full table-fixed">
           <colgroup>
-            <col className="w-[15%]" />
+            <col className="w-[13%]" />
             <col className="w-[9%]" />
-            <col className="w-[16%]" />
+            <col className="w-[14%]" />
+            <col className="w-[12%]" />
             <col className="w-[7%]" />
             <col className="w-[11%]" />
-            <col className="w-[10%]" />
+            <col className="w-[9%]" />
             <col className="w-[6%]" />
+            <col className="w-[9%]" />
             <col className="w-[10%]" />
-            <col className="w-[16%]" />
           </colgroup>
           <thead>
             <tr>
               <th className="ui-cell-nowrap text-left">Línea de negocio</th>
               <th className="ui-cell-nowrap text-left">Region</th>
               <th className="ui-cell-nowrap text-left">Plantel</th>
+              <th className="ui-cell-nowrap text-left">Programa</th>
               <th className="ui-cell-nowrap text-left">Tier</th>
               <th className="ui-cell-nowrap text-right">Precio lista</th>
               <th className="ui-cell-nowrap text-left">Modalidad</th>
@@ -667,6 +710,9 @@ export default function PricesClient({
                     </td>
                     <td className="ui-cell-nowrap text-slate-200">
                       {formatAdminPricingPlantel(rule)}
+                    </td>
+                    <td className="ui-cell-nowrap text-xs text-slate-300">
+                      {rule.programa_key ?? "Todos"}
                     </td>
                     <td className="ui-cell-nowrap text-xs text-slate-300">
                       {formatAdminPricingTier(rule)}
@@ -721,7 +767,7 @@ export default function PricesClient({
               })
             ) : (
               <tr>
-                <td className="text-slate-400" colSpan={9}>
+                <td className="text-slate-400" colSpan={10}>
                   No hay precios con los filtros seleccionados.
                 </td>
               </tr>
@@ -770,7 +816,7 @@ export default function PricesClient({
         title="Precio lista canónico"
         description={
           editingRule
-            ? `${normalizeAdminPricingRegion(editingRule.region)} · ${formatAdminPricingPlantel(editingRule)} · ${formatAdminPricingTier(editingRule)}`
+            ? `${normalizeAdminPricingRegion(editingRule.region)} · ${formatAdminPricingPlantel(editingRule)} · ${editingRule.programa_key ?? "Todos los programas"} · ${formatAdminPricingTier(editingRule)}`
             : "Actualiza el precio lista que usará la calculadora."
         }
         size="md"
@@ -782,7 +828,7 @@ export default function PricesClient({
                 Alcance
               </span>
               <span className="mt-1 block text-slate-100">
-                {editingRule.nivel_key} · {editingRule.modalidad_key} · plan {editingRule.plan}
+                {editingRule.nivel_key} · {editingRule.modalidad_key} · {editingRule.programa_key ?? "todos los programas"} · plan {editingRule.plan}
               </span>
             </div>
             <div>
@@ -803,17 +849,87 @@ export default function PricesClient({
         ) : null}
 
         <form onSubmit={handleSubmit} className="grid gap-4">
-              <input type="hidden" name="programa_key" value="" />
-              <input type="hidden" name="region" value={editingRule?.region ?? ""} />
-              <input type="hidden" name="plantel" value={editingRule?.plantel ?? ""} />
-              <input type="hidden" name="nivel_key" value={editingRule?.nivel_key ?? ""} />
-              <input
-                type="hidden"
-                name="modalidad_key"
-                value={editingRule?.modalidad_key ?? ""}
-              />
-              <input type="hidden" name="plan" value={editingRule?.plan ?? ""} />
-              <input type="hidden" name="tier" value={editingRule?.tier ?? ""} />
+              {editingRule?.id === "new:program-price" ? (
+                <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Línea
+                    <input
+                      name="nivel_key"
+                      defaultValue={editingRule.nivel_key}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      required
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Modalidad
+                    <input
+                      name="modalidad_key"
+                      defaultValue={editingRule.modalidad_key}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      required
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Programa
+                    <input
+                      name="programa_key"
+                      defaultValue={editingRule.programa_key ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="psicologia"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Plan
+                    <input
+                      name="plan"
+                      defaultValue={editingRule.plan}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      required
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Plantel
+                    <input
+                      name="plantel"
+                      defaultValue={editingRule.plantel ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="Hermosillo"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Tier
+                    <input
+                      name="tier"
+                      defaultValue={editingRule.tier ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="T3"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 sm:col-span-2">
+                    Región
+                    <input
+                      name="region"
+                      defaultValue={editingRule.region ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="Opcional"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <>
+                  <input type="hidden" name="programa_key" value={editingRule?.programa_key ?? ""} />
+                  <input type="hidden" name="region" value={editingRule?.region ?? ""} />
+                  <input type="hidden" name="plantel" value={editingRule?.plantel ?? ""} />
+                  <input type="hidden" name="nivel_key" value={editingRule?.nivel_key ?? ""} />
+                  <input
+                    type="hidden"
+                    name="modalidad_key"
+                    value={editingRule?.modalidad_key ?? ""}
+                  />
+                  <input type="hidden" name="plan" value={editingRule?.plan ?? ""} />
+                  <input type="hidden" name="tier" value={editingRule?.tier ?? ""} />
+                </>
+              )}
               <input type="hidden" name="existingId" value={editingOverride?.id ?? ""} />
 
               <label className="grid gap-2 text-sm">
