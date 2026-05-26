@@ -3,40 +3,64 @@ import { describe, expect, it } from "vitest";
 import { visibleQuoteCampuses, visibleQuoteModalities } from "@/lib/pricing-option-display";
 
 describe("visibleQuoteModalities", () => {
-  it("keeps the allowed modalities for licenciatura", () => {
-    expect(visibleQuoteModalities(["online", "mixta", "presencial"],
+  it("shows configured modalidades for licenciatura", () => {
+    expect(visibleQuoteModalities(["online"], "licenciatura")).toEqual([
       "presencial",
       "mixta",
-      "online",                                  
+      "online",
     ]);
   });
 
-  it("keeps only presencial and online for bachillerato", () => {
-    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "prepa")).toEqual([
+  it("shows configured modalidades for prepa aliases", () => {
+    expect(visibleQuoteModalities(["online"], "bachillerato")).toEqual([
       "presencial",
       "online",
     ]);
   });
 
-  it("keeps only presencial for salud", () => {
+  it("shows configured modalidades for salud and posgrado", () => {
     expect(visibleQuoteModalities(["online", "mixta", "presencial"], "salud")).toEqual([
       "presencial",
     ]);
+    expect(visibleQuoteModalities(["presencial", "online"], "maestria")).toEqual(["online"]);
   });
 
-  it("keeps only online for posgrado", () => {
-    expect(visibleQuoteModalities(["online", "mixta", "presencial"], "posgrado")).toEqual([
+  it("keeps normalized available modalities when line is unknown", () => {
+    expect(visibleQuoteModalities(["online", "ejecutiva", "escolarizado"])).toEqual([
+      "presencial",
+      "mixta",
       "online",
     ]);
   });
+});
 
-  it("keeps online for online-only combinations", () => {
-    expect(visibleQuoteModalities(["online"])).toEqual(["online"]);
-  });
-
+describe("visibleQuoteCampuses", () => {
   it("treats Online as the campus for online modality", () => {
     expect(visibleQuoteCampuses([{ value: "TJN", label: "Tijuana" }], "online")).toEqual([
       { value: "ONLINE", label: "Online" },
+    ]);
+  });
+
+  it("normalizes lowercase online campus value", () => {
+    expect(
+      visibleQuoteCampuses(
+        [
+          {
+            value: "online",
+            label: "Online",
+            pricingOptions: [{ businessLine: "prepa", modality: "online", plan: 6 }],
+          },
+        ],
+        "online",
+        "bachillerato",
+        6,
+      ),
+    ).toEqual([
+      {
+        value: "ONLINE",
+        label: "Online",
+        pricingOptions: [{ businessLine: "prepa", modality: "online", plan: 6 }],
+      },
     ]);
   });
 
@@ -70,7 +94,7 @@ describe("visibleQuoteModalities", () => {
           },
         ],
         "presencial",
-        "prepa",
+        "bachillerato",
       ),
     ).toEqual([
       {

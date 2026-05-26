@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useState, useTransition } from "react";
+import { type ChangeEvent, type FormEvent, useMemo, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -60,6 +60,13 @@ type SeedResult = {
   activated?: number;
   deactivated?: number;
   errors?: string[];
+};
+
+type SeedPreview = {
+  ok: boolean;
+  rows: number;
+  errors: string[];
+  sample: string[][];
 };
 
 type SeedActionResult = SeedResult & {
@@ -259,6 +266,99 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState }) {
   );
 }
 
+function normalizePreviewHeader(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function parsePreviewCsv(payload: string) {
+  const lines = payload
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return [] as string[][];
+  const delimiter = [",", ";", "|"].sort(
+    (left, right) => (lines[0]?.split(right).length ?? 0) - (lines[0]?.split(left).length ?? 0),
+  )[0] ?? ",";
+  return lines.map((line) => line.split(delimiter).map((cell) => cell.trim()));
+}
+
+function previewHasHeader(row: string[]) {
+  const normalized = row.map(normalizePreviewHeader);
+  return [
+    "codigo",
+    "concepto",
+    "seccion",
+    "costomxn",
+    "costobase",
+    "plantel",
+    "modalidad",
+    "materias",
+    "region",
+    "tier",
+  ].some((header) => normalized.includes(header));
+}
+
+function buildSeedPreview(params: {
+  mode: SeedMode;
+  format: SeedFormat;
+  payload: string;
+}): SeedPreview {
+  const payload = params.payload.trim();
+  if (!payload) return { ok: false, rows: 0, errors: ["Carga o pega contenido primero."], sample: [] };
+
+  if (params.format === "json") {
+    try {
+      const parsed = JSON.parse(payload) as unknown;
+      const rows = Array.isArray(parsed)
+        ? parsed
+        : parsed && typeof parsed === "object"
+          ? params.mode === "fees"
+            ? (parsed as { cuotas_tramites_y_diversos?: unknown[] }).cuotas_tramites_y_diversos
+            : params.mode === "materias"
+              ? (parsed as { precios_por_materia?: unknown[] }).precios_por_materia
+              : undefined
+          : undefined;
+
+      if (!Array.isArray(rows)) {
+        return {
+          ok: false,
+          rows: 0,
+          errors: ["El JSON no tiene el arreglo esperado para este tipo de importación."],
+          sample: [],
+        };
+      }
+
+      return {
+        ok: rows.length > 0,
+        rows: rows.length,
+        errors: rows.length ? [] : ["El arreglo no contiene filas."],
+        sample: rows.slice(0, 5).map((row) => [JSON.stringify(row)]),
+      };
+    } catch {
+      return { ok: false, rows: 0, errors: ["JSON inválido."], sample: [] };
+    }
+  }
+
+  const rows = parsePreviewCsv(payload);
+  if (!rows.length) return { ok: false, rows: 0, errors: ["El CSV no contiene filas."], sample: [] };
+  const firstRow = rows[0] ?? [];
+  const hasHeader = previewHasHeader(firstRow);
+  const dataRows = rows.slice(hasHeader ? 1 : 0).filter((row) =>
+    row.some((cell) => String(cell ?? "").trim()),
+  );
+
+  return {
+    ok: dataRows.length > 0,
+    rows: dataRows.length,
+    errors: dataRows.length ? [] : ["El CSV no contiene filas de datos."],
+    sample: dataRows.slice(0, 5),
+  };
+}
+
 export default function FeesClient({
   fees,
   campuses,
@@ -346,6 +446,10 @@ export default function FeesClient({
   const campusName = campuses.find((campus) => campus.id === selectedCampus)?.name ?? "";
   const selectedCampusRecord = campuses.find((campus) => campus.id === selectedCampus) ?? null;
   const seedGuide = getSeedGuide(seedMode, seedFormat);
+  const seedPreview = useMemo(
+    () => buildSeedPreview({ mode: seedMode, format: seedFormat, payload: seedPayload }),
+    [seedFormat, seedMode, seedPayload],
+  );
 
   const campusFeeMap = campusFees.reduce<Record<string, CampusFee>>((map, fee) => {
     if (fee.campusId === selectedCampus) {
@@ -1410,6 +1514,54 @@ export default function FeesClient({
               </div>
             </div>
 
+            {seedPayload.trim() ? (
+              <div className="grid gap-3 rounded-2xl border border-[#D7E4ED] bg-white px-4 py-3 text-sm text-[#123348]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.22em] text-[#657D8F]">
+                      Preview antes de aplicar
+                    </div>
+                    <div className="mt-1 font-semibold">
+                      {seedPreview.rows} fila{seedPreview.rows === 1 ? "" : "s"} detectada
+                      {seedPreview.rows === 1 ? "" : "s"}
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      seedPreview.ok
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {seedPreview.ok ? "Lista para aplicar" : "Revisar archivo"}
+                  </span>
+                </div>
+                {seedPreview.errors.length ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                    {seedPreview.errors[0]}
+                  </div>
+                ) : null}
+                {seedPreview.sample.length ? (
+                  <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-52">
+                    <table className="ui-table ui-table--compact w-full min-w-[640px]">
+                      <tbody>
+                        {seedPreview.sample.map((row, rowIndex) => (
+                          <tr key={`${rowIndex}-${row.join("|")}`}>
+                            <td className="ui-cell-nowrap text-xs text-[#657D8F]">
+                              {rowIndex + 1}
+                            </td>
+                            <td className="text-xs text-[#123348]">
+                              {row.join(" | ")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {seedError && (
               <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
                 {seedError}
@@ -1452,6 +1604,7 @@ export default function FeesClient({
                 disabled={
                   seedPending ||
                   !seedPayload.trim() ||
+                  !seedPreview.ok ||
                   (seedMode === "campus" && seedFormat === "csv" && !selectedCampus)
                 }
                 className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"

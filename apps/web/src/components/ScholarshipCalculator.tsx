@@ -564,7 +564,6 @@ export default function ScholarshipCalculator({
   // moduloLabelId removed
   const materiasLabelId = useId();
   const promedioLabelId = useId();
-  const ofertaLabelId = useId();
   const cargoTypeLabelId = useId();
   const cargoAmountLabelId = useId();
 
@@ -1109,7 +1108,7 @@ export default function ScholarshipCalculator({
     { value: "reingreso", label: "Reingreso" },
   ];
   const nivelOptions = niveles.map((n) => ({ value: n, label: humanizeLabel(n) }));
-  const modalidadOptions = modalidades.map((m) => ({ value: m, label: m }));
+  const modalidadOptions = modalidades.map((m) => ({ value: m, label: humanizeLabel(m) }));
   const planOptions = planes.map((p) => ({ value: String(p), label: `Plan ${p}` }));
   const plantelOptions = planteles.map((campus) => ({
     value: campus.value,
@@ -1987,17 +1986,14 @@ export default function ScholarshipCalculator({
                 </div>
               ) : (
               <div className="mt-4 grid min-w-0 gap-[var(--ui-card-gap)] xl:grid-cols-[minmax(0,1.24fr)_minmax(248px,0.76fr)]">
-                <div className="grid min-w-0 gap-3">
-                  <div className="grid min-w-0 gap-2 ui-label">
-                    <span id={ofertaLabelId}>Plan de estudios</span>
-                    <div
-                      aria-labelledby={ofertaLabelId}
-                      className="ui-control flex min-h-11 items-center text-[color:var(--ui-text-primary)]"
-                    >
-                      {offerProgramsLoading
-                        ? "Cargando oferta..."
-                        : selectedStudyProgram?.name ?? "Sin plan seleccionado"}
-                    </div>
+                <div className="grid min-w-0 gap-3 rounded-2xl border ui-border bg-slate-950/40 p-[calc(var(--ui-card-pad)*0.9)] text-sm text-slate-200">
+                  <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                    Oferta académica
+                  </div>
+                  <div className="min-w-0 break-words text-base font-semibold text-slate-100">
+                    {offerProgramsLoading
+                      ? "Cargando oferta..."
+                      : selectedStudyProgram?.name ?? "Sin plan seleccionado"}
                   </div>
                   {offerProgramsError ? (
                     <div className="text-xs text-red-200">{offerProgramsError}</div>

@@ -48,20 +48,17 @@ export function visibleQuoteModalities(
   modalities: string[],
   businessLine?: string,
 ): CanonicalModalityValue[] {
-  const available = new Set(
-    modalities
-      .map((modality) => normalizeCanonicalModality(modality))
-      .filter((modality): modality is CanonicalModalityValue => Boolean(modality)),
-  );
   const normalizedBusinessLine = normalizeBusinessLine(businessLine);
 
-  if (!normalizedBusinessLine) {
-    return sortModalities(Array.from(available));
-}
+  if (normalizedBusinessLine) {
+    return VISIBLE_MODALITIES_BY_BUSINESS_LINE[normalizedBusinessLine];
+  }
 
- return VISIBLE_MODALITIES_BY_BUSINESS_LINE[normalizedBusinessLine].filter((modality) =>
-    available.has(modality),
-  );
+  const available = modalities
+    .map((modality) => normalizeCanonicalModality(modality))
+    .filter((modality): modality is CanonicalModalityValue => Boolean(modality));
+
+  return sortModalities(Array.from(new Set(available)));
 }
 
 export function visibleQuoteCampuses(
@@ -71,25 +68,25 @@ export function visibleQuoteCampuses(
   plan?: number | null,
   programId?: string | null,
 ): QuoteCampusOption[] {
-   const normalizedBusinessLine = normalizeBusinessLine(businessLine);
+  const normalizedBusinessLine = normalizeBusinessLine(businessLine);
   const normalizedModality = normalizeCanonicalModality(modality);
   const selectedBusinessLine = normalizedBusinessLine ?? businessLine;
   const selectedModality = normalizedModality ?? modality;
+
   if (selectedModality === "online") {
     const sourceOnlineCampus: QuoteCampusOption =
       campuses.find((campus) => campus.value.toUpperCase() === ONLINE_QUOTE_CAMPUS.value) ??
-       ONLINE_QUOTE_CAMPUS;
-       const onlineCampus: QuoteCampusOption = {
+      ONLINE_QUOTE_CAMPUS;
+    const onlineCampus: QuoteCampusOption = {
       ...sourceOnlineCampus,
       value: ONLINE_QUOTE_CAMPUS.value,
       label: sourceOnlineCampus.label || ONLINE_QUOTE_CAMPUS.label,
     };
 
     if (!selectedBusinessLine || !selectedModality || !sourceOnlineCampus.pricingOptions?.length) {
-       return [onlineCampus];
-     }
+      return [onlineCampus];
     }
-  
+
     return sourceOnlineCampus.pricingOptions.some(
       (option) =>
         option.businessLine === selectedBusinessLine &&
