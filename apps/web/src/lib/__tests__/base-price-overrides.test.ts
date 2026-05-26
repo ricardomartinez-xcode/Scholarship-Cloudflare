@@ -215,4 +215,133 @@ describe("findPublishedBasePriceOverride", () => {
       }),
     ).toBeNull();
   });
+
+  it("matches Posgrado canonical price overrides whether the imported key is posgrado or maestria", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "posgrado-canonical-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "posgrado",
+          modalidad_key: "online",
+          plan: "4",
+          tier: "ANY",
+          plantel: "ONLINE",
+        },
+        newPrice: 4847.04,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "licenciatura-online-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "online",
+          plan: "4",
+          tier: "ANY",
+          plantel: "ONLINE",
+        },
+        newPrice: 7100,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "posgrado",
+        modality: "online",
+        plan: 4,
+        tier: "ANY",
+        campus: "ONLINE",
+      }),
+    ).toBe(4847.04);
+  });
+
+  it("keeps Posgrado, Prepa, Licenciatura and Salud separated while accepting their import aliases", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "maestria-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "maestria",
+          modalidad_key: "online",
+          plan: "4",
+          tier: "ANY",
+        },
+        newPrice: 4847.04,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "preparatoria-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "preparatoria",
+          modalidad_key: "presencial",
+          plan: "6",
+          tier: "T2",
+        },
+        newPrice: 3087,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "salud-plan-9-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "salud",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 4560,
+        isActive: true,
+        notes: "Psicología Salud Plan 9",
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "posgrado",
+        modality: "online",
+        plan: 4,
+        tier: "ANY",
+      }),
+    ).toBe(4847.04);
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "prepa",
+        modality: "presencial",
+        plan: 6,
+        tier: "T2",
+      }),
+    ).toBe(3087);
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "salud",
+        modality: "presencial",
+        plan: 9,
+        tier: "T3",
+      }),
+    ).toBe(4560);
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "online",
+        plan: 4,
+        tier: "ANY",
+      }),
+    ).toBeNull();
+  });
+
 });

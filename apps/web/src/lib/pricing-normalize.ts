@@ -52,6 +52,9 @@ const BUSINESS_LINE_ALIASES: Record<string, CanonicalBusinessLine> = {
   posgrado: "posgrado",
   maestria: "posgrado",
   maestría: "posgrado",
+  maestrias: "posgrado",
+  maestrías: "posgrado",
+  master: "posgrado",
   doctorado: "posgrado",
 };
 

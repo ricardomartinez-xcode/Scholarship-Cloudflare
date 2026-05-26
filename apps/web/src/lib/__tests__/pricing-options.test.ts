@@ -95,4 +95,32 @@ describe("buildQuotePricingOptions", () => {
     );
   });
 
- });
+  it("exposes Posgrado pricing options from both posgrado and maestria price aliases", () => {
+    const options = buildQuotePricingOptions([], [
+      {
+        targetKeys: {
+          nivel_key: "posgrado",
+          modalidad_key: "online",
+          plan: "4",
+        },
+      },
+      {
+        targetKeys: {
+          nivel_key: "maestria",
+          modalidad_key: "online",
+          plan: "4",
+        },
+      },
+    ]);
+
+    expect(
+      options.filter(
+        (option) =>
+          option.businessLine === "posgrado" &&
+          option.modality === "online" &&
+          option.plan === 4,
+      ),
+    ).toHaveLength(3);
+  });
+
+});

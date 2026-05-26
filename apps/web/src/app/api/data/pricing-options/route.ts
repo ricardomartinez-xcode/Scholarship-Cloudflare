@@ -227,19 +227,25 @@ export async function GET() {
           pricingOptions
             .filter((option) => {
               const tierCandidates = new Set([runtimeTier, "ANY"]);
-              const candidateRules = rules.filter(
-                (rule) =>
-                  rule.businessLine === option.businessLine &&
-                  rule.modality === option.modality &&
+              const candidateRules = rules.filter((rule) => {
+                const ruleBusinessLine = normalizeBusinessLine(rule.businessLine);
+                const ruleModality = normalizeCanonicalModality(rule.modality);
+                return (
+                  ruleBusinessLine === option.businessLine &&
+                  ruleModality === option.modality &&
                   Number(rule.plan) === option.plan &&
-                  tierCandidates.has(normalizeTier(rule.campusTier)),
-              );
-              const fallbackRules = rules.filter(
-                (rule) =>
-                  rule.businessLine === option.businessLine &&
-                  rule.modality === option.modality &&
-                  Number(rule.plan) === option.plan,
-              );
+                  tierCandidates.has(normalizeTier(rule.campusTier))
+                );
+              });
+              const fallbackRules = rules.filter((rule) => {
+                const ruleBusinessLine = normalizeBusinessLine(rule.businessLine);
+                const ruleModality = normalizeCanonicalModality(rule.modality);
+                return (
+                  ruleBusinessLine === option.businessLine &&
+                  ruleModality === option.modality &&
+                  Number(rule.plan) === option.plan
+                );
+              });
               const ruleBasePrice = basePriceFromRules(
                 normalizeRulesForBasePrice(
                   candidateRules.length ? candidateRules : fallbackRules,

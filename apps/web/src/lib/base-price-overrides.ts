@@ -1,5 +1,6 @@
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
 import {
+  normalizeBusinessLine,
   toNumber,
   type CanonicalBusinessLine,
   type CanonicalModalityValue,
@@ -8,10 +9,32 @@ import { normalizeKey as normalizeTextKey } from "@/lib/text-normalize";
 
 export const BASE_PRICE_OVERRIDE_SCOPE = "base_price";
 
-function toHistoricalBusinessLineKey(businessLine: CanonicalBusinessLine | string) {
-  if (businessLine === "prepa") return "preparatoria";
-  if (businessLine === "posgrado") return "maestria";
-  return String(businessLine);
+const BUSINESS_LINE_TARGET_ALIASES: Record<CanonicalBusinessLine, string[]> = {
+  salud: ["salud"],
+  licenciatura: ["licenciatura", "lic"],
+  prepa: ["prepa", "preparatoria", "bachillerato", "bachiller"],
+  posgrado: [
+    "posgrado",
+    "maestria",
+    "maestría",
+    "maestrias",
+    "maestrías",
+    "master",
+    "doctorado",
+  ],
+};
+
+function businessLineTargetKeys(businessLine: CanonicalBusinessLine | string) {
+  const canonical = normalizeBusinessLine(String(businessLine));
+  const aliases = canonical
+    ? BUSINESS_LINE_TARGET_ALIASES[canonical]
+    : [String(businessLine)];
+
+  return new Set(
+    [...aliases, String(businessLine)]
+      .map((value) => normalizeKey(value))
+      .filter(Boolean),
+  );
 }
 
 function normalizeKey(value: unknown) {
@@ -44,7 +67,7 @@ function matchesBasePriceCoreTarget(
     plan: number | string;
   },
 ) {
-  const expectedBusinessLineKey = toHistoricalBusinessLineKey(params.businessLine);
+  const expectedBusinessLineKeys = businessLineTargetKeys(params.businessLine);
   const targetNivel = normalizeKey(keys.nivel_key ?? keys.businessLine ?? keys.nivel);
   const targetModality = normalizeKey(
     keys.modalidad_key ?? keys.modality ?? keys.modalidad,
@@ -52,7 +75,7 @@ function matchesBasePriceCoreTarget(
   const targetPlan = normalizeKey(keys.plan);
 
   return (
-    targetNivel === normalizeKey(expectedBusinessLineKey) &&
+    expectedBusinessLineKeys.has(targetNivel) &&
     targetModality === normalizeKey(params.modality) &&
     targetPlan === normalizeKey(params.plan)
   );
