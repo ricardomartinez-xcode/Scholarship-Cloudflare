@@ -17,6 +17,8 @@ describe("normalizeBusinessLine", () => {
     expect(normalizeBusinessLine("Preparatoria")).toBe("prepa");
     expect(normalizeBusinessLine("Maestría")).toBe("posgrado");
     expect(normalizeBusinessLine("MAESTRIA")).toBe("posgrado");
+    expect(normalizeBusinessLine("Master")).toBe("posgrado");
+    expect(normalizeBusinessLine("Postgraduate")).toBe("posgrado");
     expect(normalizeBusinessLine("Lic")).toBe("licenciatura");
     expect(normalizeBusinessLine("LICENCIATURA")).toBe("licenciatura");
   });
