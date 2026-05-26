@@ -56,7 +56,7 @@ export default async function UnidepFeesPage() {
     <div className="grid gap-6 p-6">
       <div>
         <h1 className="text-xl font-semibold">Costos Académicos UNIDEP</h1>
-        <p className="mt-1 text-sm text-slate-300">
+        <p className="mt-1 text-sm text-[#4B6475]">
           Consulta y ajusta cambios individuales en trámites, disponibilidad por plantel y
           precio por materia. Usa Importación para cargas masivas en CSV.
         </p>

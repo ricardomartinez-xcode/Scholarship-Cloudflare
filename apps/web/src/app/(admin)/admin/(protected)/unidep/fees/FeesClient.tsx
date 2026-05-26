@@ -607,12 +607,12 @@ export default function FeesClient({
           { label: "Planteles", value: campuses.length, detail: `${activeCampusFees} activaciones` },
           { label: "Materia", value: materias.length, detail: "Reglas de regreso" },
         ].map((item) => (
-          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
+          <div key={item.label} className="rounded-2xl border border-[#D7E4ED] bg-white p-4">
+            <div className="text-xs uppercase tracking-[0.22em] text-[#657D8F]">
               {item.label}
             </div>
-            <div className="mt-2 text-2xl font-semibold text-slate-100">{item.value}</div>
-            <div className="mt-1 text-xs text-slate-400">{item.detail}</div>
+            <div className="mt-2 text-2xl font-semibold text-[#123348]">{item.value}</div>
+            <div className="mt-1 text-xs text-[#4B6475]">{item.detail}</div>
           </div>
         ))}
       </div>
@@ -629,12 +629,12 @@ export default function FeesClient({
 
       {tab === "fees" && (
         <div className="grid gap-4">
-          <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+          <div className="grid gap-4 rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
             <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-3xl">
               Catálogo maestro de cuotas. Aquí puedes buscar, filtrar, activar o editar costos
               puntuales. Para reemplazos masivos usa{" "}
-              <span className="font-semibold text-slate-100">Importación CSV</span>.
+              <span className="font-semibold text-[#123348]">Importación CSV</span>.
             </div>
             <button
               type="button"
@@ -642,13 +642,13 @@ export default function FeesClient({
                 setFeeFeedback(null);
                 setFeeEditor(buildFeeDraft());
               }}
-              className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30"
+              className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A]"
             >
               Agregar uno
             </button>
             </div>
             <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px_minmax(220px,260px)]">
-              <label className="grid gap-1 text-xs text-slate-400">
+              <label className="grid gap-1 text-xs font-medium text-[#38566A]">
                 Buscar
                 <input
                   value={feeQuery}
@@ -657,7 +657,7 @@ export default function FeesClient({
                   placeholder="Código, concepto o sección"
                 />
               </label>
-              <label className="grid gap-1 text-xs text-slate-400">
+              <label className="grid gap-1 text-xs font-medium text-[#38566A]">
                 Sección
                 <select
                   value={feeSectionFilter}
@@ -672,7 +672,7 @@ export default function FeesClient({
                   ))}
                 </select>
               </label>
-              <label className="grid gap-1 text-xs text-slate-400">
+              <label className="grid gap-1 text-xs font-medium text-[#38566A]">
                 Estado
                 <select
                   value={feeStatusFilter}
@@ -686,7 +686,7 @@ export default function FeesClient({
                   <option value="inactive">Inactivos</option>
                 </select>
               </label>
-              <label className="grid gap-1 text-xs text-slate-400">
+              <label className="grid gap-1 text-xs font-medium text-[#38566A]">
                 Plantel
                 <select
                   value={selectedCampus}
@@ -705,14 +705,14 @@ export default function FeesClient({
                 </select>
               </label>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+            <div className="flex flex-wrap gap-2 text-xs text-[#4B6475]">
               <button
                 type="button"
                 onClick={() => {
                   changeSeedMode("unified");
                   setTab("seed");
                 }}
-                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-slate-200 transition hover:bg-white/10"
+                className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-[#123348] transition hover:bg-[#EEF6FA]"
               >
                 Importar Trámites + plantel
               </button>
@@ -723,13 +723,13 @@ export default function FeesClient({
           <FeedbackBanner feedback={campusFeedback} />
 
           {feeEditor && (
-            <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+            <div className="grid gap-4 rounded-2xl border border-[#D7E4ED] bg-white p-4 text-[#123348]">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-100">
+                  <div className="text-sm font-semibold text-[#123348]">
                     {feeEditor.mode === "edit" ? "Editar costo" : "Agregar costo"}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-[#4B6475]">
                     {feeEditor.mode === "edit"
                       ? "En edición individual solo se ajusta el valor del costo."
                       : "En altas individuales captura código, concepto, sección y costo."}
@@ -738,7 +738,7 @@ export default function FeesClient({
                 <button
                   type="button"
                   onClick={() => setFeeEditor(null)}
-                  className="text-sm text-slate-400 transition hover:text-slate-200"
+                  className="text-sm text-[#4B6475] transition hover:text-[#123348]"
                 >
                   Cancelar
                 </button>
@@ -828,7 +828,7 @@ export default function FeesClient({
                   <button
                     type="submit"
                     disabled={feePending}
-                    className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                    className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A] disabled:bg-slate-200 disabled:text-slate-500"
                   >
                     {feePending ? "Guardando..." : "Guardar"}
                   </button>
@@ -838,20 +838,20 @@ export default function FeesClient({
           )}
 
           {campusEditor && (
-            <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+            <div className="grid gap-4 rounded-2xl border border-[#D7E4ED] bg-white p-4 text-[#123348]">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-100">
+                  <div className="text-sm font-semibold text-[#123348]">
                     Editar costo para {campusName || "el plantel seleccionado"}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-[#4B6475]">
                     Si dejas vacío el costo de plantel, se usará el costo base.
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setCampusEditor(null)}
-                  className="text-sm text-slate-400 transition hover:text-slate-200"
+                  className="text-sm text-[#4B6475] transition hover:text-[#123348]"
                 >
                   Cancelar
                 </button>
@@ -915,7 +915,7 @@ export default function FeesClient({
                   <button
                     type="submit"
                     disabled={campusPending || !selectedCampus}
-                    className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                    className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A] disabled:bg-slate-200 disabled:text-slate-500"
                   >
                     {campusPending ? "Guardando..." : "Guardar costo plantel"}
                   </button>
@@ -924,14 +924,14 @@ export default function FeesClient({
             </div>
           )}
 
-          <div className="text-sm text-slate-300">
+          <div className="text-sm text-[#38566A]">
             {visibleFees.length} de {fees.length} registro(s) para{" "}
-            <span className="font-semibold text-slate-100">{campusName || "plantel"}</span>
+            <span className="font-semibold text-[#123348]">{campusName || "plantel"}</span>
           </div>
 
-          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
+          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-[#D7E4ED] bg-white">
             <table className="w-full min-w-[1120px] border-collapse text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
+              <thead className="sticky top-0 z-10 bg-[#114E6D] text-white">
                 <tr>
                   <th className="p-3 text-left font-semibold">Código</th>
                   <th className="p-3 text-left font-semibold">Concepto</th>
@@ -951,16 +951,16 @@ export default function FeesClient({
                   const effectiveCost = campusFee?.overrideCostMxn ?? fee.costMxn;
 
                   return (
-                    <tr key={fee.id} className="border-t border-white/10">
-                      <td className="p-3 font-mono text-xs text-slate-300">{fee.code}</td>
-                      <td className="p-3 text-slate-100">{fee.concept}</td>
+                    <tr key={fee.id} className="border-t border-[#D7E4ED] text-[#123348] hover:bg-[#F7FBFD]">
+                      <td className="p-3 font-mono text-xs font-semibold text-[#38566A]">{fee.code}</td>
+                      <td className="p-3 font-medium text-[#123348]">{fee.concept}</td>
                       <td className="p-3">
-                        <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-xs text-slate-300">
+                        <span className="rounded-full bg-[#E8F1F6] px-2 py-0.5 text-xs font-medium text-[#38566A]">
                           {SECTION_LABELS[fee.section]}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-200">{formatMoney(fee.costMxn)}</td>
-                      <td className="p-3 text-slate-100">
+                      <td className="p-3 font-medium text-[#123348]">{formatMoney(fee.costMxn)}</td>
+                      <td className="p-3 text-[#123348]">
                         {selectedCampusRecord
                           ? formatAdminPricingPlantel({
                               plantel: selectedCampusRecord.name,
@@ -968,13 +968,13 @@ export default function FeesClient({
                             })
                           : "Sin plantel"}
                       </td>
-                      <td className="p-3 text-slate-100">{formatMoney(effectiveCost)}</td>
+                      <td className="p-3 font-medium text-[#123348]">{formatMoney(effectiveCost)}</td>
                       <td className="p-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs ${
                             fee.isActive
-                              ? "bg-blue-950/15 text-emerald-200"
-                              : "bg-slate-700/60 text-slate-400"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-slate-200 text-slate-700"
                           }`}
                         >
                           {fee.isActive ? "Sí" : "No"}
@@ -984,8 +984,8 @@ export default function FeesClient({
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs ${
                             isCampusActive
-                              ? "bg-blue-950/15 text-emerald-200"
-                              : "bg-slate-700/60 text-slate-400"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-slate-200 text-slate-700"
                           }`}
                         >
                           {isCampusActive ? "Activo" : "Inactivo"}
@@ -999,7 +999,7 @@ export default function FeesClient({
                               setFeeFeedback(null);
                               setFeeEditor(buildFeeDraft(fee));
                             }}
-                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                            className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA]"
                           >
                             Editar base
                           </button>
@@ -1021,7 +1021,7 @@ export default function FeesClient({
                               });
                             }}
                             disabled={!selectedCampus}
-                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                            className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA] disabled:bg-slate-100 disabled:text-slate-500"
                           >
                             Editar plantel
                           </button>
@@ -1029,7 +1029,7 @@ export default function FeesClient({
                             type="button"
                             onClick={() => handleCampusToggle(fee, campusFee)}
                             disabled={campusPending || !selectedCampus}
-                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                            className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA] disabled:bg-slate-100 disabled:text-slate-500"
                           >
                             {isCampusActive ? "Desactivar plantel" : "Activar plantel"}
                           </button>
@@ -1037,7 +1037,7 @@ export default function FeesClient({
                             type="button"
                             onClick={() => handleFeeToggle(fee)}
                             disabled={feePending}
-                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                            className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA] disabled:bg-slate-100 disabled:text-slate-500"
                           >
                             {fee.isActive ? "Desactivar base" : "Activar base"}
                           </button>
@@ -1048,7 +1048,7 @@ export default function FeesClient({
                 })}
                 {!visibleFees.length && (
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={9}>
+                    <td className="p-4 text-[#4B6475]" colSpan={9}>
                       Sin registros para los filtros actuales.
                     </td>
                   </tr>
@@ -1061,10 +1061,10 @@ export default function FeesClient({
 
       {tab === "availability" && (
         <div className="grid gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+          <div className="rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
             Aquí puedes activar o desactivar un costo para un plantel y ajustar su valor
             individual. Para reemplazos masivos usa{" "}
-            <span className="font-semibold text-slate-100">Importación CSV</span>.
+            <span className="font-semibold text-[#123348]">Importación CSV</span>.
           </div>
 
           <div className="grid max-w-sm gap-2 text-sm">
@@ -1089,20 +1089,20 @@ export default function FeesClient({
           <FeedbackBanner feedback={campusFeedback} />
 
           {campusEditor && (
-            <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+            <div className="grid gap-4 rounded-2xl border border-[#D7E4ED] bg-white p-4 text-[#123348]">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-100">
+                  <div className="text-sm font-semibold text-[#123348]">
                     Editar costo para {campusName || "el plantel seleccionado"}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-[#4B6475]">
                     Si dejas vacío el costo de plantel, se usará el costo base.
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setCampusEditor(null)}
-                  className="text-sm text-slate-400 transition hover:text-slate-200"
+                  className="text-sm text-[#4B6475] transition hover:text-[#123348]"
                 >
                   Cancelar
                 </button>
@@ -1166,7 +1166,7 @@ export default function FeesClient({
                   <button
                     type="submit"
                     disabled={campusPending || !selectedCampus}
-                    className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                    className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A] disabled:bg-slate-200 disabled:text-slate-500"
                   >
                     {campusPending ? "Guardando..." : "Guardar"}
                   </button>
@@ -1175,9 +1175,9 @@ export default function FeesClient({
             </div>
           )}
 
-          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
+          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-[#D7E4ED] bg-white">
             <table className="w-full min-w-[1120px] border-collapse text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
+              <thead className="sticky top-0 z-10 bg-[#114E6D] text-white">
                 <tr>
                   <th className="p-3 text-left font-semibold">Region</th>
                   <th className="p-3 text-left font-semibold">Plantel</th>
@@ -1197,11 +1197,11 @@ export default function FeesClient({
                   const effectiveCost = campusFee?.overrideCostMxn ?? fee.costMxn;
 
                   return (
-                    <tr key={fee.id} className="border-t border-white/10">
-                      <td className="p-3 text-slate-200">
+                    <tr key={fee.id} className="border-t border-[#D7E4ED] text-[#123348] hover:bg-[#F7FBFD]">
+                      <td className="p-3 text-[#38566A]">
                         {normalizeAdminPricingRegion(null)}
                       </td>
-                      <td className="p-3 text-slate-100">
+                      <td className="p-3 font-medium text-[#123348]">
                         {selectedCampusRecord
                           ? formatAdminPricingPlantel({
                               plantel: selectedCampusRecord.name,
@@ -1209,7 +1209,7 @@ export default function FeesClient({
                             })
                           : "Sin plantel"}
                       </td>
-                      <td className="p-3 text-slate-200">
+                      <td className="p-3 text-[#38566A]">
                         {selectedCampusRecord
                           ? formatAdminPricingTier({
                               plantel: selectedCampusRecord.name,
@@ -1218,20 +1218,20 @@ export default function FeesClient({
                             })
                           : "General"}
                       </td>
-                      <td className="p-3 text-slate-100">{formatMoney(effectiveCost)}</td>
-                      <td className="p-3 text-slate-100">{fee.concept}</td>
+                      <td className="p-3 font-medium text-[#123348]">{formatMoney(effectiveCost)}</td>
+                      <td className="p-3 font-medium text-[#123348]">{fee.concept}</td>
                       <td className="p-3">
-                        <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-xs text-slate-300">
+                        <span className="rounded-full bg-[#E8F1F6] px-2 py-0.5 text-xs font-medium text-[#38566A]">
                           {SECTION_LABELS[fee.section]}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-200">{formatMoney(fee.costMxn)}</td>
+                      <td className="p-3 text-[#38566A]">{formatMoney(fee.costMxn)}</td>
                       <td className="p-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs ${
                             isActive
-                              ? "bg-blue-950/15 text-emerald-200"
-                              : "bg-slate-700/60 text-slate-400"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-slate-200 text-slate-700"
                           }`}
                         >
                           {isActive ? "Activo" : "Inactivo"}
@@ -1256,7 +1256,7 @@ export default function FeesClient({
                                 isActive: campusFee?.isActive ?? true,
                               });
                             }}
-                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                            className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA]"
                           >
                             Editar costo
                           </button>
@@ -1264,7 +1264,7 @@ export default function FeesClient({
                             type="button"
                             onClick={() => handleCampusToggle(fee, campusFee)}
                             disabled={campusPending || !selectedCampus}
-                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                            className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA] disabled:bg-slate-100 disabled:text-slate-500"
                           >
                             {isActive ? "Desactivar" : "Activar"}
                           </button>
@@ -1275,7 +1275,7 @@ export default function FeesClient({
                 })}
                 {!fees.length && (
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={9}>
+                    <td className="p-4 text-[#4B6475]" colSpan={9}>
                       Sin costos académicos cargados.
                     </td>
                   </tr>
@@ -1288,12 +1288,12 @@ export default function FeesClient({
 
       {tab === "materias" && (
         <div className="grid gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+          <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
             <div className="max-w-3xl">
               Aquí puedes agregar una fila individual y editar su costo. La carga masiva y la
               actualización completa siguen en{" "}
-              <span className="font-semibold text-slate-100">Importación CSV</span>.
-              <div className="mt-2 text-xs text-slate-400">
+              <span className="font-semibold text-[#123348]">Importación CSV</span>.
+              <div className="mt-2 text-xs text-[#4B6475]">
                 Nota: este bloque hoy no tiene bandera de activo/inactivo en el modelo de
                 datos, por eso aquí solo se expone alta individual y edición de costo.
               </div>
@@ -1304,7 +1304,7 @@ export default function FeesClient({
                 setMateriaFeedback(null);
                 setMateriaEditor(buildMateriaDraft());
               }}
-              className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30"
+              className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A]"
             >
               Agregar uno
             </button>
@@ -1323,7 +1323,7 @@ export default function FeesClient({
                 </option>
               ))}
             </select>
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-[#4B6475]">
               {visibleMaterias.length} registro(s) visibles
             </div>
           </div>
@@ -1331,15 +1331,15 @@ export default function FeesClient({
           <FeedbackBanner feedback={materiaFeedback} />
 
           {materiaEditor && (
-            <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+            <div className="grid gap-4 rounded-2xl border border-[#D7E4ED] bg-white p-4 text-[#123348]">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-100">
+                  <div className="text-sm font-semibold text-[#123348]">
                     {materiaEditor.mode === "edit"
                       ? "Editar costo por materia"
                       : "Agregar precio por materia"}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-[#4B6475]">
                     {materiaEditor.mode === "edit"
                       ? "En edición individual solo se ajusta el costo."
                       : "Captura plantel, modalidad, número de materias y costo."}
@@ -1348,7 +1348,7 @@ export default function FeesClient({
                 <button
                   type="button"
                   onClick={() => setMateriaEditor(null)}
-                  className="text-sm text-slate-400 transition hover:text-slate-200"
+                  className="text-sm text-[#4B6475] transition hover:text-[#123348]"
                 >
                   Cancelar
                 </button>
@@ -1438,7 +1438,7 @@ export default function FeesClient({
                   <button
                     type="submit"
                     disabled={materiaPending}
-                    className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                    className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A] disabled:bg-slate-200 disabled:text-slate-500"
                   >
                     {materiaPending ? "Guardando..." : "Guardar"}
                   </button>
@@ -1447,9 +1447,9 @@ export default function FeesClient({
             </div>
           )}
 
-          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
+          <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-[#D7E4ED] bg-white">
             <table className="w-full min-w-[920px] border-collapse text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
+              <thead className="sticky top-0 z-10 bg-[#114E6D] text-white">
                 <tr>
                   <th className="p-3 text-left font-semibold">Region</th>
                   <th className="p-3 text-left font-semibold">Plantel</th>
@@ -1464,13 +1464,13 @@ export default function FeesClient({
                 {visibleMaterias.map((row, index) => (
                   <tr
                     key={`${row.plantel}-${row.modalidad}-${row.materias_count}-${index}`}
-                    className="border-t border-white/10"
+                    className="border-t border-[#D7E4ED] text-[#123348] hover:bg-[#F7FBFD]"
                   >
-                    <td className="p-3 text-slate-200">
+                    <td className="p-3 text-[#38566A]">
                       {normalizeAdminPricingRegion(row.region)}
                     </td>
-                    <td className="p-3 text-slate-100">{row.plantel}</td>
-                    <td className="p-3 text-slate-200">
+                    <td className="p-3 font-medium text-[#123348]">{row.plantel}</td>
+                    <td className="p-3 text-[#38566A]">
                       {formatAdminPricingTier({
                         plantel: row.plantel,
                         tier: row.tier,
@@ -1478,11 +1478,11 @@ export default function FeesClient({
                         modality: row.modalidad,
                       })}
                     </td>
-                    <td className="p-3 text-right font-mono text-slate-100">
+                    <td className="p-3 text-right font-mono font-semibold text-[#123348]">
                       {formatMoney(Number(row.costo))}
                     </td>
-                    <td className="p-3 text-slate-200">{row.modalidad}</td>
-                    <td className="p-3 text-right font-mono text-slate-200">
+                    <td className="p-3 text-[#38566A]">{row.modalidad}</td>
+                    <td className="p-3 text-right font-mono text-[#38566A]">
                       {row.materias_count}
                     </td>
                     <td className="p-3">
@@ -1492,7 +1492,7 @@ export default function FeesClient({
                           setMateriaFeedback(null);
                           setMateriaEditor(buildMateriaDraft(row));
                         }}
-                        className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                        className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-medium text-[#123348] transition hover:bg-[#EEF6FA]"
                       >
                         Editar costo
                       </button>
@@ -1501,7 +1501,7 @@ export default function FeesClient({
                 ))}
                 {!visibleMaterias.length && (
                   <tr>
-                    <td className="p-4 text-slate-400" colSpan={7}>
+                    <td className="p-4 text-[#4B6475]" colSpan={7}>
                       Sin registros.
                     </td>
                   </tr>
@@ -1557,7 +1557,7 @@ export default function FeesClient({
                 className="ui-control"
               />
               {seedFileName && (
-                <div className="text-xs text-slate-400">Archivo cargado: {seedFileName}</div>
+                <div className="text-xs text-[#4B6475]">Archivo cargado: {seedFileName}</div>
               )}
             </div>
 
@@ -1570,7 +1570,7 @@ export default function FeesClient({
                 className="ui-control font-mono text-xs"
                 placeholder={seedGuide.placeholder}
               />
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-[#4B6475]">
                 Puedes pegar el contenido manualmente o cargar un archivo para que se copie
                 aquí.
               </div>
