@@ -110,13 +110,12 @@ const SECTION_LABELS: Record<FeeSection, string> = {
   DIVERSOS: "Diversos",
 };
 
-const TAB_ORDER: Tab[] = ["fees", "availability", "materias", "seed"];
+const TAB_ORDER = ["fees", "materias", "seed"] as const;
 
-const TAB_LABELS: Record<Tab, string> = {
-  fees: "Trámites / Cuotas",
-  availability: "Disponibilidad por plantel",
+const TAB_LABELS: Record<Exclude<Tab, "availability">, string> = {
+  fees: "Trámites + plantel",
   materias: "Precio por materia",
-  seed: "Seed desde JSON / CSV",
+  seed: "Importación",
 };
 
 const SEED_MODE_LABELS: Record<SeedMode, string> = {
@@ -720,7 +719,7 @@ export default function FeesClient({
               Agregar uno
             </button>
             </div>
-            <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px]">
+            <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px_minmax(220px,260px)]">
               <label className="grid gap-1 text-xs text-slate-400">
                 Buscar
                 <input
@@ -759,10 +758,51 @@ export default function FeesClient({
                   <option value="inactive">Inactivos</option>
                 </select>
               </label>
+              <label className="grid gap-1 text-xs text-slate-400">
+                Plantel
+                <select
+                  value={selectedCampus}
+                  onChange={(event) => {
+                    setSelectedCampus(event.target.value);
+                    setCampusEditor(null);
+                    setCampusFeedback(null);
+                  }}
+                  className="ui-control"
+                >
+                  {campuses.map((campus) => (
+                    <option key={campus.id} value={campus.id}>
+                      {campus.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+              <button
+                type="button"
+                onClick={() => {
+                  changeSeedMode("fees");
+                  setTab("seed");
+                }}
+                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-slate-200 transition hover:bg-white/10"
+              >
+                Importar catálogo de cuotas
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  changeSeedMode("campus");
+                  setTab("seed");
+                }}
+                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-slate-200 transition hover:bg-white/10"
+              >
+                Importar disponibilidad de plantel
+              </button>
             </div>
           </div>
 
           <FeedbackBanner feedback={feeFeedback} />
+          <FeedbackBanner feedback={campusFeedback} />
 
           {feeEditor && (
             <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
@@ -879,71 +919,218 @@ export default function FeesClient({
             </div>
           )}
 
+          {campusEditor && (
+            <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-slate-100">
+                    Editar costo para {campusName || "el plantel seleccionado"}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Si dejas vacío el costo de plantel, se usará el costo base.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCampusEditor(null)}
+                  className="text-sm text-slate-400 transition hover:text-slate-200"
+                >
+                  Cancelar
+                </button>
+              </div>
+
+              <form onSubmit={handleCampusSubmit} className="grid gap-4">
+                <input type="hidden" name="campusId" value={selectedCampus} />
+                <input type="hidden" name="academicFeeId" value={campusEditor.academicFeeId} />
+                <input
+                  type="hidden"
+                  name="isActive"
+                  value={campusEditor.isActive ? "true" : "false"}
+                />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm">
+                    Concepto
+                    <input value={campusEditor.concept} readOnly className="ui-control" />
+                  </label>
+                  <label className="grid gap-2 text-sm">
+                    Sección
+                    <input
+                      value={SECTION_LABELS[campusEditor.section]}
+                      readOnly
+                      className="ui-control"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm">
+                    Costo base
+                    <input
+                      value={formatMoney(campusEditor.baseCostMxn)}
+                      readOnly
+                      className="ui-control"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm">
+                    Costo plantel
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      name="overrideCostMxn"
+                      value={campusEditor.overrideCostMxn}
+                      onChange={(event) =>
+                        setCampusEditor((current) =>
+                          current
+                            ? { ...current, overrideCostMxn: event.target.value }
+                            : current,
+                        )
+                      }
+                      className="ui-control"
+                      placeholder={String(campusEditor.baseCostMxn)}
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    disabled={campusPending || !selectedCampus}
+                    className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                  >
+                    {campusPending ? "Guardando..." : "Guardar costo plantel"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           <div className="text-sm text-slate-300">
-            {visibleFees.length} de {fees.length} registro(s)
+            {visibleFees.length} de {fees.length} registro(s) para{" "}
+            <span className="font-semibold text-slate-100">{campusName || "plantel"}</span>
           </div>
 
           <div className="ui-scrollbar max-h-[620px] max-w-full overflow-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[860px] border-collapse text-sm">
+            <table className="w-full min-w-[1120px] border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-slate-950/95 text-slate-300">
                 <tr>
                   <th className="p-3 text-left font-semibold">Código</th>
                   <th className="p-3 text-left font-semibold">Concepto</th>
                   <th className="p-3 text-left font-semibold">Sección</th>
-                  <th className="p-3 text-left font-semibold">Costo MXN</th>
-                  <th className="p-3 text-left font-semibold">Activo</th>
+                  <th className="p-3 text-left font-semibold">Costo base</th>
+                  <th className="p-3 text-left font-semibold">Plantel</th>
+                  <th className="p-3 text-left font-semibold">Costo plantel</th>
+                  <th className="p-3 text-left font-semibold">Activo general</th>
+                  <th className="p-3 text-left font-semibold">Activo plantel</th>
                   <th className="p-3 text-left font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleFees.map((fee) => (
-                  <tr key={fee.id} className="border-t border-white/10">
-                    <td className="p-3 font-mono text-xs text-slate-300">{fee.code}</td>
-                    <td className="p-3 text-slate-100">{fee.concept}</td>
-                    <td className="p-3">
-                      <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-xs text-slate-300">
-                        {SECTION_LABELS[fee.section]}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-100">{formatMoney(fee.costMxn)}</td>
-                    <td className="p-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          fee.isActive
-                            ? "bg-blue-950/15 text-emerald-200"
-                            : "bg-slate-700/60 text-slate-400"
-                        }`}
-                      >
-                        {fee.isActive ? "Sí" : "No"}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFeeFeedback(null);
-                            setFeeEditor(buildFeeDraft(fee));
-                          }}
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                {visibleFees.map((fee) => {
+                  const campusFee = campusFeeMap[fee.id];
+                  const isCampusActive = campusFee?.isActive ?? false;
+                  const effectiveCost = campusFee?.overrideCostMxn ?? fee.costMxn;
+
+                  return (
+                    <tr key={fee.id} className="border-t border-white/10">
+                      <td className="p-3 font-mono text-xs text-slate-300">{fee.code}</td>
+                      <td className="p-3 text-slate-100">{fee.concept}</td>
+                      <td className="p-3">
+                        <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-xs text-slate-300">
+                          {SECTION_LABELS[fee.section]}
+                        </span>
+                      </td>
+                      <td className="p-3 text-slate-200">{formatMoney(fee.costMxn)}</td>
+                      <td className="p-3 text-slate-100">
+                        {selectedCampusRecord
+                          ? formatAdminPricingPlantel({
+                              plantel: selectedCampusRecord.name,
+                              kind: selectedCampusRecord.kind,
+                            })
+                          : "Sin plantel"}
+                      </td>
+                      <td className="p-3 text-slate-100">{formatMoney(effectiveCost)}</td>
+                      <td className="p-3">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs ${
+                            fee.isActive
+                              ? "bg-blue-950/15 text-emerald-200"
+                              : "bg-slate-700/60 text-slate-400"
+                          }`}
                         >
-                          Editar costo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleFeeToggle(fee)}
-                          disabled={feePending}
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                          {fee.isActive ? "Sí" : "No"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs ${
+                            isCampusActive
+                              ? "bg-blue-950/15 text-emerald-200"
+                              : "bg-slate-700/60 text-slate-400"
+                          }`}
                         >
-                          {fee.isActive ? "Desactivar" : "Activar"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {isCampusActive ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFeeFeedback(null);
+                              setFeeEditor(buildFeeDraft(fee));
+                            }}
+                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                          >
+                            Editar base
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCampusFeedback(null);
+                              setCampusEditor({
+                                academicFeeId: fee.id,
+                                concept: fee.concept,
+                                section: fee.section,
+                                baseCostMxn: fee.costMxn,
+                                overrideCostMxn:
+                                  campusFee?.overrideCostMxn !== null &&
+                                  campusFee?.overrideCostMxn !== undefined
+                                    ? String(campusFee.overrideCostMxn)
+                                    : "",
+                                isActive: campusFee?.isActive ?? true,
+                              });
+                            }}
+                            disabled={!selectedCampus}
+                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                          >
+                            Editar plantel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCampusToggle(fee, campusFee)}
+                            disabled={campusPending || !selectedCampus}
+                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                          >
+                            {isCampusActive ? "Desactivar plantel" : "Activar plantel"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFeeToggle(fee)}
+                            disabled={feePending}
+                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                          >
+                            {fee.isActive ? "Desactivar base" : "Activar base"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {!visibleFees.length && (
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={6}>
+                    <td className="p-4 text-slate-300" colSpan={9}>
                       Sin registros para los filtros actuales.
                     </td>
                   </tr>
