@@ -65,6 +65,7 @@ type SeedPreview = {
   ok: boolean;
   rows: number;
   errors: string[];
+  headers: string[];
   sample: string[][];
 };
 
@@ -258,14 +259,17 @@ function previewHasHeader(row: string[]) {
 
 function buildSeedPreview(params: {
   mode: SeedMode;
-  format: SeedFormat;
   payload: string;
 }): SeedPreview {
   const payload = params.payload.trim();
-  if (!payload) return { ok: false, rows: 0, errors: ["Carga o pega contenido primero."], sample: [] };
+  if (!payload) {
+    return { ok: false, rows: 0, errors: ["Carga o pega contenido primero."], headers: [], sample: [] };
+  }
 
   const rows = parsePreviewCsv(payload);
-  if (!rows.length) return { ok: false, rows: 0, errors: ["El CSV no contiene filas."], sample: [] };
+  if (!rows.length) {
+    return { ok: false, rows: 0, errors: ["El CSV no contiene filas."], headers: [], sample: [] };
+  }
   const firstRow = rows[0] ?? [];
   const hasHeader = previewHasHeader(firstRow);
   const dataRows = rows.slice(hasHeader ? 1 : 0).filter((row) =>
@@ -288,6 +292,7 @@ function buildSeedPreview(params: {
       ...(dataRows.length ? [] : ["El CSV no contiene filas de datos."]),
       ...(missing.length ? [`Faltan columnas: ${missing.join(", ")}.`] : []),
     ],
+    headers: hasHeader ? firstRow : [],
     sample: dataRows.slice(0, 5),
   };
 }
@@ -310,8 +315,8 @@ export default function FeesClient({
   const [feeSectionFilter, setFeeSectionFilter] = useState<FeeSection | "all">("all");
   const [feeStatusFilter, setFeeStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [materiaFilter, setMateriaFilter] = useState("");
-  const [seedMode, setSeedMode] = useState<SeedMode>("fees");
-  const [seedFormat, setSeedFormat] = useState<SeedFormat>("json");
+  const [seedMode, setSeedMode] = useState<SeedMode>("unified");
+  const [seedFormat] = useState<SeedFormat>("csv");
   const [seedPayload, setSeedPayload] = useState("");
   const [seedFileName, setSeedFileName] = useState("");
   const [seedError, setSeedError] = useState("");
@@ -378,10 +383,10 @@ export default function FeesClient({
   );
   const campusName = campuses.find((campus) => campus.id === selectedCampus)?.name ?? "";
   const selectedCampusRecord = campuses.find((campus) => campus.id === selectedCampus) ?? null;
-  const seedGuide = getSeedGuide(seedMode, seedFormat);
+  const seedGuide = getSeedGuide(seedMode);
   const seedPreview = useMemo(
-    () => buildSeedPreview({ mode: seedMode, format: seedFormat, payload: seedPayload }),
-    [seedFormat, seedMode, seedPayload],
+    () => buildSeedPreview({ mode: seedMode, payload: seedPayload }),
+    [seedMode, seedPayload],
   );
 
   const campusFeeMap = campusFees.reduce<Record<string, CampusFee>>((map, fee) => {
@@ -403,23 +408,17 @@ export default function FeesClient({
     resetSeedFeedback();
   }
 
-  function changeSeedFormat(nextFormat: SeedFormat) {
-    setSeedFormat(nextFormat);
-    resetSeedFeedback();
-  }
-
   async function handleSeedFileSelection(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
       const extension = file.name.toLowerCase().split(".").pop();
-      if (extension !== "json" && extension !== "csv") {
-        throw new Error("Formato no soportado. Usa archivos .json o .csv.");
+      if (extension !== "csv") {
+        throw new Error("Formato no soportado. Usa archivos .csv.");
       }
 
       const text = await file.text();
-      setSeedFormat(extension);
       setSeedPayload(text);
       setSeedFileName(file.name);
       resetSeedFeedback();
@@ -444,17 +443,12 @@ export default function FeesClient({
     const formData = new FormData();
     formData.set("format", seedFormat);
     formData.set("payload", seedPayload);
-    if (seedMode === "campus" && seedFormat === "csv") {
-      formData.set("campusId", selectedCampus);
-    }
 
     startSeedTransition(async () => {
       const result = (
-        seedMode === "fees"
-          ? await seedFeesJsonAction(formData)
-          : seedMode === "campus"
-            ? await seedCampusFeesJsonAction(formData)
-            : await seedMateriasImportAction(formData)
+        seedMode === "unified"
+          ? await seedUnifiedFeesCsvAction(formData)
+          : await seedMateriasImportAction(formData)
       ) as SeedActionResult;
 
       if (result.ok) {
@@ -640,7 +634,7 @@ export default function FeesClient({
             <div className="max-w-3xl">
               Catálogo maestro de cuotas. Aquí puedes buscar, filtrar, activar o editar costos
               puntuales. Para reemplazos masivos usa{" "}
-              <span className="font-semibold text-slate-100">Seed desde JSON / CSV</span>.
+              <span className="font-semibold text-slate-100">Importación CSV</span>.
             </div>
             <button
               type="button"
@@ -715,22 +709,12 @@ export default function FeesClient({
               <button
                 type="button"
                 onClick={() => {
-                  changeSeedMode("fees");
+                  changeSeedMode("unified");
                   setTab("seed");
                 }}
                 className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-slate-200 transition hover:bg-white/10"
               >
-                Importar catálogo de cuotas
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  changeSeedMode("campus");
-                  setTab("seed");
-                }}
-                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-slate-200 transition hover:bg-white/10"
-              >
-                Importar disponibilidad de plantel
+                Importar Trámites + plantel
               </button>
             </div>
           </div>
@@ -1080,7 +1064,7 @@ export default function FeesClient({
           <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
             Aquí puedes activar o desactivar un costo para un plantel y ajustar su valor
             individual. Para reemplazos masivos usa{" "}
-            <span className="font-semibold text-slate-100">Seed desde JSON / CSV</span>.
+            <span className="font-semibold text-slate-100">Importación CSV</span>.
           </div>
 
           <div className="grid max-w-sm gap-2 text-sm">
@@ -1308,7 +1292,7 @@ export default function FeesClient({
             <div className="max-w-3xl">
               Aquí puedes agregar una fila individual y editar su costo. La carga masiva y la
               actualización completa siguen en{" "}
-              <span className="font-semibold text-slate-100">Seed desde JSON / CSV</span>.
+              <span className="font-semibold text-slate-100">Importación CSV</span>.
               <div className="mt-2 text-xs text-slate-400">
                 Nota: este bloque hoy no tiene bandera de activo/inactivo en el modelo de
                 datos, por eso aquí solo se expone alta individual y edición de costo.
@@ -1531,15 +1515,14 @@ export default function FeesClient({
       {tab === "seed" && (
         <div className="grid gap-4">
           <div className="rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
-            Usa esta pestaña para cargas masivas de costos, activaciones, propiedades o
-            actualizaciones completas en formato JSON o CSV. Para CSV con encabezados, no importa
-            el orden de columnas mientras existan código, concepto, sección y costo.
+            Usa CSV para cargar costos base y disponibilidad por plantel en una sola operación.
+            El preview valida columnas mínimas antes de aplicar cambios.
           </div>
 
           <div className="grid gap-3">
             <div className="text-sm font-semibold text-[#123348]">Qué quieres modificar</div>
             <div className="flex flex-wrap gap-2">
-              {(["fees", "campus", "materias"] as SeedMode[]).map((mode) => (
+              {(["unified", "materias"] as SeedMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -1556,26 +1539,6 @@ export default function FeesClient({
             </div>
           </div>
 
-          <div className="grid gap-3">
-            <div className="text-sm font-semibold text-[#123348]">Formato de entrada</div>
-            <div className="flex flex-wrap gap-2">
-              {(["json", "csv"] as SeedFormat[]).map((format) => (
-                <button
-                  key={format}
-                  type="button"
-                  onClick={() => changeSeedFormat(format)}
-                  className={`rounded-full px-4 py-2 text-sm uppercase transition ${
-                    seedFormat === format
-                      ? "border border-[#114E6D] bg-[#114E6D] text-white"
-                      : "border border-[#D7E4ED] bg-white text-[#123348] hover:bg-[#F4F9FC]"
-                  }`}
-                >
-                  {format}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="rounded-2xl border border-[#D7E4ED] bg-white px-4 py-4 text-sm text-[#657D8F]">
             <div className="font-semibold text-[#123348]">{seedGuide.title}</div>
             <div className="mt-2">{seedGuide.detail}</div>
@@ -1584,34 +1547,12 @@ export default function FeesClient({
             </pre>
           </div>
 
-          {seedMode === "campus" && seedFormat === "csv" && (
-            <div className="grid max-w-sm gap-2 text-sm">
-              Plantel a reemplazar
-              <select
-                value={selectedCampus}
-                onChange={(event) => setSelectedCampus(event.target.value)}
-                className="ui-control"
-              >
-                {campuses.map((campus) => (
-                  <option key={campus.id} value={campus.id}>
-                    {campus.name}
-                  </option>
-                ))}
-              </select>
-              <div className="text-xs text-amber-200">
-                El CSV se aplicará sobre <span className="font-semibold">{campusName}</span>.
-                Las filas incluidas quedarán activas y las faltantes se marcarán como
-                inactivas.
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSeedSubmit} className="grid gap-3">
             <div className="grid gap-2 text-sm">
-              Archivo opcional (.json o .csv)
+              Archivo opcional (.csv)
               <input
                 type="file"
-                accept=".json,.csv,application/json,text/csv"
+                accept=".csv,text/csv"
                 onChange={(event) => void handleSeedFileSelection(event)}
                 className="ui-control"
               />
@@ -1621,7 +1562,7 @@ export default function FeesClient({
             </div>
 
             <div className="grid gap-2 text-sm">
-              Contenido {seedFormat.toUpperCase()}
+              Contenido CSV
               <textarea
                 value={seedPayload}
                 onChange={(event) => setSeedPayload(event.target.value)}
@@ -1663,17 +1604,39 @@ export default function FeesClient({
                   </div>
                 ) : null}
                 {seedPreview.sample.length ? (
-                  <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-52">
-                    <table className="ui-table ui-table--compact w-full min-w-[640px]">
+                  <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-72 overflow-auto">
+                    <table className="ui-table ui-table--compact w-full min-w-[760px] table-fixed">
+                      {seedPreview.headers.length ? (
+                        <thead>
+                          <tr>
+                            <th className="w-12 text-left text-xs text-[#657D8F]">#</th>
+                            {seedPreview.headers.map((header, index) => (
+                              <th
+                                key={`${header}-${index}`}
+                                className="text-left text-xs text-[#657D8F]"
+                              >
+                                {header}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                      ) : null}
                       <tbody>
                         {seedPreview.sample.map((row, rowIndex) => (
                           <tr key={`${rowIndex}-${row.join("|")}`}>
-                            <td className="ui-cell-nowrap text-xs text-[#657D8F]">
+                            <td className="ui-cell-nowrap w-12 text-xs text-[#657D8F]">
                               {rowIndex + 1}
                             </td>
-                            <td className="text-xs text-[#123348]">
-                              {row.join(" | ")}
-                            </td>
+                            {(seedPreview.headers.length ? row : [row.join(" | ")]).map(
+                              (cell, cellIndex) => (
+                                <td
+                                  key={`${rowIndex}-${cellIndex}`}
+                                  className="whitespace-normal break-words text-xs text-[#123348]"
+                                >
+                                  {cell}
+                                </td>
+                              ),
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -1684,13 +1647,13 @@ export default function FeesClient({
             ) : null}
 
             {seedError && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
                 {seedError}
               </div>
             )}
 
             {seedResult && (
-              <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-4 py-3 text-sm text-emerald-200">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 <div className="font-semibold">Importación masiva completada</div>
                 {seedResult.created !== undefined && (
                   <div className="mt-1">Creados: {seedResult.created}</div>
@@ -1706,10 +1669,10 @@ export default function FeesClient({
                 )}
                 {seedResult.errors && seedResult.errors.length > 0 && (
                   <div className="mt-2">
-                    <div className="text-yellow-300">
+                    <div className="text-amber-700">
                       Errores parciales ({seedResult.errors.length}):
                     </div>
-                    <ul className="mt-1 list-inside list-disc text-xs text-yellow-200">
+                    <ul className="mt-1 list-inside list-disc text-xs text-amber-700">
                       {seedResult.errors.map((error, index) => (
                         <li key={`${error}-${index}`}>{error}</li>
                       ))}
@@ -1725,10 +1688,9 @@ export default function FeesClient({
                 disabled={
                   seedPending ||
                   !seedPayload.trim() ||
-                  !seedPreview.ok ||
-                  (seedMode === "campus" && seedFormat === "csv" && !selectedCampus)
+                  !seedPreview.ok
                 }
-                className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                className="rounded-full border border-[#114E6D] bg-[#114E6D] px-4 py-2 text-sm text-white transition hover:bg-[#0D405A] disabled:opacity-50"
               >
                 {seedPending ? "Procesando..." : "Ejecutar importación masiva"}
               </button>

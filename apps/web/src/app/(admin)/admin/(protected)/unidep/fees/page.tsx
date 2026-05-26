@@ -58,8 +58,7 @@ export default async function UnidepFeesPage() {
         <h1 className="text-xl font-semibold">Costos Académicos UNIDEP</h1>
         <p className="mt-1 text-sm text-slate-300">
           Consulta y ajusta cambios individuales en trámites, disponibilidad por plantel y
-          precio por materia. Usa la pestaña de seed para cargas masivas en formato JSON o
-          CSV.
+          precio por materia. Usa Importación para cargas masivas en CSV.
         </p>
       </div>
       <FeesClient
