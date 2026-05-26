@@ -6,11 +6,13 @@ import {
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
+import { academicPlanIsAllowed, normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 
 type OfferingRow = {
   id: string;
   cycle: string;
   lineOfBusiness: string | null;
+  pricingPlans: number[];
   delivery: "CAMPUS" | "ONLINE";
   escolarizado: boolean;
   ejecutivo: boolean;
@@ -43,6 +45,7 @@ export type QuoteAcademicOfferingContext = {
   campusKey: string;
   campusName: string;
   campusTier: string | null;
+  pricingPlans: number[];
 };
 
 export type QuoteAcademicOfferingResolution =
@@ -83,6 +86,7 @@ function offeringSelect() {
     id: true,
     cycle: true,
     lineOfBusiness: true,
+    pricingPlans: true,
     delivery: true,
     escolarizado: true,
     ejecutivo: true,
@@ -173,6 +177,7 @@ function buildContext(
     campusKey: buildCampusKey(offering.campus, modality),
     campusName: offering.campus.name,
     campusTier: offering.campus.tier,
+    pricingPlans: normalizeAcademicPricingPlans(offering.pricingPlans),
   };
 }
 
@@ -183,6 +188,7 @@ function offeringMatchesRequest(
     modality?: string | null;
     selectedProgramId?: string | null;
     campus?: string | null;
+    plan?: number | string | null;
   },
 ) {
   const warnings: string[] = [];
@@ -221,6 +227,10 @@ function offeringMatchesRequest(
     }
   }
 
+  if (!academicPlanIsAllowed(offering.pricingPlans, input.plan)) {
+    warnings.push("plan_not_available_for_offering");
+  }
+
   return {
     matches: warnings.length === 0,
     warnings,
@@ -234,6 +244,7 @@ export async function resolveQuoteAcademicOffering(input: {
   campus?: string | null;
   businessLine?: string | null;
   modality?: string | null;
+  plan?: number | string | null;
   cycle?: string | null;
 }): Promise<QuoteAcademicOfferingResolution> {
   const warnings: string[] = [];
@@ -333,11 +344,20 @@ export async function resolveQuoteAcademicOffering(input: {
       if (!context) return false;
       if (requestedBusinessLine && context.businessLine !== requestedBusinessLine) return false;
       if (requestedModality && context.modality !== requestedModality) return false;
+      if (!academicPlanIsAllowed(offering.pricingPlans, input.plan)) return false;
       return true;
     }) ?? null;
 
   if (!matchingOffering) {
-    warnings.push("offering_not_resolved");
+    const hasPlanRestrictedCandidate = offeringCandidates.some((offering) => {
+      const context = buildContext(offering, requestedModality);
+      if (!context) return false;
+      if (requestedBusinessLine && context.businessLine !== requestedBusinessLine) return false;
+      if (requestedModality && context.modality !== requestedModality) return false;
+      return !academicPlanIsAllowed(offering.pricingPlans, input.plan);
+    });
+
+    warnings.push(hasPlanRestrictedCandidate ? "plan_not_available_for_offering" : "offering_not_resolved");
     return { ok: true, context: null, warnings };
   }
 

@@ -209,6 +209,7 @@ export type OfferProgramOfferingSnapshot = {
   escolarizadoSchedule: string | null;
   ejecutivoSchedule: string | null;
   lineOfBusiness: string | null;
+  pricingPlans?: number[];
   isActive: boolean;
   archivedReason: string | null;
   updatedBy: string | null;
@@ -761,6 +762,7 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
       escolarizadoSchedule: true,
       ejecutivoSchedule: true,
       lineOfBusiness: true,
+      pricingPlans: true,
       isActive: true,
       archivedReason: true,
       updatedBy: true,
@@ -855,6 +857,7 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
       escolarizadoSchedule: offering.escolarizadoSchedule,
       ejecutivoSchedule: offering.ejecutivoSchedule,
       lineOfBusiness: offering.lineOfBusiness,
+      pricingPlans: offering.pricingPlans ?? [],
       isActive: offering.isActive,
       archivedReason: offering.archivedReason,
       updatedBy: offering.updatedBy,
@@ -924,6 +927,7 @@ async function restoreOfferSnapshot(snapshot: OfferDraftSnapshot) {
         escolarizadoSchedule: offering.escolarizadoSchedule,
         ejecutivoSchedule: offering.ejecutivoSchedule,
         lineOfBusiness: offering.lineOfBusiness,
+        pricingPlans: offering.pricingPlans ?? [],
         isActive: offering.isActive,
         archivedReason: offering.archivedReason,
         updatedBy: offering.updatedBy,

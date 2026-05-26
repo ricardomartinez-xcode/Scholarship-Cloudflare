@@ -3,6 +3,8 @@
 import { type FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { formatAcademicPricingPlans } from "@/lib/academic-offer-plans";
+
 import {
   ACADEMIC_OFFER_CYCLES,
   type AcademicOfferCycle,
@@ -27,7 +29,12 @@ type Summary = {
   warnings: string[];
   detectedSheets: { online: string | null; planteles: string | null };
   detectedColumns: {
-    online: { licenciatura: number; posgrado: number };
+    online: {
+      licenciatura: number;
+      posgrado: number;
+      licenciaturaPlanes: number | null;
+      posgradoPlanes: number | null;
+    };
     planteles: {
       plantel: number;
       programa: number;
@@ -35,6 +42,7 @@ type Summary = {
       ejecutivo: number;
       horEscolarizado: number;
       horEjecutivo: number;
+      planes: number | null;
     };
   } | null;
   perCampus: Array<{
@@ -60,6 +68,7 @@ type OfferPreviewRow = {
   programName: string;
   line: string | null;
   modality: string;
+  pricingPlans: number[];
   delivery: "CAMPUS" | "ONLINE";
   escolarizado: boolean;
   ejecutivo: boolean;
@@ -99,6 +108,7 @@ type ManualOfferDraft = {
   escolarizadoSchedule: string;
   ejecutivoSchedule: string;
   lineOfBusiness: string;
+  pricingPlans: string;
   isActive: boolean;
 };
 
@@ -132,6 +142,7 @@ function buildManualDraft(params: {
       escolarizadoSchedule: row.escolarizadoSchedule ?? "",
       ejecutivoSchedule: row.ejecutivoSchedule ?? "",
       lineOfBusiness: row.line ?? "",
+      pricingPlans: formatAcademicPricingPlans(row.pricingPlans),
       isActive: row.isActive,
     };
   }
@@ -151,6 +162,7 @@ function buildManualDraft(params: {
     escolarizadoSchedule: "",
     ejecutivoSchedule: "",
     lineOfBusiness: defaultProgram?.businessLine ?? "",
+    pricingPlans: "",
     isActive: true,
   };
 }
@@ -556,6 +568,24 @@ export default function OfferImportClient({
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                Planes / cuatrimestres permitidos
+                <input
+                  name="pricingPlans"
+                  value={manualDraft.pricingPlans}
+                  onChange={(event) =>
+                    setManualDraft((current) =>
+                      current ? { ...current, pricingPlans: event.target.value } : current,
+                    )
+                  }
+                  className="ui-control"
+                  placeholder="Ej. 9, 11"
+                />
+                <span className="text-xs text-slate-400">
+                  Déjalo vacío para mantener compatibilidad legacy; usa valores separados por coma.
+                </span>
               </label>
 
               <label className="grid gap-2 text-sm">
@@ -1007,6 +1037,7 @@ export default function OfferImportClient({
                     <th className="p-3 text-left font-semibold">Programa</th>
                     <th className="p-3 text-left font-semibold">Línea</th>
                     <th className="p-3 text-left font-semibold">Modalidad</th>
+                    <th className="p-3 text-left font-semibold">Planes</th>
                     <th className="p-3 text-left font-semibold">Plan PDF</th>
                     <th className="p-3 text-left font-semibold">Brochure</th>
                     <th className="p-3 text-left font-semibold">Estado</th>
@@ -1024,6 +1055,9 @@ export default function OfferImportClient({
                       <td className="p-3 text-slate-100">{row.programName}</td>
                       <td className="p-3 text-slate-300">{row.line ?? "—"}</td>
                       <td className="p-3 text-slate-300">{row.modality}</td>
+                      <td className="p-3 text-slate-300">
+                        {row.pricingPlans.length ? formatAcademicPricingPlans(row.pricingPlans) : "Legacy"}
+                      </td>
                       <td className="p-3 text-slate-300">{row.hasPlanPdf ? "Sí" : "No"}</td>
                       <td className="p-3 text-slate-300">{row.hasBrochurePdf ? "Sí" : "No"}</td>
                       <td className="p-3">
@@ -1064,7 +1098,7 @@ export default function OfferImportClient({
                   ))}
                   {!filteredPreviewRows.length ? (
                     <tr>
-                      <td className="p-4 text-slate-300" colSpan={9}>
+                      <td className="p-4 text-slate-300" colSpan={10}>
                         Sin resultados para los filtros actuales.
                       </td>
                     </tr>
@@ -1137,6 +1171,7 @@ export default function OfferImportClient({
                   <th className="p-3 text-left font-semibold">Programa</th>
                   <th className="p-3 text-left font-semibold">Línea</th>
                   <th className="p-3 text-left font-semibold">Modalidad</th>
+                  <th className="p-3 text-left font-semibold">Planes</th>
                   <th className="p-3 text-left font-semibold">Plan PDF</th>
                   <th className="p-3 text-left font-semibold">Brochure</th>
                   <th className="p-3 text-left font-semibold">Estado</th>
@@ -1154,6 +1189,9 @@ export default function OfferImportClient({
                     <td className="p-3 text-slate-100">{row.programName}</td>
                     <td className="p-3 text-slate-300">{row.line ?? "—"}</td>
                     <td className="p-3 text-slate-300">{row.modality}</td>
+                    <td className="p-3 text-slate-300">
+                      {row.pricingPlans.length ? formatAcademicPricingPlans(row.pricingPlans) : "Legacy"}
+                    </td>
                     <td className="p-3 text-slate-300">{row.hasPlanPdf ? "Sí" : "No"}</td>
                     <td className="p-3 text-slate-300">{row.hasBrochurePdf ? "Sí" : "No"}</td>
                     <td className="p-3">

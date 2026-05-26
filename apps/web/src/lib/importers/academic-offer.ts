@@ -6,6 +6,7 @@ import ExcelJS from "exceljs";
 import { CampusKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeKey } from "@/lib/text-normalize";
+import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import {
   EXCEL_SHEETS_OMIT,
   type AcademicOfferCycle,
@@ -20,6 +21,7 @@ type ParsedRow = {
   escolarizadoSchedule: string | null;
   ejecutivoSchedule: string | null;
   delivery: "CAMPUS" | "ONLINE";
+  pricingPlans: number[] | null;
 };
 
 type CampusParseResult = {
@@ -35,6 +37,8 @@ type CampusParseResult = {
 type OnlineColumnMap = {
   licenciatura: number;
   posgrado: number;
+  licenciaturaPlanes: number | null;
+  posgradoPlanes: number | null;
 };
 
 type PlantelesColumnMap = {
@@ -44,6 +48,7 @@ type PlantelesColumnMap = {
   ejecutivo: number;
   horEscolarizado: number;
   horEjecutivo: number;
+  planes: number | null;
 };
 
 type PlantelesEntry = {
@@ -65,7 +70,7 @@ export type ImportAcademicOfferSummary = {
   warnings: string[];
   detectedSheets: { online: string | null; planteles: string | null };
   detectedColumns: {
-    online: { licenciatura: number; posgrado: number };
+    online: { licenciatura: number; posgrado: number; licenciaturaPlanes: number | null; posgradoPlanes: number | null };
     planteles: {
       plantel: number;
       programa: number;
@@ -73,6 +78,7 @@ export type ImportAcademicOfferSummary = {
       ejecutivo: number;
       horEscolarizado: number;
       horEjecutivo: number;
+      planes: number | null;
     };
   } | null;
   perCampus: Array<{
@@ -100,6 +106,7 @@ export type AcademicOfferPreviewRow = {
   programName: string;
   line: string | null;
   modality: string;
+  pricingPlans: number[];
   isActive: boolean;
   hasPlanPdf: boolean;
   hasBrochurePdf: boolean;
@@ -227,6 +234,8 @@ function detectOnlineColumns(ws: ExcelJS.Worksheet): OnlineColumnMap {
   const hRow = ws.getRow(1);
   let licenciaturaCol = 1;
   let posgradoCol = 2;
+  let licenciaturaPlanesCol: number | null = null;
+  let posgradoPlanesCol: number | null = null;
 
   // Only scan if the first row looks like headers (text cells)
   const firstCellText = normalizeKey(cleanText(hRow.getCell(1).value));
@@ -241,7 +250,17 @@ function detectOnlineColumns(ws: ExcelJS.Worksheet): OnlineColumnMap {
     for (let c = 1; c <= 10; c++) {
       const h = normalizeKey(cleanText(hRow.getCell(c).value));
       if (!h) continue;
-      if (h.includes("licenciatura")) {
+      const isPlanColumn =
+        h.includes("plan") ||
+        h.includes("cuatri") ||
+        h.includes("cuatrimestre") ||
+        h.includes("duracion") ||
+        h.includes("duración");
+      if (isPlanColumn && h.includes("licenciatura")) {
+        licenciaturaPlanesCol = c;
+      } else if (isPlanColumn && h.includes("posgrado")) {
+        posgradoPlanesCol = c;
+      } else if (h.includes("licenciatura")) {
         licenciaturaCol = c;
       } else if (h.includes("posgrado")) {
         posgradoCol = c;
@@ -249,7 +268,12 @@ function detectOnlineColumns(ws: ExcelJS.Worksheet): OnlineColumnMap {
     }
   }
 
-  return { licenciatura: licenciaturaCol, posgrado: posgradoCol };
+  return {
+    licenciatura: licenciaturaCol,
+    posgrado: posgradoCol,
+    licenciaturaPlanes: licenciaturaPlanesCol,
+    posgradoPlanes: posgradoPlanesCol,
+  };
 }
 
 /**
@@ -264,6 +288,7 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
   let ejecutivoCol = 4;
   let horEscolarizadoCol = 5;
   let horEjecutivoCol = 6;
+  let planesCol: number | null = null;
 
   // Only scan if first row looks like a header row (not data)
   const firstCellText = normalizeKey(cleanText(hRow.getCell(1).value));
@@ -277,7 +302,7 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
     secondCellText.includes("carrera");
 
   if (looksLikeHeader) {
-    for (let c = 1; c <= 12; c++) {
+    for (let c = 1; c <= 16; c++) {
       const h = normalizeKey(cleanText(hRow.getCell(c).value));
       if (!h) continue;
 
@@ -302,6 +327,14 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
         (h.includes("ejecutiv") || h.includes("ejec"))
       ) {
         horEjecutivoCol = c;
+      } else if (
+        h.includes("plan") ||
+        h.includes("cuatri") ||
+        h.includes("cuatrimestre") ||
+        h.includes("duracion") ||
+        h.includes("duración")
+      ) {
+        planesCol = c;
       }
     }
   }
@@ -313,6 +346,7 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
     ejecutivo: ejecutivoCol,
     horEscolarizado: horEscolarizadoCol,
     horEjecutivo: horEjecutivoCol,
+    planes: planesCol,
   };
 }
 
@@ -325,6 +359,12 @@ function parseOnlineSheet(ws: ExcelJS.Worksheet, cols: OnlineColumnMap): ParsedR
     const row = ws.getRow(r);
     const licenciatura = cleanText(row.getCell(cols.licenciatura).value);
     const posgrado = cleanText(row.getCell(cols.posgrado).value);
+    const licenciaturaPlans = cols.licenciaturaPlanes
+      ? normalizeAcademicPricingPlans(row.getCell(cols.licenciaturaPlanes).value)
+      : null;
+    const posgradoPlans = cols.posgradoPlanes
+      ? normalizeAcademicPricingPlans(row.getCell(cols.posgradoPlanes).value)
+      : null;
 
     if (!licenciatura && !posgrado) {
       emptyStreak += 1;
@@ -334,8 +374,8 @@ function parseOnlineSheet(ws: ExcelJS.Worksheet, cols: OnlineColumnMap): ParsedR
     emptyStreak = 0;
 
     const entries = [
-      { programName: licenciatura, level: "LICENCIATURA" },
-      { programName: posgrado, level: "POSGRADO" },
+      { programName: licenciatura, level: "LICENCIATURA", pricingPlans: licenciaturaPlans },
+      { programName: posgrado, level: "POSGRADO", pricingPlans: posgradoPlans },
     ];
 
     for (const entry of entries) {
@@ -349,6 +389,7 @@ function parseOnlineSheet(ws: ExcelJS.Worksheet, cols: OnlineColumnMap): ParsedR
         escolarizadoSchedule: null,
         ejecutivoSchedule: null,
         delivery: "ONLINE",
+        pricingPlans: entry.pricingPlans,
       });
     }
   }
@@ -384,6 +425,9 @@ function parsePlantelesSheet(
 
     const campusKey = normalizeKey(campusName);
     const programNormalized = normalizeKey(programName);
+    const pricingPlans = cols.planes
+      ? normalizeAcademicPricingPlans(row.getCell(cols.planes).value)
+      : null;
     const next: ParsedRow = {
       programName,
       programNormalized,
@@ -393,6 +437,7 @@ function parsePlantelesSheet(
       escolarizadoSchedule: cleanText(row.getCell(cols.horEscolarizado).value) || null,
       ejecutivoSchedule: cleanText(row.getCell(cols.horEjecutivo).value) || null,
       delivery: "CAMPUS",
+      pricingPlans,
     };
 
     const campusEntry = byCampus.get(campusKey) ?? { originalName: campusName, rows: new Map<string, ParsedRow>() };
@@ -407,6 +452,11 @@ function parsePlantelesSheet(
       }
       if (!prev.ejecutivoSchedule && next.ejecutivoSchedule) {
         prev.ejecutivoSchedule = next.ejecutivoSchedule;
+      }
+      if (next.pricingPlans !== null) {
+        prev.pricingPlans = Array.from(
+          new Set([...(prev.pricingPlans ?? []), ...next.pricingPlans]),
+        ).sort((left, right) => left - right);
       }
     }
     byCampus.set(campusKey, campusEntry);
@@ -663,6 +713,7 @@ export async function importAcademicOfferFromExcel(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -677,6 +728,7 @@ export async function importAcademicOfferFromExcel(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            pricingPlans: row.pricingPlans ?? [],
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -921,18 +973,23 @@ export async function prepareAcademicOfferImport(params: {
     select: {
       campusId: true,
       isActive: true,
+      pricingPlans: true,
       program: {
         select: { nameNormalized: true },
       },
     },
   });
 
-  const offeringsByCampus = new Map<string, Array<{ nameNormalized: string; isActive: boolean }>>();
+  const offeringsByCampus = new Map<
+    string,
+    Array<{ nameNormalized: string; isActive: boolean; pricingPlans: number[] }>
+  >();
   for (const offering of existingOfferings) {
     const rows = offeringsByCampus.get(offering.campusId) ?? [];
     rows.push({
       nameNormalized: offering.program.nameNormalized,
       isActive: offering.isActive,
+      pricingPlans: offering.pricingPlans ?? [],
     });
     offeringsByCampus.set(offering.campusId, rows);
   }
@@ -953,6 +1010,9 @@ export async function prepareAcademicOfferImport(params: {
     for (const row of campusRes.rows) {
       excelProgramKeys.add(row.programNormalized);
       const previous = existingByProgram.get(row.programNormalized);
+      const existingOffering = (offeringsByCampus.get(campusRes.campusId) ?? []).find(
+        (offering) => offering.nameNormalized === row.programNormalized,
+      );
       if (previous === undefined) {
         offeringsCreated += 1;
       } else if (!previous) {
@@ -971,6 +1031,7 @@ export async function prepareAcademicOfferImport(params: {
           programName: row.programName,
           line: program?.businessLine ?? inferPreviewBusinessLine(row),
           modality: getPreviewModalityLabel(row),
+          pricingPlans: row.pricingPlans ?? existingOffering?.pricingPlans ?? [],
           isActive: true,
           hasPlanPdf: Boolean(program?.planPdfUrl ?? program?.planDriveLink ?? program?.planUrl),
           hasBrochurePdf: Boolean(program?.brochurePdfUrl),
@@ -1107,6 +1168,7 @@ export async function applyPreparedAcademicOfferImport(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -1121,6 +1183,7 @@ export async function applyPreparedAcademicOfferImport(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            pricingPlans: row.pricingPlans ?? [],
             isActive: true,
             archivedAt: null,
             archivedReason: null,

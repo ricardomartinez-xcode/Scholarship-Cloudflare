@@ -63,6 +63,7 @@ type OfertaPayload = {
     modality: string;
     schedule: string | null;
     planLink: string | null;
+    pricingPlans: number[];
     campus: {
       id: string;
       code: string;
@@ -224,6 +225,7 @@ async function loadOfertaPayload(
       escolarizadoSchedule: true,
       ejecutivoSchedule: true,
       lineOfBusiness: true,
+      pricingPlans: true,
       campus: {
         select: {
           id: true,
@@ -294,6 +296,7 @@ async function loadOfertaPayload(
         modality: getModalityLabel(offering),
         schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
         planLink: getUnidepProgramPlanUrl(program),
+        pricingPlans: offering.pricingPlans ?? [],
         campus: buildCampusPayload(offering.campus),
         program: { id: program.id, name: program.name },
       };

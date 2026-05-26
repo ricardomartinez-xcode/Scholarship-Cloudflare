@@ -12,6 +12,7 @@ export type QuotePricingOption = {
   modality: string;
   plan: number;
   programKey?: string | null;
+  source?: "pricing" | "offering";
 };
 
 type RuleSource = {

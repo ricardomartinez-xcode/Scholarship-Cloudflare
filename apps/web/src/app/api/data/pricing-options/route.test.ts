@@ -397,4 +397,95 @@ describe("GET /api/data/pricing-options", () => {
       }),
     );
   });
+
+  it("exposes configured offering plans even before a canonical price exists", async () => {
+    prismaMock.scholarshipRule.findMany.mockResolvedValue([]);
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+    prismaMock.returnSubjectPrice.findMany.mockResolvedValue([]);
+    prismaMock.program.findMany.mockResolvedValue([
+      {
+        id: "program_psicologia",
+        name: "Licenciatura en Psicología",
+        nameNormalized: "licenciatura-en-psicologia",
+        category: "Salud",
+        level: "Licenciatura",
+        businessLine: "salud",
+        planPdfUrl: "https://example.com/psicologia.pdf",
+        brochurePdfUrl: null,
+        planDriveLink: null,
+        planUrl: null,
+      },
+    ]);
+    prismaMock.campus.findMany.mockResolvedValue([
+      {
+        id: "campus_hermosillo",
+        code: "HMO",
+        metaKey: "Hermosillo",
+        name: "Hermosillo",
+        tier: "T3",
+      },
+    ]);
+    prismaMock.programOffering.findMany.mockResolvedValue([
+      {
+        id: "offering_psicologia_hmo",
+        campusId: "campus_hermosillo",
+        pricingPlans: [9],
+        delivery: "CAMPUS",
+        escolarizado: true,
+        ejecutivo: false,
+        lineOfBusiness: "Salud",
+        program: {
+          id: "program_psicologia",
+          name: "Licenciatura en Psicología",
+          businessLine: "salud",
+          level: "Licenciatura",
+          category: "Salud",
+          planPdfUrl: "https://example.com/psicologia.pdf",
+          planDriveLink: null,
+          planUrl: null,
+        },
+      },
+    ]);
+
+    const response = await GET();
+    const data = (await response.json()) as {
+      campuses: Array<{
+        value: string;
+        businessLines: string[];
+        modalities: string[];
+        studyPrograms: Array<{ id: string; businessLine: string }>;
+        pricingOptions: Array<{
+          businessLine: string;
+          modality: string;
+          plan: number;
+          programId: string;
+        }>;
+      }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(data.campuses).toEqual([
+      expect.objectContaining({
+        value: "Hermosillo",
+        businessLines: ["salud"],
+        modalities: ["presencial"],
+        studyPrograms: [
+          expect.objectContaining({
+            id: "program_psicologia",
+            businessLine: "salud",
+          }),
+        ],
+        pricingOptions: [
+          {
+            businessLine: "salud",
+            modality: "presencial",
+            plan: 9,
+            programId: "program_psicologia",
+            programKey: "program_psicologia",
+          },
+        ],
+      }),
+    ]);
+  });
+
 });

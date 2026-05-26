@@ -22,6 +22,7 @@ const HERMOSILLO_OFFERING = {
   id: "11111111-1111-4111-8111-111111111111",
   cycle: "C1",
   lineOfBusiness: "Licenciatura",
+  pricingPlans: [],
   delivery: "CAMPUS",
   escolarizado: true,
   ejecutivo: false,
@@ -122,4 +123,74 @@ describe("resolveQuoteAcademicOffering", () => {
       warnings: ["offering_not_resolved"],
     });
   });
+
+  it("respects configured academic plans when resolving an offering by program", async () => {
+    const psicologiaOffering = {
+      ...HERMOSILLO_OFFERING,
+      lineOfBusiness: "Salud",
+      pricingPlans: [9],
+      program: {
+        ...HERMOSILLO_OFFERING.program,
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Licenciatura en Psicología",
+        businessLine: "salud",
+        category: "Salud",
+      },
+    } as const;
+
+    prismaMock.campus.findFirst.mockResolvedValue({ id: psicologiaOffering.campus.id });
+    prismaMock.programOffering.findMany.mockResolvedValue([psicologiaOffering]);
+
+    const result = await resolveQuoteAcademicOffering({
+      selectedProgramId: psicologiaOffering.program.id,
+      businessLine: "salud",
+      modality: "presencial",
+      campus: "Hermosillo",
+      plan: 9,
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.context).toEqual(
+        expect.objectContaining({
+          offeringId: psicologiaOffering.id,
+          businessLine: "salud",
+          pricingPlans: [9],
+        }),
+      );
+    }
+  });
+
+  it("does not resolve an offering when the selected plan is not configured", async () => {
+    const psicologiaOffering = {
+      ...HERMOSILLO_OFFERING,
+      lineOfBusiness: "Salud",
+      pricingPlans: [9],
+      program: {
+        ...HERMOSILLO_OFFERING.program,
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Licenciatura en Psicología",
+        businessLine: "salud",
+        category: "Salud",
+      },
+    } as const;
+
+    prismaMock.campus.findFirst.mockResolvedValue({ id: psicologiaOffering.campus.id });
+    prismaMock.programOffering.findMany.mockResolvedValue([psicologiaOffering]);
+
+    const result = await resolveQuoteAcademicOffering({
+      selectedProgramId: psicologiaOffering.program.id,
+      businessLine: "salud",
+      modality: "presencial",
+      campus: "Hermosillo",
+      plan: 11,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      context: null,
+      warnings: ["plan_not_available_for_offering"],
+    });
+  });
+
 });

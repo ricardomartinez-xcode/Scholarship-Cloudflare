@@ -598,6 +598,7 @@ model ProgramOffering {
   escolarizadoSchedule String?
   ejecutivoSchedule    String?
   lineOfBusiness       String?
+  pricingPlans         Int[]                   @default([])
   isActive             Boolean                 @default(true)
   archivedAt           DateTime?
   archivedReason       String?

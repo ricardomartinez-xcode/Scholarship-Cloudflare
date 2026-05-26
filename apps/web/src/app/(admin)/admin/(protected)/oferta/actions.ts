@@ -6,6 +6,7 @@ import { AdminCapability, ProgramOfferingDelivery } from "@prisma/client";
 import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { normalizeBusinessLine } from "@/lib/pricing-normalize";
+import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_ROUTE_CACHE_TAGS,
@@ -51,6 +52,7 @@ export async function upsertAcademicOfferAction(
         : ProgramOfferingDelivery.CAMPUS;
     const lineRaw = String(formData.get("lineOfBusiness") ?? "").trim();
     const lineOfBusiness = normalizeBusinessLine(lineRaw) ?? null;
+    const pricingPlans = normalizeAcademicPricingPlans(formData.get("pricingPlans"));
     const escolarizado =
       delivery === ProgramOfferingDelivery.ONLINE ? false : formBoolean(formData, "escolarizado");
     const ejecutivo =
@@ -82,6 +84,7 @@ export async function upsertAcademicOfferAction(
       escolarizadoSchedule,
       ejecutivoSchedule,
       lineOfBusiness,
+      pricingPlans,
       isActive,
       archivedAt: isActive ? null : new Date(),
       archivedReason: isActive ? null : "manual_admin",

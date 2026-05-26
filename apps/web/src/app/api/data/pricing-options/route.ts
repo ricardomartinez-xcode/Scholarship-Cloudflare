@@ -6,9 +6,11 @@ import {
   findPublishedBasePriceOverride,
 } from "@/lib/base-price-overrides";
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
-import { buildQuotePricingOptions } from "@/lib/pricing-options";
+import { buildQuotePricingOptions, type QuotePricingOption } from "@/lib/pricing-options";
+import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
+  ENROLLMENT_TYPES,
   basePriceFromRules,
   normalizeBusinessLine,
   normalizeCanonicalModality,
@@ -138,6 +140,67 @@ function buildStudyProgram(program: {
   };
 }
 
+function buildConfiguredOfferingPricingOptions(
+  offerings: Array<{
+    pricingPlans: number[];
+    delivery: string;
+    escolarizado: boolean;
+    ejecutivo: boolean;
+    lineOfBusiness: string | null;
+    program: {
+      id: string;
+      name: string;
+      businessLine: string | null;
+      level: string | null;
+      category: string | null;
+      planPdfUrl: string | null;
+      planDriveLink: string | null;
+      planUrl: string | null;
+    };
+  }>,
+): QuotePricingOption[] {
+  const options = new Map<string, QuotePricingOption>();
+
+  for (const offering of offerings) {
+    const plans = normalizeAcademicPricingPlans(offering.pricingPlans);
+    if (!plans.length) continue;
+
+    const studyProgram = buildStudyProgram({
+      ...offering.program,
+      businessLine:
+        normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
+    });
+    if (!studyProgram) continue;
+
+    for (const modality of getOfferingModalities(offering)) {
+      for (const plan of plans) {
+        for (const enrollmentType of ENROLLMENT_TYPES) {
+          const option: QuotePricingOption = {
+            enrollmentType,
+            businessLine: studyProgram.businessLine,
+            modality,
+            plan,
+            programKey: studyProgram.id,
+            source: "offering",
+          };
+          options.set(
+            [
+              option.enrollmentType,
+              option.businessLine,
+              option.modality,
+              option.plan,
+              option.programKey ?? "",
+            ].join("|"),
+            option,
+          );
+        }
+      }
+    }
+  }
+
+  return Array.from(options.values());
+}
+
 export async function GET() {
   const auth = await getSessionUser();
   if (auth.status === "unauthenticated") {
@@ -209,7 +272,9 @@ export async function GET() {
         campus: { isActive: true },
       },
       select: {
+        id: true,
         campusId: true,
+        pricingPlans: true,
         delivery: true,
         escolarizado: true,
         ejecutivo: true,
@@ -232,7 +297,10 @@ export async function GET() {
   ]);
 
   const academicOfferByCampus = new Map<string, typeof activeOfferings>();
-  const pricingOptions = buildQuotePricingOptions(rules, priceOverrides);
+  const pricingOptions = [
+    ...buildQuotePricingOptions(rules, priceOverrides),
+    ...buildConfiguredOfferingPricingOptions(activeOfferings),
+  ];
   const priceOverrideSnapshots = priceOverrides.map(
     (override): PriceOverrideSnapshot => ({
       id: override.id,
@@ -309,6 +377,10 @@ export async function GET() {
                 plan: option.plan,
               });
 
+              if (option.source === "offering") {
+                return true;
+              }
+
               if (option.programKey) {
                 return overrideBasePrice !== null;
               }
@@ -345,10 +417,12 @@ export async function GET() {
         const studyProgram = buildStudyProgram({
           ...offering.program,
           businessLine:
-            offering.program.businessLine ?? normalizeBusinessLine(offering.lineOfBusiness),
+            normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
         });
         if (!studyProgram) continue;
         studyPrograms.set(studyProgram.id, studyProgram);
+
+        const configuredPlans = normalizeAcademicPricingPlans(offering.pricingPlans);
 
         for (const modality of getOfferingModalities(offering)) {
           offeredOptions.set(`${studyProgram.businessLine}|${modality}`, {
@@ -359,6 +433,7 @@ export async function GET() {
             if (
               option.businessLine !== studyProgram.businessLine ||
               option.modality !== modality ||
+              (configuredPlans.length > 0 && !configuredPlans.includes(option.plan)) ||
               !programMatchesPricingOption(studyProgram, option)
             ) {
               continue;

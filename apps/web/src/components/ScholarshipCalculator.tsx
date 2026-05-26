@@ -41,6 +41,7 @@ type PricingOption = {
   modality: string;
   plan: number;
   programKey?: string | null;
+  source?: "pricing" | "offering";
 };
 
 type StudyProgramOption = {
@@ -66,6 +67,7 @@ type PricingOptionsResponse = {
       plan: number;
       programId?: string;
       programKey?: string | null;
+      source?: "pricing" | "offering";
     }>;
   }>;
   subjectCounts?: number[];
@@ -1038,6 +1040,7 @@ export default function ScholarshipCalculator({
             modality: string;
             schedule?: string | null;
             planLink?: string | null;
+            pricingPlans?: number[];
             program: {
               id: string;
               name: string;

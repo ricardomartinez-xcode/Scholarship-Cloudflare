@@ -271,6 +271,7 @@ export async function POST(request: Request) {
       campus: rawRequestInput.campus,
       businessLine: rawRequestInput.businessLine,
       modality: rawRequestInput.modality,
+      plan: rawRequestInput.plan,
       cycle: rawRequestInput.offerCycle,
     });
 
@@ -289,6 +290,7 @@ export async function POST(request: Request) {
           campus: rawRequestInput.campus,
           businessLine: rawRequestInput.businessLine,
           modality: rawRequestInput.modality,
+          plan: rawRequestInput.plan,
           warnings: offeringResolution.warnings,
         },
       });

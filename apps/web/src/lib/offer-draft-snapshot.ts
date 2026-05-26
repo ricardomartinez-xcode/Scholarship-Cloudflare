@@ -22,6 +22,7 @@ export type OfferDraftSnapshotLike = {
     escolarizadoSchedule: string | null;
     ejecutivoSchedule: string | null;
     lineOfBusiness: string | null;
+    pricingPlans?: number[];
     isActive: boolean;
     archivedReason: string | null;
     updatedBy: string | null;
