@@ -10,6 +10,7 @@ import { buildQuotePricingOptions } from "@/lib/pricing-options";
 import {
   basePriceFromRules,
   normalizeBusinessLine,
+  normalizeCanonicalModality,
   normalizeTier,
   toNumber,
   type CanonicalModalityValue,
