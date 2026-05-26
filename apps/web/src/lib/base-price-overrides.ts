@@ -36,30 +36,35 @@ function targetRecord(targetKeys: unknown) {
     : {};
 }
 
-function matchesBasePriceTarget(
+function matchesBasePriceCoreTarget(
   keys: Record<string, unknown>,
   params: {
     businessLine: CanonicalBusinessLine | string;
     modality: CanonicalModalityValue | string;
     plan: number | string;
-    tier?: string | null;
   },
 ) {
   const expectedBusinessLineKey = toHistoricalBusinessLineKey(params.businessLine);
-  const expectedTier = normalizeTierKey(params.tier);
   const targetNivel = normalizeKey(keys.nivel_key ?? keys.businessLine ?? keys.nivel);
   const targetModality = normalizeKey(
     keys.modalidad_key ?? keys.modality ?? keys.modalidad,
   );
   const targetPlan = normalizeKey(keys.plan);
-  const targetTier = normalizeTierKey(keys.tier);
 
   return (
     targetNivel === normalizeKey(expectedBusinessLineKey) &&
     targetModality === normalizeKey(params.modality) &&
-    targetPlan === normalizeKey(params.plan) &&
-    targetTier === expectedTier
+    targetPlan === normalizeKey(params.plan)
   );
+}
+
+function matchesBasePriceTierTarget(
+  keys: Record<string, unknown>,
+  params: {
+    tier?: string | null;
+  },
+) {
+  return normalizeTierKey(keys.tier) === normalizeTierKey(params.tier);
 }
 
 function normalizeCampusTargets(params: {
@@ -90,23 +95,34 @@ export function findPublishedBasePriceOverride(
 ) {
   const campusTargets = normalizeCampusTargets(params);
   let genericPrice: number | null = null;
+  let campusPriceIgnoringTier: number | null = null;
 
   for (const override of overrides) {
     if (!override.isActive || override.scope !== BASE_PRICE_OVERRIDE_SCOPE) continue;
     const keys = targetRecord(override.targetKeys);
-    if (!matchesBasePriceTarget(keys, params)) continue;
+    if (!matchesBasePriceCoreTarget(keys, params)) continue;
 
     const price = toNumber(override.newPrice);
     if (price === null) continue;
 
     const campusKey = targetCampusKey(keys);
+    const matchesTier = matchesBasePriceTierTarget(keys, params);
+
     if (campusKey) {
-      if (campusTargets.has(campusKey)) return price;
+      if (!campusTargets.has(campusKey)) continue;
+
+      if (matchesTier) return price;
+
+      // Si el override ya está acotado por plantel, el plantel es más específico
+      // que el tier. Esto evita caer al precio estático cuando el catálogo del
+      // campus todavía no tiene tier, pero el precio canónico sí incluye plantel.
+      if (campusPriceIgnoringTier === null) campusPriceIgnoringTier = price;
       continue;
     }
 
+    if (!matchesTier) continue;
     if (genericPrice === null) genericPrice = price;
   }
 
-  return genericPrice;
+  return campusPriceIgnoringTier ?? genericPrice;
 }

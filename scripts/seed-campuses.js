@@ -73,13 +73,17 @@ async function main() {
   const prisma = new PrismaClient();
   try {
     for (const c of CANONICAL) {
+      const tierPatch = Object.prototype.hasOwnProperty.call(c, "tier")
+        ? { tier: c.tier || null }
+        : {};
+
       await prisma.campus.upsert({
         where: { code: c.code },
         update: {
           metaKey: c.metaKey,
           name: c.name,
           slug: c.kind === "online" ? "online" : normalizeKey(c.name),
-          tier: null,
+          ...tierPatch,
           kind: c.kind,
           isActive: true,
           sortOrder: c.sortOrder,
@@ -89,7 +93,7 @@ async function main() {
           metaKey: c.metaKey,
           name: c.name,
           slug: c.kind === "online" ? "online" : normalizeKey(c.name),
-          tier: null,
+          tier: c.tier || null,
           kind: c.kind,
           isActive: true,
           sortOrder: c.sortOrder,

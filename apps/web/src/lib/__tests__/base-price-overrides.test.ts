@@ -110,4 +110,109 @@ describe("findPublishedBasePriceOverride", () => {
       }),
     ).toBe(4321);
   });
+
+  it("uses a campus-specific canonical price when the campus catalog has no tier", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "hermosillo-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          plantel: "Hermosillo",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 4970,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        tier: "ANY",
+        campus: "Hermosillo",
+        campusAliases: ["CAMPUS_HERMOSILLO"],
+      }),
+    ).toBe(4970);
+  });
+
+  it("prefers the exact campus tier when multiple campus-specific prices exist", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "fallback-campus-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          plantel: "Hermosillo",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T2",
+        },
+        newPrice: 4900,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "exact-campus-tier-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          plantel: "Hermosillo",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 4970,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        tier: "T3",
+        campus: "Hermosillo",
+      }),
+    ).toBe(4970);
+  });
+
+  it("does not use a generic tier price when the runtime tier does not match", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "generic-tier-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 4970,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        tier: "ANY",
+        campus: "Hermosillo",
+      }),
+    ).toBeNull();
+  });
 });
