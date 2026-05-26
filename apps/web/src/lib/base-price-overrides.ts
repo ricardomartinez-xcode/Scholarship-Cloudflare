@@ -4,6 +4,7 @@ import {
   type CanonicalBusinessLine,
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
+import { normalizeKey as normalizeTextKey } from "@/lib/text-normalize";
 
 export const BASE_PRICE_OVERRIDE_SCOPE = "base_price";
 
@@ -14,7 +15,12 @@ function toHistoricalBusinessLineKey(businessLine: CanonicalBusinessLine | strin
 }
 
 function normalizeKey(value: unknown) {
-  return String(value ?? "").trim().toLowerCase();
+  return normalizeTextKey(String(value ?? ""));
+}
+
+function normalizeCampusKey(value: unknown) {
+  const normalized = normalizeKey(value);
+  return normalized.replace(/^campus[\s_-]*/i, "").replace(/[^a-z0-9]/g, "");
 }
 
 function normalizeTierKey(value: unknown) {
@@ -62,13 +68,13 @@ function normalizeCampusTargets(params: {
 }) {
   return new Set(
     [params.campus, ...(params.campusAliases ?? [])]
-      .map((value) => normalizeKey(value))
+      .flatMap((value) => [normalizeKey(value), normalizeCampusKey(value)])
       .filter(Boolean),
   );
 }
 
 function targetCampusKey(keys: Record<string, unknown>) {
-  return normalizeKey(keys.plantel ?? keys.campus ?? keys.sede ?? keys.metaKey);
+  return normalizeCampusKey(keys.plantel ?? keys.campus ?? keys.sede ?? keys.metaKey);
 }
 
 export function findPublishedBasePriceOverride(

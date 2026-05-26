@@ -160,7 +160,7 @@ export async function GET() {
     prisma.campus.findMany({
       where: { isActive: true },
       orderBy: [{ name: "asc" }],
-      select: { id: true, code: true, metaKey: true, name: true, tier: true },
+      select: { id: true, code: true, metaKey: true, name: true, slug: true, tier: true },
     }),
     prisma.returnSubjectPrice.findMany({
       where: { sourceVersion: "canonical" },
@@ -252,7 +252,13 @@ export async function GET() {
                   plan: option.plan,
                   tier: runtimeTier,
                   campus: campus.name,
-                  campusAliases: [campus.name, campus.metaKey, campus.code].filter(Boolean),
+                  campusAliases: [
+                    campus.id,
+                    campus.name,
+                    campus.metaKey,
+                    campus.code,
+                    campus.slug,
+                  ].filter(Boolean),
                 },
               );
 

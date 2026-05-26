@@ -1962,7 +1962,11 @@ export default function ScholarshipCalculator({
               <SmartSelect
                 labelId={planLabelId}
                 value={plan !== null ? String(plan) : ""}
-                placeholder="Selecciona plan"
+                placeholder={
+                  plantel && !planes.length
+                    ? "Sin precio para este plantel"
+                    : "Selecciona plan"
+                }
                 disabled={
                   !studyProgramId ||
                   (modalidad !== "online" && requierePlantel(nivel, modalidad) && !plantel)

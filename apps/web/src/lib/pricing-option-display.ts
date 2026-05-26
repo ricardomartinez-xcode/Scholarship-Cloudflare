@@ -10,6 +10,11 @@ export type QuoteCampusOption = {
   label: string;
   businessLines?: string[];
   modalities?: string[];
+  studyPrograms?: Array<{
+    id: string;
+    name: string;
+    businessLine: string;
+  }>;
   pricingOptions?: Array<{
     businessLine: string;
     modality: string;
@@ -83,8 +88,19 @@ export function visibleQuoteCampuses(
       label: sourceOnlineCampus.label || ONLINE_QUOTE_CAMPUS.label,
     };
 
-    if (!selectedBusinessLine || !selectedModality || !sourceOnlineCampus.pricingOptions?.length) {
+    const offersSelectedProgram =
+      !programId ||
+      !sourceOnlineCampus.studyPrograms?.length ||
+      sourceOnlineCampus.studyPrograms.some((program) => program.id === programId);
+
+    if (!offersSelectedProgram) return [];
+
+    if (!selectedBusinessLine || !selectedModality || !plan) {
       return [onlineCampus];
+    }
+
+    if (!sourceOnlineCampus.pricingOptions?.length) {
+      return [];
     }
 
     return sourceOnlineCampus.pricingOptions.some(
@@ -109,7 +125,11 @@ export function visibleQuoteCampuses(
       return campus.modalities.includes(selectedModality);
     })
     .filter((campus) => {
-      if (!selectedBusinessLine || !selectedModality) return true;
+      if (!programId || !campus.studyPrograms?.length) return true;
+      return campus.studyPrograms.some((program) => program.id === programId);
+    })
+    .filter((campus) => {
+      if (!selectedBusinessLine || !selectedModality || !plan) return true;
       if (!campus.pricingOptions?.length) return false;
       return campus.pricingOptions.some(
         (option) =>

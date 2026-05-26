@@ -198,4 +198,34 @@ describe("visibleQuoteCampuses", () => {
       },
     ]);
   });
+
+  it("keeps offered campuses visible before selecting a payment plan", () => {
+    expect(
+      visibleQuoteCampuses(
+        [
+          {
+            value: "CHH",
+            label: "Chihuahua",
+            businessLines: ["prepa"],
+            modalities: ["presencial"],
+            studyPrograms: [{ id: "program_prepa", name: "Bachillerato", businessLine: "prepa" }],
+            pricingOptions: [],
+          },
+        ],
+        "presencial",
+        "prepa",
+        null,
+        "program_prepa",
+      ),
+    ).toEqual([
+      {
+        value: "CHH",
+        label: "Chihuahua",
+        businessLines: ["prepa"],
+        modalities: ["presencial"],
+        studyPrograms: [{ id: "program_prepa", name: "Bachillerato", businessLine: "prepa" }],
+        pricingOptions: [],
+      },
+    ]);
+  });
 });

@@ -516,6 +516,168 @@ type CampusFeeActivation = {
   is_active?: boolean;
 };
 
+type UnifiedFeeSeedItem = {
+  code: string;
+  concept: string;
+  section: string;
+  cost_mxn: number;
+  campus: string;
+  campus_cost_mxn: number | null;
+  campus_is_active: boolean;
+};
+
+function buildUnifiedFeeHeaderReader(row: string[]) {
+  const codeIndex = findHeaderIndex(row, ["codigo", "código", "code", "clave", "id"]);
+  const conceptIndex = findHeaderIndex(row, ["concepto", "concept", "descripcion", "descripción", "nombre"]);
+  const sectionIndex = findHeaderIndex(row, ["seccion", "sección", "section", "categoria", "categoría", "tipo"]);
+  const costIndex = findHeaderIndex(row, [
+    "costo base",
+    "costo_base",
+    "costo mxn",
+    "costo",
+    "cost_mxn",
+    "precio",
+    "importe",
+    "monto",
+  ]);
+  const campusIndex = findHeaderIndex(row, ["plantel", "campus", "sede"]);
+  const campusCostIndex = findHeaderIndex(row, [
+    "costo plantel",
+    "costo_plantel",
+    "campus_cost",
+    "override",
+    "overridecostmxn",
+  ]);
+  const campusActiveIndex = findHeaderIndex(row, [
+    "activo plantel",
+    "activo_plantel",
+    "campus activo",
+    "is_active",
+    "activo",
+  ]);
+
+  if ([codeIndex, conceptIndex, sectionIndex, costIndex, campusIndex].some((index) => index < 0)) {
+    return null;
+  }
+
+  return (dataRow: string[]): UnifiedFeeSeedItem => ({
+    code: String(dataRow[codeIndex] ?? "").trim(),
+    concept: String(dataRow[conceptIndex] ?? "").trim(),
+    section: String(dataRow[sectionIndex] ?? "").trim(),
+    cost_mxn: parseMxnValue(dataRow[costIndex] ?? ""),
+    campus: String(dataRow[campusIndex] ?? "").trim(),
+    campus_cost_mxn:
+      campusCostIndex >= 0 && String(dataRow[campusCostIndex] ?? "").trim()
+        ? parseMxnValue(dataRow[campusCostIndex] ?? "")
+        : null,
+    campus_is_active:
+      campusActiveIndex < 0
+        ? true
+        : !["false", "0", "no", "inactivo"].includes(
+            normalizeHeader(String(dataRow[campusActiveIndex] ?? "")),
+          ),
+  });
+}
+
+export async function seedUnifiedFeesCsvAction(formData: FormData) {
+  try {
+    await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
+
+    const payload = getImportPayload(formData);
+    if (!payload) return { ok: false, error: "CSV vacío." };
+
+    const rows = parseDelimitedText(payload);
+    if (!rows.length) return { ok: false, error: "El CSV no contiene filas." };
+
+    const headerReader = buildUnifiedFeeHeaderReader(rows[0] ?? []);
+    if (!headerReader) {
+      return {
+        ok: false,
+        error:
+          "Faltan columnas requeridas: codigo, concepto, seccion, costo_base y plantel.",
+      };
+    }
+
+    const campusCatalog = await listCampusCatalog();
+    const items = rows
+      .slice(1)
+      .filter((row) => row.some((cell) => String(cell ?? "").trim()))
+      .map((row) => headerReader(row));
+
+    let created = 0;
+    let updated = 0;
+    let activated = 0;
+    let deactivated = 0;
+    const errors: string[] = [];
+
+    for (const item of items) {
+      const code = String(item.code ?? "").trim();
+      const concept = String(item.concept ?? "").trim();
+      const section = toSection(String(item.section ?? ""));
+      const costMxn = Math.round(parseMxnValue(item.cost_mxn));
+      const campus = resolveCampusFromCatalog(campusCatalog, item.campus);
+      const campusCost =
+        item.campus_cost_mxn === null ? null : Math.round(parseMxnValue(item.campus_cost_mxn));
+
+      if (!code || !concept || !section || Number.isNaN(costMxn)) {
+        errors.push(`Fila inválida para costo: ${JSON.stringify(item)}`);
+        continue;
+      }
+      if (!campus) {
+        errors.push(`Plantel no encontrado: ${item.campus}`);
+        continue;
+      }
+      if (campusCost !== null && Number.isNaN(campusCost)) {
+        errors.push(`Costo plantel inválido para ${code}: ${item.campus_cost_mxn}`);
+        continue;
+      }
+
+      const existingFee = await prisma.academicFee.findUnique({ where: { code } });
+      const fee = existingFee
+        ? await prisma.academicFee.update({
+            where: { code },
+            data: { concept, section, costMxn },
+          })
+        : await prisma.academicFee.create({
+            data: { id: crypto.randomUUID(), code, concept, section, costMxn },
+          });
+      if (existingFee) updated++;
+      else created++;
+
+      const existingCampusFee = await prisma.campusAcademicFee.findUnique({
+        where: { campusId_academicFeeId: { campusId: campus.id, academicFeeId: fee.id } },
+      });
+
+      if (existingCampusFee) {
+        await prisma.campusAcademicFee.update({
+          where: { id: existingCampusFee.id },
+          data: { isActive: item.campus_is_active, overrideCostMxn: campusCost },
+        });
+      } else {
+        await prisma.campusAcademicFee.create({
+          data: {
+            id: crypto.randomUUID(),
+            campusId: campus.id,
+            academicFeeId: fee.id,
+            isActive: item.campus_is_active,
+            overrideCostMxn: campusCost,
+          },
+        });
+      }
+      if (item.campus_is_active) activated++;
+      else deactivated++;
+    }
+
+    revalidatePath("/admin/unidep/fees");
+    revalidatePath("/api/public/costos");
+    revalidatePath("/unidep");
+    revalidatePublicRouteTags([PUBLIC_ROUTE_CACHE_TAGS.costos]);
+    return { ok: true, created, updated, activated, deactivated, errors };
+  } catch {
+    return { ok: false, error: "Error al procesar la importación unificada." };
+  }
+}
+
 function buildFeeLookupKey(params: {
   concept: string;
   section: AcademicFeeSection;

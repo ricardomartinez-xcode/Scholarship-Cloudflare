@@ -79,4 +79,35 @@ describe("findPublishedBasePriceOverride", () => {
       }),
     ).toBe(4290);
   });
+
+  it("matches campus price overrides with accents, campus prefixes, and compact keys", () => {
+    const overrides = [
+      {
+        id: "queretaro-price",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T2",
+          plantel: "CAMPUS_QUERETARO",
+        },
+        newPrice: 4321,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        tier: "T2",
+        campus: "Querétaro",
+        campusAliases: ["queretaro", "campus_queretaro"],
+      }),
+    ).toBe(4321);
+  });
 });
