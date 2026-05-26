@@ -27,6 +27,7 @@ import {
   type CanonicalModalityValue,
   type EnrollmentTypeValue,
 } from "@/lib/pricing-normalize";
+import { logStructured } from "@/lib/observability";
 import { findStaticBasePrice } from "@/lib/static-costs";
 
 export type ScholarshipQuoteInput = {
@@ -38,6 +39,9 @@ export type ScholarshipQuoteInput = {
   average: number;
   subjectCount?: number | null;
   extraChargeAmount?: number;
+  selectedProgramId?: string | null;
+  offeringId?: string | null;
+  offerCycle?: string | null;
   sourceVersion?: string;
 };
 
@@ -210,15 +214,41 @@ export async function resolveScholarshipQuote(
     campus: input.campus ?? campus?.name ?? null,
     campusAliases: buildCampusAliases(campus, input.campus),
   });
+  const ruleBasePrice = basePriceFromRules(normalizedCandidateRules);
+  const staticBasePrice = findStaticBasePrice({
+    businessLine: input.businessLine,
+    modality: input.modality,
+    plan: input.plan,
+  });
+
+  const returnSubjectPriceMxn = toNumber(returnSubjectPrice?.priceMxn);
   const basePriceMxn =
-    toNumber(returnSubjectPrice?.priceMxn) ??
+    returnSubjectPriceMxn ??
     basePriceOverride ??
-    basePriceFromRules(normalizedCandidateRules) ??
-    findStaticBasePrice({
-      businessLine: input.businessLine,
-      modality: input.modality,
-      plan: input.plan,
+    ruleBasePrice ??
+    staticBasePrice;
+
+  if (
+    staticBasePrice !== null &&
+    basePriceMxn === staticBasePrice &&
+    basePriceOverride === null &&
+    ruleBasePrice === null
+  ) {
+    logStructured("warn", "Quote used static base price fallback", {
+      module: "scholarship-quote",
+      action: "resolve-base-price",
+      result: "fallback",
+      metadata: {
+        businessLine: input.businessLine,
+        modality: input.modality,
+        plan: input.plan,
+        campus: input.campus ?? null,
+        tier: runtimeTier,
+        selectedProgramId: input.selectedProgramId ?? null,
+        offeringId: input.offeringId ?? null,
+      },
     });
+  }
 
   if (basePriceMxn === null) {
     return {

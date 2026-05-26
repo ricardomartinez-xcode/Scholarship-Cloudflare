@@ -33,5 +33,8 @@ export type CanonicalQuoteRequest = {
   average: number;
   subjectCount?: number | null;
   extraChargeAmount?: number;
+  selectedProgramId?: string | null;
+  offeringId?: string | null;
+  offerCycle?: string | null;
   sourceVersion?: string;
 };

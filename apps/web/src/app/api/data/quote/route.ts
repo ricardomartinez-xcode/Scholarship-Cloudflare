@@ -10,6 +10,10 @@ import {
   normalizeEnrollmentType,
 } from "@/lib/pricing-normalize";
 import { resolveCanonicalQuote } from "@relead/domain/calculator/quote-service";
+import {
+  resolveQuoteAcademicOffering,
+  type QuoteAcademicOfferingContext,
+} from "@/lib/quote-academic-offering";
 import { resolveScholarshipQuote } from "@/lib/scholarship-quote-service";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +29,8 @@ type QuotePayload = {
   subjectCount?: number | string | null;
   extraCharge?: number | string | { amount?: number | string } | null;
   selectedProgramId?: string | null;
+  offeringId?: string | null;
+  offerCycle?: string | null;
   clientSurface?: string;
 };
 
@@ -58,6 +64,9 @@ async function recordQuoteGeneratedEvent(params: {
     subjectCount: number | null;
     extraChargeAmount: number;
     selectedProgramId: string | null;
+    offeringId: string | null;
+    offerCycle: string | null;
+    resolvedOffering: QuoteAcademicOfferingContext | null;
     clientSurface: string;
   };
   result: Extract<
@@ -80,6 +89,12 @@ async function recordQuoteGeneratedEvent(params: {
       subjectCount: params.input.subjectCount,
       extraChargeAmount: params.input.extraChargeAmount,
       selectedProgramId: params.input.selectedProgramId,
+      offeringId: params.input.offeringId,
+      offerCycle: params.input.offerCycle,
+      resolvedOfferingId: params.input.resolvedOffering?.offeringId ?? null,
+      resolvedProgramId: params.input.resolvedOffering?.programId ?? null,
+      resolvedCampusId: params.input.resolvedOffering?.campusId ?? null,
+      resolvedCampusTier: params.input.resolvedOffering?.campusTier ?? null,
       clientSurface: params.input.clientSurface,
       source: params.result.source,
       tier: params.result.tier,
@@ -142,6 +157,14 @@ export async function POST(request: Request) {
       typeof payload.selectedProgramId === "string" && payload.selectedProgramId.trim()
         ? payload.selectedProgramId.trim()
         : null;
+    const offeringId =
+      typeof payload.offeringId === "string" && payload.offeringId.trim()
+        ? payload.offeringId.trim()
+        : null;
+    const offerCycle =
+      typeof payload.offerCycle === "string" && payload.offerCycle.trim()
+        ? payload.offerCycle.trim()
+        : null;
     const clientSurface = String(payload.clientSurface ?? "web_app").trim() || "web_app";
 
     const missing = [
@@ -203,7 +226,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const requestInput = {
+    const rawRequestInput = {
       enrollmentType,
       businessLine,
       modality,
@@ -213,6 +236,9 @@ export async function POST(request: Request) {
       subjectCount,
       extraChargeAmount,
       selectedProgramId,
+      offeringId,
+      offerCycle,
+      resolvedOffering: null,
       clientSurface,
     } as {
       enrollmentType: NonNullable<typeof enrollmentType>;
@@ -224,7 +250,80 @@ export async function POST(request: Request) {
       subjectCount: number | null;
       extraChargeAmount: number;
       selectedProgramId: string | null;
+      offeringId: string | null;
+      offerCycle: string | null;
+      resolvedOffering: QuoteAcademicOfferingContext | null;
       clientSurface: string;
+    };
+
+    const offeringResolution = await resolveQuoteAcademicOffering({
+      offeringId: rawRequestInput.offeringId,
+      selectedProgramId: rawRequestInput.selectedProgramId,
+      campus: rawRequestInput.campus,
+      businessLine: rawRequestInput.businessLine,
+      modality: rawRequestInput.modality,
+      cycle: rawRequestInput.offerCycle,
+    });
+
+    if (!offeringResolution.ok) {
+      statusCode = 422;
+      logStructured("warn", "Rejected quote payload with invalid academic offering", {
+        module: "quote-api",
+        action: "resolve-offering",
+        result: "failure",
+        requestId,
+        actorUserId: auth.user.id,
+        actorEmail: auth.email,
+        metadata: {
+          offeringId: rawRequestInput.offeringId,
+          selectedProgramId: rawRequestInput.selectedProgramId,
+          campus: rawRequestInput.campus,
+          businessLine: rawRequestInput.businessLine,
+          modality: rawRequestInput.modality,
+          warnings: offeringResolution.warnings,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error: offeringResolution.error,
+          hint: offeringResolution.hint,
+          source: "canonical",
+          requestId,
+        },
+        { status: statusCode },
+      );
+    }
+
+    if (offeringResolution.warnings.length) {
+      logStructured("warn", "Quote academic offering resolution warnings", {
+        module: "quote-api",
+        action: "resolve-offering",
+        result: "warning",
+        requestId,
+        actorUserId: auth.user.id,
+        actorEmail: auth.email,
+        metadata: {
+          offeringId: rawRequestInput.offeringId,
+          selectedProgramId: rawRequestInput.selectedProgramId,
+          warnings: offeringResolution.warnings,
+        },
+      });
+    }
+
+    const requestInput = {
+      ...rawRequestInput,
+      ...(offeringResolution.context
+        ? {
+            businessLine: offeringResolution.context.businessLine,
+            modality: offeringResolution.context.modality,
+            campus: offeringResolution.context.campusKey,
+            selectedProgramId: offeringResolution.context.programId,
+            offeringId: offeringResolution.context.offeringId,
+            resolvedOffering: offeringResolution.context,
+          }
+        : {}),
     };
 
     addObservabilityBreadcrumb("Resolving scholarship quote", {
@@ -238,6 +337,10 @@ export async function POST(request: Request) {
         businessLine: requestInput.businessLine,
         modality: requestInput.modality,
         plan: requestInput.plan,
+        campus: requestInput.campus,
+        selectedProgramId: requestInput.selectedProgramId,
+        offeringId: requestInput.offeringId,
+        resolvedOfferingId: requestInput.resolvedOffering?.offeringId ?? null,
         clientSurface: requestInput.clientSurface,
       },
     });

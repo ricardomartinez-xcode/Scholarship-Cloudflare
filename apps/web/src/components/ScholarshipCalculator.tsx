@@ -151,6 +151,17 @@ function normalizeQuoteError(result: Extract<QuoteApiResult, { ok: false }>): Ca
     };
   }
 
+
+
+  if (result.error === "invalid_offering") {
+    return {
+      error: "La oferta académica seleccionada no está disponible.",
+      hint: result.hint ?? "Vuelve a seleccionar línea, modalidad, programa y plantel.",
+      missing: result.missing as CalculationErr["missing"],
+      ranges: result.ranges,
+    };
+  }
+
   return {
     error: result.error,
     hint: result.hint,
@@ -893,6 +904,8 @@ export default function ScholarshipCalculator({
             subjectCount: materias,
             extraCharge: cargoEnabled ? cargoAmount : null,
             selectedProgramId: studyProgramId || null,
+            offeringId: offerProgramId || null,
+            offerCycle: selectedOfferCycle || null,
           }),
         });
 
@@ -932,6 +945,8 @@ export default function ScholarshipCalculator({
     cargoAmount,
     nivel,
     studyProgramId,
+    offerProgramId,
+    selectedOfferCycle,
   ]);
 
   useEffect(() => {
