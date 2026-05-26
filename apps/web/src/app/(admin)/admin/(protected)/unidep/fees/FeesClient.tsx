@@ -12,9 +12,8 @@ import {
   normalizeAdminPricingRegion,
 } from "@/lib/admin-pricing-display";
 import {
-  seedCampusFeesJsonAction,
-  seedFeesJsonAction,
   seedMateriasImportAction,
+  seedUnifiedFeesCsvAction,
   upsertCampusFeeAction,
   upsertFeeAction,
   upsertMateriaAction,
@@ -50,8 +49,8 @@ type Campus = {
 };
 
 type Tab = "fees" | "availability" | "materias" | "seed";
-type SeedMode = "fees" | "campus" | "materias";
-type SeedFormat = "json" | "csv";
+type SeedMode = "unified" | "materias";
+type SeedFormat = "csv";
 type FeedbackState = { tone: "success" | "error"; message: string } | null;
 
 type SeedResult = {
@@ -119,8 +118,7 @@ const TAB_LABELS: Record<Exclude<Tab, "availability">, string> = {
 };
 
 const SEED_MODE_LABELS: Record<SeedMode, string> = {
-  fees: "Trámites / Cuotas",
-  campus: "Disponibilidad por plantel",
+  unified: "Trámites + plantel",
   materias: "Precio por materia",
 };
 
@@ -133,59 +131,16 @@ function formatMoney(value: number | null | undefined) {
   return `$${Number(value).toLocaleString("es-MX")}`;
 }
 
-function getSeedGuide(mode: SeedMode, format: SeedFormat) {
-  if (mode === "fees" && format === "json") {
+function getSeedGuide(mode: SeedMode) {
+  if (mode === "unified") {
     return {
-      title: "Importa o pega costos académicos para Trámites / Cuotas.",
+      title: "Importa Trámites + Plantel en un solo CSV.",
       detail:
-        "Acepta un array o un objeto con la llave cuotas_tramites_y_diversos. Cada fila debe incluir code, concept, section y cost_mxn.",
+        "Una fila crea/actualiza el costo base y su disponibilidad/costo por plantel. Usa los mismos campos visibles en la tabla Trámites + plantel.",
       sample:
-        '{ "cuotas_tramites_y_diversos": [\n  { "code": "EX001", "concept": "Examen ordinario", "section": "EXÁMENES", "cost_mxn": 150 },\n  { "code": "TR001", "concept": "Titulación", "section": "TRÁMITES", "cost_mxn": 2500 }\n] }',
-      placeholder: '{ "cuotas_tramites_y_diversos": [...] }',
-    };
-  }
-
-  if (mode === "fees" && format === "csv") {
-    return {
-      title: "Importa un CSV para crear o actualizar Trámites / Cuotas.",
-      detail:
-        "Acepta columnas en cualquier orden si el archivo trae encabezados equivalentes a código, concepto, sección y costo. Puedes usar coma, punto y coma, tabulador o barra vertical como separador.",
-      sample:
-        "concepto,costo,sección,código\nExamen ordinario,150,EXÁMENES,EX001\nTitulación,2500,TRÁMITES,TR001",
-      placeholder: "concepto,costo,sección,código",
-    };
-  }
-
-  if (mode === "campus" && format === "json") {
-    return {
-      title: "Importa o pega activaciones por plantel en JSON.",
-      detail:
-        "Acepta un array con code, campus_code o campus_codes, e is_active. Este formato sirve para cambios puntuales por código.",
-      sample:
-        '[\n  { "code": "EX001", "campus_code": "AGS", "is_active": true },\n  { "code": "TR001", "campus_codes": ["AGS", "TIJ"], "is_active": true },\n  { "code": "EX002", "campus_code": "CDMX", "is_active": false }\n]',
-      placeholder: '[{ "code": "...", "campus_code": "...", "is_active": true }]',
-    };
-  }
-
-  if (mode === "campus" && format === "csv") {
-    return {
-      title: "Importa la disponibilidad de un plantel desde CSV.",
-      detail:
-        "Primero elige el plantel. El CSV debe venir como: Concepto | Sección | Costo base. Las filas cargadas quedarán activas para ese plantel y las demás se desactivarán.",
-      sample:
-        "Concepto|Sección|Costo base\nExamen ordinario|EXÁMENES|150\nTitulación|TRÁMITES|2500",
-      placeholder: "Concepto|Sección|Costo base",
-    };
-  }
-
-  if (mode === "materias" && format === "json") {
-    return {
-      title: "Importa o pega precios por materia en JSON.",
-      detail:
-        "Acepta un array o un objeto con la llave precios_por_materia. Cada fila debe incluir plantel, modalidad, materias_count y costo.",
-      sample:
-        '{ "precios_por_materia": [\n  { "plantel": "ags", "modalidad": "presencial", "materias_count": 4, "costo": 2400 },\n  { "plantel": "online", "modalidad": "online", "materias_count": 6, "costo": 3200 }\n] }',
-      placeholder: '{ "precios_por_materia": [...] }',
+        "codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel\nEX001,Examen ordinario,EXAMENES,150,Chihuahua,150,true\nTR001,Titulación,TRAMITES,2500,Online,,true",
+      placeholder:
+        "codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel",
     };
   }
 
