@@ -1,6 +1,14 @@
 import { Prisma } from "@prisma/client";
 
 import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  adminPriceScopeDefinition,
+  adminPriceScopeRequiresField,
+  formatAdminPriceScopePreset,
+  inferAdminPriceScopePreset,
+  normalizeAdminPriceScopePreset,
+  type AdminPriceScopePreset,
+} from "@/lib/admin-price-scope";
 import { prisma } from "@/lib/prisma";
 
 export type PriceImportDiffAction = "create" | "update" | "noop";
@@ -11,6 +19,8 @@ export type PriceImportPreviewRow = {
   region: string | null;
   plantel: string | null;
   programaKey: string | null;
+  scopePreset: AdminPriceScopePreset;
+  scopeLabel: string;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -55,6 +65,8 @@ type ParsedPriceRow = {
   region: string | null;
   plantel: string | null;
   programaKey: string | null;
+  scopePreset: AdminPriceScopePreset;
+  scopeLabel: string;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -67,6 +79,7 @@ type ParsedPriceRow = {
 const HEADER_ALIASES = {
   region: ["region", "región"],
   programaKey: ["programakey", "programa", "programa_key"],
+  scopePreset: ["alcance", "scope", "scopepreset", "scope_preset", "tipoalcance", "tipo_alcance"],
   plantel: ["plantel", "campus", "sede"],
   nivelKey: [
     "nivelkey",
@@ -86,7 +99,7 @@ const HEADER_ALIASES = {
   notes: ["notes", "nota", "notas"],
 } as const;
 
-const REQUIRED_HEADER_EXAMPLE = "linea, region, plantel, tier, precio, modalidad, plan, programa";
+const REQUIRED_HEADER_EXAMPLE = "linea, modalidad, plan, precio, alcance, programa, plantel, tier";
 
 const LEGACY_PROGRAMA_KEYS = new Set([
   "canonical",
@@ -292,6 +305,7 @@ export async function preparePricesCsvImport(
 
   const detectedHeaders = header.map((cell) => String(cell ?? "").trim()).filter(Boolean);
   const idxPrograma = findColumnIndex(headerMap, HEADER_ALIASES.programaKey);
+  const idxScopePreset = findColumnIndex(headerMap, HEADER_ALIASES.scopePreset);
   const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
   const idxPlantel = findColumnIndex(headerMap, HEADER_ALIASES.plantel);
   const idxNivel = findColumnIndex(headerMap, HEADER_ALIASES.nivelKey);
@@ -333,12 +347,45 @@ export async function preparePricesCsvImport(
     const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad));
     const plan = normalizePlan(readCell(row, idxPlan));
     const tier = normalizeTierKey(readCell(row, idxTier));
+    const explicitScopePreset = normalizeAdminPriceScopePreset(readCell(row, idxScopePreset));
+    const scopePreset = explicitScopePreset ?? inferAdminPriceScopePreset({
+      programa_key: programaKey,
+      plantel,
+      tier,
+    });
+    const scopeDefinition = adminPriceScopeDefinition(scopePreset);
 
     if (!nivelKey || !modalidadKey || !plan) {
       errors.push(
         `Fila ${rowNumber}: linea, modalidad y plan son obligatorios.`,
       );
       continue;
+    }
+    if (explicitScopePreset) {
+      if (adminPriceScopeRequiresField(scopePreset, "programa") && !programaKey) {
+        errors.push(`Fila ${rowNumber}: el alcance "${scopeDefinition.shortLabel}" requiere programa.`);
+        continue;
+      }
+      if (adminPriceScopeRequiresField(scopePreset, "plantel") && !plantel) {
+        errors.push(`Fila ${rowNumber}: el alcance "${scopeDefinition.shortLabel}" requiere plantel.`);
+        continue;
+      }
+      if (adminPriceScopeRequiresField(scopePreset, "tier") && !tier) {
+        errors.push(`Fila ${rowNumber}: el alcance "${scopeDefinition.shortLabel}" requiere tier.`);
+        continue;
+      }
+      if (!adminPriceScopeRequiresField(scopePreset, "programa") && programaKey) {
+        errors.push(`Fila ${rowNumber}: el alcance "${scopeDefinition.shortLabel}" no permite programa. Usa un alcance de programa o deja la columna programa vacía.`);
+        continue;
+      }
+      if (!adminPriceScopeRequiresField(scopePreset, "plantel") && plantel) {
+        errors.push(`Fila ${rowNumber}: el alcance "${scopeDefinition.shortLabel}" no permite plantel. Usa un alcance de plantel o deja la columna plantel vacía.`);
+        continue;
+      }
+      if (!adminPriceScopeRequiresField(scopePreset, "tier") && tier) {
+        errors.push(`Fila ${rowNumber}: el alcance "${scopeDefinition.shortLabel}" no permite tier. Usa un alcance por tier o deja la columna tier vacía.`);
+        continue;
+      }
     }
 
     const newPriceRaw = readCell(row, idxNewPrice);
@@ -365,18 +412,20 @@ export async function preparePricesCsvImport(
     seenKeys.add(key);
 
     parsedRows.push({
-      rowNumber,
-      region,
-      plantel,
-      programaKey,
-      nivelKey,
-      modalidadKey,
-      plan,
-      tier,
-      newPrice,
-      isActive,
-      notes,
-    });
+  rowNumber,
+  region,
+  plantel,
+  programaKey,
+  scopePreset,
+  scopeLabel: formatAdminPriceScopePreset(scopePreset),
+  nivelKey,
+  modalidadKey,
+  plan,
+  tier,
+  newPrice,
+  isActive,
+  notes,
+});
   }
 
   if (errors.length > 0) {
@@ -459,13 +508,15 @@ export async function applyPreparedPricesImport(params: {
         continue;
       }
 
-      const targetKeys: Record<string, string | null> = {
+      const targetKeys: Record<string, string> = {
         ...(row.programaKey ? { programa_key: row.programaKey } : {}),
         nivel_key: row.nivelKey,
         modalidad_key: row.modalidadKey,
         plan: row.plan,
-        tier: row.tier,
       };
+      if (row.tier) {
+        targetKeys.tier = row.tier;
+      }
       if (row.plantel) {
         targetKeys.plantel = row.plantel;
       }
