@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
+import { buildImportDiffSummary } from "@/lib/importers/admin-import-diff";
 import { getAdminImportSession } from "@/lib/importers/admin-import-sessions";
 import { canRollbackAdminImportSession } from "@/lib/importers/admin-import-rollbacks";
 import { rollbackImportSessionAction } from "./actions";
@@ -58,6 +59,13 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
   const moduleMeta = getAdminConfigModuleMeta(session.module);
   const canRollback = canRollbackAdminImportSession(session);
 
+  const diffSummary = buildImportDiffSummary({
+    beforeSnapshot: session.beforeSnapshot,
+    afterSnapshot: session.afterSnapshot,
+    preview: session.preview,
+    result: session.result,
+  });
+
   return (
     <div className="grid gap-6 p-6">
       <section className="ui-card ui-card-pad">
@@ -72,73 +80,31 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
         </p>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
-          <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Resumen</div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <MetaItem label="ID" value={session.id} />
-            <MetaItem label="Módulo" value={`${moduleMeta.label} · ${session.module}`} />
-            <MetaItem label="Estado" value={session.status} />
-            <MetaItem label="Origen" value={session.source} />
-            <MetaItem label="Creada" value={formatDate(session.createdAt)} />
-            <MetaItem label="Actualizada" value={formatDate(session.updatedAt)} />
-            <MetaItem label="Creada por" value={session.createdByEmail} />
-            <MetaItem label="Aplicada por" value={session.appliedByEmail} />
-            <MetaItem label="Aplicada" value={formatDate(session.appliedAt)} />
-            <MetaItem label="Rollback" value={formatDate(session.rolledBackAt)} />
-            <MetaItem label="Versión aplicada" value={session.appliedVersionId} />
-            <MetaItem label="Versión rollback" value={session.rolledBackVersionId} />
+      <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-[0.24em] text-cyan-200">Diff preview</div>
+            <h2 className="mt-1 text-lg font-semibold text-white">Resumen preliminar de cambios</h2>
+          </div>
+          <div className="rounded-2xl border border-cyan-500/30 bg-black/20 px-4 py-2 text-xs text-cyan-100">
+            Comparados: {diffSummary.totalCompared}
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
-          <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Archivo</div>
-          <div className="mt-4 space-y-3">
-            <MetaItem label="Nombre" value={session.fileName} />
-            <MetaItem label="Checksum" value={session.fileChecksum} />
-          </div>
-          {canRollback ? (
-            <form
-              action={rollbackImportSessionAction}
-              className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100"
-            >
-              <input type="hidden" name="sessionId" value={session.id} />
-              <div className="font-semibold">Rollback operativo disponible</div>
-              <p className="mt-1 text-amber-100/80">
-                Esta acción restaura el snapshot previo capturado antes de aplicar la importación,
-                marca la sesión como rollback y revalida las rutas del módulo.
-              </p>
-              <button
-                type="submit"
-                className="mt-3 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-400/20"
-              >
-                Revertir a snapshot previo
-              </button>
-            </form>
-          ) : (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300">
-              Rollback no disponible para esta sesión. Solo se pueden revertir sesiones aplicadas
-              que tengan snapshot previo guardado.
-            </div>
-          )}
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <MetaItem label="Nuevos" value={String(diffSummary.added)} />
+          <MetaItem label="Actualizados" value={String(diffSummary.updated)} />
+          <MetaItem label="Eliminados" value={String(diffSummary.removed)} />
+          <MetaItem label="Sin cambios" value={String(diffSummary.unchanged)} />
         </div>
-      </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <JsonBlock title="Warnings" value={session.warnings} />
-        <JsonBlock title="Errores" value={session.errors} />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <JsonBlock title="Preview" value={session.preview} />
-        <JsonBlock title="Resultado / summary" value={session.result ?? session.summary} />
-      </section>
-
-      <JsonBlock title="Payload preparado" value={session.payload} />
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <JsonBlock title="Snapshot antes" value={session.beforeSnapshot} />
-        <JsonBlock title="Snapshot después" value={session.afterSnapshot} />
+        <ul className="mt-4 grid gap-2 text-sm text-cyan-50/90">
+          {diffSummary.notes.map((note) => (
+            <li key={note} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+              {note}
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
