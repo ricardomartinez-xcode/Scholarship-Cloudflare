@@ -2,6 +2,17 @@ import { Prisma } from "@prisma/client";
 
 import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
 import {
+  canonicalImportKey,
+  canonicalImportText,
+  loadImporterAliasRows,
+  type ImporterAliasOptions,
+} from "@/lib/importers/configured-aliases";
+import {
+  normalizeBusinessLineWithAliases,
+  normalizeCanonicalModalityWithAliases,
+  normalizeTierWithAliases,
+} from "@/lib/pricing-normalize";
+import {
   adminPriceScopeDefinition,
   adminPriceScopeRequiresField,
   formatAdminPriceScopePreset,
@@ -129,8 +140,11 @@ function normalizeText(value: unknown) {
     .toLowerCase();
 }
 
-function normalizeProgramaKey(value: string | null) {
-  const key = normalizeText(value ?? "");
+function normalizeProgramaKey(
+  value: string | null,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const key = canonicalImportKey(aliases, "program", value);
   if (!key || LEGACY_PROGRAMA_KEYS.has(key)) return null;
   return key;
 }
@@ -162,7 +176,15 @@ function parseMoney(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
-function normalizeNivelKey(value: string) {
+function normalizeNivelKey(
+  value: string,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const configured = normalizeBusinessLineWithAliases(value, aliases);
+  if (configured === "prepa") return "preparatoria";
+  if (configured === "posgrado") return "maestria";
+  if (configured) return configured;
+
   const key = normalizeText(value);
   if (key.includes("bachiller") || key.includes("prepa")) return "preparatoria";
   if (key.includes("licenciatura") || key.includes("lic")) return "licenciatura";
@@ -173,7 +195,13 @@ function normalizeNivelKey(value: string) {
   return value.trim().toLowerCase();
 }
 
-function normalizeModalidadKey(value: string) {
+function normalizeModalidadKey(
+  value: string,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const configured = normalizeCanonicalModalityWithAliases(value, aliases);
+  if (configured) return configured;
+
   const key = normalizeText(value);
   if (key.includes("online")) return "online";
   if (key.includes("ejecut") || key.includes("mixta")) return "mixta";
@@ -181,8 +209,14 @@ function normalizeModalidadKey(value: string) {
   return value.trim().toLowerCase();
 }
 
-function normalizeTierKey(value: string) {
-  const raw = value.trim().toUpperCase();
+function normalizeTierKey(
+  value: string,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const raw = normalizeTierWithAliases(
+    canonicalImportText(aliases, "tier", value),
+    aliases,
+  ).trim().toUpperCase();
   if (!raw || raw === "ANY" || raw === "GENERAL" || raw === "ONLINE" || raw === "OL") {
     return null;
   }
@@ -205,7 +239,7 @@ function buildPriceScopeKey(input: {
 }) {
   return [
     (input.plantel ?? "").trim().toLowerCase(),
-    (normalizeProgramaKey(input.programaKey ?? null) ?? "").trim().toLowerCase(),
+    (input.programaKey ?? "").trim().toLowerCase(),
     input.nivelKey.trim().toLowerCase(),
     input.modalidadKey.trim().toLowerCase(),
     input.plan.trim().toLowerCase(),
@@ -289,7 +323,7 @@ async function buildExistingPriceOverridesByScopeKey() {
 }
 
 export async function preparePricesCsvImport(
-  input: { file: File },
+  input: { file: File } & ImporterAliasOptions,
 ): Promise<PricesImportPrepareResult> {
   const text = await input.file.text();
   const rows = parseCsvText(text);
@@ -328,7 +362,10 @@ export async function preparePricesCsvImport(
     );
   }
 
-  const existingByScope = await buildExistingPriceOverridesByScopeKey();
+  const [existingByScope, aliasRows] = await Promise.all([
+    buildExistingPriceOverridesByScopeKey(),
+    loadImporterAliasRows(input),
+  ]);
 
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -340,13 +377,14 @@ export async function preparePricesCsvImport(
     if (!row.some((cell) => String(cell ?? "").trim())) continue;
     const rowNumber = index + 1;
 
-    const plantel = readCell(row, idxPlantel) || null;
+    const plantelRaw = readCell(row, idxPlantel);
+    const plantel = plantelRaw ? canonicalImportText(aliasRows, "campus", plantelRaw) : null;
     const region = readCell(row, idxRegion) || null;
-    const programaKey = normalizeProgramaKey(readCell(row, idxPrograma) || null);
-    const nivelKey = normalizeNivelKey(readCell(row, idxNivel));
-    const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad));
+    const programaKey = normalizeProgramaKey(readCell(row, idxPrograma) || null, aliasRows);
+    const nivelKey = normalizeNivelKey(readCell(row, idxNivel), aliasRows);
+    const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad), aliasRows);
     const plan = normalizePlan(readCell(row, idxPlan));
-    const tier = normalizeTierKey(readCell(row, idxTier));
+    const tier = normalizeTierKey(readCell(row, idxTier), aliasRows);
     const explicitScopePreset = normalizeAdminPriceScopePreset(readCell(row, idxScopePreset));
     const scopePreset = explicitScopePreset ?? inferAdminPriceScopePreset({
       programa_key: programaKey,

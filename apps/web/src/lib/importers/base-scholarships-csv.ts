@@ -5,6 +5,17 @@ import {
 } from "@prisma/client";
 
 import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  canonicalImportText,
+  loadImporterAliasRows,
+  type ImporterAliasOptions,
+} from "@/lib/importers/configured-aliases";
+import {
+  normalizeBusinessLineWithAliases,
+  normalizeCanonicalModalityWithAliases,
+  normalizeEnrollmentTypeWithAliases,
+  normalizeTierWithAliases,
+} from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 
 export type BaseScholarshipImportDiffAction = "create" | "update" | "noop";
@@ -121,9 +132,14 @@ function normalizeOptionalScopeText(value: string) {
   }
   return trimmed;
 }
-function normalizeEnrollmentTypeValue(value: string) {
+function normalizeEnrollmentTypeValue(
+  value: string,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const configured = normalizeEnrollmentTypeWithAliases(value, aliases);
+  if (configured) return configured as EnrollmentType;
   const normalized = normalizeHumanValue(value);
-  const enrollmentMap: Record<string, EnrollmentType> = {
+const enrollmentMap: Record<string, EnrollmentType> = {
     "nuevo ingreso": EnrollmentType.nuevo_ingreso,
     ni: EnrollmentType.nuevo_ingreso,
     regreso: EnrollmentType.regreso,
@@ -132,9 +148,14 @@ function normalizeEnrollmentTypeValue(value: string) {
   return enrollmentMap[normalized] ?? null;
 }
 
-function normalizeBusinessLineValue(value: string) {
+function normalizeBusinessLineValue(
+  value: string,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const configured = normalizeBusinessLineWithAliases(value, aliases);
+  if (configured) return configured as BenefitBusinessLine;
   const normalized = normalizeHumanValue(value);
-  const businessLineMap: Record<string, BenefitBusinessLine> = {
+const businessLineMap: Record<string, BenefitBusinessLine> = {
     licenciatura: BenefitBusinessLine.licenciatura,
     "licenciatura escolarizada": BenefitBusinessLine.licenciatura,
     "licenciatura mixta": BenefitBusinessLine.licenciatura,
@@ -151,9 +172,14 @@ function normalizeBusinessLineValue(value: string) {
   return businessLineMap[normalized] ?? null;
 }
 
-function normalizeModalityValue(value: string) {
+function normalizeModalityValue(
+  value: string,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const configured = normalizeCanonicalModalityWithAliases(value, aliases);
+  if (configured) return configured as CanonicalModality;
   const normalized = normalizeHumanValue(value);
-  const modalityMap: Record<string, CanonicalModality> = {
+const modalityMap: Record<string, CanonicalModality> = {
     presencial: CanonicalModality.presencial,
     escolarizada: CanonicalModality.presencial,
     escolarizado: CanonicalModality.presencial,
@@ -183,8 +209,15 @@ function parseAverageRange(value: string) {
   return { minAverage: min, maxAverage: max };
 }
 
-function normalizeTier(value: string, modality: CanonicalModality) {
-  const raw = value.trim().toUpperCase();
+function normalizeTier(
+  value: string,
+  modality: CanonicalModality,
+  aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const raw = normalizeTierWithAliases(
+    canonicalImportText(aliases, "tier", value),
+    aliases,
+  ).trim().toUpperCase();
   if (modality === CanonicalModality.online) return "ANY";
   if (!raw || raw === "GENERAL" || raw === "TODOS" || raw === "ANY") return "ANY";
   return raw;
@@ -270,7 +303,7 @@ async function buildExistingBaseScholarshipsByKey() {
 
 export async function prepareBaseScholarshipsCsvImport(input: {
   file: File;
-}): Promise<BaseScholarshipsImportPrepareResult> {
+} & ImporterAliasOptions): Promise<BaseScholarshipsImportPrepareResult> {
   const text = await input.file.text();
   const rows = parseCsvText(text);
   if (rows.length < 2) {
@@ -316,7 +349,10 @@ export async function prepareBaseScholarshipsCsvImport(input: {
     throw new Error("Falta columna de promedio: promedio o promedio_min/promedio_max.");
   }
 
-  const existingByKey = await buildExistingBaseScholarshipsByKey();
+  const [existingByKey, aliasRows] = await Promise.all([
+    buildExistingBaseScholarshipsByKey(),
+    loadImporterAliasRows(input),
+  ]);
   const errors: string[] = [];
   const warnings: string[] = [];
   const parsedRows: ParsedBaseScholarshipRow[] = [];
@@ -330,9 +366,9 @@ export async function prepareBaseScholarshipsCsvImport(input: {
     const enrollmentTypeRaw = readCell(row, idxEnrollmentType);
     const businessLineRaw = readCell(row, idxBusinessLine);
     const modalityRaw = readCell(row, idxModality);
-    const enrollmentType = normalizeEnrollmentTypeValue(enrollmentTypeRaw);
-    const businessLine = normalizeBusinessLineValue(businessLineRaw);
-    const modality = normalizeModalityValue(modalityRaw);
+    const enrollmentType = normalizeEnrollmentTypeValue(enrollmentTypeRaw, aliasRows);
+    const businessLine = normalizeBusinessLineValue(businessLineRaw, aliasRows);
+    const modality = normalizeModalityValue(modalityRaw, aliasRows);
     const plan = parseNumber(readCell(row, idxPlan));
     const percent = parseNumber(readCell(row, idxScholarshipPercent));
 
@@ -376,7 +412,7 @@ export async function prepareBaseScholarshipsCsvImport(input: {
       continue;
     }
 
-    const tier = normalizeTier(readCell(row, idxTier), modality);
+    const tier = normalizeTier(readCell(row, idxTier), modality, aliasRows);
     if (modality === CanonicalModality.online && readCell(row, idxTier)) {
       warnings.push(`Fila ${rowNumber}: tier se ignoró porque modalidad=online.`);
     }
@@ -384,8 +420,8 @@ export async function prepareBaseScholarshipsCsvImport(input: {
     const parsedRow: ParsedBaseScholarshipRow = {
       rowNumber,
       region: normalizeOptionalScopeText(readCell(row, idxRegion)),
-      plantel: normalizeOptionalScopeText(readCell(row, idxPlantel)),
-      programaKey: normalizeProgramKey(readCell(row, idxProgramaKey)),
+      plantel: normalizeOptionalScopeText(canonicalImportText(aliasRows, "campus", readCell(row, idxPlantel))),
+      programaKey: normalizeProgramKey(canonicalImportText(aliasRows, "program", readCell(row, idxProgramaKey))),
       tier,
       enrollmentType,
       businessLine,

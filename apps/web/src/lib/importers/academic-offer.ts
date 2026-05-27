@@ -6,6 +6,13 @@ import ExcelJS from "exceljs";
 import { CampusKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeKey } from "@/lib/text-normalize";
+import {
+  addConfiguredCampusAliasesToLookup,
+  canonicalImportKey,
+  loadImporterAliasRows,
+  type ImporterAliasOptions,
+} from "@/lib/importers/configured-aliases";
+import { normalizeBusinessLineWithAliases } from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import {
   EXCEL_SHEETS_OMIT,
@@ -350,7 +357,11 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
   };
 }
 
-function parseOnlineSheet(ws: ExcelJS.Worksheet, cols: OnlineColumnMap): ParsedRow[] {
+function parseOnlineSheet(
+  ws: ExcelJS.Worksheet,
+  cols: OnlineColumnMap,
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+): ParsedRow[] {
   const rows: ParsedRow[] = [];
   let emptyStreak = 0;
   const maxRows = Math.max(ws.rowCount || 2, 2);
@@ -382,7 +393,7 @@ function parseOnlineSheet(ws: ExcelJS.Worksheet, cols: OnlineColumnMap): ParsedR
       if (!entry.programName) continue;
       rows.push({
         programName: entry.programName,
-        programNormalized: normalizeKey(entry.programName),
+        programNormalized: canonicalImportKey(aliasRows, "program", entry.programName) || normalizeKey(entry.programName),
         level: entry.level,
         escolarizado: false,
         ejecutivo: false,
@@ -404,7 +415,8 @@ function parseOnlineSheet(ws: ExcelJS.Worksheet, cols: OnlineColumnMap): ParsedR
 
 function parsePlantelesSheet(
   ws: ExcelJS.Worksheet,
-  cols: PlantelesColumnMap
+  cols: PlantelesColumnMap,
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ): Map<string, PlantelesEntry> {
   const byCampus = new Map<string, { originalName: string; rows: Map<string, ParsedRow> }>();
   let emptyStreak = 0;
@@ -423,8 +435,8 @@ function parsePlantelesSheet(
     emptyStreak = 0;
     if (!campusName || !programName) continue;
 
-    const campusKey = normalizeKey(campusName);
-    const programNormalized = normalizeKey(programName);
+    const campusKey = canonicalImportKey(aliasRows, "campus", campusName) || normalizeKey(campusName);
+    const programNormalized = canonicalImportKey(aliasRows, "program", programName) || normalizeKey(programName);
     const pricingPlans = cols.planes
       ? normalizeAcademicPricingPlans(row.getCell(cols.planes).value)
       : null;
@@ -510,9 +522,10 @@ export async function importAcademicOfferFromExcel(params: {
   updatedBy: string;
   cycle: AcademicOfferCycle;
   strict?: boolean;
-}): Promise<ImportAcademicOfferSummary> {
+} & ImporterAliasOptions): Promise<ImportAcademicOfferSummary> {
   const cycle = params.cycle;
   const warnings: string[] = [];
+  const aliasRows = await loadImporterAliasRows(params);
 
   const campuses = await prisma.campus.findMany({
     where: { isActive: true },
@@ -527,6 +540,7 @@ export async function importAcademicOfferFromExcel(params: {
     campusByNormalizedKey.set(normalizeKey(c.name), c);
     campusByNormalizedKey.set(normalizeKey(c.code), c);
   }
+  addConfiguredCampusAliasesToLookup(campusByNormalizedKey, aliasRows);
 
   const wb = await loadWorkbook(params.input);
   const allSheetNames = wb.worksheets.map((ws) => ws.name).join(", ");
@@ -561,7 +575,7 @@ export async function importAcademicOfferFromExcel(params: {
     throw new Error('No existe Campus code="ONLINE" en la BD. Ejecuta seed de campus.');
   }
 
-  const onlineRows = parseOnlineSheet(onlineSheet, onlineCols);
+  const onlineRows = parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
   if (onlineRows.length === 0) {
     warnings.push(
       `Hoja "${onlineSheet.name}" no produjo programas. Verifica que las columnas Licenciatura (${onlineCols.licenciatura}) y Posgrado (${onlineCols.posgrado}) tengan datos.`
@@ -577,7 +591,7 @@ export async function importAcademicOfferFromExcel(params: {
   });
   usedCampusIds.add(onlineCampus.id);
 
-  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols);
+  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
   const unknownCampusNames: string[] = [];
 
   for (const [campusKey, entry] of plantelesRows) {
@@ -794,7 +808,13 @@ function getPreviewModalityLabel(row: ParsedRow) {
   return "Presencial";
 }
 
-function inferPreviewBusinessLine(row: ParsedRow) {
+function inferPreviewBusinessLine(
+  row: ParsedRow,
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
+  const configured = normalizeBusinessLineWithAliases(row.level, aliasRows);
+  if (configured) return configured;
+
   const level = normalizeKey(row.level ?? "");
   if (level.includes("posgrado")) return "posgrado";
   if (level.includes("prepa") || level.includes("bachiller")) return "prepa";
@@ -804,13 +824,14 @@ function inferPreviewBusinessLine(row: ParsedRow) {
 export async function prepareAcademicOfferImport(params: {
   input: ImportAcademicOfferInput;
   cycle: AcademicOfferCycle;
-}): Promise<{
+} & ImporterAliasOptions): Promise<{
   summary: ImportAcademicOfferSummary;
   previewRows: AcademicOfferPreviewRow[];
   payload: PreparedAcademicOfferImportPayload;
 }> {
   const cycle = params.cycle;
   const warnings: string[] = [];
+  const aliasRows = await loadImporterAliasRows(params);
 
   const campuses = await prisma.campus.findMany({
     where: { isActive: true },
@@ -825,6 +846,7 @@ export async function prepareAcademicOfferImport(params: {
     campusByNormalizedKey.set(normalizeKey(campus.name), campus);
     campusByNormalizedKey.set(normalizeKey(campus.code), campus);
   }
+  addConfiguredCampusAliasesToLookup(campusByNormalizedKey, aliasRows);
 
   const workbook = await loadWorkbook(params.input);
   const allSheetNames = workbook.worksheets.map((worksheet) => worksheet.name).join(", ");
@@ -855,7 +877,7 @@ export async function prepareAcademicOfferImport(params: {
     throw new Error('No existe Campus code="ONLINE" en la BD. Ejecuta seed de campus.');
   }
 
-  const onlineRows = parseOnlineSheet(onlineSheet, onlineCols);
+  const onlineRows = parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
   if (onlineRows.length === 0) {
     warnings.push(
       `Hoja "${onlineSheet.name}" no produjo programas. Verifica que las columnas Licenciatura y Posgrado tengan datos.`,
@@ -871,7 +893,7 @@ export async function prepareAcademicOfferImport(params: {
   });
   usedCampusIds.add(onlineCampus.id);
 
-  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols);
+  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
   const unknownCampusNames: string[] = [];
 
   for (const [campusKey, entry] of plantelesRows) {
@@ -1029,7 +1051,7 @@ export async function prepareAcademicOfferImport(params: {
           campusName: campusRes.campusNameFromExcel ?? campusRes.campusCode,
           cycle,
           programName: row.programName,
-          line: program?.businessLine ?? inferPreviewBusinessLine(row),
+          line: program?.businessLine ?? inferPreviewBusinessLine(row, aliasRows),
           modality: getPreviewModalityLabel(row),
           pricingPlans: row.pricingPlans ?? existingOffering?.pricingPlans ?? [],
           isActive: true,

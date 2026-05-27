@@ -7,6 +7,14 @@ import {
 } from "@prisma/client";
 
 import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  addConfiguredCampusAliasesToLookup,
+  canonicalImportKey,
+  canonicalImportText,
+  loadImporterAliasRows,
+  type ImporterAliasOptions,
+} from "@/lib/importers/configured-aliases";
+import { normalizeTierWithAliases } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 
 export type BenefitImportDiffAction = "create" | "update" | "noop";
@@ -197,7 +205,9 @@ function hasBenefitValueChanged(
   );
 }
 
-async function buildCampusLookup() {
+async function buildCampusLookup(
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+) {
   const campuses = await prisma.campus.findMany({
     where: { isActive: true },
     select: {
@@ -221,7 +231,7 @@ async function buildCampusLookup() {
       lookup.set(value.trim().toLowerCase(), { id: campus.id, label });
     }
   }
-  return lookup;
+  return addConfiguredCampusAliasesToLookup(lookup, aliasRows);
 }
 
 async function buildExistingBenefitsByScopeKey() {
@@ -282,7 +292,7 @@ async function buildExistingBenefitsByScopeKey() {
 }
 
 export async function prepareBenefitsCsvImport(
-  input: { file: File },
+  input: { file: File } & ImporterAliasOptions,
 ): Promise<BenefitsImportPrepareResult> {
   const text = await input.file.text();
   const rows = parseCsvText(text);
@@ -317,8 +327,9 @@ export async function prepareBenefitsCsvImport(
     throw new Error("Falta columna de planteles: campus_ids o applies_to_all.");
   }
 
+  const aliasRows = await loadImporterAliasRows(input);
   const [campusLookup, existingByScope] = await Promise.all([
-    buildCampusLookup(),
+    buildCampusLookup(aliasRows),
     buildExistingBenefitsByScopeKey(),
   ]);
 
@@ -333,7 +344,9 @@ export async function prepareBenefitsCsvImport(
 
     const rowNumber = index + 1;
     const region = readCell(row, idxRegion) || null;
-    const tier = readCell(row, idxTier) || null;
+    const tierRaw = canonicalImportText(aliasRows, "tier", readCell(row, idxTier));
+    const normalizedTier = normalizeTierWithAliases(tierRaw, aliasRows);
+    const tier = normalizedTier === "ANY" ? null : normalizedTier;
     const benefitTypeRaw = readCell(row, idxBenefitType);
     if (!BENEFIT_TYPE_SET.has(benefitTypeRaw as AdminAdditionalBenefitType)) {
       errors.push(`Fila ${rowNumber}: benefit_type inválido "${benefitTypeRaw}".`);
@@ -341,21 +354,21 @@ export async function prepareBenefitsCsvImport(
     }
     const benefitType = benefitTypeRaw as AdminAdditionalBenefitType;
 
-    const enrollmentTypeRaw = readCell(row, idxEnrollmentType);
+    const enrollmentTypeRaw = canonicalImportText(aliasRows, "enrollment_type", readCell(row, idxEnrollmentType));
     const enrollmentType = parseOptionalEnum(enrollmentTypeRaw, ENROLLMENT_SET);
     if (enrollmentTypeRaw && enrollmentType === null && enrollmentTypeRaw !== "__ALL__") {
       errors.push(`Fila ${rowNumber}: enrollment_type inválido "${enrollmentTypeRaw}".`);
       continue;
     }
 
-    const businessLineRaw = readCell(row, idxBusinessLine);
+    const businessLineRaw = canonicalImportText(aliasRows, "business_line", readCell(row, idxBusinessLine));
     const businessLine = parseOptionalEnum(businessLineRaw, BUSINESS_LINE_SET);
     if (businessLineRaw && businessLine === null && businessLineRaw !== "__ALL__") {
       errors.push(`Fila ${rowNumber}: business_line inválido "${businessLineRaw}".`);
       continue;
     }
 
-    const modalityRaw = readCell(row, idxModality);
+    const modalityRaw = canonicalImportText(aliasRows, "modality", readCell(row, idxModality));
     const modality = parseOptionalEnum(modalityRaw, MODALITY_SET);
     if (modalityRaw && modality === null && modalityRaw !== "__ALL__") {
       errors.push(`Fila ${rowNumber}: modality inválido "${modalityRaw}".`);
@@ -381,7 +394,9 @@ export async function prepareBenefitsCsvImport(
       let hasCampusError = false;
       for (const campusIdentifier of campusIdentifiers) {
         const normalizedIdentifier = campusIdentifier.trim().toLowerCase();
-        const campus = campusLookup.get(normalizedIdentifier);
+        const campus =
+          campusLookup.get(normalizedIdentifier) ??
+          campusLookup.get(canonicalImportKey(aliasRows, "campus", campusIdentifier));
         if (!campus) {
           errors.push(`Fila ${rowNumber}: plantel no reconocido "${campusIdentifier}".`);
           hasCampusError = true;
