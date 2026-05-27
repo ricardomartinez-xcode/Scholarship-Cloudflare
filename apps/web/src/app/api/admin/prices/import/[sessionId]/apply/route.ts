@@ -1,12 +1,10 @@
 import { revalidatePath } from "next/cache";
 import {
-  AdminAuditAction,
   AdminCapability,
   AdminChangeSource,
   AdminConfigModule,
   AdminImportSessionStatus,
   BusinessEventType,
-  Prisma,
 } from "@prisma/client";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
@@ -16,14 +14,16 @@ import {
   buildAdminRequestId,
   logAdminApiFailure,
 } from "@/lib/admin-api";
-import { writeAdminAuditLog } from "@/lib/admin-audit";
-import { captureDraftConfigSnapshot } from "@/lib/admin-config-snapshots";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import {
   applyPreparedPricesImport,
   type PreparedPricesImportPayload,
 } from "@/lib/importers/prices-csv";
-import { prisma } from "@/lib/prisma";
+import {
+  assertImportSessionCanApply,
+  getAdminImportSession,
+  markAdminImportSessionApplied,
+} from "@/lib/importers/admin-import-sessions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +33,7 @@ export async function POST(
   context: { params: Promise<{ sessionId: string }> },
 ) {
   const requestId = buildAdminRequestId("admin_prices_import_apply");
+
   try {
     const operationsAuth = await requireAdminApiCapability(
       requestId,
@@ -44,17 +45,9 @@ export async function POST(
     if (!auth.ok) return auth.response;
 
     const { sessionId } = await context.params;
-    const session = await prisma.adminImportSession.findFirst({
-      where: { id: sessionId, module: AdminConfigModule.PRICES },
-      select: {
-        id: true,
-        status: true,
-        payload: true,
-        errors: true,
-        result: true,
-      },
-    });
-    if (!session) {
+    const session = await getAdminImportSession({ sessionId });
+
+    if (!session || session.module !== AdminConfigModule.PRICES) {
       return adminApiError({
         requestId,
         status: 404,
@@ -72,49 +65,43 @@ export async function POST(
       });
     }
 
-    const validationErrors = Array.isArray(session.errors)
-      ? session.errors.map((item) => String(item))
-      : [];
-    if (validationErrors.length) {
+    try {
+      assertImportSessionCanApply(session);
+    } catch (error) {
       return adminApiError({
         requestId,
         status: 400,
-        errorCode: "SESSION_HAS_ERRORS",
-        error: "La sesión contiene errores de validación. Corrige el CSV antes de aplicar.",
-        details: { errors: validationErrors },
+        errorCode: "SESSION_NOT_APPLICABLE",
+        error:
+          error instanceof Error
+            ? error.message
+            : "La sesión de importación no se puede aplicar.",
         recoverable: true,
       });
     }
 
-    const beforeSnapshot = await captureDraftConfigSnapshot(AdminConfigModule.PRICES);
+    if (!session.payload) {
+      return adminApiError({
+        requestId,
+        status: 400,
+        errorCode: "SESSION_PAYLOAD_MISSING",
+        error: "La sesión no tiene payload preparado para aplicar.",
+        recoverable: true,
+      });
+    }
+
     const summary = await applyPreparedPricesImport({
       payload: session.payload as PreparedPricesImportPayload,
       updatedBy: auth.admin.email,
     });
-    const afterSnapshot = await captureDraftConfigSnapshot(AdminConfigModule.PRICES);
 
-    await prisma.adminImportSession.update({
-      where: { id: sessionId },
-      data: {
-        status: AdminImportSessionStatus.applied,
-        beforeSnapshot: beforeSnapshot as Prisma.InputJsonValue,
-        afterSnapshot: afterSnapshot as Prisma.InputJsonValue,
-        result: summary as Prisma.InputJsonValue,
-        appliedAt: new Date(),
-        appliedByUserId: auth.admin.id,
-        appliedByEmail: auth.admin.email,
-      },
-    });
-
-    await writeAdminAuditLog({
+    await markAdminImportSessionApplied({
+      sessionId,
       module: AdminConfigModule.PRICES,
-      action: AdminAuditAction.IMPORT_APPLY,
-      source: AdminChangeSource.IMPORT,
       actor: auth.admin,
-      entityType: "AdminImportSession",
-      entityId: sessionId,
-      after: summary,
-      importSessionId: sessionId,
+      result: summary,
+      requestId,
+      source: AdminChangeSource.IMPORT,
     });
 
     await writeBusinessEventSafe({
@@ -128,7 +115,7 @@ export async function POST(
       },
     });
 
-    revalidatePath("/admin/prices");
+    revalidatePath("/admin/precios");
     revalidatePath("/");
     revalidatePath("/unidep");
 
@@ -144,6 +131,7 @@ export async function POST(
       action: "apply",
       error,
     });
+
     return adminApiError({
       requestId,
       status: 500,
