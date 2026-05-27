@@ -14,6 +14,8 @@ export type PriceListWorkbook = {
 export type NormalizedPriceListRow = {
   region: string | null;
   plantel: string | null;
+  programaKey: string | null;
+  scopePreset: string | null;
   nivelKey: string;
   modalidadKey: string;
   plan: string;
@@ -158,6 +160,8 @@ export function normalizePriceListWorkbookRows(
       const headers = headerRow.map((cell) => normalizeHeader(String(cell ?? "")));
       const idxPlantel = findColumn(headers, ["plantel", "campus", "sede"]);
       const idxRegion = findColumn(headers, ["region", "región"]);
+      const idxPrograma = findColumn(headers, ["programa", "programakey", "programa_key"]);
+      const idxScope = findColumn(headers, ["alcance", "scope", "scopepreset", "scope_preset", "tipoalcance"]);
       const idxTier = findColumn(headers, ["tier"]);
       const idxNivel = findColumn(headers, [
         "nivel",
@@ -185,6 +189,8 @@ export function normalizePriceListWorkbookRows(
 
         const plantel = readCell(row, idxPlantel) || null;
         const region = readCell(row, idxRegion) || null;
+        const programaKey = readCell(row, idxPrograma) || null;
+        const scopePreset = readCell(row, idxScope) || null;
         const tier = normalizeTier(readCell(row, idxTier));
         const nivelKey = defaults?.nivelKey ?? normalizeNivel(readCell(row, idxNivel));
         const modalidadKeys = defaults?.modalidadKeys ?? [
@@ -203,6 +209,8 @@ export function normalizePriceListWorkbookRows(
             output.push({
               region,
               plantel,
+              programaKey,
+              scopePreset,
               nivelKey,
               modalidadKey,
               plan: String(plan),
@@ -224,8 +232,10 @@ export function normalizePriceListWorkbookRows(
 export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
   const header = [
     "linea",
+    "alcance",
     "region",
     "plantel",
+    "programa",
     "tier",
     "new_price",
     "modalidad_key",
@@ -238,8 +248,10 @@ export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
     ...rows.map((row) =>
       [
         row.nivelKey,
+        row.scopePreset ?? "",
         row.region ?? "",
         row.plantel ?? "",
+        row.programaKey ?? "",
         row.tier ?? "",
         row.newPrice,
         row.modalidadKey,

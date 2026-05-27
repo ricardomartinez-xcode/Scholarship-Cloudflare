@@ -17,8 +17,6 @@ import {
 } from "@/lib/base-price-overrides";
 import {
   basePriceFromRules,
-  findNearestRule,
-  findRuleForAverage,
   listRuleRanges,
   normalizeTier,
   requiresCampusForQuote,
@@ -29,6 +27,7 @@ import {
 } from "@/lib/pricing-normalize";
 import { logStructured } from "@/lib/observability";
 import { findStaticBasePrice } from "@/lib/static-costs";
+import { normalizeKey as normalizeTextKey } from "@/lib/text-normalize";
 
 export type ScholarshipQuoteInput = {
   enrollmentType: EnrollmentTypeValue;
@@ -74,6 +73,167 @@ export type ScholarshipQuoteResult =
       source: "canonical";
     };
 
+
+
+function normalizeScopeKey(value: unknown) {
+  return normalizeTextKey(String(value ?? ""));
+}
+
+function normalizeCompactScopeKey(value: unknown) {
+  return normalizeScopeKey(value).replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeCampusScopeKey(value: unknown) {
+  const normalized = normalizeScopeKey(value);
+  return normalized.replace(/^campus[\s_-]*/i, "").replace(/[^a-z0-9]/g, "");
+}
+
+const LEGACY_PROGRAM_KEYS = new Set([
+  "",
+  "canonical",
+  "canonico",
+  "nuevo ingreso",
+  "nuevo_ingreso",
+  "regreso",
+  "reingreso",
+  "todos",
+  "todas",
+  "general",
+  "any",
+]);
+
+function normalizeRuleProgramKey(value: unknown) {
+  const normalized = normalizeScopeKey(value);
+  if (LEGACY_PROGRAM_KEYS.has(normalized)) return "";
+  return normalizeCompactScopeKey(normalized);
+}
+
+function buildProgramTargets(input: {
+  programId?: string | null;
+  programName?: string | null;
+  aliases?: Array<string | null | undefined>;
+}) {
+  const targets = new Set<string>();
+  for (const value of [
+    input.programId,
+    input.programName,
+    ...(input.aliases ?? []),
+  ]) {
+    const normalized = normalizeRuleProgramKey(value);
+    if (normalized) targets.add(normalized);
+  }
+  return targets;
+}
+
+function programScopeMatches(target: string, programTargets: Set<string>) {
+  if (!target) return true;
+  if (!programTargets.size) return false;
+
+  for (const candidate of programTargets) {
+    if (candidate === target) return true;
+    if (target.length >= 5 && candidate.includes(target)) return true;
+    if (candidate.length >= 5 && target.includes(candidate)) return true;
+  }
+  return false;
+}
+
+function buildCampusTargets(campusValue: string | null | undefined, aliases: string[]) {
+  return new Set(
+    [campusValue, ...aliases]
+      .flatMap((value) => [normalizeScopeKey(value), normalizeCampusScopeKey(value)])
+      .filter(Boolean),
+  );
+}
+
+function campusScopeMatches(target: string, campusTargets: Set<string>) {
+  if (!target) return true;
+  return campusTargets.has(target);
+}
+
+function scholarshipRuleScopeScore(rule: {
+  programaKey?: string | null;
+  plantel?: string | null;
+  region?: string | null;
+  campusTier?: string | null;
+}) {
+  const hasProgram = Boolean(normalizeRuleProgramKey(rule.programaKey));
+  const hasPlantel = Boolean(normalizeCampusScopeKey(rule.plantel));
+  const tier = normalizeTier(rule.campusTier);
+  const hasTier = tier !== "ANY" && tier !== "GENERAL";
+
+  return (hasProgram ? 8 : 0) + (hasPlantel ? 4 : 0) + (hasTier ? 2 : 0);
+}
+
+function pickBestScopedRule<T extends {
+  programaKey?: string | null;
+  plantel?: string | null;
+  region?: string | null;
+  campusTier?: string | null;
+  scholarshipPercent?: number | null;
+}>(rules: T[]) {
+  if (!rules.length) return null;
+
+  return rules.reduce<T | null>((best, rule) => {
+    if (!best) return rule;
+    const scoreDiff = scholarshipRuleScopeScore(rule) - scholarshipRuleScopeScore(best);
+    if (scoreDiff !== 0) return scoreDiff > 0 ? rule : best;
+
+    const percentDiff = Number(rule.scholarshipPercent ?? 0) - Number(best.scholarshipPercent ?? 0);
+    if (percentDiff !== 0) return percentDiff > 0 ? rule : best;
+
+    return best;
+  }, null);
+}
+
+function findBestRuleForAverage<T extends {
+  minAverage: number | null;
+  maxAverage: number | null;
+  programaKey?: string | null;
+  plantel?: string | null;
+  region?: string | null;
+  campusTier?: string | null;
+  scholarshipPercent?: number | null;
+}>(rules: T[], average: number) {
+  const matches = rules.filter((rule) => {
+    if (rule.minAverage === null || rule.maxAverage === null) return false;
+    const min = rule.minAverage - 1e-6;
+    const max = rule.maxAverage + 1e-6;
+    return average >= min && average <= max;
+  });
+  return pickBestScopedRule(matches);
+}
+
+function findNearestScopedRule<T extends {
+  minAverage: number | null;
+  maxAverage: number | null;
+  programaKey?: string | null;
+  plantel?: string | null;
+  region?: string | null;
+  campusTier?: string | null;
+  scholarshipPercent?: number | null;
+}>(rules: T[], average: number) {
+  let best: { rule: T; distance: number; score: number } | null = null;
+
+  for (const rule of rules) {
+    if (rule.minAverage === null || rule.maxAverage === null) continue;
+    const distance =
+      average < rule.minAverage
+        ? rule.minAverage - average
+        : average > rule.maxAverage
+          ? average - rule.maxAverage
+          : 0;
+    const score = scholarshipRuleScopeScore(rule);
+    if (
+      !best ||
+      distance < best.distance ||
+      (distance === best.distance && score > best.score)
+    ) {
+      best = { rule, distance, score };
+    }
+  }
+
+  return best?.rule ?? null;
+}
 export async function resolveScholarshipQuote(
   input: ScholarshipQuoteInput,
 ): Promise<ScholarshipQuoteResult> {
@@ -113,6 +273,16 @@ export async function resolveScholarshipQuote(
       ? "ANY"
       : normalizeTier(campus?.tier ?? null);
   const tierCandidates = Array.from(new Set([runtimeTier, "ANY"]));
+  const campusAliases = buildCampusAliases(campus, input.campus);
+  const campusTargets = buildCampusTargets(input.campus ?? campus?.name ?? null, campusAliases);
+  const programTargets = buildProgramTargets({
+    programId: input.selectedProgramId ?? null,
+    programName: input.selectedProgramName ?? null,
+    aliases: [
+      input.selectedProgramId ?? null,
+      input.selectedProgramName ?? null,
+    ],
+  });
 
   const [allRules, overrides] = await Promise.all([
     prisma.scholarshipRule.findMany({
@@ -133,9 +303,28 @@ export async function resolveScholarshipQuote(
     ]),
   ]);
 
-  let candidateRules = allRules.filter((rule) =>
-    tierCandidates.includes(normalizeTier(rule.campusTier)),
-  );
+  let candidateRules = allRules.filter((rule) => {
+    const ruleProgram = normalizeRuleProgramKey(rule.programaKey);
+    const rulePlantel = normalizeCampusScopeKey(rule.plantel);
+    return (
+      tierCandidates.includes(normalizeTier(rule.campusTier)) &&
+      programScopeMatches(ruleProgram, programTargets) &&
+      campusScopeMatches(rulePlantel, campusTargets)
+    );
+  });
+
+  if (!candidateRules.length) {
+    candidateRules = allRules.filter((rule) => {
+      const ruleProgram = normalizeRuleProgramKey(rule.programaKey);
+      const rulePlantel = normalizeCampusScopeKey(rule.plantel);
+      return (
+        !ruleProgram &&
+        !rulePlantel &&
+        tierCandidates.includes(normalizeTier(rule.campusTier))
+      );
+    });
+  }
+
   if (!candidateRules.length) candidateRules = allRules;
 
   const normalizedCandidateRules = candidateRules.map((rule) => {
@@ -145,6 +334,9 @@ export async function resolveScholarshipQuote(
       modality: rule.modality,
       plan: rule.plan,
       campusTier: rule.campusTier,
+      region: rule.region,
+      plantel: rule.plantel,
+      programaKey: rule.programaKey,
       minAverage: toNumber(rule.minAverage),
       maxAverage: toNumber(rule.maxAverage),
       scholarshipPercent: toNumber(rule.scholarshipPercent),
@@ -157,10 +349,10 @@ export async function resolveScholarshipQuote(
   const sinAccessToScholarship = average < 7;
   let matchedRule = sinAccessToScholarship || !averageCandidateRules.length
     ? null
-    : findRuleForAverage(averageCandidateRules, average);
+    : findBestRuleForAverage(averageCandidateRules, average);
 
   if (!sinAccessToScholarship && averageCandidateRules.length && !matchedRule) {
-    const nearest = findNearestRule(averageCandidateRules, average);
+    const nearest = findNearestScopedRule(averageCandidateRules, average);
     if (nearest) {
       const min = toNumber(nearest.minAverage);
       const max = toNumber(nearest.maxAverage);
@@ -213,7 +405,7 @@ export async function resolveScholarshipQuote(
     plan: input.plan,
     tier: runtimeTier,
     campus: input.campus ?? campus?.name ?? null,
-    campusAliases: buildCampusAliases(campus, input.campus),
+    campusAliases,
     programId: input.selectedProgramId ?? null,
     programName: input.selectedProgramName ?? null,
     programAliases: [

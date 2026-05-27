@@ -30,6 +30,8 @@ describe("price list workbook format", () => {
       {
         plantel: "Chihuahua",
         region: "Region 1",
+        programaKey: null,
+        scopePreset: null,
         nivelKey: "preparatoria",
         modalidadKey: "presencial",
         plan: "9",
@@ -41,6 +43,8 @@ describe("price list workbook format", () => {
       {
         plantel: "Chihuahua",
         region: "Region 1",
+        programaKey: null,
+        scopePreset: null,
         nivelKey: "preparatoria",
         modalidadKey: "mixta",
         plan: "9",
@@ -52,6 +56,8 @@ describe("price list workbook format", () => {
       {
         plantel: "Tijuana",
         region: "Region 1",
+        programaKey: null,
+        scopePreset: null,
         nivelKey: "preparatoria",
         modalidadKey: "presencial",
         plan: "6",
@@ -63,6 +69,8 @@ describe("price list workbook format", () => {
       {
         plantel: "Tijuana",
         region: "Region 1",
+        programaKey: null,
+        scopePreset: null,
         nivelKey: "preparatoria",
         modalidadKey: "mixta",
         plan: "6",
@@ -88,7 +96,7 @@ describe("price list workbook format", () => {
     });
 
     expect(priceListRowsToCsv(rows)).toContain(
-      "linea,region,plantel,tier,new_price,modalidad_key,plan,is_active,notes",
+      "linea,alcance,region,plantel,programa,tier,new_price,modalidad_key,plan,is_active,notes",
     );
     expect(rows[0]).toMatchObject({
       plantel: "Chihuahua",
@@ -117,6 +125,8 @@ describe("price list workbook format", () => {
       {
         plantel: "Online",
         region: "Online",
+        programaKey: null,
+        scopePreset: null,
         nivelKey: "licenciatura",
         modalidadKey: "online",
         plan: "9",
@@ -127,4 +137,48 @@ describe("price list workbook format", () => {
       },
     ]);
   });
+
+  it("keeps optional program and scope columns from flexible workbooks", () => {
+    const rows = normalizePriceListWorkbookRows({
+      sheets: [
+        {
+          name: "Carga flexible",
+          rows: [
+            [
+              "Alcance",
+              "Línea de negocio",
+              "Programa",
+              "Modalidad",
+              "Plan",
+              "Plantel",
+              "Tier",
+              "Precio Lista",
+            ],
+            [
+              "programa + plantel + tier",
+              "Salud",
+              "psicologia",
+              "Presencial",
+              9,
+              "Hermosillo",
+              "T3",
+              4970,
+            ],
+          ],
+        },
+      ],
+    });
+
+    expect(rows[0]).toMatchObject({
+      scopePreset: "programa + plantel + tier",
+      programaKey: "psicologia",
+      plantel: "Hermosillo",
+      nivelKey: "salud",
+      modalidadKey: "presencial",
+      plan: "9",
+      tier: "T3",
+      newPrice: 4970,
+    });
+  });
+
 });

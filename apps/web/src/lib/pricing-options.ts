@@ -19,6 +19,8 @@ type RuleSource = {
   businessLine: string;
   modality: string;
   plan: number;
+  programaKey?: string | null;
+  programKey?: string | null;
 };
 
 type PriceOverrideSource = {
@@ -32,6 +34,10 @@ const LEGACY_PROGRAMA_KEYS = new Set([
   "nuevo_ingreso",
   "regreso",
   "reingreso",
+  "todos",
+  "todas",
+  "general",
+  "any",
 ]);
 
 function targetRecord(targetKeys: unknown) {
@@ -106,6 +112,7 @@ export function buildQuotePricingOptions(
       businessLine,
       modality,
       plan,
+      programKey: normalizeProgramKey(rule.programKey ?? rule.programaKey),
     });
   }
 

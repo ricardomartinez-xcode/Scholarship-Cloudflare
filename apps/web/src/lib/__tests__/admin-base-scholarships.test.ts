@@ -56,12 +56,16 @@ describe("serializeBaseScholarshipRows", () => {
 
     expect(rows).toEqual([
       {
-        id: "nuevo_ingreso|salud|presencial|12|T1",
+        id: "nuevo_ingreso|salud|presencial|12|T1|||",
         enrollmentType: "nuevo_ingreso",
         businessLine: "salud",
         modality: "presencial",
         plan: 12,
         campusTier: "T1",
+        region: null,
+        plantel: null,
+        programaKey: null,
+        scopeLabel: "Tier: T1",
         percentages: [15, 25],
         ranges: ["8 - 8.9", "9 - 10"],
         ruleCount: 2,
@@ -83,12 +87,16 @@ describe("serializeBaseScholarshipRows", () => {
         ],
       },
       {
-        id: "reingreso|salud|presencial|12|T1",
+        id: "reingreso|salud|presencial|12|T1|||",
         enrollmentType: "reingreso",
         businessLine: "salud",
         modality: "presencial",
         plan: 12,
         campusTier: "T1",
+        region: null,
+        plantel: null,
+        programaKey: null,
+        scopeLabel: "Tier: T1",
         percentages: [20],
         ranges: ["Sin rango"],
         ruleCount: 1,
@@ -128,8 +136,10 @@ describe("serializeBaseScholarshipRows", () => {
     );
 
     expect(source).toContain("<span id={baseCampusId}>Plantel</span>");
+    expect(source).toContain("<span id={baseProgramId}>Programa</span>");
     expect(source).toContain("<span id={baseTierId}>Tier</span>");
     expect(source).toContain("<input type=\"hidden\" name=\"campusId\" value={baseCampus} />");
+    expect(source).toContain("name=\"programaKey\"");
     expect(source).toContain("<span id={basePercentId}>% de beca</span>");
     expect(source).toContain("<span id={baseAverageRangeId}>Promedio</span>");
   });

@@ -44,6 +44,10 @@ type BaseScholarshipRow = {
   modality: string;
   plan: number;
   campusTier: string;
+  region: string | null;
+  plantel: string | null;
+  programaKey: string | null;
+  scopeLabel: string;
   percentages: number[];
   ranges: string[];
   ruleCount: number;
@@ -65,6 +69,7 @@ type BaseScholarshipImportPreviewRow = {
   action: "create" | "update" | "noop";
   region: string | null;
   plantel: string | null;
+  programaKey: string | null;
   tier: string;
   enrollmentType: "nuevo_ingreso" | "regreso" | "reingreso";
   businessLine: string;
@@ -123,10 +128,10 @@ type ApiError = {
 type BenefitsPanel = "benefits" | "base" | "imports";
 
 const BASE_SCHOLARSHIP_TEMPLATE_CSV = [
-  "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",
-  "Licenciatura,CDMX,Plantel Centro,T1,15,Nuevo Ingreso,Escolarizada,9,7-7.9",
-  "Licenciatura Online,Online,Online,,55,Reingreso,Online,11,9-10",
-  "Bachillerato Escolarizado,CDMX,Plantel Norte,T2,20,Regreso,Presencial,6,8-8.9",
+  "linea,region,plantel,programa,tier,porcentaje,ingreso,modalidad,plan,promedio",
+  "Salud,Sonora,Hermosillo,psicologia,T3,25,Nuevo Ingreso,Presencial,9,9-10",
+  "Licenciatura,CDMX,Plantel Centro,derecho,T1,15,Nuevo Ingreso,Escolarizada,9,7-7.9",
+  "Posgrado,General,,,T2,20,Nuevo Ingreso,Online,4,9-10",
 ].join("\n");
 
 const BUSINESS_LINE_OPTIONS = [
@@ -257,6 +262,7 @@ export default function BenefitsClient({
   benefits,
   baseScholarships,
   campusOptions,
+  programOptions,
   upsertBenefitAction,
   upsertBaseScholarshipAction,
   deleteBaseScholarshipAction,
@@ -265,6 +271,7 @@ export default function BenefitsClient({
   benefits: Benefit[];
   baseScholarships: BaseScholarshipRow[];
   campusOptions: { value: string; label: string; kind: string; tier?: string | null }[];
+  programOptions: { value: string; label: string; businessLine: string | null }[];
   upsertBenefitAction: (formData: FormData) => Promise<ActionResult>;
   upsertBaseScholarshipAction: (formData: FormData) => Promise<ActionResult>;
   deleteBaseScholarshipAction: (formData: FormData) => Promise<void>;
@@ -285,6 +292,7 @@ export default function BenefitsClient({
   const baseEnrollmentTypeId = useId();
   const baseBusinessLineId = useId();
   const baseModalityId = useId();
+  const baseProgramId = useId();
   const baseCampusId = useId();
   const baseTierId = useId();
   const basePlanId = useId();
@@ -310,6 +318,7 @@ export default function BenefitsClient({
     }))],
     [campusOptions],
   );
+
   const baseTierOptions = useMemo(() => {
     const tiers = new Set<string>();
     for (const row of baseScholarships) {
@@ -368,13 +377,24 @@ export default function BenefitsClient({
   const [baseEnrollmentType, setBaseEnrollmentType] = useState("nuevo_ingreso");
   const [baseBusinessLine, setBaseBusinessLine] = useState("licenciatura");
   const [baseModality, setBaseModality] = useState("presencial");
+  const [baseProgramKey, setBaseProgramKey] = useState("__ALL__");
   const [baseCampus, setBaseCampus] = useState("__ALL__");
+  const [baseRegion, setBaseRegion] = useState("");
+  const [basePlantel, setBasePlantel] = useState("");
   const [basePlan, setBasePlan] = useState("");
   const [basePercent, setBasePercent] = useState("");
   const [baseMinAverage, setBaseMinAverage] = useState("");
   const [baseMaxAverage, setBaseMaxAverage] = useState("");
   const [editingBaseScholarshipId, setEditingBaseScholarshipId] = useState("");
   const [editingBaseCampusTier, setEditingBaseCampusTier] = useState("ANY");
+
+  const baseProgramOptions = useMemo(() => {
+    const allOption = { value: "__ALL__", label: "Todos los programas" };
+    const filtered = programOptions
+      .filter((program) => !program.businessLine || program.businessLine === baseBusinessLine)
+      .map((program) => ({ value: program.value, label: program.label }));
+    return [allOption, ...filtered];
+  }, [baseBusinessLine, programOptions]);
   const sortedBenefits = useMemo(
     () =>
       [...benefits].sort((left, right) => {
@@ -390,8 +410,8 @@ export default function BenefitsClient({
         const businessLine = compareBusinessLine(left.businessLine, right.businessLine);
         if (businessLine !== 0) return businessLine;
         const scope = compareAdminPricingScope(
-          { region: "General", plantel: "Todos", tier: left.campusTier, modality: left.modality },
-          { region: "General", plantel: "Todos", tier: right.campusTier, modality: right.modality },
+          { region: left.region ?? "General", plantel: left.plantel ?? "Todos", tier: left.campusTier, modality: left.modality, value: left.programaKey ?? "" },
+          { region: right.region ?? "General", plantel: right.plantel ?? "Todos", tier: right.campusTier, modality: right.modality, value: right.programaKey ?? "" },
         );
         if (scope !== 0) return scope;
         return (
@@ -490,7 +510,10 @@ export default function BenefitsClient({
   function startCreateBaseScholarship() {
     setEditingBaseScholarshipId("");
     setEditingBaseCampusTier("ANY");
+    setBaseProgramKey("__ALL__");
     setBaseCampus("__ALL__");
+    setBaseRegion("");
+    setBasePlantel("");
     setBasePlan("");
     setBasePercent("");
     setBaseMinAverage("");
@@ -503,7 +526,10 @@ export default function BenefitsClient({
     setBaseEnrollmentType(row.enrollmentType);
     setBaseBusinessLine(row.businessLine);
     setBaseModality(row.modality);
+    setBaseProgramKey(row.programaKey || "__ALL__");
     setBaseCampus("__ALL__");
+    setBaseRegion(row.region ?? "");
+    setBasePlantel(row.plantel ?? "");
     setBasePlan(String(row.plan));
     setBasePercent(rule.scholarshipPercent === null ? "" : String(rule.scholarshipPercent));
     setBaseMinAverage(rule.minAverage === null ? "" : String(rule.minAverage));
@@ -519,16 +545,24 @@ export default function BenefitsClient({
     setBaseMaxAverage(range?.maxAverage ?? "");
   }
 
+
+
+  function handleBaseBusinessLineChange(value: string) {
+    setBaseBusinessLine(value);
+    setBaseProgramKey("__ALL__");
+  }
   function handleBaseCampusChange(value: string) {
     setBaseCampus(value);
     if (value === "__ALL__") {
       setEditingBaseCampusTier("ANY");
+      setBasePlantel("");
       return;
     }
 
     const campus = campusOptions.find((option) => option.value === value);
     const tier = String(campus?.tier ?? "").trim().toUpperCase();
     setEditingBaseCampusTier(tier || "ANY");
+    setBasePlantel(campus?.label ?? "");
   }
 
   async function validateImportCsv() {
@@ -1060,6 +1094,7 @@ export default function BenefitsClient({
                         <th className="ui-cell-nowrap text-left">Línea de negocio</th>
                         <th className="ui-cell-nowrap text-left">Region</th>
                         <th className="ui-cell-nowrap text-left">Plantel</th>
+                        <th className="ui-cell-nowrap text-left">Programa</th>
                         <th className="ui-cell-nowrap text-left">Tier</th>
                         <th className="ui-cell-nowrap text-right">% Beca</th>
                         <th className="ui-cell-nowrap text-left">Ingreso</th>
@@ -1080,6 +1115,9 @@ export default function BenefitsClient({
                           </td>
                           <td className="ui-cell-nowrap text-slate-200">
                             {row.plantel || "Todos"}
+                          </td>
+                          <td className="ui-cell-nowrap text-slate-200">
+                            {row.programaKey || "Todos"}
                           </td>
                           <td className="ui-cell-nowrap text-slate-200">
                             {formatAdminPricingTier({
@@ -1132,6 +1170,9 @@ export default function BenefitsClient({
           <input type="hidden" name="businessLine" value={baseBusinessLine} />
           <input type="hidden" name="modality" value={baseModality} />
           <input type="hidden" name="campusId" value={baseCampus} />
+          <input type="hidden" name="region" value={baseRegion} />
+          <input type="hidden" name="plantel" value={basePlantel} />
+          <input type="hidden" name="programaKey" value={baseProgramKey === "__ALL__" ? "" : baseProgramKey} />
           <input type="hidden" name="plan" value={basePlan} />
           <input type="hidden" name="scholarshipPercent" value={basePercent} />
           <input type="hidden" name="minAverage" value={baseMinAverage} />
@@ -1155,7 +1196,7 @@ export default function BenefitsClient({
                 labelId={baseBusinessLineId}
                 placeholder="Selecciona línea"
                 value={baseBusinessLine}
-                onChange={setBaseBusinessLine}
+                onChange={handleBaseBusinessLineChange}
                 options={BUSINESS_LINE_OPTIONS.filter((option) => option.value !== "__ALL__")}
               />
             </div>
@@ -1203,6 +1244,17 @@ export default function BenefitsClient({
                 value={baseModality}
                 onChange={setBaseModality}
                 options={MODALITY_OPTIONS.filter((option) => option.value !== "__ALL__")}
+              />
+            </div>
+
+            <div className="grid gap-2 text-sm">
+              <span id={baseProgramId}>Programa</span>
+              <SmartSelect
+                labelId={baseProgramId}
+                placeholder="Todos los programas"
+                value={baseProgramKey}
+                onChange={setBaseProgramKey}
+                options={baseProgramOptions}
               />
             </div>
           </div>
@@ -1258,10 +1310,11 @@ export default function BenefitsClient({
 
         {baseScholarships.length ? (
           <div className="ui-scrollbar max-h-[520px] min-w-0 overflow-y-auto rounded-2xl border border-white/10 bg-white/5">
-            <div className="sticky top-0 z-10 grid grid-cols-[1fr_0.7fr_0.9fr_0.7fr_1.2fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+            <div className="sticky top-0 z-10 grid grid-cols-[1fr_0.8fr_0.9fr_0.8fr_0.7fr_1.2fr_auto] gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
               <span>Línea de negocio</span>
               <span>Region</span>
               <span>Plantel</span>
+              <span>Programa</span>
               <span>Tier</span>
               <span>Beneficio</span>
               <span className="text-right">Reglas</span>
@@ -1269,12 +1322,13 @@ export default function BenefitsClient({
             <div className="divide-y divide-white/10">
               {sortedBaseScholarships.map((row) => (
                 <details key={row.id} className="group">
-                  <summary className="grid cursor-pointer list-none grid-cols-[1fr_0.7fr_0.9fr_0.7fr_1.2fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                  <summary className="grid cursor-pointer list-none grid-cols-[1fr_0.8fr_0.9fr_0.8fr_0.7fr_1.2fr_auto] gap-3 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/5 [&::-webkit-details-marker]:hidden">
                     <div className="ui-cell-nowrap font-semibold">
                       {resolveLabel(row.businessLine, BUSINESS_LINE_OPTIONS, row.businessLine)}
                     </div>
-                    <div className="ui-cell-nowrap text-slate-300">General</div>
-                    <div className="ui-cell-nowrap text-slate-300">Todos</div>
+                    <div className="ui-cell-nowrap text-slate-300">{row.region || "General"}</div>
+                    <div className="ui-cell-nowrap text-slate-300">{row.plantel || "Todos"}</div>
+                    <div className="ui-cell-nowrap text-slate-300">{row.programaKey || "Todos"}</div>
                     <div className="ui-cell-nowrap text-slate-300">
                       {formatAdminPricingTier({
                         tier: row.campusTier,
@@ -1290,7 +1344,7 @@ export default function BenefitsClient({
                       <div className="mt-1 truncate text-xs text-slate-400">
                         {resolveLabel(row.enrollmentType, ENROLLMENT_TYPE_OPTIONS, row.enrollmentType)} ·{" "}
                         {resolveLabel(row.modality, MODALITY_OPTIONS, row.modality)} · Plan {row.plan} ·{" "}
-                        {row.ranges.join(", ")}
+                        {row.scopeLabel} · {row.ranges.join(", ")}
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-2 text-right">

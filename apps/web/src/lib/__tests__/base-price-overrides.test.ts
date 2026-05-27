@@ -430,4 +430,114 @@ describe("findPublishedBasePriceOverride", () => {
   });
 
 
+
+it("resolves canonical prices by configured scope specificity across all business lines", () => {
+  const overrides: PriceOverrideSnapshot[] = [
+    {
+      id: "general-salud-price",
+      scope: BASE_PRICE_OVERRIDE_SCOPE,
+      targetKeys: {
+        nivel_key: "salud",
+        modalidad_key: "presencial",
+        plan: "9",
+      },
+      newPrice: 4300,
+      isActive: true,
+      notes: null,
+      updatedBy: null,
+    },
+    {
+      id: "tier-salud-price",
+      scope: BASE_PRICE_OVERRIDE_SCOPE,
+      targetKeys: {
+        nivel_key: "salud",
+        modalidad_key: "presencial",
+        plan: "9",
+        tier: "T3",
+      },
+      newPrice: 4500,
+      isActive: true,
+      notes: null,
+      updatedBy: null,
+    },
+    {
+      id: "campus-salud-price",
+      scope: BASE_PRICE_OVERRIDE_SCOPE,
+      targetKeys: {
+        nivel_key: "salud",
+        modalidad_key: "presencial",
+        plan: "9",
+        plantel: "Hermosillo",
+      },
+      newPrice: 4600,
+      isActive: true,
+      notes: null,
+      updatedBy: null,
+    },
+    {
+      id: "program-tier-salud-price",
+      scope: BASE_PRICE_OVERRIDE_SCOPE,
+      targetKeys: {
+        programa_key: "psicologia",
+        nivel_key: "salud",
+        modalidad_key: "presencial",
+        plan: "9",
+        tier: "T3",
+      },
+      newPrice: 4800,
+      isActive: true,
+      notes: null,
+      updatedBy: null,
+    },
+    {
+      id: "program-campus-salud-price",
+      scope: BASE_PRICE_OVERRIDE_SCOPE,
+      targetKeys: {
+        programa_key: "psicologia",
+        nivel_key: "salud",
+        modalidad_key: "presencial",
+        plan: "9",
+        plantel: "Hermosillo",
+      },
+      newPrice: 4970,
+      isActive: true,
+      notes: null,
+      updatedBy: null,
+    },
+  ];
+
+  expect(
+    findPublishedBasePriceOverride(overrides, {
+      businessLine: "salud",
+      modality: "presencial",
+      plan: 9,
+      tier: "T3",
+      campus: "Hermosillo",
+      programName: "Psicología",
+    }),
+  ).toBe(4970);
+
+  expect(
+    findPublishedBasePriceOverride(overrides, {
+      businessLine: "salud",
+      modality: "presencial",
+      plan: 9,
+      tier: "T3",
+      campus: "Hermosillo",
+      programName: "Nutrición",
+    }),
+  ).toBe(4600);
+
+  expect(
+    findPublishedBasePriceOverride(overrides, {
+      businessLine: "salud",
+      modality: "presencial",
+      plan: 9,
+      tier: "T3",
+      campus: "Obregón",
+      programName: "Psicología",
+    }),
+  ).toBe(4800);
+});
+
 });

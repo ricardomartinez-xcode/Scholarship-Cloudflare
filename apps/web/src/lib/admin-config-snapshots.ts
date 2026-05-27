@@ -95,6 +95,9 @@ export type BaseScholarshipSnapshot = {
   modality: BenefitModality;
   plan: number;
   campusTier: string;
+  region?: string | null;
+  plantel?: string | null;
+  programaKey?: string | null;
   minAverage: number | null;
   maxAverage: number | null;
   scholarshipPercent: number | null;
@@ -426,6 +429,8 @@ async function captureBenefitsSnapshot(): Promise<BenefitsDraftSnapshot> {
         { modality: "asc" },
         { plan: "asc" },
         { campusTier: "asc" },
+        { programaKey: "asc" },
+        { plantel: "asc" },
         { minAverage: "asc" },
       ],
       select: {
@@ -435,6 +440,9 @@ async function captureBenefitsSnapshot(): Promise<BenefitsDraftSnapshot> {
         modality: true,
         plan: true,
         campusTier: true,
+        region: true,
+        plantel: true,
+        programaKey: true,
         minAverage: true,
         maxAverage: true,
         scholarshipPercent: true,
@@ -468,6 +476,9 @@ async function captureBenefitsSnapshot(): Promise<BenefitsDraftSnapshot> {
       modality: rule.modality as BenefitModality,
       plan: rule.plan,
       campusTier: rule.campusTier,
+      region: rule.region,
+      plantel: rule.plantel,
+      programaKey: rule.programaKey,
       minAverage: rule.minAverage === null ? null : Number(rule.minAverage),
       maxAverage: rule.maxAverage === null ? null : Number(rule.maxAverage),
       scholarshipPercent:
@@ -520,6 +531,9 @@ async function restoreBenefitsSnapshot(snapshot: BenefitsDraftSnapshot) {
             modality: rule.modality,
             plan: rule.plan,
             campusTier: rule.campusTier,
+            region: rule.region ?? "",
+            plantel: rule.plantel ?? "",
+            programaKey: rule.programaKey ?? "",
             minAverage: rule.minAverage,
             maxAverage: rule.maxAverage,
             scholarshipPercent: rule.scholarshipPercent,
@@ -1004,6 +1018,8 @@ function benefitDiffItems(snapshot: BenefitsDraftSnapshot): DiffItem[] {
         rule.businessLine,
         rule.modality,
         `plan ${rule.plan}`,
+        rule.programaKey || "todos los programas",
+        rule.plantel || "todos los planteles",
         rule.campusTier,
       ].join(" · "),
       payload: rule,

@@ -189,4 +189,64 @@ describe("preparePricesCsvImport", () => {
       message: expect.stringContaining("Encabezados detectados: foo, bar."),
     });
   });
+
+it("supports explicit canonical price scopes from CSV", async () => {
+  prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+
+  const csv = [
+    "alcance,linea,programa,plantel,tier,precio,modalidad,plan",
+    "programa + plantel + tier,Salud,psicologia,Hermosillo,T3,4970,Presencial,9",
+    "tier,Posgrado,,,T2,4100,Online,4",
+    "general,Licenciatura,,,,5600,Presencial,9",
+  ].join("\n");
+  const file = new File([csv], "precios-alcances.csv", { type: "text/csv" });
+
+  const result = await preparePricesCsvImport({ file });
+
+  expect(result.payload.rows[0]).toMatchObject({
+    scopePreset: "program_campus_tier",
+    scopeLabel: "Programa + plantel + tier",
+    programaKey: "psicologia",
+    plantel: "Hermosillo",
+    tier: "T3",
+    nivelKey: "salud",
+    modalidadKey: "presencial",
+    plan: "9",
+    newPrice: 4970,
+  });
+  expect(result.payload.rows[1]).toMatchObject({
+    scopePreset: "tier",
+    nivelKey: "maestria",
+    modalidadKey: "online",
+    plan: "4",
+    tier: "T2",
+    newPrice: 4100,
+  });
+  expect(result.payload.rows[2]).toMatchObject({
+    scopePreset: "general",
+    nivelKey: "licenciatura",
+    modalidadKey: "presencial",
+    plan: "9",
+    tier: null,
+    newPrice: 5600,
+  });
+});
+
+it("rejects CSV rows whose explicit scope does not match populated dimensions", async () => {
+  prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+
+  const csv = [
+    "alcance,linea,programa,plantel,tier,precio,modalidad,plan",
+    "general,Salud,psicologia,Hermosillo,T3,4970,Presencial,9",
+  ].join("\n");
+  const file = new File([csv], "precios-alcance-invalido.csv", { type: "text/csv" });
+
+  await expect(preparePricesCsvImport({ file })).rejects.toMatchObject({
+    name: "PricesCsvValidationError",
+    code: "INVALID_PRICE_ROWS",
+    status: 422,
+    message: expect.stringContaining("no permite programa"),
+  });
+});
+
 });

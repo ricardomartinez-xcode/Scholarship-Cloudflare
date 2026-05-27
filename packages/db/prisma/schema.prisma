@@ -1752,6 +1752,9 @@ model ScholarshipRule {
   modality           CanonicalModality
   plan               Int
   campusTier         String              @default("ANY")
+  region             String              @default("")
+  plantel            String              @default("")
+  programaKey        String              @default("")
   minAverage         Decimal?            @db.Decimal(4, 2)
   maxAverage         Decimal?            @db.Decimal(4, 2)
   scholarshipPercent Decimal?            @db.Decimal(5, 2)
@@ -1761,9 +1764,11 @@ model ScholarshipRule {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
-  @@unique([enrollmentType, businessLine, modality, plan, campusTier, minAverage, maxAverage, sourceVersion], map: "scholarship_rule_runtime_key")
+  @@unique([enrollmentType, businessLine, modality, plan, campusTier, region, plantel, programaKey, minAverage, maxAverage, sourceVersion], map: "scholarship_rule_runtime_scope_key")
   @@index([businessLine, modality, plan], map: "scholarship_rule_lookup_idx")
   @@index([sourceVersion, enrollmentType], map: "scholarship_rule_source_enrollment_idx")
+  @@index([programaKey], map: "scholarship_rule_programa_key_idx")
+  @@index([plantel], map: "scholarship_rule_plantel_idx")
   @@map("scholarship_rule")
   @@schema("recalc_admin")
 }

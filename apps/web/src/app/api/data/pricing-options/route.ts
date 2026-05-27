@@ -234,6 +234,7 @@ export async function GET() {
         modality: true,
         plan: true,
         campusTier: true,
+        programaKey: true,
         minAverage: true,
         maxAverage: true,
         scholarshipPercent: true,

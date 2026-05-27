@@ -35,6 +35,9 @@ export type CanonicalScholarshipRuleLike = {
   modality: string;
   plan: number;
   campusTier: string | null;
+  region?: string | null;
+  plantel?: string | null;
+  programaKey?: string | null;
   minAverage: number | null;
   maxAverage: number | null;
   scholarshipPercent: number | null;

@@ -9,6 +9,10 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
+import {
+  adminPriceScopeRequiresField,
+  normalizeAdminPriceScopePreset,
+} from "@/lib/admin-price-scope";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { captureException, logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
@@ -74,6 +78,8 @@ export async function getBecaRules(): Promise<BecaRule[]> {
         { modality: "asc" },
         { plan: "asc" },
         { campusTier: "asc" },
+        { programaKey: "asc" },
+        { plantel: "asc" },
         { enrollmentType: "asc" },
         { minAverage: "asc" },
       ],
@@ -90,7 +96,7 @@ export async function getBecaRules(): Promise<BecaRule[]> {
           : Number(row.scholarshipPercent);
       return {
         id: row.id,
-        programa_key: "canonical",
+        programa_key: row.programaKey || "canonical",
         nivel_key:
           row.businessLine === "prepa" ? "preparatoria" : row.businessLine,
         modalidad_key: row.modality,
@@ -120,6 +126,7 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     const tier = String(formData.get("tier") ?? "").trim();
     const region = String(formData.get("region") ?? "").trim();
     const plantel = String(formData.get("plantel") ?? "").trim();
+    const priceScopePreset = normalizeAdminPriceScopePreset(formData.get("priceScopePreset"));
     const newPrice = String(formData.get("newPrice") ?? "").trim();
     const existingId = String(formData.get("existingId") ?? "").trim();
 
@@ -132,11 +139,23 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     if (!nivel_key || !modalidad_key || !plan) {
       return { ok: false, error: "Faltan claves de precio a editar." };
     }
+    if (priceScopePreset) {
+      if (adminPriceScopeRequiresField(priceScopePreset, "programa") && !programa_key) {
+        return { ok: false, error: "El alcance seleccionado requiere programa/carrera." };
+      }
+      if (adminPriceScopeRequiresField(priceScopePreset, "plantel") && !plantel) {
+        return { ok: false, error: "El alcance seleccionado requiere plantel." };
+      }
+      if (adminPriceScopeRequiresField(priceScopePreset, "tier") && !tier) {
+        return { ok: false, error: "El alcance seleccionado requiere tier." };
+      }
+    }
 
-    const targetKeys: Record<string, string> = { nivel_key, modalidad_key, plan, tier };
+    const targetKeys: Record<string, string> = { nivel_key, modalidad_key, plan };
     if (programa_key) targetKeys.programa_key = programa_key;
     if (region) targetKeys.region = region;
     if (plantel) targetKeys.plantel = plantel;
+    if (tier) targetKeys.tier = tier;
     const before = existingId
       ? await prisma.adminPriceOverride.findUnique({
           where: { id: existingId },

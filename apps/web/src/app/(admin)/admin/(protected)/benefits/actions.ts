@@ -78,6 +78,23 @@ function parseOptionalEnum<T extends string>(
   return { value: value as T, error: null };
 }
 
+
+
+function normalizeProgramKey(raw: FormDataEntryValue | null) {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (!value || value === "todos" || value === "todas" || value === "general" || value === "any") {
+    return "";
+  }
+  return value.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function normalizeScopeText(raw: FormDataEntryValue | null) {
+  return String(raw ?? "").trim();
+}
 async function loadBenefitAuditPayload(id: string) {
   const benefit = await prisma.adminAdditionalBenefit.findUnique({
     where: { id },
@@ -370,6 +387,9 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
     const modality = String(formData.get("modality") ?? "").trim();
     const campusId = String(formData.get("campusId") ?? "__ALL__").trim();
     const submittedCampusTier = String(formData.get("campusTier") ?? "").trim();
+    const region = normalizeScopeText(formData.get("region"));
+    const submittedPlantel = normalizeScopeText(formData.get("plantel"));
+    const programaKey = normalizeProgramKey(formData.get("programaKey"));
     const plan = Number(formData.get("plan") ?? "");
     const scholarshipPercent = Number(formData.get("scholarshipPercent") ?? "");
     const minAverage = Number(formData.get("minAverage") ?? "");
@@ -408,23 +428,27 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
     }
 
     let campusTier = submittedCampusTier || "ANY";
-    if (!submittedCampusTier && campusId && campusId !== "__ALL__") {
+    let plantel = submittedPlantel;
+    if (campusId && campusId !== "__ALL__") {
       const campus = await prisma.campus.findFirst({
         where: { id: campusId, isActive: true },
-        select: { tier: true, name: true },
+        select: { tier: true, name: true, metaKey: true },
       });
       if (!campus) {
         return { ok: false, error: "Selecciona un plantel activo." };
       }
-      campusTier = String(campus.tier ?? "").trim();
-      if (!campusTier) {
-        if (modality === CanonicalModality.online || campus.name.toLowerCase() === "online") {
-          campusTier = "ANY";
-        } else {
-        return {
-          ok: false,
-          error: "El plantel seleccionado no tiene tier configurado.",
-        };
+      plantel = plantel || campus.metaKey || campus.name;
+      if (!submittedCampusTier) {
+        campusTier = String(campus.tier ?? "").trim();
+        if (!campusTier) {
+          if (modality === CanonicalModality.online || campus.name.toLowerCase() === "online") {
+            campusTier = "ANY";
+          } else {
+            return {
+              ok: false,
+              error: "El plantel seleccionado no tiene tier configurado.",
+            };
+          }
         }
       }
     }
@@ -435,6 +459,9 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
       modality: modality as CanonicalModality,
       plan,
       campusTier,
+      region,
+      plantel,
+      programaKey,
       minAverage,
       maxAverage,
       sourceVersion: "canonical",
@@ -485,6 +512,9 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
         modality: saved.modality,
         plan: saved.plan,
         campusTier: saved.campusTier,
+        region: saved.region,
+        plantel: saved.plantel,
+        programaKey: saved.programaKey,
         minAverage: Number(saved.minAverage),
         maxAverage: Number(saved.maxAverage),
         scholarshipPercent: Number(saved.scholarshipPercent),
@@ -531,6 +561,9 @@ export async function deleteBaseScholarshipAction(formData: FormData) {
       modality: before.modality,
       plan: before.plan,
       campusTier: before.campusTier,
+      region: before.region,
+      plantel: before.plantel,
+      programaKey: before.programaKey,
       minAverage: before.minAverage === null ? null : Number(before.minAverage),
       maxAverage: before.maxAverage === null ? null : Number(before.maxAverage),
       scholarshipPercent:

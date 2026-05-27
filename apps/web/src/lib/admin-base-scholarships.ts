@@ -5,6 +5,9 @@ type BaseScholarshipRuleInput = {
   modality: string;
   plan: number;
   campusTier: string | null;
+  region?: string | null;
+  plantel?: string | null;
+  programaKey?: string | null;
   minAverage: unknown;
   maxAverage: unknown;
   scholarshipPercent: unknown;
@@ -19,6 +22,10 @@ export type BaseScholarshipRow = {
   modality: string;
   plan: number;
   campusTier: string;
+  region: string | null;
+  plantel: string | null;
+  programaKey: string | null;
+  scopeLabel: string;
   percentages: number[];
   ranges: string[];
   ruleCount: number;
@@ -81,6 +88,31 @@ export function resolveBaseScholarshipAverageRange(value: string) {
   );
 }
 
+
+
+function cleanScopeValue(value: unknown) {
+  const normalized = String(value ?? "").trim();
+  return normalized || "";
+}
+
+function formatScopeLabel(params: {
+  programaKey?: string | null;
+  plantel?: string | null;
+  campusTier?: string | null;
+}) {
+  const parts: string[] = [];
+  const programaKey = cleanScopeValue(params.programaKey);
+  const plantel = cleanScopeValue(params.plantel);
+  const campusTier = cleanScopeValue(params.campusTier).toUpperCase();
+
+  if (programaKey) parts.push(`Programa: ${programaKey}`);
+  if (plantel) parts.push(`Plantel: ${plantel}`);
+  if (campusTier && campusTier !== "ANY" && campusTier !== "GENERAL") {
+    parts.push(`Tier: ${campusTier}`);
+  }
+
+  return parts.length ? parts.join(" · ") : "General";
+}
 export function serializeBaseScholarshipRows(
   rules: BaseScholarshipRuleInput[],
 ): BaseScholarshipRow[] {
@@ -88,12 +120,18 @@ export function serializeBaseScholarshipRows(
 
   for (const rule of rules) {
     const campusTier = String(rule.campusTier ?? "ANY").trim() || "ANY";
+    const region = cleanScopeValue(rule.region) || null;
+    const plantel = cleanScopeValue(rule.plantel) || null;
+    const programaKey = cleanScopeValue(rule.programaKey) || null;
     const key = [
       rule.enrollmentType,
       rule.businessLine,
       rule.modality,
       String(rule.plan),
       campusTier,
+      region ?? "",
+      plantel ?? "",
+      programaKey ?? "",
     ].join("|");
     const row =
       rows.get(key) ??
@@ -104,6 +142,10 @@ export function serializeBaseScholarshipRows(
         modality: rule.modality,
         plan: rule.plan,
         campusTier,
+        region,
+        plantel,
+        programaKey,
+        scopeLabel: formatScopeLabel({ programaKey, plantel, campusTier }),
         percentages: [],
         ranges: [],
         ruleCount: 0,

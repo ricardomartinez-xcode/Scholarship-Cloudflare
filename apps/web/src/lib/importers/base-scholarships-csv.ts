@@ -14,6 +14,7 @@ export type BaseScholarshipImportPreviewRow = {
   action: BaseScholarshipImportDiffAction;
   region: string | null;
   plantel: string | null;
+  programaKey: string | null;
   tier: string;
   enrollmentType: EnrollmentType;
   businessLine: BenefitBusinessLine;
@@ -64,6 +65,7 @@ type ParsedBaseScholarshipRow = Omit<
 const HEADER_ALIASES = {
   region: ["region", "región"],
   plantel: ["plantel", "campus", "sede"],
+  programaKey: ["programa", "programakey", "programa_key", "program", "program_key", "carrera"],
   tier: ["tier"],
   enrollmentType: ["enrollmenttype", "tipoingreso", "ingreso"],
   businessLine: ["businessline", "lineanegocio", "lineadenegocio", "linea", "nivel"],
@@ -100,6 +102,25 @@ function normalizeHumanValue(value: string) {
     .trim();
 }
 
+
+
+function normalizeProgramKey(value: string) {
+  const human = normalizeHumanValue(value);
+  if (!human || human === "todos" || human === "todas" || human === "general" || human === "any") {
+    return null;
+  }
+  const normalized = human.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return normalized || null;
+}
+
+function normalizeOptionalScopeText(value: string) {
+  const trimmed = value.trim();
+  const normalized = normalizeHumanValue(trimmed);
+  if (!normalized || normalized === "todos" || normalized === "todas" || normalized === "general" || normalized === "any") {
+    return null;
+  }
+  return trimmed;
+}
 function normalizeEnrollmentTypeValue(value: string) {
   const normalized = normalizeHumanValue(value);
   const enrollmentMap: Record<string, EnrollmentType> = {
@@ -175,6 +196,9 @@ function buildBaseScholarshipKey(input: {
   modality: CanonicalModality;
   plan: number;
   tier: string;
+  region?: string | null;
+  plantel?: string | null;
+  programaKey?: string | null;
   minAverage: number;
   maxAverage: number;
 }) {
@@ -184,6 +208,9 @@ function buildBaseScholarshipKey(input: {
     input.modality,
     input.plan,
     input.tier,
+    input.region ?? "",
+    input.plantel ?? "",
+    input.programaKey ?? "",
     input.minAverage,
     input.maxAverage,
   ].join("|");
@@ -206,6 +233,9 @@ async function buildExistingBaseScholarshipsByKey() {
       modality: true,
       plan: true,
       campusTier: true,
+      region: true,
+      plantel: true,
+      programaKey: true,
       minAverage: true,
       maxAverage: true,
       scholarshipPercent: true,
@@ -222,6 +252,9 @@ async function buildExistingBaseScholarshipsByKey() {
         modality: row.modality,
         plan: row.plan,
         tier: row.campusTier || "ANY",
+        region: row.region || null,
+        plantel: row.plantel || null,
+        programaKey: row.programaKey || null,
         minAverage: Number(row.minAverage),
         maxAverage: Number(row.maxAverage),
       }),
@@ -272,6 +305,7 @@ export async function prepareBaseScholarshipsCsvImport(input: {
 
   const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
   const idxPlantel = findColumnIndex(headerMap, HEADER_ALIASES.plantel);
+  const idxProgramaKey = findColumnIndex(headerMap, HEADER_ALIASES.programaKey);
   const idxTier = findColumnIndex(headerMap, HEADER_ALIASES.tier);
   const idxAverageRange = findColumnIndex(headerMap, HEADER_ALIASES.averageRange);
   const idxMinAverage = findColumnIndex(headerMap, HEADER_ALIASES.minAverage);
@@ -349,8 +383,9 @@ export async function prepareBaseScholarshipsCsvImport(input: {
 
     const parsedRow: ParsedBaseScholarshipRow = {
       rowNumber,
-      region: readCell(row, idxRegion) || null,
-      plantel: readCell(row, idxPlantel) || null,
+      region: normalizeOptionalScopeText(readCell(row, idxRegion)),
+      plantel: normalizeOptionalScopeText(readCell(row, idxPlantel)),
+      programaKey: normalizeProgramKey(readCell(row, idxProgramaKey)),
       tier,
       enrollmentType,
       businessLine,
@@ -432,6 +467,9 @@ export async function applyPreparedBaseScholarshipsImport(params: {
         modality: row.modality,
         plan: row.plan,
         campusTier: row.tier,
+        region: row.region ?? "",
+        plantel: row.plantel ?? "",
+        programaKey: row.programaKey ?? "",
         minAverage: row.minAverage,
         maxAverage: row.maxAverage,
         scholarshipPercent: row.scholarshipPercent,

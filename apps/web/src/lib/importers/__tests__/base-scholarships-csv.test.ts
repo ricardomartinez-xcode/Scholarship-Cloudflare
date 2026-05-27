@@ -37,8 +37,8 @@ describe("prepareBaseScholarshipsCsvImport", () => {
       errors: [],
     });
     expect(result.payload.rows[0]).toMatchObject({
-      region: "General",
-      plantel: "Todos",
+      region: null,
+      plantel: null,
       tier: "T1",
       enrollmentType: "nuevo_ingreso",
       businessLine: "licenciatura",
@@ -132,6 +132,28 @@ describe("prepareBaseScholarshipsCsvImport", () => {
     ]);
   });
 
+
+
+  it("accepts programa/carrera to scope a base scholarship to one program", async () => {
+    const csv = [
+      "linea,region,plantel,programa,tier,porcentaje,ingreso,modalidad,plan,promedio",
+      "salud,Sonora,Hermosillo,Psicología,T3,25,nuevo_ingreso,presencial,9,9-10",
+    ].join("\n");
+
+    const result = await prepareBaseScholarshipsCsvImport({
+      file: new File([csv], "beca-psicologia.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.errors).toEqual([]);
+    expect(result.payload.rows[0]).toMatchObject({
+      businessLine: "salud",
+      plantel: "Hermosillo",
+      programaKey: "psicologia",
+      tier: "T3",
+      plan: 9,
+      scholarshipPercent: 25,
+    });
+  });
   it("keeps a clear error when a value is not recognizable", async () => {
     const csv = [
       "linea,region,plantel,tier,porcentaje,ingreso,modalidad,plan,promedio",

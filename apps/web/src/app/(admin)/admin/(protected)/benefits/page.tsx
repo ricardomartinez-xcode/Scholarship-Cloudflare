@@ -26,7 +26,7 @@ export default async function BenefitsPage() {
   const configModule = AdminConfigModule.BENEFITS;
   const moduleMeta = getAdminConfigModuleMeta(configModule);
 
-  const [admin, publicationState, benefits, campuses, scholarshipRules] = await Promise.all([
+  const [admin, publicationState, benefits, campuses, programs, scholarshipRules] = await Promise.all([
     getAdminUser(),
     getConfigPublicationState(configModule),
     prisma.adminAdditionalBenefit.findMany({
@@ -55,6 +55,10 @@ export default async function BenefitsPage() {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, kind: true, sortOrder: true, tier: true },
     }),
+    prisma.program.findMany({
+      orderBy: [{ businessLine: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, nameNormalized: true, businessLine: true },
+    }),
     prisma.scholarshipRule.findMany({
       orderBy: [
         { enrollmentType: "asc" },
@@ -62,6 +66,8 @@ export default async function BenefitsPage() {
         { modality: "asc" },
         { plan: "asc" },
         { campusTier: "asc" },
+        { programaKey: "asc" },
+        { plantel: "asc" },
         { minAverage: "asc" },
       ],
       select: {
@@ -71,6 +77,9 @@ export default async function BenefitsPage() {
         modality: true,
         plan: true,
         campusTier: true,
+        region: true,
+        plantel: true,
+        programaKey: true,
         minAverage: true,
         maxAverage: true,
         scholarshipPercent: true,
@@ -156,6 +165,11 @@ export default async function BenefitsPage() {
           label: c.name,
           kind: c.kind,
           tier: c.tier,
+        }))}
+        programOptions={programs.map((program) => ({
+          value: program.nameNormalized || program.id,
+          label: program.name,
+          businessLine: program.businessLine,
         }))}
         upsertBenefitAction={upsertBenefitAction}
         upsertBaseScholarshipAction={upsertBaseScholarshipAction}
