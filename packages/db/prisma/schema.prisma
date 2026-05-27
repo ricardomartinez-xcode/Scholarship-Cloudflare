@@ -1265,6 +1265,26 @@ model AdminPriceOverride {
   @@schema("recalc_admin")
 }
 
+model AdminCanonicalAlias {
+  id             String   @id @default(uuid()) @db.Uuid
+  aliasType      String
+  canonicalValue      String
+  canonicalNormalized String
+  aliasValue     String
+  aliasNormalized String
+  isActive       Boolean  @default(true)
+  notes          String?
+  updatedBy      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([aliasType, aliasNormalized], map: "admin_canonical_alias_type_alias_key")
+  @@index([aliasType, canonicalNormalized, isActive], map: "admin_canonical_alias_type_canonical_active_idx")
+  @@index([aliasType, isActive], map: "admin_canonical_alias_type_active_idx")
+  @@map("admin_canonical_alias")
+  @@schema("recalc_admin")
+}
+
 model AdminPublicCta {
   id                  String                   @id @default(uuid()) @db.Uuid
   label               String

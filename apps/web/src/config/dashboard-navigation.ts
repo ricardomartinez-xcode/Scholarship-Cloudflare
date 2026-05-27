@@ -334,6 +334,14 @@ export const adminNavGroups: DashboardNavGroup[] = [
             requiredAny: ["manage_prices"],
           },
           {
+            key: "aliases",
+            label: "Aliases",
+            icon: "sync",
+            href: "/admin/aliases",
+            group: "admin-catalogos",
+            requiredAny: ["manage_prices", "manage_offers", "manage_benefits"],
+          },
+          {
             key: "directory",
             label: "Directorio",
             icon: "directory",
@@ -514,6 +522,7 @@ export const dashboardTitles: Record<string, string> = {
   "/admin/unidep/programs": "Programas académicos",
   "/admin/unidep/campuses": "Planteles",
   "/admin/unidep/fees": "Costos académicos",
+  "/admin/aliases": "Aliases y catálogos",
   "/admin/unidep/directory": "Directorio",
   "/admin/unidep/simulador": "Simulador",
   "/admin/unidep/formatos": "Formatos",
