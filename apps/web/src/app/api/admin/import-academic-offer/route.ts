@@ -25,6 +25,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   let requestedCycle: string | null = null;
+
   try {
     const admin = await getAdminUser();
     if (!admin) {
@@ -72,7 +73,8 @@ export async function POST(request: Request) {
       }
       await fs.access(filePath);
       input = { kind: "path", filePath };
-      fileName = filePath.split(/[\/]/).pop();
+      fileName = filePath.split(/[\\/]/).pop();
+
       try {
         fileChecksum = createImportFileChecksum(await fs.readFile(filePath));
       } catch {
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
     });
 
     await writeBusinessEventSafe({
-      type: BusinessEventType.IMPORT_VALIDATE,
+      type: BusinessEventType.IMPORT_VALIDATED,
       userId: admin.id,
       subjectType: "AdminImportSession",
       subjectId: session.id,
@@ -138,6 +140,7 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error ? error.message : "No fue posible validar el Excel.";
     const admin = await getAdminUser().catch(() => null);
+
     captureException(error, {
       module: "offer-import",
       action: "validate",
@@ -149,6 +152,7 @@ export async function POST(request: Request) {
         message,
       },
     }, "Academic offer import validation failed");
+
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_FAILED,
       userId: admin?.id ?? null,
@@ -160,6 +164,7 @@ export async function POST(request: Request) {
         message,
       },
     });
+
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
