@@ -2,16 +2,12 @@ import fs from "node:fs/promises";
 
 import { NextResponse } from "next/server";
 import {
-  AdminAuditAction,
   AdminChangeSource,
   AdminConfigModule,
-  AdminImportSessionStatus,
   BusinessEventType,
-  Prisma,
 } from "@prisma/client";
 
 import { getAdminUser } from "@/lib/admin-session";
-import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import {
@@ -19,7 +15,10 @@ import {
   resolveDefaultOfferExcelPath,
 } from "@/lib/importers/academic-offer";
 import { captureException, logStructured } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import {
+  createAdminImportPreviewSession,
+  createImportFileChecksum,
+} from "@/lib/importers/admin-import-sessions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,12 +50,14 @@ export async function POST(request: Request) {
       | { kind: "buffer"; buffer: Uint8Array; fileName?: string }
       | { kind: "path"; filePath: string };
     let fileName: string | undefined;
+    let fileChecksum: string | null = null;
 
     if (maybeFile && typeof maybeFile === "object" && "arrayBuffer" in maybeFile) {
       const file = maybeFile as File;
       const buffer = Buffer.from(await file.arrayBuffer());
       input = { kind: "buffer", buffer, fileName: file.name };
       fileName = file.name;
+      fileChecksum = createImportFileChecksum(buffer);
     } else {
       const filePath = await resolveDefaultOfferExcelPath();
       if (!filePath) {
@@ -71,7 +72,12 @@ export async function POST(request: Request) {
       }
       await fs.access(filePath);
       input = { kind: "path", filePath };
-      fileName = filePath.split(/[/\\]/).pop();
+      fileName = filePath.split(/[\/]/).pop();
+      try {
+        fileChecksum = createImportFileChecksum(await fs.readFile(filePath));
+      } catch {
+        fileChecksum = null;
+      }
     }
 
     const prepared = await prepareAcademicOfferImport({
@@ -79,40 +85,22 @@ export async function POST(request: Request) {
       cycle,
     });
 
-    const session = await prisma.adminImportSession.create({
-      data: {
-        module: AdminConfigModule.OFFER,
-        status: AdminImportSessionStatus.preview,
-        source: AdminChangeSource.IMPORT,
-        fileName: fileName ?? null,
-        preview: prepared.previewRows as Prisma.InputJsonValue,
-        payload: prepared.payload as Prisma.InputJsonValue,
-        warnings: prepared.summary.warnings as Prisma.InputJsonValue,
-        errors: [] as Prisma.InputJsonValue,
-        summary: prepared.summary as Prisma.InputJsonValue,
-        createdByUserId: admin.id,
-        createdByEmail: admin.email,
-      },
-      select: { id: true },
-    });
-
-    await writeAdminAuditLog({
+    const session = await createAdminImportPreviewSession({
       module: AdminConfigModule.OFFER,
-      action: AdminAuditAction.IMPORT_VALIDATE,
-      source: AdminChangeSource.IMPORT,
       actor: admin,
-      entityType: "AdminImportSession",
-      entityId: session.id,
-      after: {
-        cycle: prepared.summary.cycle,
-        campusesProcessed: prepared.summary.campusesProcessed,
-        warnings: prepared.summary.warnings,
-      },
-      importSessionId: session.id,
+      kind: "academic-offer",
+      fileName: fileName ?? null,
+      fileChecksum,
+      preview: prepared.previewRows,
+      payload: prepared.payload,
+      warnings: prepared.summary.warnings,
+      errors: [],
+      summary: prepared.summary,
+      source: AdminChangeSource.IMPORT,
     });
 
     await writeBusinessEventSafe({
-      type: BusinessEventType.IMPORT_VALIDATED,
+      type: BusinessEventType.IMPORT_VALIDATE,
       userId: admin.id,
       subjectType: "AdminImportSession",
       subjectId: session.id,

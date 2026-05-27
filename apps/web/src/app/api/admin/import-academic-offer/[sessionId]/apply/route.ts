@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server";
 import {
-  AdminAuditAction,
   AdminChangeSource,
   AdminConfigModule,
   AdminImportSessionStatus,
   BusinessEventType,
-  Prisma,
 } from "@prisma/client";
 
 import { getAdminUser } from "@/lib/admin-session";
-import { writeAdminAuditLog } from "@/lib/admin-audit";
-import { captureDraftConfigSnapshot } from "@/lib/admin-config-snapshots";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import {
   applyPreparedAcademicOfferImport,
   type PreparedAcademicOfferImportPayload,
 } from "@/lib/importers/academic-offer";
 import { captureException, logStructured } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import {
+  assertImportSessionCanApply,
+  getAdminImportSession,
+  markAdminImportSessionApplied,
+  markAdminImportSessionFailed,
+} from "@/lib/importers/admin-import-sessions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,23 +27,18 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ sessionId: string }> },
 ) {
+  let sessionId: string | null = null;
+
   try {
     const admin = await getAdminUser();
     if (!admin) {
       return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
     }
 
-    const { sessionId } = await context.params;
-    const session = await prisma.adminImportSession.findFirst({
-      where: { id: sessionId, module: AdminConfigModule.OFFER },
-      select: {
-        id: true,
-        status: true,
-        payload: true,
-        result: true,
-      },
-    });
-    if (!session) {
+    ({ sessionId } = await context.params);
+    const session = await getAdminImportSession({ sessionId });
+
+    if (!session || session.module !== AdminConfigModule.OFFER) {
       return NextResponse.json({ ok: false, error: "Sesión no encontrada." }, { status: 404 });
     }
 
@@ -54,39 +50,40 @@ export async function POST(
       });
     }
 
-    const beforeSnapshot = await captureDraftConfigSnapshot(AdminConfigModule.OFFER);
+    try {
+      assertImportSessionCanApply(session);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "La sesión de importación no se puede aplicar.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!session.payload) {
+      return NextResponse.json(
+        { ok: false, error: "La sesión no tiene payload preparado para aplicar." },
+        { status: 400 },
+      );
+    }
+
     const summary = await applyPreparedAcademicOfferImport({
       payload: session.payload as unknown as PreparedAcademicOfferImportPayload,
       updatedBy: admin.email,
     });
-    const afterSnapshot = await captureDraftConfigSnapshot(AdminConfigModule.OFFER);
 
-    await prisma.adminImportSession.update({
-      where: { id: sessionId },
-      data: {
-        status: AdminImportSessionStatus.applied,
-        beforeSnapshot: beforeSnapshot as Prisma.InputJsonValue,
-        afterSnapshot: afterSnapshot as Prisma.InputJsonValue,
-        result: summary as Prisma.InputJsonValue,
-        appliedAt: new Date(),
-        appliedByUserId: admin.id,
-        appliedByEmail: admin.email,
-      },
-    });
-
-    await writeAdminAuditLog({
+    await markAdminImportSessionApplied({
+      sessionId,
       module: AdminConfigModule.OFFER,
-      action: AdminAuditAction.IMPORT_APPLY,
-      source: AdminChangeSource.IMPORT,
       actor: admin,
-      entityType: "AdminImportSession",
-      entityId: sessionId,
-      after: {
-        cycle: summary.cycle,
-        campusesProcessed: summary.campusesProcessed,
-        offerings: summary.offerings,
-      },
-      importSessionId: sessionId,
+      result: summary,
+      requestId: null,
+      source: AdminChangeSource.IMPORT,
     });
 
     await writeBusinessEventSafe({
@@ -122,18 +119,32 @@ export async function POST(
     const message =
       error instanceof Error ? error.message : "No fue posible aplicar la sesión.";
     const admin = await getAdminUser().catch(() => null);
+
+    if (sessionId) {
+      await markAdminImportSessionFailed({
+        sessionId,
+        module: AdminConfigModule.OFFER,
+        actor: admin,
+        errors: [message],
+        result: { stage: "apply", message },
+        requestId: null,
+        source: AdminChangeSource.IMPORT,
+      }).catch(() => undefined);
+    }
+
     captureException(error, {
       module: "offer-import",
       action: "apply",
       result: "failure",
       actorUserId: admin?.id ?? null,
       actorEmail: admin?.email ?? null,
-      metadata: { message },
+      metadata: { message, sessionId },
     }, "Academic offer import apply failed");
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_FAILED,
       userId: admin?.id ?? null,
       subjectType: "AdminImportSession",
+      subjectId: sessionId ?? undefined,
       metadata: {
         module: AdminConfigModule.OFFER,
         stage: "apply",
