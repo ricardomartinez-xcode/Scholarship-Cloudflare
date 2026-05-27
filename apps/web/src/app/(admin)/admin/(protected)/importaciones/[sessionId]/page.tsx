@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { getAdminImportSession } from "@/lib/importers/admin-import-sessions";
+import { canRollbackAdminImportSession } from "@/lib/importers/admin-import-rollbacks";
+import { rollbackImportSessionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +56,7 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
   if (!session) notFound();
 
   const moduleMeta = getAdminConfigModuleMeta(session.module);
+  const canRollback = canRollbackAdminImportSession(session);
 
   return (
     <div className="grid gap-6 p-6">
@@ -94,9 +97,30 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
             <MetaItem label="Nombre" value={session.fileName} />
             <MetaItem label="Checksum" value={session.fileChecksum} />
           </div>
-          <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-sm text-cyan-100">
-            Esta vista es de auditoría. La acción de rollback operativo queda para la Fase 5C.
-          </div>
+          {canRollback ? (
+            <form
+              action={rollbackImportSessionAction}
+              className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100"
+            >
+              <input type="hidden" name="sessionId" value={session.id} />
+              <div className="font-semibold">Rollback operativo disponible</div>
+              <p className="mt-1 text-amber-100/80">
+                Esta acción restaura el snapshot previo capturado antes de aplicar la importación,
+                marca la sesión como rollback y revalida las rutas del módulo.
+              </p>
+              <button
+                type="submit"
+                className="mt-3 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-400/20"
+              >
+                Revertir a snapshot previo
+              </button>
+            </form>
+          ) : (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300">
+              Rollback no disponible para esta sesión. Solo se pueden revertir sesiones aplicadas
+              que tengan snapshot previo guardado.
+            </div>
+          )}
         </div>
       </section>
 
