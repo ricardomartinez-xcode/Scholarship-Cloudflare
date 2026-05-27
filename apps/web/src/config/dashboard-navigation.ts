@@ -420,6 +420,14 @@ export const adminNavGroups: DashboardNavGroup[] = [
             requiredAny: ["view_reports"],
           },
           {
+            key: "importaciones",
+            label: "Importaciones",
+            icon: "sync",
+            href: "/admin/importaciones",
+            group: "admin-actividad",
+            requiredAll: ["view_admin_operations"],
+          },
+          {
             key: "audit",
             label: "Auditoría",
             icon: "audit",
@@ -530,6 +538,7 @@ export const dashboardTitles: Record<string, string> = {
   "/admin/sidebar": "Información pública",
   "/admin/whatsapp-templates": "Templates WhatsApp",
   "/admin/ctas": "CTA's",
+  "/admin/importaciones": "Importaciones",
   "/admin/extension-panel": "Extensión Chrome",
   "/admin/invitations": "Invitaciones",
   "/admin/users": "Usuarios",
