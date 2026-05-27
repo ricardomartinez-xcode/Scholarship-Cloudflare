@@ -1,3 +1,5 @@
+import { resolveConfiguredAlias, normalizeAliasKey, type CanonicalAliasRuntimeRow } from "@/lib/admin-canonical-aliases";
+
 export const CANONICAL_BUSINESS_LINES = [
   "salud",
   "licenciatura",
@@ -105,6 +107,59 @@ export function normalizeEnrollmentType(
   if (value === "regreso") return "regreso";
   if (value === "reingreso") return "reingreso";
   return null;
+}
+
+
+function configuredAlias(
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+  aliasType: Parameters<typeof resolveConfiguredAlias>[1],
+  raw: string | null | undefined,
+) {
+  return resolveConfiguredAlias(rows ?? [], aliasType, raw);
+}
+
+export function normalizeBusinessLineWithAliases(
+  raw: string | null | undefined,
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+): CanonicalBusinessLine | null {
+  return normalizeBusinessLine(configuredAlias(rows, "business_line", raw) ?? raw);
+}
+
+export function normalizeCanonicalModalityWithAliases(
+  raw: string | null | undefined,
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+): CanonicalModalityValue | null {
+  return normalizeCanonicalModality(configuredAlias(rows, "modality", raw) ?? raw);
+}
+
+export function normalizeEnrollmentTypeWithAliases(
+  raw: string | null | undefined,
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+): EnrollmentTypeValue | null {
+  return normalizeEnrollmentType(configuredAlias(rows, "enrollment_type", raw) ?? raw);
+}
+
+export function normalizeTierWithAliases(
+  raw: string | null | undefined,
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+) {
+  return normalizeTier(configuredAlias(rows, "tier", raw) ?? raw);
+}
+
+export function normalizeProgramKeyWithAliases(
+  raw: string | null | undefined,
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+) {
+  const configured = configuredAlias(rows, "program", raw);
+  return normalizeAliasKey(configured ?? raw);
+}
+
+export function normalizeCampusKeyWithAliases(
+  raw: string | null | undefined,
+  rows: CanonicalAliasRuntimeRow[] | null | undefined,
+) {
+  const configured = configuredAlias(rows, "campus", raw);
+  return normalizeAliasKey(configured ?? raw);
 }
 
 export function requiresCampusForQuote(

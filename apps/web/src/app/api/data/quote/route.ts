@@ -5,10 +5,11 @@ import { getSessionUser } from "@/lib/authz";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import { addObservabilityBreadcrumb, captureException, logStructured } from "@/lib/observability";
 import {
-  normalizeBusinessLine,
-  normalizeCanonicalModality,
-  normalizeEnrollmentType,
+  normalizeBusinessLineWithAliases,
+  normalizeCanonicalModalityWithAliases,
+  normalizeEnrollmentTypeWithAliases,
 } from "@/lib/pricing-normalize";
+import { getActiveCanonicalAliasRows } from "@/lib/configured-canonical-aliases";
 import { resolveCanonicalQuote } from "@relead/domain/calculator/quote-service";
 import {
   resolveQuoteAcademicOffering,
@@ -149,9 +150,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const enrollmentType = normalizeEnrollmentType(payload.enrollmentType);
-    const businessLine = normalizeBusinessLine(payload.businessLine);
-    const modality = normalizeCanonicalModality(payload.modality);
+    const aliasRows = await getActiveCanonicalAliasRows();
+    const enrollmentType = normalizeEnrollmentTypeWithAliases(payload.enrollmentType, aliasRows);
+    const businessLine = normalizeBusinessLineWithAliases(payload.businessLine, aliasRows);
+    const modality = normalizeCanonicalModalityWithAliases(payload.modality, aliasRows);
     const plan = toOptionalNumber(payload.plan);
     const average = toOptionalNumber(payload.average);
     const subjectCount = toOptionalNumber(payload.subjectCount);
