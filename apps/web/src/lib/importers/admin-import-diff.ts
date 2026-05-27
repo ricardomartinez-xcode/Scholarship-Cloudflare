@@ -79,7 +79,7 @@ function keyFromRecord(scope: string, record: Record<string, unknown>, index: nu
   ]
     .map((value) => (typeof value === "string" || typeof value === "number" ? String(value).trim() : ""))
     .filter(Boolean)
-    .join(":" );
+    .join(":");
 
   if (composite) return `${scope}:${composite}`;
   return `${scope}:row:${index}:${stableStringify(record).slice(0, 96)}`;
@@ -138,6 +138,20 @@ function buildExamples(input: {
   return examples;
 }
 
+function formatExampleKind(kind: ImportDiffExample["kind"]) {
+  if (kind === "added") return "Nuevo";
+  if (kind === "updated") return "Actualizado";
+  return "Eliminado";
+}
+
+function buildVisibleExampleNotes(examples: ImportDiffExample[]) {
+  if (examples.length === 0) {
+    return ["No hay ejemplos de cambios para mostrar con la estructura comparable disponible."];
+  }
+
+  return examples.map((example) => `${formatExampleKind(example.kind)}: ${example.label}`);
+}
+
 export function buildImportDiffSummary(input: {
   beforeSnapshot: unknown;
   afterSnapshot: unknown;
@@ -181,11 +195,14 @@ export function buildImportDiffSummary(input: {
     }
   }
 
+  const examples = buildExamples({ added: addedItems, updated: updatedItems, removed: removedItems });
   const notes = [
     afterItems.length > 0
       ? "Diff semántico calculado comparando beforeSnapshot contra afterSnapshot."
       : "Diff semántico calculado comparando beforeSnapshot contra el preview, porque la sesión aún no tiene afterSnapshot.",
     "Las llaves usan id cuando existe; si no, se usa una llave compuesta con campos de negocio disponibles.",
+    "Ejemplos de cambios detectados:",
+    ...buildVisibleExampleNotes(examples),
   ];
 
   if (beforeItems.length === 0 && comparisonItems.length === 0) {
@@ -198,7 +215,7 @@ export function buildImportDiffSummary(input: {
     removed: removedItems.length,
     unchanged,
     totalCompared: allKeys.length,
-    examples: buildExamples({ added: addedItems, updated: updatedItems, removed: removedItems }),
+    examples,
     notes,
   };
 }
