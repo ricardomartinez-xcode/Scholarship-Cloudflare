@@ -3,7 +3,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
 
 import AppFooter from "@/components/app/AppFooter";
 import ApplyChangesButton from "@/components/admin/ApplyChangesButton";
@@ -21,6 +22,8 @@ import {
   resolveDashboardTitle,
 } from "@/config/dashboard-navigation";
 import { SYSTEM_ROLES, getSystemRoleMeta } from "@/lib/system-roles";
+
+import styles from "./AdminChrome.module.css";
 
 type CampusIntegrity = {
   ok: boolean;
@@ -43,7 +46,7 @@ type AdminChromeProps = {
   isSystemOwner: boolean;
   campusIntegrity: CampusIntegrity;
   logoutAction: () => Promise<void>;
-  children: React.ReactNode;
+  children: ReactNode;
   headerBannerAnnouncements?: Announcement[];
   headerBannerCtas?: PublicCta[];
   contentTopAnnouncements?: Announcement[];
@@ -56,9 +59,88 @@ type AdminChromeProps = {
   sidebarBottomCtas?: PublicCta[];
 };
 
-function AdminDrawerNav({
+type VisibleNavGroups = ReturnType<typeof filterNavGroupsByCapabilities>;
+
+function getRoleLabel(adminRole: string) {
+  const knownRole = (SYSTEM_ROLES as readonly string[]).includes(adminRole);
+
+  return knownRole
+    ? getSystemRoleMeta(adminRole as (typeof SYSTEM_ROLES)[number]).label
+    : adminRole;
+}
+
+function AdminBrand() {
+  return (
+    <div className={styles.brand}>
+      <div className={styles.brandBadge}>Admin</div>
+      <div className={styles.brandCopy}>
+        <div className={styles.brandEyebrow}>Scholarship</div>
+        <div className={styles.brandTitleRow}>
+          <Image
+            src="/branding/logo-recalc.png"
+            alt="ReCalc"
+            width={120}
+            height={40}
+            className={styles.brandLogo}
+          />
+          <span className={styles.brandTitle}>ReCalc Admin</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusPill({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "accent" | "warning" | "success";
+}) {
+  return (
+    <div className={`${styles.statusPill} ${styles[`statusPill_${tone}`]}`}>
+      <span className={styles.statusLabel}>{label}</span>
+      <span className={styles.statusValue}>{value}</span>
+    </div>
+  );
+}
+
+function AdminAccessCard({
+  roleLabel,
+  adminCapabilities,
+  isSystemOwner,
+}: {
+  roleLabel: string;
+  adminCapabilities: string[];
+  isSystemOwner: boolean;
+}) {
+  return (
+    <section className={styles.accessCard} aria-label="Contexto de acceso admin">
+      <div className={styles.sectionKicker}>Acceso admin</div>
+      <div className={styles.accessGrid}>
+        <StatusPill label="Rol" value={roleLabel} tone="accent" />
+        <StatusPill
+          label="Permisos"
+          value={`${adminCapabilities.length}`}
+          tone="neutral"
+        />
+        <StatusPill
+          label="Owner"
+          value={isSystemOwner ? "Sí" : "No"}
+          tone={isSystemOwner ? "success" : "neutral"}
+        />
+      </div>
+    </section>
+  );
+}
+
+function AdminNavPanel({
+  navGroups,
   adminCapabilities,
   roleLabel,
+  isSystemOwner,
   pathname,
   onNavigate,
   sidebarTopAnnouncements,
@@ -66,8 +148,10 @@ function AdminDrawerNav({
   sidebarBottomAnnouncements,
   sidebarBottomCtas,
 }: {
+  navGroups: VisibleNavGroups;
   adminCapabilities: string[];
   roleLabel: string;
+  isSystemOwner: boolean;
   pathname: string;
   onNavigate: () => void;
   sidebarTopAnnouncements: Announcement[];
@@ -75,49 +159,46 @@ function AdminDrawerNav({
   sidebarBottomAnnouncements: Announcement[];
   sidebarBottomCtas: PublicCta[];
 }) {
-  const groups = filterNavGroupsByCapabilities(adminNavGroups, adminCapabilities);
-
   return (
-    <div className="ui-sidebar-stack">
-      <section className="ui-sidebar-action-panel rounded-[24px] border p-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[color:var(--ui-text-secondary)]">
-          Acceso admin
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="ui-pill ui-pill--accent">{roleLabel}</span>
-        </div>
-      </section>
+    <div className={styles.sidebarStack}>
+      <AdminAccessCard
+        roleLabel={roleLabel}
+        adminCapabilities={adminCapabilities}
+        isSystemOwner={isSystemOwner}
+      />
 
       <AnnouncementOutlet
         announcements={sidebarTopAnnouncements}
         appearance="compact"
-        className="grid gap-2"
+        className={styles.sidebarMessages}
       />
       {sidebarTopCtas.length ? (
         <ConfiguredCtaList
           ctas={sidebarTopCtas}
-          className="grid gap-2"
-          itemClassName="text-left"
+          className={styles.sidebarCtas}
+          itemClassName={styles.sidebarCtaItem}
           appearance="compact"
         />
       ) : null}
 
-      <DashboardSidebarNav
-        groups={groups}
-        pathname={pathname}
-        onLinkNavigate={onNavigate}
-      />
+      <div className={styles.navScrollArea}>
+        <DashboardSidebarNav
+          groups={navGroups}
+          pathname={pathname}
+          onLinkNavigate={onNavigate}
+        />
+      </div>
 
       <AnnouncementOutlet
         announcements={sidebarBottomAnnouncements}
         appearance="compact"
-        className="grid gap-2"
+        className={styles.sidebarMessages}
       />
       {sidebarBottomCtas.length ? (
         <ConfiguredCtaList
           ctas={sidebarBottomCtas}
-          className="grid gap-2"
-          itemClassName="text-left"
+          className={styles.sidebarCtas}
+          itemClassName={styles.sidebarCtaItem}
           appearance="compact"
         />
       ) : null}
@@ -125,10 +206,81 @@ function AdminDrawerNav({
   );
 }
 
+function CampusIntegrityNotice({
+  campusIntegrity,
+}: {
+  campusIntegrity: CampusIntegrity;
+}) {
+  if (campusIntegrity.ok) return null;
+
+  return (
+    <div className={styles.integrityNotice} role="status">
+      <div className={styles.sectionKicker}>Aviso operativo</div>
+      <div className={styles.noticeTitle}>Catálogo de planteles incompleto</div>
+      <p className={styles.noticeText}>
+        Ejecuta <code>npm run campus:seed</code>. Estado actual: campus{" "}
+        {campusIntegrity.activeCampus}/24, online {campusIntegrity.activeOnline}
+        /1.
+      </p>
+    </div>
+  );
+}
+
+function SessionActionsDialog({
+  adminEmail,
+  roleLabel,
+  logoutAction,
+  open,
+  onOpenChange,
+}: {
+  adminEmail: string;
+  roleLabel: string;
+  logoutAction: () => Promise<void>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Trigger asChild>
+        <button
+          type="button"
+          className={`${styles.iconButton} ${styles.mobileOnly}`}
+          aria-label="Abrir acciones de sesión"
+        >
+          <DashboardIcon name="more" className={styles.icon} />
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className={styles.dialogOverlay} />
+        <Dialog.Content className={styles.actionsDialog}>
+          <Dialog.Title className={styles.dialogTitle}>
+            Acciones de sesión
+          </Dialog.Title>
+          <Dialog.Description className={styles.dialogDescription}>
+            Gestiona tu sesión administrativa actual.
+          </Dialog.Description>
+
+          <div className={styles.sessionIdentity}>
+            <span className={styles.sessionEmail}>{adminEmail}</span>
+            <span className={styles.sessionRole}>{roleLabel}</span>
+          </div>
+
+          <form action={logoutAction} className={styles.dialogActionGroup}>
+            <button type="submit" className={styles.secondaryActionButton}>
+              Cerrar sesión
+            </button>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 export default function AdminChrome({
   adminEmail,
   adminRole,
   adminCapabilities,
+  isSystemOwner,
   campusIntegrity,
   logoutAction,
   children,
@@ -146,195 +298,192 @@ export default function AdminChrome({
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  const roleLabel = SYSTEM_ROLES.includes(adminRole as never)
-    ? getSystemRoleMeta(adminRole as never).label
-    : adminRole;
+
+  const roleLabel = getRoleLabel(adminRole);
   const breadcrumbs = resolveDashboardBreadcrumbs(pathname);
   const pageTitle = resolveDashboardTitle(pathname);
+
+  const navGroups = useMemo(
+    () => filterNavGroupsByCapabilities(adminNavGroups, adminCapabilities),
+    [adminCapabilities],
+  );
+
   const actionCenterAnnouncements = [
     ...headerBannerAnnouncements,
     ...contentTopAnnouncements,
   ];
   const actionCenterCtas = [...headerBannerCtas, ...contentTopCtas];
+  const hasActionCenterContent =
+    actionCenterAnnouncements.length > 0 || actionCenterCtas.length > 0;
+  const hasInsideContent =
+    contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
+
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   return (
-    <main className="min-h-screen overflow-x-clip text-[color:var(--ui-text-primary)]">
-      <div className="ui-page-frame ui-page-grid grid-cols-1">
-        <div className="ui-page-main grid-rows-[auto_auto_auto_1fr_auto]">
-          <header className="ui-shell-header flex items-start justify-between gap-3 sm:items-center">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-                <Dialog.Trigger asChild>
-                  <button
-                    type="button"
-                    className="ui-shell-icon-button h-9 w-9"
-                    aria-label="Abrir menú"
-                  >
-                    <DashboardIcon name="menu" className="h-4 w-4" />
-                  </button>
-                </Dialog.Trigger>
-                <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-                  <Dialog.Content className="ui-shell-drawer fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[372px] flex-col overflow-hidden border-r p-3 shadow-2xl outline-none">
-                    <Dialog.Title className="sr-only">Navegación admin</Dialog.Title>
-                    <Dialog.Close asChild>
-                      <button
-                        type="button"
-                        className="ui-shell-icon-button absolute right-3 top-3 h-9 w-9"
-                        aria-label="Cerrar menú"
-                      >
-                        <DashboardIcon name="close" className="h-4 w-4" />
-                      </button>
-                    </Dialog.Close>
-                    <div className="flex items-center gap-3 border-b border-[color:var(--ui-border)] px-2 py-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-[color:var(--ui-border)] bg-[#114E6D] text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-sm">
-                        Admin
-                      </div>
-                      <div className="ui-shell-brand min-w-0">
-                        <div className="ui-shell-brand__eyebrow">Scholarship</div>
-                        <div className="flex min-w-0 items-center gap-2">
-                        <Image
-                          src="/branding/logo-recalc.png"
-                          alt="ReCalc"
-                          width={120}
-                          height={40}
-                              className="h-5 w-auto shrink-0 object-contain"
-                        />
-                          <div className="ui-shell-brand__title">ReCalc Admin</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="ui-scrollbar mt-3 flex-1 overflow-y-auto">
-                      <AdminDrawerNav
-                        adminCapabilities={adminCapabilities}
-                        roleLabel={roleLabel}
-                        pathname={pathname}
-                        onNavigate={() => setMobileNavOpen(false)}
-                        sidebarTopAnnouncements={sidebarTopAnnouncements}
-                        sidebarTopCtas={sidebarTopCtas}
-                        sidebarBottomAnnouncements={sidebarBottomAnnouncements}
-                        sidebarBottomCtas={sidebarBottomCtas}
-                      />
-                    </div>
-                  </Dialog.Content>
-                </Dialog.Portal>
-              </Dialog.Root>
+    <div className={styles.shell}>
+      <div className={styles.layout}>
+        <aside className={styles.desktopSidebar} aria-label="Navegación admin">
+          <AdminBrand />
+          <AdminNavPanel
+            navGroups={navGroups}
+            adminCapabilities={adminCapabilities}
+            roleLabel={roleLabel}
+            isSystemOwner={isSystemOwner}
+            pathname={pathname}
+            onNavigate={() => undefined}
+            sidebarTopAnnouncements={sidebarTopAnnouncements}
+            sidebarTopCtas={sidebarTopCtas}
+            sidebarBottomAnnouncements={sidebarBottomAnnouncements}
+            sidebarBottomCtas={sidebarBottomCtas}
+          />
+        </aside>
 
-              <div className="min-w-0">
-                <nav className="flex items-center gap-1.5 text-xs text-[color:var(--ui-text-secondary)]">
-                  {breadcrumbs.map((crumb, index) => (
-                    <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
-                      {index > 0 ? (
-                        <span className="text-[color:var(--ui-text-secondary)]">/</span>
-                      ) : null}
+        <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className={styles.dialogOverlay} />
+            <Dialog.Content className={styles.mobileDrawer}>
+              <Dialog.Title className="sr-only">Navegación admin</Dialog.Title>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.drawerClose}`}
+                  aria-label="Cerrar menú"
+                >
+                  <DashboardIcon name="close" className={styles.icon} />
+                </button>
+              </Dialog.Close>
+              <AdminBrand />
+              <AdminNavPanel
+                navGroups={navGroups}
+                adminCapabilities={adminCapabilities}
+                roleLabel={roleLabel}
+                isSystemOwner={isSystemOwner}
+                pathname={pathname}
+                onNavigate={closeMobileNav}
+                sidebarTopAnnouncements={sidebarTopAnnouncements}
+                sidebarTopCtas={sidebarTopCtas}
+                sidebarBottomAnnouncements={sidebarBottomAnnouncements}
+                sidebarBottomCtas={sidebarBottomCtas}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+
+        <main className={styles.mainPanel}>
+          <header className={styles.header}>
+            <div className={styles.headerTop}>
+              <div className={styles.headingCluster}>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.mobileOnly}`}
+                  aria-label="Abrir menú"
+                  onClick={() => setMobileNavOpen(true)}
+                >
+                  <DashboardIcon name="menu" className={styles.icon} />
+                </button>
+
+                <div className={styles.titleBlock}>
+                  <nav className={styles.breadcrumbs} aria-label="Ruta actual">
+                    {breadcrumbs.map((crumb, index) => (
                       <span
-                        className={
-                          index === breadcrumbs.length - 1
-                            ? "font-semibold text-[color:var(--ui-text-primary)]"
-                            : "text-[color:var(--ui-text-secondary)]"
-                        }
+                        key={`${crumb}-${index}`}
+                        className={styles.breadcrumbItem}
                       >
-                        {crumb}
+                        {index > 0 ? (
+                          <span className={styles.breadcrumbSeparator}>/</span>
+                        ) : null}
+                        <span
+                          className={
+                            index === breadcrumbs.length - 1
+                              ? styles.breadcrumbCurrent
+                              : styles.breadcrumbMuted
+                          }
+                        >
+                          {crumb}
+                        </span>
                       </span>
-                    </span>
-                  ))}
-                </nav>
-                <div className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[color:var(--ui-text-primary)] sm:text-[1.35rem]">
-                  {pageTitle}
+                    ))}
+                  </nav>
+                  <h1 className={styles.pageTitle}>{pageTitle}</h1>
                 </div>
-                <div className="mt-2 hidden flex-wrap gap-2 sm:flex">
-                  <span className="ui-pill ui-pill--accent">{roleLabel}</span>
-                </div>
+              </div>
+
+              <div className={styles.headerActions}>
+                <ApplyChangesButton />
+                <SessionActionsDialog
+                  adminEmail={adminEmail}
+                  roleLabel={roleLabel}
+                  logoutAction={logoutAction}
+                  open={mobileActionsOpen}
+                  onOpenChange={setMobileActionsOpen}
+                />
+                <form action={logoutAction} className={styles.desktopOnly}>
+                  <button type="submit" className={styles.secondaryActionButton}>
+                    Cerrar sesión
+                  </button>
+                </form>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-              <ApplyChangesButton />
-
-              <Dialog.Root
-                open={mobileActionsOpen}
-                onOpenChange={setMobileActionsOpen}
-              >
-                <Dialog.Trigger asChild>
-                  <button
-                    type="button"
-                    className="ui-shell-icon-button h-9 w-9"
-                    aria-label="Abrir acciones"
-                  >
-                    <DashboardIcon name="more" className="h-4 w-4" />
-                  </button>
-                </Dialog.Trigger>
-                <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-                  <Dialog.Content className="ui-shell-drawer fixed right-4 top-20 z-50 w-[90vw] max-w-[360px] rounded-[22px] border p-4 shadow-2xl outline-none">
-                    <Dialog.Title className="text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                      Acciones de sesión
-                    </Dialog.Title>
-                    <div className="mt-4 truncate text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                      {adminEmail}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="ui-pill ui-pill--accent">{roleLabel}</span>
-                    </div>
-                    <div className="mt-4 grid gap-2">
-                      <form action={logoutAction}>
-                        <button
-                          type="submit"
-                          className="ui-cta-secondary w-full justify-start px-4 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(120,190,33,0.3)]"
-                        >
-                          Cerrar sesión
-                        </button>
-                      </form>
-                    </div>
-                  </Dialog.Content>
-                </Dialog.Portal>
-              </Dialog.Root>
+            <div className={styles.contextBar} aria-label="Estado del panel">
+              <StatusPill label="Sesión" value={adminEmail} tone="neutral" />
+              <StatusPill label="Rol" value={roleLabel} tone="accent" />
+              <StatusPill
+                label="Permisos"
+                value={`${adminCapabilities.length}`}
+                tone="neutral"
+              />
+              <StatusPill
+                label="Planteles"
+                value={`${campusIntegrity.activeCampus}/24`}
+                tone={campusIntegrity.ok ? "success" : "warning"}
+              />
+              <StatusPill
+                label="Online"
+                value={`${campusIntegrity.activeOnline}/1`}
+                tone={campusIntegrity.ok ? "success" : "warning"}
+              />
             </div>
           </header>
 
-          <EngagementZone
-            title="Centro de acción admin"
-            description="Comunicados operativos y accesos directos para creación, administración y publicación."
-            announcements={actionCenterAnnouncements}
-            ctas={actionCenterCtas}
-            variant="admin"
-            emptyLabel="Sin acciones ni comunicados activos en este espacio."
-          />
-
-          <div className="min-w-0 grid content-start gap-[var(--ui-shell-gap)]">
-            <AnnouncementOutlet
-              announcements={contentInsideAnnouncements}
-              className="grid gap-2"
-            />
-            {contentInsideCtas.length ? (
-              <ConfiguredCtaList
-                ctas={contentInsideCtas}
-                className="grid gap-2 md:grid-cols-2 xl:grid-cols-3"
+          {hasActionCenterContent ? (
+            <section className={styles.actionCenter} aria-label="Centro operativo">
+              <EngagementZone
+                title="Centro operativo"
+                description="Comunicados y accesos directos configurados para administrar, publicar y coordinar cambios."
+                announcements={actionCenterAnnouncements}
+                ctas={actionCenterCtas}
+                variant="admin"
+                emptyLabel="Sin acciones ni comunicados activos en este espacio."
               />
-            ) : null}
-            {children}
-          </div>
-
-          {!campusIntegrity.ok ? (
-            <div className="ui-note ui-note--info">
-              <div className="text-xs uppercase tracking-[0.28em]">
-                Aviso
-              </div>
-              <div className="mt-1 font-semibold">
-                Catálogo de planteles incompleto
-              </div>
-              <div className="mt-1">
-                Ejecuta <code className="rounded bg-black/30 px-1">npm run campus:seed</code>.
-                {" "}
-                Estado: campus {campusIntegrity.activeCampus}/24, online{" "}
-                {campusIntegrity.activeOnline}/1.
-              </div>
-            </div>
+            </section>
           ) : null}
 
+          <section className={styles.contentSurface} aria-label="Contenido admin">
+            {hasInsideContent ? (
+              <div className={styles.inlineMessages}>
+                <AnnouncementOutlet
+                  announcements={contentInsideAnnouncements}
+                  className={styles.inlineAnnouncementList}
+                />
+                {contentInsideCtas.length ? (
+                  <ConfiguredCtaList
+                    ctas={contentInsideCtas}
+                    className={styles.inlineCtaGrid}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className={styles.adminContent}>{children}</div>
+          </section>
+
+          <CampusIntegrityNotice campusIntegrity={campusIntegrity} />
+
           <AppFooter />
-        </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
