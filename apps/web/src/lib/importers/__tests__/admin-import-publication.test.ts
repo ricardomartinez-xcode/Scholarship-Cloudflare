@@ -1,0 +1,153 @@
+import {
+  AdminConfigModule,
+  AdminImportSessionStatus,
+} from "@prisma/client";
+import { describe, expect, it } from "vitest";
+
+import {
+  getAdminImportApplyTarget,
+  getAdminImportPublicationState,
+  validateAdminImportPublicationConfirmation,
+} from "../admin-import-publication";
+
+function buildFormRequest(values: Record<string, string>) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(values)) {
+    formData.set(key, value);
+  }
+
+  return new Request("https://recalc.local/admin/importaciones/session/apply", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+describe("admin import publication", () => {
+  describe("validateAdminImportPublicationConfirmation", () => {
+    it("acepta la confirmación explícita requerida para publicar", async () => {
+      const result = await validateAdminImportPublicationConfirmation(
+        buildFormRequest({
+          confirmImpactReviewed: "on",
+          confirmPublicationText: "PUBLICAR",
+        }),
+      );
+
+      expect(result).toEqual({ ok: true });
+    });
+
+    it("rechaza solicitudes sin confirmación de impacto revisado", async () => {
+      const result = await validateAdminImportPublicationConfirmation(
+        buildFormRequest({ confirmPublicationText: "PUBLICAR" }),
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.message).toContain("Confirma que revisaste el impacto");
+      }
+    });
+
+    it("rechaza solicitudes sin texto PUBLICAR exacto", async () => {
+      const result = await validateAdminImportPublicationConfirmation(
+        buildFormRequest({
+          confirmImpactReviewed: "on",
+          confirmPublicationText: "publicar",
+        }),
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.message).toContain("PUBLICAR");
+      }
+    });
+
+    it("rechaza llamadas directas que no envían formData", async () => {
+      const request = new Request("https://recalc.local/api/admin/import/apply", {
+        method: "POST",
+        body: JSON.stringify({ confirmPublicationText: "PUBLICAR" }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const result = await validateAdminImportPublicationConfirmation(request);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.message).toContain("confirmación explícita");
+      }
+    });
+  });
+
+  describe("getAdminImportApplyTarget", () => {
+    it("resuelve el endpoint de publicación para precios", () => {
+      expect(
+        getAdminImportApplyTarget({
+          id: "session-prices",
+          module: AdminConfigModule.PRICES,
+          fileName: "precios.csv",
+        }),
+      ).toBe("/api/admin/prices/import/session-prices/apply");
+    });
+
+    it("resuelve el endpoint de publicación para beneficios", () => {
+      expect(
+        getAdminImportApplyTarget({
+          id: "session-benefits",
+          module: AdminConfigModule.BENEFITS,
+          fileName: "beneficios.csv",
+        }),
+      ).toBe("/api/admin/benefits/import/session-benefits/apply");
+    });
+
+    it("resuelve el endpoint de publicación para becas base", () => {
+      expect(
+        getAdminImportApplyTarget({
+          id: "session-base-scholarships",
+          module: AdminConfigModule.BENEFITS,
+          fileName: "base-scholarships:becas.csv",
+        }),
+      ).toBe("/api/admin/benefits/base-scholarships/import/session-base-scholarships/apply");
+    });
+
+    it("resuelve el endpoint de publicación para oferta académica", () => {
+      expect(
+        getAdminImportApplyTarget({
+          id: "session-offer",
+          module: AdminConfigModule.OFFER,
+          fileName: "oferta.xlsx",
+        }),
+      ).toBe("/api/admin/import-academic-offer/session-offer/apply");
+    });
+
+    it("no genera endpoint de publicación para módulos no importables", () => {
+      expect(
+        getAdminImportApplyTarget({
+          id: "session-sidebar",
+          module: AdminConfigModule.SIDEBAR,
+          fileName: "sidebar.csv",
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("getAdminImportPublicationState", () => {
+    it("marca sesiones preview como borrador publicable", () => {
+      const state = getAdminImportPublicationState(AdminImportSessionStatus.preview);
+
+      expect(state.stage).toBe("draft");
+      expect(state.actionLabel).toBe("Publicar importación");
+    });
+
+    it("marca sesiones aplicadas como publicadas sin acción pendiente", () => {
+      const state = getAdminImportPublicationState(AdminImportSessionStatus.applied);
+
+      expect(state.stage).toBe("published");
+      expect(state.actionLabel).toBeNull();
+    });
+
+    it("marca sesiones fallidas como bloqueadas", () => {
+      const state = getAdminImportPublicationState(AdminImportSessionStatus.failed);
+
+      expect(state.stage).toBe("blocked");
+      expect(state.actionLabel).toBeNull();
+    });
+  });
+});
