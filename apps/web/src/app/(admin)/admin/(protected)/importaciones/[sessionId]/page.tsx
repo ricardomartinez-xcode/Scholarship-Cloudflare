@@ -1,4 +1,7 @@
-import { AdminCapability } from "@prisma/client";
+import {
+  AdminCapability,
+  AdminImportSessionStatus,
+} from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -8,6 +11,11 @@ import {
   buildImportDiffSummary,
   type ImportDiffExample,
 } from "@/lib/importers/admin-import-diff";
+import {
+  getAdminImportApplyTarget,
+  getAdminImportPublicationChecklist,
+  getAdminImportPublicationState,
+} from "@/lib/importers/admin-import-publication";
 import { getAdminImportSession } from "@/lib/importers/admin-import-sessions";
 import { canRollbackAdminImportSession } from "@/lib/importers/admin-import-rollbacks";
 import { rollbackImportSessionAction } from "./actions";
@@ -26,7 +34,9 @@ function JsonBlock({ title, value }: { title: string; value: unknown }) {
     value === null ||
     value === undefined ||
     (Array.isArray(value) && value.length === 0) ||
-    (typeof value === "object" && !Array.isArray(value) && Object.keys(value as Record<string, unknown>).length === 0);
+    (typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value as Record<string, unknown>).length === 0);
 
   return (
     <section className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
@@ -57,6 +67,14 @@ const DIFF_KIND_META = {
   updated: { label: "Actualizado", className: "border-cyan-400/20 bg-cyan-400/10 text-cyan-100" },
   removed: { label: "Eliminado", className: "border-rose-400/20 bg-rose-400/10 text-rose-100" },
 } satisfies Record<ImportDiffExample["kind"], { label: string; className: string }>;
+
+const PUBLICATION_TONE_META = {
+  cyan: "border-cyan-500/20 bg-cyan-500/5 text-cyan-50",
+  emerald: "border-emerald-500/20 bg-emerald-500/5 text-emerald-50",
+  amber: "border-amber-400/20 bg-amber-400/10 text-amber-50",
+  red: "border-red-500/20 bg-red-500/10 text-red-50",
+  slate: "border-white/10 bg-slate-950/35 text-slate-50",
+};
 
 function DiffExampleList({ examples }: { examples: ImportDiffExample[] }) {
   if (!examples.length) {
@@ -91,6 +109,67 @@ function DiffExampleList({ examples }: { examples: ImportDiffExample[] }) {
   );
 }
 
+function PublicationPanel({
+  state,
+  checklist,
+  applyTarget,
+}: {
+  state: ReturnType<typeof getAdminImportPublicationState>;
+  checklist: string[];
+  applyTarget: string | null;
+}) {
+  const canPublishFromDetail = state.stage === "draft" && Boolean(applyTarget);
+
+  return (
+    <section className={`rounded-3xl border p-5 ${PUBLICATION_TONE_META[state.tone]}`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.24em] opacity-80">Borrador / publicación</div>
+          <h2 className="mt-1 text-lg font-semibold">{state.label}</h2>
+          <p className="mt-2 max-w-4xl text-sm opacity-85">{state.description}</p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]">
+          {state.shortLabel}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs opacity-90 md:grid-cols-2">
+        {checklist.map((item) => (
+          <div key={item} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+            {item}
+          </div>
+        ))}
+      </div>
+
+      {canPublishFromDetail ? (
+        <form method="post" action={applyTarget ?? undefined} className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-4">
+          <div className="text-xs uppercase tracking-[0.24em] text-cyan-100">Confirmación explícita</div>
+          <p className="mt-2 text-sm text-slate-200">
+            Publicar aplicará esta sesión sobre datos productivos. Confirma que ya revisaste warnings, errores, diff y snapshots.
+          </p>
+          <label className="mt-3 flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-200">
+            <input required type="checkbox" name="confirmImpactReviewed" className="mt-1" />
+            <span>Confirmo que revisé el impacto y que esta importación puede publicarse.</span>
+          </label>
+          <label className="mt-3 grid gap-1 text-sm text-slate-200">
+            <span>Escribe PUBLICAR para continuar</span>
+            <input
+              required
+              name="confirmPublicationText"
+              pattern="PUBLICAR"
+              placeholder="PUBLICAR"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
+            />
+          </label>
+          <button className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20">
+            {state.actionLabel}
+          </button>
+        </form>
+      ) : null}
+    </section>
+  );
+}
+
 export default async function ImportSessionDetailPage({ params }: { params: PageParams }) {
   await requireAdminCapabilityUser(AdminCapability.view_admin_operations);
 
@@ -100,6 +179,9 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
 
   const moduleMeta = getAdminConfigModuleMeta(session.module);
   const canRollback = canRollbackAdminImportSession(session);
+  const publicationState = getAdminImportPublicationState(session.status);
+  const publicationChecklist = getAdminImportPublicationChecklist(session.module);
+  const applyTarget = session.status === AdminImportSessionStatus.preview ? getAdminImportApplyTarget(session) : null;
 
   const diffSummary = buildImportDiffSummary({
     beforeSnapshot: session.beforeSnapshot,
@@ -138,6 +220,8 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
         <MetaItem label="Checksum" value={session.fileChecksum} />
         <MetaItem label="Versión aplicada" value={session.appliedVersionId} />
       </section>
+
+      <PublicationPanel state={publicationState} checklist={publicationChecklist} applyTarget={applyTarget} />
 
       {canRollback ? (
         <section className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
