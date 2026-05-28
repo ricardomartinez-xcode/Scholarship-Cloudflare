@@ -1,0 +1,242 @@
+.priceSkin {
+  --price-bg: #f4f7f9;
+  --price-surface: #ffffff;
+  --price-surface-soft: #f7fafc;
+  --price-border: #c8d6e2;
+  --price-border-soft: #d8e4ec;
+  --price-text: #102838;
+  --price-muted: #536a7c;
+  --price-accent: #0f4c6b;
+  --price-accent-hover: #0b3d56;
+  --price-success: #0c5f3a;
+  --price-success-bg: #ddf8ea;
+  --price-warning: #7a4a00;
+  --price-warning-bg: #fff3d6;
+  --price-danger: #8a2d2d;
+  --price-danger-bg: #fde7e7;
+}
+
+.priceSkin {
+  min-width: 0;
+  color: var(--price-text);
+}
+
+.priceSkin :global(.ui-card),
+.priceSkin :global(.ui-card-pad) {
+  border-color: var(--price-border) !important;
+  background: var(--price-surface) !important;
+  color: var(--price-text) !important;
+  box-shadow: 0 16px 50px rgb(16 32 42 / 0.06) !important;
+}
+
+.priceSkin :global(.ui-card-pad) {
+  border-radius: 26px !important;
+}
+
+.priceSkin :global(.ui-toolbar) {
+  gap: 1rem !important;
+}
+
+.priceSkin :global(.ui-control),
+.priceSkin :global(input:not([type="checkbox"]):not([type="radio"])),
+.priceSkin :global(select),
+.priceSkin :global(textarea) {
+  max-width: 100%;
+  border-color: var(--price-border) !important;
+  background: #ffffff !important;
+  color: var(--price-text) !important;
+}
+
+.priceSkin :global(input::placeholder),
+.priceSkin :global(textarea::placeholder) {
+  color: #5f7180 !important;
+  opacity: 1 !important;
+}
+
+.priceSkin :global(label),
+.priceSkin :global(h1),
+.priceSkin :global(h2),
+.priceSkin :global(h3),
+.priceSkin :global(strong) {
+  color: var(--price-text) !important;
+}
+
+.priceSkin :global(p),
+.priceSkin :global(small),
+.priceSkin :global(li),
+.priceSkin :global([class*="text-slate-300"]),
+.priceSkin :global([class*="text-slate-400"]),
+.priceSkin :global([class*="text-slate-500"]),
+.priceSkin :global([class*="text-gray-"]),
+.priceSkin :global([class*="text-zinc-"]) {
+  color: var(--price-muted) !important;
+}
+
+.priceSkin :global([class*="text-slate-100"]),
+.priceSkin :global([class*="text-slate-200"]),
+.priceSkin :global([class*="text-white"]) {
+  color: var(--price-text) !important;
+}
+
+.priceSkin :global([class*="bg-slate-950"]),
+.priceSkin :global([class*="bg-black"]),
+.priceSkin :global([class*="bg-white/0"]),
+.priceSkin :global([class*="bg-white/5"]) {
+  border-color: var(--price-border) !important;
+  background: var(--price-surface-soft) !important;
+  color: var(--price-text) !important;
+}
+
+.priceSkin :global([class*="border-white/10"]),
+.priceSkin :global([class*="border-white/15"]) {
+  border-color: var(--price-border) !important;
+}
+
+.priceSkin :global([class*="bg-red-500/10"]),
+.priceSkin :global([class*="border-red-500/30"]),
+.priceSkin :global([class*="border-red-500/35"]) {
+  border-color: rgb(138 45 45 / 0.22) !important;
+  background: var(--price-danger-bg) !important;
+  color: var(--price-danger) !important;
+}
+
+.priceSkin :global([class*="text-red-"]) {
+  color: var(--price-danger) !important;
+}
+
+.priceSkin :global([class*="bg-amber-500/10"]),
+.priceSkin :global([class*="bg-amber-500/15"]),
+.priceSkin :global([class*="border-amber-500/30"]),
+.priceSkin :global([class*="border-amber-500/35"]),
+.priceSkin :global([class*="bg-yellow-500/15"]) {
+  border-color: rgb(122 74 0 / 0.22) !important;
+  background: var(--price-warning-bg) !important;
+  color: var(--price-warning) !important;
+}
+
+.priceSkin :global([class*="text-amber-"]),
+.priceSkin :global([class*="text-yellow-"]) {
+  color: var(--price-warning) !important;
+}
+
+.priceSkin :global([class*="bg-emerald-500/15"]),
+.priceSkin :global([class*="border-emerald-500/40"]),
+.priceSkin :global([class*="bg-blue-950/15"]) {
+  border-color: rgb(12 95 58 / 0.2) !important;
+  background: var(--price-success-bg) !important;
+  color: var(--price-success) !important;
+}
+
+.priceSkin :global([class*="text-emerald-"]) {
+  color: var(--price-success) !important;
+}
+
+.priceSkin :global([class*="text-cyan-"]),
+.priceSkin :global([class*="text-sky-"]) {
+  color: var(--price-accent) !important;
+}
+
+.priceSkin :global([class*="bg-cyan-500/10"]),
+.priceSkin :global([class*="border-cyan-500/30"]),
+.priceSkin :global([class*="border-cyan-500/40"]) {
+  border-color: rgb(15 76 107 / 0.24) !important;
+  background: rgb(15 76 107 / 0.1) !important;
+  color: var(--price-accent) !important;
+}
+
+.priceSkin :global(.ui-table-wrap) {
+  max-width: 100%;
+  max-height: min(72dvh, 760px) !important;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  border-color: var(--price-border) !important;
+  border-radius: 20px !important;
+  background: #ffffff !important;
+}
+
+.priceSkin :global(.ui-table) {
+  width: 100% !important;
+  min-width: 1120px !important;
+  border-collapse: collapse !important;
+  color: var(--price-text) !important;
+  white-space: nowrap;
+}
+
+.priceSkin :global(.ui-table thead),
+.priceSkin :global(.ui-table thead tr) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc !important;
+}
+
+.priceSkin :global(.ui-table th) {
+  background: #f8fafc !important;
+  color: var(--price-text) !important;
+  font-weight: 850 !important;
+}
+
+.priceSkin :global(.ui-table td) {
+  color: var(--price-text) !important;
+}
+
+.priceSkin :global(.ui-table th),
+.priceSkin :global(.ui-table td) {
+  border-color: var(--price-border-soft) !important;
+}
+
+.priceSkin :global(button) {
+  border-color: var(--price-border) !important;
+  color: var(--price-text) !important;
+  opacity: 1 !important;
+}
+
+.priceSkin :global(button:not(:disabled):hover) {
+  border-color: rgb(15 76 107 / 0.38) !important;
+}
+
+.priceSkin :global(button:disabled),
+.priceSkin :global([aria-disabled="true"]) {
+  cursor: not-allowed;
+  background: #e5ebef !important;
+  color: #647684 !important;
+  opacity: 1 !important;
+}
+
+.priceSkin :global(.ui-table td:last-child button) {
+  min-height: 2rem;
+  border-radius: 999px !important;
+  padding: 0.32rem 0.65rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+
+.priceSkin :global(.ui-table td:last-child > div) {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem !important;
+}
+
+.priceSkin :global(pre) {
+  border-color: var(--price-border) !important;
+  background: var(--price-surface-soft) !important;
+  color: var(--price-text) !important;
+}
+
+@media (max-width: 720px) {
+  .priceSkin :global(.ui-toolbar) {
+    align-items: stretch !important;
+  }
+
+  .priceSkin :global(.ui-toolbar button),
+  .priceSkin :global(.ui-toolbar select) {
+    width: 100%;
+  }
+
+  .priceSkin :global(.ui-table-wrap) {
+    max-height: min(68dvh, 48rem) !important;
+  }
+}

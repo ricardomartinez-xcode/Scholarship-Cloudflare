@@ -17,6 +17,8 @@ import {
   upsertMontoOverrideAction,
 } from "./actions";
 
+import styles from "./PricesAdminSkin.module.css";
+
 export const dynamic = "force-dynamic";
 
 export default async function PricesPage() {
@@ -35,7 +37,7 @@ export default async function PricesPage() {
   ]);
 
   return (
-    <div className="grid gap-6">
+    <div className={`${styles.priceSkin} grid gap-6`}>
       <ConfigPublishPanel
         module={configModule}
         title={moduleMeta.label}
