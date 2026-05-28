@@ -1,0 +1,432 @@
+/* Workspace brand correction: match admin proportions while preserving the non-admin sidebar behavior. */
+
+.ui-page-frame {
+  --workspace-bg: #f4f7f9;
+  --workspace-surface: #ffffff;
+  --workspace-surface-soft: #f7fafc;
+  --workspace-border: #c8d6e2;
+  --workspace-border-soft: #d8e4ec;
+  --workspace-text: #102838;
+  --workspace-muted: #536a7c;
+  --workspace-subtle: #667c8d;
+  --workspace-accent: #0f4c6b;
+  --workspace-accent-hover: #0b3d56;
+  --workspace-accent-soft: rgb(15 76 107 / 0.1);
+  --workspace-success: #0c5f3a;
+  --workspace-success-bg: #ddf8ea;
+  --workspace-warning: #7a4a00;
+  --workspace-warning-bg: #fff3d6;
+  --workspace-danger: #8a2d2d;
+  --workspace-danger-bg: #fde7e7;
+  --workspace-radius-lg: 28px;
+  --workspace-radius-md: 24px;
+  --workspace-radius-sm: 18px;
+  --workspace-shadow-lg: 0 18px 60px rgb(16 32 42 / 0.07);
+  --workspace-shadow-md: 0 16px 50px rgb(16 32 42 / 0.06);
+  --workspace-shadow-sm: 0 12px 34px rgb(16 32 42 / 0.05);
+  background:
+    radial-gradient(circle at 0 0, rgb(17 78 109 / 0.065), transparent 34rem),
+    linear-gradient(180deg, var(--workspace-bg), #ffffff 76%);
+}
+
+.ui-page-frame .ui-page-grid,
+.ui-page-frame .ui-page-main {
+  width: 100%;
+  max-width: min(100%, 1760px);
+  margin-inline: auto;
+}
+
+.ui-page-frame .ui-page-main,
+.ui-page-frame main {
+  min-width: 0;
+}
+
+.ui-page-frame .ui-shell-header--workspace,
+.ui-page-frame .ui-workspace-header {
+  min-height: 74px !important;
+  border: 1px solid var(--workspace-border) !important;
+  border-radius: var(--workspace-radius-lg) !important;
+  background: rgb(255 255 255 / 0.94) !important;
+  box-shadow: var(--workspace-shadow-lg) !important;
+  backdrop-filter: blur(18px);
+  padding: clamp(0.9rem, 2vw, 1.25rem) !important;
+}
+
+.ui-page-frame .ui-workspace-header__title,
+.ui-page-frame .ui-shell-brand__title {
+  color: var(--workspace-text) !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.035em;
+}
+
+.ui-page-frame .ui-workspace-header__email,
+.ui-page-frame .ui-shell-brand__eyebrow,
+.ui-page-frame nav,
+.ui-page-frame nav span {
+  color: var(--workspace-muted) !important;
+}
+
+.ui-page-frame .ui-card,
+.ui-page-frame .ui-card-pad,
+.ui-page-frame .ui-chat-panel,
+.ui-page-frame .ui-offer-card,
+.ui-page-frame .ui-form-card,
+.ui-page-frame .ui-summary-card,
+.ui-page-frame .ui-result-card,
+.ui-page-frame .ui-panel,
+.ui-page-frame .ui-section,
+.ui-page-frame .ui-modal,
+.ui-page-frame .ui-popover,
+.ui-page-frame .ui-dropdown {
+  border-color: var(--workspace-border) !important;
+  background: var(--workspace-surface) !important;
+  color: var(--workspace-text) !important;
+}
+
+.ui-page-frame .ui-card,
+.ui-page-frame .ui-card-pad,
+.ui-page-frame .ui-chat-panel,
+.ui-page-frame .ui-offer-card,
+.ui-page-frame .ui-form-card,
+.ui-page-frame .ui-summary-card,
+.ui-page-frame .ui-result-card,
+.ui-page-frame .ui-panel,
+.ui-page-frame .ui-section {
+  border-radius: var(--workspace-radius-md) !important;
+  box-shadow: var(--workspace-shadow-md) !important;
+}
+
+.ui-page-frame .ui-card-pad,
+.ui-page-frame .ui-form-card,
+.ui-page-frame .ui-panel,
+.ui-page-frame .ui-section {
+  padding: clamp(1rem, 1.65vw, 1.4rem) !important;
+}
+
+.ui-page-frame .ui-result-card,
+.ui-page-frame .ui-summary-card {
+  border-radius: var(--workspace-radius-sm) !important;
+  box-shadow: var(--workspace-shadow-sm) !important;
+}
+
+.ui-page-frame h1,
+.ui-page-frame h2,
+.ui-page-frame h3,
+.ui-page-frame h4,
+.ui-page-frame strong,
+.ui-page-frame label,
+.ui-page-frame legend,
+.ui-page-frame th {
+  color: var(--workspace-text) !important;
+}
+
+.ui-page-frame h1 {
+  font-weight: 900 !important;
+  letter-spacing: -0.055em;
+}
+
+.ui-page-frame h2,
+.ui-page-frame h3 {
+  font-weight: 850 !important;
+  letter-spacing: -0.035em;
+}
+
+.ui-page-frame p,
+.ui-page-frame small,
+.ui-page-frame li,
+.ui-page-frame figcaption,
+.ui-page-frame .text-gray-400,
+.ui-page-frame .text-gray-500,
+.ui-page-frame .text-slate-300,
+.ui-page-frame .text-slate-400,
+.ui-page-frame .text-slate-500,
+.ui-page-frame .text-zinc-400,
+.ui-page-frame .text-zinc-500 {
+  color: var(--workspace-muted) !important;
+}
+
+.ui-page-frame input:not([type="checkbox"]):not([type="radio"]),
+.ui-page-frame select,
+.ui-page-frame textarea,
+.ui-page-frame [role="combobox"],
+.ui-page-frame .ui-control,
+.ui-page-frame .ui-select-trigger,
+.ui-page-frame .ui-input,
+.ui-page-frame .ui-textarea {
+  min-height: 2.55rem !important;
+  max-width: 100%;
+  border: 1px solid var(--workspace-border) !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: var(--workspace-text) !important;
+  box-shadow: none !important;
+  font-size: 0.92rem;
+}
+
+.ui-page-frame input::placeholder,
+.ui-page-frame textarea::placeholder {
+  color: #5f7180 !important;
+  opacity: 1 !important;
+}
+
+.ui-page-frame input:focus-visible,
+.ui-page-frame select:focus-visible,
+.ui-page-frame textarea:focus-visible,
+.ui-page-frame button:focus-visible,
+.ui-page-frame a:focus-visible,
+.ui-page-frame [role="button"]:focus-visible,
+.ui-page-frame [role="combobox"]:focus-visible {
+  outline: 3px solid rgb(15 76 107 / 0.26) !important;
+  outline-offset: 2px;
+}
+
+.ui-page-frame .ui-cta-primary,
+.ui-page-frame button[data-variant="primary"],
+.ui-page-frame .bg-primary,
+.ui-page-frame .bg-\[\#0f4c6b\] {
+  border-color: var(--workspace-accent) !important;
+  background: var(--workspace-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgb(15 76 107 / 0.16) !important;
+}
+
+.ui-page-frame .ui-cta-primary:hover,
+.ui-page-frame button[data-variant="primary"]:hover {
+  background: var(--workspace-accent-hover) !important;
+}
+
+.ui-page-frame .ui-cta-secondary,
+.ui-page-frame .ui-button,
+.ui-page-frame .ui-shell-icon-button,
+.ui-page-frame button:not(:disabled):not([data-variant="primary"]) {
+  border-color: var(--workspace-border) !important;
+  background: #ffffff !important;
+  color: var(--workspace-text) !important;
+  opacity: 1 !important;
+}
+
+.ui-page-frame .ui-cta-secondary:hover,
+.ui-page-frame .ui-button:hover,
+.ui-page-frame .ui-shell-icon-button:hover,
+.ui-page-frame button:not(:disabled):not([data-variant="primary"]):hover {
+  border-color: rgb(15 76 107 / 0.38) !important;
+  background: var(--workspace-accent-soft) !important;
+  color: var(--workspace-accent) !important;
+}
+
+.ui-page-frame select:disabled,
+.ui-page-frame input:disabled,
+.ui-page-frame textarea:disabled,
+.ui-page-frame button:disabled,
+.ui-page-frame [aria-disabled="true"],
+.ui-page-frame [data-disabled="true"] {
+  cursor: not-allowed !important;
+  border-color: var(--workspace-border) !important;
+  background: #e5ebef !important;
+  color: #647684 !important;
+  opacity: 1 !important;
+}
+
+.ui-page-frame .bg-slate-950,
+.ui-page-frame .bg-slate-900,
+.ui-page-frame .bg-black,
+.ui-page-frame [class*="bg-black/"],
+.ui-page-frame [class*="bg-white/5"],
+.ui-page-frame [class*="bg-white/10"] {
+  border-color: var(--workspace-border) !important;
+  background: var(--workspace-surface-soft) !important;
+  color: var(--workspace-text) !important;
+}
+
+.ui-page-frame .bg-cyan-500\/10,
+.ui-page-frame .bg-sky-500\/10,
+.ui-page-frame [class*="bg-cyan"],
+.ui-page-frame [class*="bg-sky"] {
+  border-color: rgb(15 76 107 / 0.26) !important;
+  background: var(--workspace-accent-soft) !important;
+  color: var(--workspace-accent) !important;
+}
+
+.ui-page-frame .text-cyan-300,
+.ui-page-frame .text-cyan-400,
+.ui-page-frame .text-sky-300,
+.ui-page-frame .text-sky-400,
+.ui-page-frame [class*="text-cyan"],
+.ui-page-frame [class*="text-sky"] {
+  color: var(--workspace-accent) !important;
+}
+
+.ui-page-frame .bg-emerald-500\/10,
+.ui-page-frame .bg-emerald-500\/15,
+.ui-page-frame [class*="bg-emerald"] {
+  border-color: rgb(12 95 58 / 0.22) !important;
+  background: var(--workspace-success-bg) !important;
+  color: var(--workspace-success) !important;
+}
+
+.ui-page-frame .text-emerald-300,
+.ui-page-frame .text-emerald-400,
+.ui-page-frame .text-emerald-500,
+.ui-page-frame [class*="text-emerald"] {
+  color: var(--workspace-success) !important;
+}
+
+.ui-page-frame .bg-amber-500\/10,
+.ui-page-frame .bg-amber-500\/15,
+.ui-page-frame .bg-yellow-500\/10,
+.ui-page-frame .bg-yellow-500\/15,
+.ui-page-frame [class*="bg-amber"],
+.ui-page-frame [class*="bg-yellow"] {
+  border-color: rgb(122 74 0 / 0.22) !important;
+  background: var(--workspace-warning-bg) !important;
+  color: var(--workspace-warning) !important;
+}
+
+.ui-page-frame .text-amber-300,
+.ui-page-frame .text-amber-400,
+.ui-page-frame .text-yellow-300,
+.ui-page-frame .text-yellow-400,
+.ui-page-frame [class*="text-amber"],
+.ui-page-frame [class*="text-yellow"] {
+  color: var(--workspace-warning) !important;
+}
+
+.ui-page-frame .bg-red-500\/10,
+.ui-page-frame .bg-red-500\/15,
+.ui-page-frame [class*="bg-red"],
+.ui-page-frame [class*="bg-rose"] {
+  border-color: rgb(138 45 45 / 0.22) !important;
+  background: var(--workspace-danger-bg) !important;
+  color: var(--workspace-danger) !important;
+}
+
+.ui-page-frame .text-red-300,
+.ui-page-frame .text-red-400,
+.ui-page-frame .text-rose-300,
+.ui-page-frame .text-rose-400,
+.ui-page-frame [class*="text-red"],
+.ui-page-frame [class*="text-rose"] {
+  color: var(--workspace-danger) !important;
+}
+
+.ui-page-frame .ui-table-wrap,
+.ui-page-frame .table-wrap,
+.ui-page-frame [data-table-wrap="true"] {
+  max-width: 100%;
+  max-height: min(72dvh, 720px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--workspace-border) !important;
+  border-radius: 20px !important;
+  background: #ffffff !important;
+}
+
+.ui-page-frame table,
+.ui-page-frame .ui-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  color: var(--workspace-text) !important;
+  white-space: nowrap;
+}
+
+.ui-page-frame thead,
+.ui-page-frame table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc !important;
+}
+
+.ui-page-frame th {
+  background: #f8fafc !important;
+  color: var(--workspace-text) !important;
+  font-weight: 850 !important;
+}
+
+.ui-page-frame td {
+  color: var(--workspace-text) !important;
+}
+
+.ui-page-frame th,
+.ui-page-frame td {
+  border-color: var(--workspace-border-soft) !important;
+}
+
+.ui-page-frame [role="dialog"],
+.ui-page-frame [role="listbox"],
+.ui-page-frame .select-content,
+.ui-page-frame .dropdown-content,
+.ui-page-frame .radix-select-content {
+  border-color: var(--workspace-border) !important;
+  border-radius: var(--workspace-radius-sm) !important;
+  background: #ffffff !important;
+  color: var(--workspace-text) !important;
+  box-shadow: 0 24px 70px rgb(16 32 42 / 0.18) !important;
+}
+
+.ui-page-frame [role="option"],
+.ui-page-frame .select-item,
+.ui-page-frame .dropdown-item {
+  color: var(--workspace-text) !important;
+}
+
+.ui-page-frame [role="option"][data-highlighted],
+.ui-page-frame .select-item[data-highlighted],
+.ui-page-frame .dropdown-item:hover {
+  background: var(--workspace-accent-soft) !important;
+  color: var(--workspace-accent) !important;
+}
+
+@media (min-width: 1024px) {
+  .ui-page-frame .ui-page-grid,
+  .ui-page-frame .ui-page-main {
+    padding-inline: clamp(0.875rem, 2vw, 1.5rem);
+  }
+}
+
+@media (max-width: 1023px) {
+  .ui-page-frame .ui-shell-header--workspace,
+  .ui-page-frame .ui-workspace-header {
+    min-height: 62px !important;
+    border-radius: 20px !important;
+    padding: 0.9rem !important;
+  }
+
+  .ui-page-frame table,
+  .ui-page-frame .ui-table {
+    min-width: 860px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ui-page-frame {
+    background: linear-gradient(180deg, var(--workspace-bg), #ffffff 78%);
+  }
+
+  .ui-page-frame input:not([type="checkbox"]):not([type="radio"]),
+  .ui-page-frame select,
+  .ui-page-frame textarea,
+  .ui-page-frame .ui-control {
+    min-height: 2.75rem !important;
+    font-size: 1rem;
+  }
+
+  .ui-page-frame .ui-card,
+  .ui-page-frame .ui-card-pad,
+  .ui-page-frame .ui-chat-panel,
+  .ui-page-frame .ui-offer-card,
+  .ui-page-frame .ui-form-card,
+  .ui-page-frame .ui-summary-card,
+  .ui-page-frame .ui-result-card,
+  .ui-page-frame .ui-panel,
+  .ui-page-frame .ui-section {
+    border-radius: 20px !important;
+  }
+
+  .ui-page-frame .ui-table-wrap,
+  .ui-page-frame .table-wrap,
+  .ui-page-frame [data-table-wrap="true"] {
+    max-height: min(68dvh, 48rem);
+  }
+}
