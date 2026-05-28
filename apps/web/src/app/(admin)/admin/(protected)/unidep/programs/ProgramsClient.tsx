@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import AdminDataTable from "@/components/admin/AdminDataTable";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
+import AdminRowActions from "@/components/admin/AdminRowActions";
 import { deleteProgramAction, updateProgramUnidepAction } from "./actions";
 
 type BusinessLine = "salud" | "licenciatura" | "prepa" | "posgrado";
@@ -28,6 +31,35 @@ const LINE_LABELS: Record<string, string> = {
 const PAGE_SIZE = 15;
 const STORAGE_KEY = "admin.unidep.programs.table";
 
+function PdfLink({ href, label }: { href: string | null; label: string }) {
+  if (!href) {
+    return <span className="text-xs font-semibold text-[#6b7f8e]">—</span>;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex rounded-full border border-[#c8d6e2] bg-white px-2.5 py-1 text-xs font-extrabold text-[#0f4c6b] underline-offset-2 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10 hover:underline"
+    >
+      {label}
+    </a>
+  );
+}
+
+function LineBadge({ line }: { line: BusinessLine | null }) {
+  if (!line) {
+    return <span className="text-xs font-semibold text-[#6b7f8e]">—</span>;
+  }
+
+  return (
+    <span className="inline-flex rounded-full border border-[#0f4c6b]/25 bg-[#0f4c6b]/10 px-2.5 py-1 text-xs font-extrabold text-[#0f4c6b]">
+      {LINE_LABELS[line] ?? line}
+    </span>
+  );
+}
+
 export default function ProgramsClient({ programs }: { programs: Program[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -51,15 +83,16 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
       // ignore persisted UI errors
     }
     return () => {
-      if (timer !== undefined) {
-        window.clearTimeout(timer);
-      }
+      if (timer !== undefined) window.clearTimeout(timer);
     };
   }, []);
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, tableExpanded ? "expanded" : "collapsed");
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        tableExpanded ? "expanded" : "collapsed",
+      );
     } catch {
       // ignore persisted UI errors
     }
@@ -67,9 +100,14 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return programs.filter((p) => {
-      const matchLine = !lineFilter || p.businessLine === lineFilter;
-      const searchable = [p.name, p.category, p.level, p.businessLine]
+    return programs.filter((program) => {
+      const matchLine = !lineFilter || program.businessLine === lineFilter;
+      const searchable = [
+        program.name,
+        program.category,
+        program.level,
+        program.businessLine,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -79,18 +117,28 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
-  function openEdit(prog: Program) {
-    setEditing(prog);
+  function openEdit(program: Program) {
+    setEditing(program);
     setError("");
     setSuccess("");
   }
 
-  function handleDelete(prog: Program) {
-    if (!window.confirm(`¿Eliminar "${prog.name}"? Esta acción no se puede deshacer.`)) return;
+  function handleDelete(program: Program) {
+    if (
+      !window.confirm(
+        `¿Eliminar "${program.name}"? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return;
+    }
+
     const fd = new FormData();
-    fd.set("id", prog.id);
+    fd.set("id", program.id);
     startDeleteTransition(async () => {
       const res = await deleteProgramAction(fd);
       if (!res.ok) {
@@ -101,9 +149,9 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
     });
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget);
     setError("");
     setSuccess("");
     startTransition(async () => {
@@ -119,53 +167,54 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
   }
 
   return (
-    <div className="grid gap-6">
-      <section className="ui-card p-4 sm:p-5">
+    <div className="grid gap-5">
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-4 shadow-[0_16px_50px_rgb(16_32_42/0.06)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.28em] text-slate-400">
+            <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
               Programas
             </div>
-            <h2 className="mt-1 text-lg font-semibold">Catálogo de PDFs y metadata</h2>
-            <p className="mt-1 max-w-3xl text-sm text-slate-300">
-              Aquí conviven campos de catálogo y operación.{" "}
-              <span className="font-semibold text-slate-100">Categoría</span> funciona como
-              agrupador descriptivo;{" "}
-              <span className="font-semibold text-slate-100">Línea</span> define la línea de
-              negocio operativa; los PDFs se usan por separado en Oferta y Planes.
+            <h2 className="mt-1 text-xl font-black tracking-[-0.035em] text-[#102838]">
+              Catálogo de PDFs y metadata
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">
+              Administra campos operativos, línea de negocio y URLs de PDFs sin
+              desbordar la pantalla. Las acciones frecuentes se compactan en
+              iconos accesibles.
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => setTableExpanded((prev) => !prev)}
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:bg-white/10"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-white px-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
           >
             {tableExpanded ? "Contraer tabla" : "Expandir tabla"}
           </button>
         </div>
       </section>
 
-      <section className="ui-card grid gap-4 p-4 sm:p-5">
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-4 shadow-[0_16px_50px_rgb(16_32_42/0.06)] sm:p-5">
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="grid gap-2 text-sm">
+          <label className="grid gap-2 text-sm font-bold text-[#163247]">
             Buscar programa
             <input
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onChange={(event) => {
+                setSearch(event.target.value);
                 setPage(1);
               }}
               className="ui-control"
               placeholder="Nombre, categoría o nivel"
             />
-          </div>
-          <div className="grid gap-2 text-sm">
+          </label>
+
+          <label className="grid gap-2 text-sm font-bold text-[#163247]">
             Línea de negocio
             <select
               value={lineFilter}
-              onChange={(e) => {
-                setLineFilter(e.target.value);
+              onChange={(event) => {
+                setLineFilter(event.target.value);
                 setPage(1);
               }}
               className="ui-control"
@@ -176,134 +225,121 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
               <option value="prepa">Bachillerato</option>
               <option value="posgrado">Posgrado</option>
             </select>
-          </div>
+          </label>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-slate-300">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-[#536a7c]">
           <div>{filtered.length} programa(s)</div>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs font-semibold text-[#536a7c]">
             PDFs de plan y brochure se administran por separado.
           </div>
         </div>
 
         {tableExpanded ? (
-          <div className="ui-scrollbar max-h-[72vh] max-w-full overflow-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[1080px] border-collapse text-sm">
-              <thead className="sticky top-0 bg-slate-950/95 text-slate-300 backdrop-blur">
-                <tr>
-                  <th className="w-[260px] p-3 text-left font-semibold">Programa</th>
-                  <th className="w-[180px] p-3 text-left font-semibold">Categoría</th>
-                  <th className="w-[160px] p-3 text-left font-semibold">Línea</th>
-                  <th className="w-[140px] p-3 text-left font-semibold">Nivel interno</th>
-                  <th className="w-[120px] p-3 text-left font-semibold">Plan PDF</th>
-                  <th className="w-[120px] p-3 text-left font-semibold">Brochure PDF</th>
-                  <th className="w-[160px] p-3 text-right font-semibold">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageRows.map((prog) => (
-                  <tr key={prog.id} className="border-t border-white/10 align-top">
-                    <td className="p-3 text-slate-100">
-                      <div className="font-semibold">{prog.name}</div>
-                    </td>
-                    <td className="p-3 text-slate-300">
-                      <span className="block max-w-[180px] truncate" title={prog.category ?? "—"}>
-                        {prog.category ?? "—"}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-300">
-                      {prog.businessLine ? (
-                        <span className="rounded-full bg-blue-950/20 px-2 py-0.5 text-xs text-emerald-300">
-                          {LINE_LABELS[prog.businessLine]}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500">—</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-slate-400">{prog.level ?? "—"}</td>
-                    <td className="p-3">
-                      {prog.planPdfUrl ? (
-                        <a
-                          href={prog.planPdfUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-emerald-300 underline"
-                        >
-                          Ver PDF
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-500">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {prog.brochurePdfUrl ? (
-                        <a
-                          href={prog.brochurePdfUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-emerald-300 underline"
-                        >
-                          Ver PDF
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-500">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(prog)}
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(prog)}
-                          disabled={isDeleting}
-                          className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!pageRows.length ? (
+          <div className="mt-4">
+            <AdminDataTable
+              title="Programas académicos"
+              count={filtered.length}
+              description="Máximo 15 filas por página, scroll horizontal controlado y acciones compactas por fila."
+              maxHeight="min(72dvh, 720px)"
+            >
+              <table>
+                <thead>
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={7}>
-                      Sin resultados.
-                    </td>
+                    <th>Programa</th>
+                    <th>Categoría</th>
+                    <th>Línea</th>
+                    <th>Nivel interno</th>
+                    <th>Plan PDF</th>
+                    <th>Brochure PDF</th>
+                    <th>Acciones</th>
                   </tr>
-                ) : null}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pageRows.map((program) => (
+                    <tr key={program.id}>
+                      <td>
+                        <div className="font-extrabold text-[#102838]">
+                          {program.name}
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          className="block max-w-[220px] truncate text-[#536a7c]"
+                          title={program.category ?? "—"}
+                        >
+                          {program.category ?? "—"}
+                        </span>
+                      </td>
+                      <td>
+                        <LineBadge line={program.businessLine} />
+                      </td>
+                      <td>{program.level ?? "—"}</td>
+                      <td>
+                        <PdfLink href={program.planPdfUrl} label="Abrir" />
+                      </td>
+                      <td>
+                        <PdfLink href={program.brochurePdfUrl} label="Abrir" />
+                      </td>
+                      <td>
+                        <AdminRowActions
+                          actions={[
+                            {
+                              type: "edit",
+                              label: `Editar ${program.name}`,
+                              onClick: () => openEdit(program),
+                              tone: "primary",
+                            },
+                            {
+                              type: "delete",
+                              label: `Eliminar ${program.name}`,
+                              onClick: () => handleDelete(program),
+                              tone: "danger",
+                              disabled: isDeleting,
+                            },
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {!pageRows.length ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="rounded-[18px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">
+                          Sin resultados para los filtros seleccionados.
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </AdminDataTable>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-slate-950/20 px-4 py-3 text-sm text-slate-400">
-            La tabla está contraída. Usa el botón superior para volver a expandirla.
+          <div className="mt-4 rounded-[22px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-5 text-sm text-[#536a7c]">
+            La tabla está contraída. Usa el botón superior para volver a
+            expandirla.
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#536a7c]">
           <div>
             Página {currentPage} de {totalPages} ({filtered.length} programas)
           </div>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
               disabled={currentPage <= 1}
-              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 disabled:opacity-40"
+              className="rounded-full border border-[#c8d6e2] bg-white px-3 py-1.5 font-bold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10 disabled:bg-[#e5ebef] disabled:text-[#647684]"
             >
               Anterior
             </button>
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
               disabled={currentPage >= totalPages}
-              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 disabled:opacity-40"
+              className="rounded-full border border-[#c8d6e2] bg-white px-3 py-1.5 font-bold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10 disabled:bg-[#e5ebef] disabled:text-[#647684]"
             >
               Siguiente
             </button>
@@ -326,7 +362,7 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
             <input type="hidden" name="id" value={editing.id} />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-2 text-sm sm:col-span-2">
+              <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">
                 Nombre del programa
                 <input
                   name="name"
@@ -334,9 +370,9 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   className="ui-control"
                   placeholder="Nombre del programa"
                 />
-              </div>
+              </label>
 
-              <div className="grid gap-2 text-sm">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Categoría
                 <input
                   name="category"
@@ -344,12 +380,12 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   className="ui-control"
                   placeholder="Ej. Salud, Ingeniería, Maestría"
                 />
-                <span className="text-xs text-slate-400">
+                <span className="text-xs font-semibold text-[#536a7c]">
                   Agrupador visible en Oferta y Planes.
                 </span>
-              </div>
+              </label>
 
-              <div className="grid gap-2 text-sm">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Línea de negocio
                 <select
                   name="businessLine"
@@ -362,12 +398,12 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   <option value="prepa">Bachillerato</option>
                   <option value="posgrado">Posgrado</option>
                 </select>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs font-semibold text-[#536a7c]">
                   Línea operativa usada para filtros y vistas públicas.
                 </span>
-              </div>
+              </label>
 
-              <div className="grid gap-2 text-sm sm:col-span-2">
+              <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">
                 URL Plan PDF
                 <input
                   name="planPdfUrl"
@@ -375,12 +411,12 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   className="ui-control"
                   placeholder="https://res.cloudinary.com/..."
                 />
-                <span className="text-xs text-slate-400">
+                <span className="text-xs font-semibold text-[#536a7c]">
                   Se usa en la sección pública de Planes.
                 </span>
-              </div>
+              </label>
 
-              <div className="grid gap-2 text-sm sm:col-span-2">
+              <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">
                 URL Brochure PDF
                 <input
                   name="brochurePdfUrl"
@@ -388,35 +424,35 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   className="ui-control"
                   placeholder="https://res.cloudinary.com/..."
                 />
-                <span className="text-xs text-slate-400">
+                <span className="text-xs font-semibold text-[#536a7c]">
                   Se usa en la sección pública de Oferta académica.
                 </span>
-              </div>
+              </label>
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+              <div className="rounded-[18px] border border-[#8a2d2d]/20 bg-[#fde7e7] px-4 py-2 text-sm font-semibold text-[#8a2d2d]">
                 {error}
               </div>
             ) : null}
             {success ? (
-              <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-300">
+              <div className="rounded-[18px] border border-[#0c5f3a]/20 bg-[#ddf8ea] px-4 py-2 text-sm font-semibold text-[#0c5f3a]">
                 {success}
               </div>
             ) : null}
 
-            <div className="sticky bottom-0 flex justify-end gap-2 border-t border-white/10 bg-slate-950/95 pt-4">
+            <div className="sticky bottom-0 flex justify-end gap-2 border-t border-[#c8d6e2] bg-white/95 pt-4">
               <button
                 type="button"
                 onClick={() => setEditing(null)}
-                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+                className="rounded-full border border-[#c8d6e2] bg-white px-4 py-2 text-sm font-bold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="rounded-full border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-100 transition hover:bg-blue-950/30 disabled:opacity-50"
+                className="rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0b3d56] disabled:border-[#c8d6e2] disabled:bg-[#e5ebef] disabled:text-[#647684]"
               >
                 {isPending ? "Guardando..." : "Guardar"}
               </button>
