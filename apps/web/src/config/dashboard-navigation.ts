@@ -211,6 +211,25 @@ export const adminNavGroups: DashboardNavGroup[] = [
         href: "/admin",
         group: "admin-workspace",
         requiredAny: ["view_admin"],
+        children: [
+          {
+            key: "reporting",
+            label: "Reporte operativo",
+            icon: "report",
+            href: "/admin/reporting",
+            group: "admin-summary",
+            requiredAll: ["view_admin_operations"],
+            requiredAny: ["view_reports"],
+          },
+          {
+            key: "admin-home",
+            label: "Panel administrativo",
+            icon: "summary",
+            href: "/admin",
+            group: "admin-summary",
+            requiredAny: ["view_admin"],
+          },
+        ],
       },
       {
         key: "admin-operacion",
@@ -250,6 +269,23 @@ export const adminNavGroups: DashboardNavGroup[] = [
             href: "/admin/auth-sync",
             group: "admin-operacion",
             requiredAny: ["view_admin_operations"],
+          },
+          {
+            key: "importaciones",
+            label: "Importaciones",
+            icon: "sync",
+            href: "/admin/importaciones",
+            group: "admin-operacion",
+            requiredAll: ["view_admin_operations"],
+          },
+          {
+            key: "audit",
+            label: "Auditoría",
+            icon: "audit",
+            href: "/admin/audit",
+            group: "admin-operacion",
+            requiredAll: ["view_admin_operations"],
+            requiredAny: ["view_reports"],
           },
         ],
       },
@@ -404,41 +440,6 @@ export const adminNavGroups: DashboardNavGroup[] = [
         ],
       },
       {
-        key: "admin-actividad",
-        label: "Actividad",
-        icon: "history",
-        href: "/admin/reporting",
-        group: "admin-workspace",
-        children: [
-          {
-            key: "reporting",
-            label: "Reporte operativo",
-            icon: "report",
-            href: "/admin/reporting",
-            group: "admin-actividad",
-            requiredAll: ["view_admin_operations"],
-            requiredAny: ["view_reports"],
-          },
-          {
-            key: "importaciones",
-            label: "Importaciones",
-            icon: "sync",
-            href: "/admin/importaciones",
-            group: "admin-actividad",
-            requiredAll: ["view_admin_operations"],
-          },
-          {
-            key: "audit",
-            label: "Auditoría",
-            icon: "audit",
-            href: "/admin/audit",
-            group: "admin-actividad",
-            requiredAll: ["view_admin_operations"],
-            requiredAny: ["view_reports"],
-          },
-        ],
-      },
-      {
         key: "training",
         label: "Capacitación",
         icon: "training",
@@ -464,9 +465,7 @@ export function filterNavGroupsByCapabilities(
 ): DashboardNavGroup[] {
   const itemPassesCapabilities = (item: DashboardNavItem) => {
     if (item.requiredAll?.length) {
-      const hasAll = item.requiredAll.every((required) =>
-        capabilities.includes(required),
-      );
+      const hasAll = item.requiredAll.every((required) => capabilities.includes(required));
       if (!hasAll) return false;
     }
 
