@@ -146,7 +146,7 @@ export default async function AdminCapacitacionPage({
       select: {
         id: true,
         canViewRolplay: true,
-        canJoinRoleplay: true,
+        canJoinRolplay: true,
         canCreateRoom: true,
         organizationId: true,
         userId: true,
@@ -197,7 +197,7 @@ export default async function AdminCapacitacionPage({
     (permission) => permission.canViewRolplay,
   ).length;
   const activeJoinPermissions = permissions.filter(
-    (permission) => permission.canJoinRoleplay,
+    (permission) => permission.canJoinRolplay,
   ).length;
   const activeCreatorPermissions = permissions.filter(
     (permission) => permission.canCreateRoom,
@@ -347,7 +347,7 @@ export default async function AdminCapacitacionPage({
                   disabled={!canManage}
                 />
                 <PermissionCheckbox
-                  name="canJoinRoleplay"
+                  name="canJoinRolplay"
                   label="Participar"
                   disabled={!canManage}
                 />
@@ -415,10 +415,10 @@ export default async function AdminCapacitacionPage({
                       defaultChecked={permission.canViewRolplay}
                     />
                     <PermissionCheckbox
-                      name="canJoinRoleplay"
+                      name="canJoinRolplay"
                       label="Participar"
                       disabled={!canManage}
-                      defaultChecked={permission.canJoinRoleplay}
+                      defaultChecked={permission.canJoinRolplay}
                     />
                     <PermissionCheckbox
                       name="canCreateRoom"
@@ -592,7 +592,7 @@ export default async function AdminCapacitacionPage({
                 <td>{permission.user.email}</td>
                 <td>{permission.organization.displayName}</td>
                 <td>{permission.canViewRolplay ? "Sí" : "No"}</td>
-                <td>{permission.canJoinRoleplay ? "Sí" : "No"}</td>
+                <td>{permission.canJoinRolplay ? "Sí" : "No"}</td>
                 <td>{permission.canCreateRoom ? "Sí" : "No"}</td>
                 <td>{formatDate(permission.updatedAt)}</td>
               </tr>
