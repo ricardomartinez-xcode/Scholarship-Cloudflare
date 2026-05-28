@@ -1,0 +1,81 @@
+.shell {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid #c8d6e2;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #d8e4ec;
+  padding: 0.9rem 1rem;
+}
+
+.title {
+  margin: 0;
+  color: #102838;
+  font-size: 0.98rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  margin: 0.2rem 0 0;
+  color: #536a7c;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.count {
+  flex: 0 0 auto;
+  border: 1px solid #c8d6e2;
+  border-radius: 999px;
+  background: #f7fafc;
+  color: #163247;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.viewport {
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.viewport :global(table) {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  color: #163247;
+  white-space: nowrap;
+}
+
+.viewport :global(thead) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #ffffff;
+}
+
+.viewport :global(th) {
+  background: #f8fafc;
+  color: #102838;
+  font-weight: 850;
+}
+
+.viewport :global(td) {
+  color: #163247;
+}
+
+.viewport :global(th),
+.viewport :global(td) {
+  border-bottom: 1px solid #d8e4ec;
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+}

@@ -1,5 +1,6 @@
 import { AdminCapability } from "@prisma/client";
 
+import AdminDataTable from "@/components/admin/AdminDataTable";
 import { adminHasCapability } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 
@@ -16,6 +17,90 @@ function readQueryValue(
     return value[0];
   }
   return value;
+}
+
+function formatDate(value: Date) {
+  return value.toLocaleString("es-MX", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function TrainingKpi({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string | number;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[22px] border border-[#c8d6e2] bg-white p-4 shadow-[0_12px_34px_rgb(16_32_42/0.05)]">
+      <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#536a7c]">
+        {label}
+      </div>
+      <div className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#102838]">
+        {value}
+      </div>
+      <p className="mt-1 text-sm leading-5 text-[#536a7c]">{description}</p>
+    </div>
+  );
+}
+
+function TrainingSection({
+  kicker,
+  title,
+  description,
+  children,
+}: {
+  kicker: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-5 shadow-[0_16px_50px_rgb(16_32_42/0.06)]">
+      <div className="mb-5">
+        <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+          {kicker}
+        </div>
+        <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">
+          {title}
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">
+          {description}
+        </p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PermissionCheckbox({
+  name,
+  label,
+  disabled,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  disabled: boolean;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="flex min-h-12 items-center rounded-[18px] border border-[#c8d6e2] bg-[#f7fafc] px-4 py-3 text-sm font-semibold text-[#163247]">
+      <input
+        type="checkbox"
+        name={name}
+        value="true"
+        className="mr-2 h-4 w-4 accent-[#0f4c6b]"
+        disabled={disabled}
+        defaultChecked={defaultChecked}
+      />
+      {label}
+    </label>
+  );
 }
 
 export const dynamic = "force-dynamic";
@@ -61,7 +146,7 @@ export default async function AdminCapacitacionPage({
       select: {
         id: true,
         canViewRolplay: true,
-        canJoinRolplay: true,
+        canJoinRoleplay: true,
         canCreateRoom: true,
         organizationId: true,
         userId: true,
@@ -108,45 +193,64 @@ export default async function AdminCapacitacionPage({
     }),
   ]);
 
+  const activeViewPermissions = permissions.filter(
+    (permission) => permission.canViewRolplay,
+  ).length;
+  const activeJoinPermissions = permissions.filter(
+    (permission) => permission.canJoinRoleplay,
+  ).length;
+  const activeCreatorPermissions = permissions.filter(
+    (permission) => permission.canCreateRoom,
+  ).length;
+
   return (
-    <div className="grid gap-6 p-6">
-      <section className="ui-shell-page-intro">
-        <div className="ui-shell-page-intro__grid">
-          <div className="ui-shell-page-intro__headline">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="ui-pill ui-pill--accent">Capacitación</span>
-              <span className="ui-pill">
+    <div className="grid gap-5 p-4 sm:p-5 lg:p-6">
+      <section className="rounded-[28px] border border-[#c8d6e2] bg-white p-5 shadow-[0_18px_60px_rgb(16_32_42/0.07)]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.42fr)]">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-[#0f4c6b]/25 bg-[#0f4c6b]/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0f4c6b]">
+                Capacitación
+              </span>
+              <span className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#536a7c]">
                 {canManage ? "Gestión habilitada" : "Consulta"}
               </span>
             </div>
-            <div className="ui-kicker">Gobierno del módulo</div>
-            <h1 className="ui-shell-page-intro__title">
-              Asigna acceso a rolplay y prepara salas reales por organización.
+            <div className="mt-4 text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+              Gobierno del módulo
+            </div>
+            <h1 className="mt-2 max-w-4xl text-3xl font-black leading-tight tracking-[-0.055em] text-[#102838] md:text-4xl">
+              Permisos de roleplay, salas operativas y actividad reciente.
             </h1>
-            <p className="ui-shell-page-intro__copy">
-              Este módulo resuelve el vacío operativo de capacitación: desde aquí
-              se habilita quién puede ver, participar o crear salas, y también se
-              crean las primeras salas que después consume <code>/unidep/capacitacion/rolplay</code>.
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#536a7c]">
+              Organiza quién puede ver, participar o crear salas de capacitación.
+              La pantalla queda separada por tareas para reducir ruido visual y
+              mantener la operación diaria clara.
             </p>
           </div>
 
-          <div className="ui-shell-page-intro__aside">
-            <div className="ui-kicker">Resumen rápido</div>
-            <div className="ui-shell-metric-grid">
-              <div className="ui-shell-metric">
-                <div className="ui-shell-metric__label">Organizaciones</div>
-                <div className="ui-shell-metric__value">{organizations.length}</div>
-                <div className="ui-shell-metric__copy">Disponibles para asignación</div>
+          <div className="grid gap-3 rounded-[22px] border border-[#c8d6e2] bg-[#f7fafc] p-4">
+            <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+              Resumen rápido
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-[18px] border border-[#c8d6e2] bg-white p-3">
+                <div className="text-xs font-bold text-[#536a7c]">Usuarios</div>
+                <div className="mt-1 text-xl font-black text-[#102838]">
+                  {users.length}
+                </div>
               </div>
-              <div className="ui-shell-metric">
-                <div className="ui-shell-metric__label">Permisos activos</div>
-                <div className="ui-shell-metric__value">{permissions.length}</div>
-                <div className="ui-shell-metric__copy">Filas de acceso guardadas</div>
+              <div className="rounded-[18px] border border-[#c8d6e2] bg-white p-3">
+                <div className="text-xs font-bold text-[#536a7c]">Permisos</div>
+                <div className="mt-1 text-xl font-black text-[#102838]">
+                  {permissions.length}
+                </div>
               </div>
-              <div className="ui-shell-metric">
-                <div className="ui-shell-metric__label">Salas</div>
-                <div className="ui-shell-metric__value">{rooms.length}</div>
-                <div className="ui-shell-metric__copy">Últimas salas registradas</div>
+              <div className="rounded-[18px] border border-[#c8d6e2] bg-white p-3">
+                <div className="text-xs font-bold text-[#536a7c]">Salas</div>
+                <div className="mt-1 text-xl font-black text-[#102838]">
+                  {rooms.length}
+                </div>
               </div>
             </div>
           </div>
@@ -154,34 +258,50 @@ export default async function AdminCapacitacionPage({
       </section>
 
       {statusMessage ? (
-        <section className="ui-note ui-note--info">
-          <div className="text-xs uppercase tracking-[0.28em]">Resultado</div>
-          <div className="mt-1 font-semibold">{statusMessage}</div>
+        <section className="rounded-[20px] border border-[#0c5f3a]/20 bg-[#ddf8ea] px-4 py-3 text-sm font-semibold text-[#0c5f3a]">
+          {statusMessage}
         </section>
       ) : null}
 
       {errorMessage ? (
-        <section className="rounded-[24px] border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          <div className="text-xs uppercase tracking-[0.28em]">Error</div>
-          <div className="mt-1 font-semibold">{errorMessage}</div>
+        <section className="rounded-[20px] border border-[#8a2d2d]/20 bg-[#fde7e7] px-4 py-3 text-sm font-semibold text-[#8a2d2d]">
+          {errorMessage}
         </section>
       ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
-        <div className="grid gap-4">
-          <div className="rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(11,61,92,0.92),rgba(13,45,86,0.96))] p-5">
-            <div className="ui-kicker">Nueva asignación</div>
-            <h2 className="mt-2 text-lg font-semibold text-white">
-              Crear o actualizar permisos por usuario
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Usa esta forma para habilitar rolplay en una organización concreta.
-              Si desmarcas todo y guardas, el permiso se elimina.
-            </p>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <TrainingKpi
+          label="Organizaciones"
+          value={organizations.length}
+          description="Disponibles para asignación y creación de salas."
+        />
+        <TrainingKpi
+          label="Ver roleplay"
+          value={activeViewPermissions}
+          description="Usuarios habilitados para consultar el módulo."
+        />
+        <TrainingKpi
+          label="Participar"
+          value={activeJoinPermissions}
+          description="Permisos activos para unirse a sesiones."
+        />
+        <TrainingKpi
+          label="Crear salas"
+          value={activeCreatorPermissions}
+          description="Usuarios con capacidad para iniciar salas."
+        />
+      </section>
 
-            <form action={upsertTrainingPermissionAction} className="mt-5 grid gap-4">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.7fr)]">
+        <div className="grid gap-5">
+          <TrainingSection
+            kicker="Gestión de acceso"
+            title="Crear o actualizar permisos por usuario"
+            description="Selecciona usuario, organización y permisos. Si guardas sin permisos marcados, el registro se elimina."
+          >
+            <form action={upsertTrainingPermissionAction} className="grid gap-4">
               <div className="grid gap-4 lg:grid-cols-2">
-                <label className="grid gap-2 text-sm text-slate-200">
+                <label className="grid gap-2 text-sm font-bold text-[#163247]">
                   Usuario
                   <select
                     name="userId"
@@ -200,7 +320,7 @@ export default async function AdminCapacitacionPage({
                   </select>
                 </label>
 
-                <label className="grid gap-2 text-sm text-slate-200">
+                <label className="grid gap-2 text-sm font-bold text-[#163247]">
                   Organización
                   <select
                     name="organizationId"
@@ -221,57 +341,41 @@ export default async function AdminCapacitacionPage({
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <label className="rounded-[22px] border border-white/8 bg-slate-950/20 p-4 text-sm text-slate-200">
-                  <input
-                    type="checkbox"
-                    name="canViewRolplay"
-                    value="true"
-                    className="mr-2"
-                    disabled={!canManage}
-                  />
-                  Ver rolplay
-                </label>
-                <label className="rounded-[22px] border border-white/8 bg-slate-950/20 p-4 text-sm text-slate-200">
-                  <input
-                    type="checkbox"
-                    name="canJoinRolplay"
-                    value="true"
-                    className="mr-2"
-                    disabled={!canManage}
-                  />
-                  Participar
-                </label>
-                <label className="rounded-[22px] border border-white/8 bg-slate-950/20 p-4 text-sm text-slate-200">
-                  <input
-                    type="checkbox"
-                    name="canCreateRoom"
-                    value="true"
-                    className="mr-2"
-                    disabled={!canManage}
-                  />
-                  Crear salas
-                </label>
+                <PermissionCheckbox
+                  name="canViewRolplay"
+                  label="Ver roleplay"
+                  disabled={!canManage}
+                />
+                <PermissionCheckbox
+                  name="canJoinRoleplay"
+                  label="Participar"
+                  disabled={!canManage}
+                />
+                <PermissionCheckbox
+                  name="canCreateRoom"
+                  label="Crear salas"
+                  disabled={!canManage}
+                />
               </div>
 
               <button
                 type="submit"
                 disabled={!canManage}
-                className="ui-cta-secondary justify-center px-4 text-sm text-slate-100 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-5 text-sm font-extrabold text-white shadow-[0_12px_30px_rgb(15_76_107/0.18)] transition hover:bg-[#0b3d56] disabled:border-[#c8d6e2] disabled:bg-[#e5ebef] disabled:text-[#647684]"
               >
                 Guardar asignación
               </button>
             </form>
-          </div>
+          </TrainingSection>
 
-          <div className="rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(11,61,92,0.92),rgba(13,45,86,0.96))] p-5">
-            <div className="ui-kicker">Asignaciones actuales</div>
-            <h2 className="mt-2 text-lg font-semibold text-white">
-              Permisos guardados por organización
-            </h2>
-
-            <div className="mt-5 grid gap-4">
+          <TrainingSection
+            kicker="Asignaciones actuales"
+            title="Permisos guardados por organización"
+            description="Revisa y ajusta permisos existentes sin mezclar esta tarea con la creación de salas."
+          >
+            <div className="grid max-h-[620px] gap-3 overflow-y-auto pr-1">
               {permissions.length === 0 ? (
-                <div className="rounded-[22px] border border-white/8 bg-slate-950/20 px-4 py-5 text-sm text-slate-300">
+                <div className="rounded-[20px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">
                   Aún no hay permisos explícitos registrados.
                 </div>
               ) : null}
@@ -280,7 +384,7 @@ export default async function AdminCapacitacionPage({
                 <form
                   key={permission.id}
                   action={upsertTrainingPermissionAction}
-                  className="grid gap-4 rounded-[22px] border border-white/8 bg-slate-950/20 p-4"
+                  className="grid gap-4 rounded-[22px] border border-[#c8d6e2] bg-[#f7fafc] p-4"
                 >
                   <input type="hidden" name="userId" value={permission.userId} />
                   <input
@@ -291,80 +395,60 @@ export default async function AdminCapacitacionPage({
 
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-white">
+                      <div className="text-sm font-black text-[#102838]">
                         {permission.user.email}
                       </div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
+                      <div className="mt-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#536a7c]">
                         {permission.organization.displayName}
                       </div>
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Actualizado {permission.updatedAt.toLocaleString("es-MX")}
+                    <div className="text-xs font-semibold text-[#536a7c]">
+                      Actualizado {formatDate(permission.updatedAt)}
                     </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-3">
-                    <label className="rounded-[18px] border border-white/8 bg-black/15 p-3 text-sm text-slate-200">
-                      <input
-                        type="checkbox"
-                        name="canViewRolplay"
-                        value="true"
-                        defaultChecked={permission.canViewRolplay}
-                        className="mr-2"
-                        disabled={!canManage}
-                      />
-                      Ver rolplay
-                    </label>
-                    <label className="rounded-[18px] border border-white/8 bg-black/15 p-3 text-sm text-slate-200">
-                      <input
-                        type="checkbox"
-                        name="canJoinRolplay"
-                        value="true"
-                        defaultChecked={permission.canJoinRolplay}
-                        className="mr-2"
-                        disabled={!canManage}
-                      />
-                      Participar
-                    </label>
-                    <label className="rounded-[18px] border border-white/8 bg-black/15 p-3 text-sm text-slate-200">
-                      <input
-                        type="checkbox"
-                        name="canCreateRoom"
-                        value="true"
-                        defaultChecked={permission.canCreateRoom}
-                        className="mr-2"
-                        disabled={!canManage}
-                      />
-                      Crear salas
-                    </label>
+                    <PermissionCheckbox
+                      name="canViewRolplay"
+                      label="Ver roleplay"
+                      disabled={!canManage}
+                      defaultChecked={permission.canViewRolplay}
+                    />
+                    <PermissionCheckbox
+                      name="canJoinRoleplay"
+                      label="Participar"
+                      disabled={!canManage}
+                      defaultChecked={permission.canJoinRoleplay}
+                    />
+                    <PermissionCheckbox
+                      name="canCreateRoom"
+                      label="Crear salas"
+                      disabled={!canManage}
+                      defaultChecked={permission.canCreateRoom}
+                    />
                   </div>
 
                   <button
                     type="submit"
                     disabled={!canManage}
-                    className="ui-cta-secondary justify-center px-4 text-sm text-slate-100 disabled:opacity-60"
+                    className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-white px-4 text-sm font-extrabold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10 disabled:bg-[#e5ebef] disabled:text-[#647684]"
                   >
                     Guardar cambios
                   </button>
                 </form>
               ))}
             </div>
-          </div>
+          </TrainingSection>
         </div>
 
-        <div className="grid gap-4">
-          <div className="rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(8,48,78,0.9),rgba(10,36,74,0.96))] p-5">
-            <div className="ui-kicker">Salas iniciales</div>
-            <h2 className="mt-2 text-lg font-semibold text-white">
-              Crear una sala operativa
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Crea la estructura base para que los usuarios con permisos entren
-              inmediatamente a practicar desde <code>/unidep/capacitacion/rolplay</code>.
-            </p>
-
-            <form action={createTrainingRoomAction} className="mt-5 grid gap-4">
-              <label className="grid gap-2 text-sm text-slate-200">
+        <div className="grid gap-5 content-start">
+          <TrainingSection
+            kicker="Salas iniciales"
+            title="Crear una sala operativa"
+            description="Crea la estructura base para que usuarios con permisos entren a practicar desde roleplay."
+          >
+            <form action={createTrainingRoomAction} className="grid gap-4">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Organización
                 <select
                   name="organizationId"
@@ -383,7 +467,7 @@ export default async function AdminCapacitacionPage({
                 </select>
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Nombre
                 <input
                   name="name"
@@ -393,7 +477,7 @@ export default async function AdminCapacitacionPage({
                 />
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Descripción
                 <textarea
                   name="description"
@@ -403,7 +487,7 @@ export default async function AdminCapacitacionPage({
                 />
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Escenario
                 <input
                   name="scenario"
@@ -413,7 +497,7 @@ export default async function AdminCapacitacionPage({
                 />
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Visibilidad
                 <select
                   name="visibility"
@@ -430,22 +514,21 @@ export default async function AdminCapacitacionPage({
               <button
                 type="submit"
                 disabled={!canManage}
-                className="ui-cta-secondary justify-center px-4 text-sm text-slate-100 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-5 text-sm font-extrabold text-white shadow-[0_12px_30px_rgb(15_76_107/0.18)] transition hover:bg-[#0b3d56] disabled:border-[#c8d6e2] disabled:bg-[#e5ebef] disabled:text-[#647684]"
               >
                 Crear sala
               </button>
             </form>
-          </div>
+          </TrainingSection>
 
-          <div className="rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(8,48,78,0.9),rgba(10,36,74,0.96))] p-5">
-            <div className="ui-kicker">Salas recientes</div>
-            <h2 className="mt-2 text-lg font-semibold text-white">
-              Últimas salas registradas
-            </h2>
-
-            <div className="mt-5 grid gap-3">
+          <TrainingSection
+            kicker="Salas recientes"
+            title="Últimas salas registradas"
+            description="Historial operativo para validar creación, escenario, miembros y actividad."
+          >
+            <div className="grid max-h-[620px] gap-3 overflow-y-auto pr-1">
               {rooms.length === 0 ? (
-                <div className="rounded-[22px] border border-white/8 bg-slate-950/20 px-4 py-5 text-sm text-slate-300">
+                <div className="rounded-[20px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">
                   Aún no hay salas creadas.
                 </div>
               ) : null}
@@ -453,34 +536,70 @@ export default async function AdminCapacitacionPage({
               {rooms.map((room) => (
                 <article
                   key={room.id}
-                  className="rounded-[22px] border border-white/8 bg-slate-950/20 p-4"
+                  className="rounded-[22px] border border-[#c8d6e2] bg-[#f7fafc] p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-white">{room.name}</div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
+                      <div className="text-sm font-black text-[#102838]">
+                        {room.name}
+                      </div>
+                      <div className="mt-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#536a7c]">
                         {room.organization.displayName}
                       </div>
                     </div>
-                    <span className="ui-pill">{room.visibility}</span>
+                    <span className="rounded-full border border-[#c8d6e2] bg-white px-3 py-1 text-xs font-extrabold text-[#163247]">
+                      {room.visibility}
+                    </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                  <p className="mt-3 text-sm leading-6 text-[#536a7c]">
                     {room.description || "Sin descripción registrada."}
                   </p>
-                  <div className="mt-3 grid gap-2 text-xs text-slate-400">
+                  <div className="mt-3 grid gap-2 text-xs font-semibold text-[#536a7c]">
                     <div>Escenario: {room.scenario || "sin definir"}</div>
                     <div>Creada por: {room.creator.email}</div>
                     <div>
                       {room._count.members} miembro(s) · {room._count.messages} mensaje(s)
                     </div>
-                    <div>Actualizada: {room.updatedAt.toLocaleString("es-MX")}</div>
+                    <div>Actualizada: {formatDate(room.updatedAt)}</div>
                   </div>
                 </article>
               ))}
             </div>
-          </div>
+          </TrainingSection>
         </div>
       </section>
+
+      <AdminDataTable
+        title="Resumen de permisos"
+        count={permissions.length}
+        description="Vista compacta para revisar registros sin desbordar la pantalla."
+        maxHeight="420px"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Organización</th>
+              <th>Ver</th>
+              <th>Participar</th>
+              <th>Crear salas</th>
+              <th>Actualizado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {permissions.map((permission) => (
+              <tr key={permission.id}>
+                <td>{permission.user.email}</td>
+                <td>{permission.organization.displayName}</td>
+                <td>{permission.canViewRolplay ? "Sí" : "No"}</td>
+                <td>{permission.canJoinRoleplay ? "Sí" : "No"}</td>
+                <td>{permission.canCreateRoom ? "Sí" : "No"}</td>
+                <td>{formatDate(permission.updatedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminDataTable>
     </div>
   );
 }
