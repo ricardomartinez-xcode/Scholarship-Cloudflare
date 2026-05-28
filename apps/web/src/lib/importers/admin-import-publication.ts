@@ -18,6 +18,10 @@ export type AdminImportPublicationState = {
   tone: "cyan" | "emerald" | "amber" | "red" | "slate";
 };
 
+export type AdminImportPublicationConfirmationResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
 export function getAdminImportPublicationState(status: AdminImportSessionStatus): AdminImportPublicationState {
   if (status === AdminImportSessionStatus.preview) {
     return {
@@ -64,6 +68,34 @@ export function getAdminImportPublicationState(status: AdminImportSessionStatus)
     actionLabel: null,
     tone: "red",
   };
+}
+
+export async function validateAdminImportPublicationConfirmation(
+  request: Request,
+): Promise<AdminImportPublicationConfirmationResult> {
+  let formData: FormData;
+
+  try {
+    formData = await request.formData();
+  } catch {
+    return {
+      ok: false,
+      message: "Para publicar la importación debes enviar la confirmación explícita desde el detalle de sesión.",
+    };
+  }
+
+  const impactReviewed = formData.get("confirmImpactReviewed");
+  const confirmationText = String(formData.get("confirmPublicationText") ?? "").trim();
+
+  if (!impactReviewed || confirmationText !== "PUBLICAR") {
+    return {
+      ok: false,
+      message:
+        "Confirma que revisaste el impacto y escribe PUBLICAR antes de aplicar esta importación.",
+    };
+  }
+
+  return { ok: true };
 }
 
 export function getAdminImportApplyTarget(session: {

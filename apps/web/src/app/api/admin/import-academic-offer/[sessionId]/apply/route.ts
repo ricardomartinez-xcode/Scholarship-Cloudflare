@@ -12,6 +12,7 @@ import {
   applyPreparedAcademicOfferImport,
   type PreparedAcademicOfferImportPayload,
 } from "@/lib/importers/academic-offer";
+import { validateAdminImportPublicationConfirmation } from "@/lib/importers/admin-import-publication";
 import { captureException, logStructured } from "@/lib/observability";
 import {
   assertImportSessionCanApply,
@@ -24,7 +25,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ sessionId: string }> },
 ) {
   let sessionId: string | null = null;
@@ -48,6 +49,14 @@ export async function POST(
         sessionId,
         applied: true,
       });
+    }
+
+    const confirmation = await validateAdminImportPublicationConfirmation(request);
+    if (!confirmation.ok) {
+      return NextResponse.json(
+        { ok: false, error: confirmation.message },
+        { status: 400 },
+      );
     }
 
     try {

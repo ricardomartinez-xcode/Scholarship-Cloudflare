@@ -19,6 +19,7 @@ import {
   applyPreparedBaseScholarshipsImport,
   type PreparedBaseScholarshipsImportPayload,
 } from "@/lib/importers/base-scholarships-csv";
+import { validateAdminImportPublicationConfirmation } from "@/lib/importers/admin-import-publication";
 import {
   assertImportSessionCanApply,
   getAdminImportSession,
@@ -29,7 +30,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ sessionId: string }> },
 ) {
   const requestId = buildAdminRequestId("admin_base_scholarships_import_apply");
@@ -70,6 +71,17 @@ export async function POST(
         sessionId,
         applied: true,
         ...(session.result as Record<string, unknown>),
+      });
+    }
+
+    const confirmation = await validateAdminImportPublicationConfirmation(request);
+    if (!confirmation.ok) {
+      return adminApiError({
+        requestId,
+        status: 400,
+        errorCode: "IMPORT_PUBLICATION_CONFIRMATION_REQUIRED",
+        error: confirmation.message,
+        recoverable: true,
       });
     }
 
