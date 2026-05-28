@@ -71,25 +71,39 @@ function getRoleLabel(adminRole: string) {
     : adminRole;
 }
 
-function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
-  return (
-    <div className={styles.brand}>
-      <div className={styles.brandBadge}>Admin</div>
-      <div className={styles.brandCopy} aria-hidden={collapsed}>
-        <div className={styles.brandEyebrow}>Scholarship</div>
-        <div className={styles.brandTitleRow}>
-          <Image
-            src="/branding/logo-recalc.png"
-            alt="ReCalc"
-            width={120}
-            height={40}
-            className={styles.brandLogo}
-          />
-          <span className={styles.brandTitle}>ReCalc Admin</span>
-        </div>
-      </div>
-    </div>
+function AdminBrand({ onToggle }: { onToggle?: () => void }) {
+  const content = (
+    <>
+      <span className={styles.brandBadge} aria-hidden="true">
+        <Image
+          src="/icons/icon48.png"
+          alt=""
+          width={28}
+          height={28}
+          className={styles.brandLogo}
+        />
+      </span>
+      <span className={styles.brandCopy}>
+        <span className={styles.brandTitle}>ADMINISTRADOR</span>
+      </span>
+    </>
   );
+
+  if (onToggle) {
+    return (
+      <button
+        type="button"
+        className={`${styles.brand} ${styles.brandButton}`}
+        onClick={onToggle}
+        aria-label="Contraer navegación admin"
+        title="Contraer navegación"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={styles.brand}>{content}</div>;
 }
 
 function StatusPill({
@@ -109,38 +123,10 @@ function StatusPill({
   );
 }
 
-function SidebarCollapseButton({
-  collapsed,
-  onToggle,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={styles.sidebarCollapseButton}
-      aria-label={collapsed ? "Expandir barra lateral" : "Contraer barra lateral"}
-      aria-pressed={collapsed}
-      onClick={onToggle}
-      title={collapsed ? "Expandir" : "Contraer"}
-    >
-      <DashboardIcon
-        name={collapsed ? "menu" : "close"}
-        className={styles.icon}
-      />
-      <span className={styles.sidebarCollapseLabel}>
-        {collapsed ? "Expandir" : "Contraer"}
-      </span>
-    </button>
-  );
-}
-
 function AdminNavPanel({
   navGroups,
   pathname,
   onNavigate,
-  collapsed = false,
   sidebarTopAnnouncements,
   sidebarTopCtas,
   sidebarBottomAnnouncements,
@@ -149,15 +135,14 @@ function AdminNavPanel({
   navGroups: VisibleNavGroups;
   pathname: string;
   onNavigate: () => void;
-  collapsed?: boolean;
   sidebarTopAnnouncements: Announcement[];
   sidebarTopCtas: PublicCta[];
   sidebarBottomAnnouncements: Announcement[];
   sidebarBottomCtas: PublicCta[];
 }) {
   return (
-    <div className={styles.sidebarStack} data-collapsed={collapsed ? "true" : "false"}>
-      {!collapsed ? (
+    <div className={styles.sidebarStack}>
+      {sidebarTopAnnouncements.length || sidebarTopCtas.length ? (
         <>
           <AnnouncementOutlet
             announcements={sidebarTopAnnouncements}
@@ -183,7 +168,7 @@ function AdminNavPanel({
         />
       </div>
 
-      {!collapsed ? (
+      {sidebarBottomAnnouncements.length || sidebarBottomCtas.length ? (
         <>
           <AnnouncementOutlet
             announcements={sidebarBottomAnnouncements}
@@ -304,7 +289,10 @@ export default function AdminChrome({
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+    window.localStorage.setItem(
+      SIDEBAR_COLLAPSED_KEY,
+      String(sidebarCollapsed),
+    );
   }, [sidebarCollapsed]);
 
   const roleLabel = getRoleLabel(adminRole);
@@ -328,7 +316,8 @@ export default function AdminChrome({
     contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
 
   const closeMobileNav = () => setMobileNavOpen(false);
-  const toggleSidebar = () => setSidebarCollapsed((current) => !current);
+  const collapseSidebar = () => setSidebarCollapsed(true);
+  const expandSidebar = () => setSidebarCollapsed(false);
 
   return (
     <div
@@ -337,18 +326,11 @@ export default function AdminChrome({
     >
       <div className={styles.layout}>
         <aside className={styles.desktopSidebar} aria-label="Navegación admin">
-          <AdminBrand collapsed={sidebarCollapsed} />
-          <div className={styles.sidebarControls}>
-            <SidebarCollapseButton
-              collapsed={sidebarCollapsed}
-              onToggle={toggleSidebar}
-            />
-          </div>
+          <AdminBrand onToggle={collapseSidebar} />
           <AdminNavPanel
             navGroups={navGroups}
             pathname={pathname}
             onNavigate={() => undefined}
-            collapsed={sidebarCollapsed}
             sidebarTopAnnouncements={sidebarTopAnnouncements}
             sidebarTopCtas={sidebarTopCtas}
             sidebarBottomAnnouncements={sidebarBottomAnnouncements}
@@ -396,6 +378,18 @@ export default function AdminChrome({
                 >
                   <DashboardIcon name="menu" className={styles.icon} />
                 </button>
+
+                {sidebarCollapsed ? (
+                  <button
+                    type="button"
+                    className={`${styles.iconButton} ${styles.desktopOnly}`}
+                    aria-label="Expandir navegación admin"
+                    title="Expandir navegación"
+                    onClick={expandSidebar}
+                  >
+                    <DashboardIcon name="menu" className={styles.icon} />
+                  </button>
+                ) : null}
 
                 <div className={styles.titleBlock}>
                   <nav className={styles.breadcrumbs} aria-label="Ruta actual">

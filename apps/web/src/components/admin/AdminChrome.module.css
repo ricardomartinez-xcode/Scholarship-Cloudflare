@@ -56,42 +56,6 @@
 }
 
 .shell[data-sidebar-collapsed="true"] .desktopSidebar {
-  position: fixed;
-  inset: 0 auto auto 0;
-  z-index: 45;
-  width: 0;
-  height: 0;
-  min-width: 0;
-  overflow: visible;
-  border: 0;
-  background: transparent;
-  backdrop-filter: none;
-  pointer-events: none;
-}
-
-.shell[data-sidebar-collapsed="true"] .desktopSidebar .brand,
-.shell[data-sidebar-collapsed="true"] .desktopSidebar .sidebarStack {
-  display: none;
-}
-
-.shell[data-sidebar-collapsed="true"] .sidebarControls {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 55;
-  width: 2.75rem;
-  padding: 0;
-  pointer-events: auto;
-}
-
-.shell[data-sidebar-collapsed="true"] .sidebarCollapseButton {
-  width: 2.75rem;
-  min-height: 2.75rem;
-  padding: 0;
-  box-shadow: 0 12px 34px rgb(16 32 42 / 0.14);
-}
-
-.shell[data-sidebar-collapsed="true"] .sidebarCollapseLabel {
   display: none;
 }
 
@@ -101,10 +65,6 @@
   align-content: start;
   gap: var(--admin-shell-gap);
   padding: clamp(0.875rem, 2vw, 1.5rem);
-}
-
-.shell[data-sidebar-collapsed="true"] .mainPanel {
-  padding-left: clamp(0.875rem, 2vw, 1.5rem);
 }
 
 .header,
@@ -153,19 +113,16 @@
 .statusLabel { display: block; overflow: hidden; color: currentColor; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.16em; line-height: 1.2; opacity: 0.8; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .statusValue { display: block; overflow: hidden; margin-top: 0.12rem; color: currentColor; font-size: 0.83rem; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 
-.brand { display: flex; min-width: 0; align-items: center; gap: 0.8rem; border-bottom: 1px solid var(--admin-shell-border); padding: 1rem; }
-.brandBadge { display: grid; width: 3rem; height: 3rem; flex: 0 0 auto; place-items: center; border: 1px solid rgb(255 255 255 / 0.35); border-radius: 1.1rem; background: var(--admin-shell-accent); color: var(--admin-shell-accent-contrast); font-size: 0.64rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
-.brandCopy { min-width: 0; transition: opacity 160ms ease, width 160ms ease; }
-.brandCopy[aria-hidden="true"] { width: 0; opacity: 0; overflow: hidden; }
-.brandEyebrow { color: var(--admin-shell-muted); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.18em; line-height: 1.2; text-transform: uppercase; }
-.brandTitleRow { display: flex; min-width: 0; align-items: center; gap: 0.55rem; margin-top: 0.25rem; }
-.brandLogo { width: auto; height: 1.25rem; flex: 0 0 auto; object-fit: contain; }
-.brandTitle { overflow: hidden; color: var(--admin-shell-ink); font-size: 0.95rem; font-weight: 850; letter-spacing: -0.025em; text-overflow: ellipsis; white-space: nowrap; }
-.sidebarControls { padding: 0.7rem 0.85rem 0; }
-.sidebarCollapseButton { display: inline-flex; width: 100%; min-height: 2.25rem; align-items: center; justify-content: center; gap: 0.45rem; border: 1px solid var(--admin-shell-border); border-radius: 999px; background: var(--admin-shell-surface-strong); color: var(--admin-shell-ink); font-size: 0.78rem; font-weight: 800; }
-.sidebarCollapseButton:hover { border-color: rgb(15 76 107 / 0.34); background: rgb(15 76 107 / 0.08); }
-.sidebarCollapseLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebarStack { display: grid; height: calc(100dvh - 8.1rem); min-height: 0; gap: 0.75rem; padding: 0.9rem; }
+.brand { display: flex; width: 100%; min-width: 0; align-items: center; gap: 0.8rem; border: 0; border-bottom: 1px solid var(--admin-shell-border); background: transparent; padding: 1rem; text-align: left; }
+.brandButton { cursor: pointer; transition: background-color 160ms ease; }
+.brandButton:hover { background: rgb(15 76 107 / 0.08); }
+.brandButton:focus-visible { outline: 3px solid rgb(15 76 107 / 0.25); outline-offset: -3px; }
+.brandBadge { display: grid; width: 3rem; height: 3rem; flex: 0 0 auto; place-items: center; border: 1px solid var(--admin-shell-border); border-radius: 1.1rem; background: #ffffff; color: var(--admin-shell-accent-contrast); box-shadow: 0 10px 24px rgb(16 32 42 / 0.08); }
+.brandCopy { display: grid; min-width: 0; gap: 0.1rem; }
+.brandLogo { width: 1.75rem; height: 1.75rem; object-fit: contain; }
+.brandTitle { overflow: hidden; color: var(--admin-shell-ink); font-size: 0.82rem; font-weight: 950; letter-spacing: 0.16em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+
+.sidebarStack { display: grid; height: calc(100dvh - 5.05rem); min-height: 0; gap: 0.75rem; padding: 0.9rem; }
 .navScrollArea { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.15rem; }
 .sidebarCtas,
 .sidebarMessages { display: grid; min-width: 0; gap: 0.45rem; }
@@ -191,8 +148,7 @@
 .iconButton:hover,
 .secondaryActionButton:hover { border-color: rgb(15 76 107 / 0.38); background: rgb(15 76 107 / 0.08); }
 .iconButton:focus-visible,
-.secondaryActionButton:focus-visible,
-.sidebarCollapseButton:focus-visible { outline: 3px solid rgb(15 76 107 / 0.25); outline-offset: 2px; }
+.secondaryActionButton:focus-visible { outline: 3px solid rgb(15 76 107 / 0.25); outline-offset: 2px; }
 .icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
 .mobileOnly { display: none; }
 .desktopOnly { display: inline-flex; }
@@ -236,6 +192,6 @@
 .adminContent :global([class*="text-slate-50"]),
 .adminContent :global([class*="text-slate-100"]) { color: #ffffff; }
 @media (max-width: 1190px) { .contextBar { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1023px) { .layout { display: block; } .desktopSidebar { display: none; } .shell[data-sidebar-collapsed="true"] .mainPanel, .mainPanel { padding: clamp(0.65rem, 3vw, 1rem); } .header { top: 0.5rem; border-radius: 1.25rem; } .mobileOnly { display: inline-flex; } .desktopOnly { display: none; } .headerTop { align-items: center; } }
+@media (max-width: 1023px) { .layout { display: block; } .desktopSidebar { display: none; } .mainPanel { padding: clamp(0.65rem, 3vw, 1rem); } .header { top: 0.5rem; border-radius: 1.25rem; } .mobileOnly { display: inline-flex; } .desktopOnly { display: none; } .headerTop { align-items: center; } }
 @media (max-width: 720px) { .headerTop, .headingCluster { align-items: flex-start; } .headerActions { gap: 0.4rem; } .contextBar { grid-template-columns: 1fr 1fr; } .statusPill { border-radius: 1rem; } .contentSurface, .actionCenter, .integrityNotice { border-radius: 1.15rem; } .adminContent :global(table) { max-height: min(68dvh, 48rem); } }
 @media (max-width: 520px) { .headerTop { gap: 0.7rem; } .pageTitle { font-size: 1.28rem; } .contextBar { grid-template-columns: 1fr; } .statusPill { padding: 0.62rem 0.75rem; } .mobileDrawer { width: min(92vw, 23rem); } }
