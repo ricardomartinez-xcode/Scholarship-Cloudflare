@@ -1,6 +1,7 @@
 import { AdminCapability, AdminConfigModule, AdminImportSessionStatus } from "@prisma/client";
 import Link from "next/link";
 
+import AdminDataTable from "@/components/admin/AdminDataTable";
 import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import {
@@ -22,7 +23,9 @@ function firstParam(value: string | string[] | undefined) {
 function parseModule(value: string | undefined) {
   if (!value) return null;
   const normalized = value.trim().toUpperCase();
-  return MODULE_OPTIONS.includes(normalized as AdminConfigModule) ? (normalized as AdminConfigModule) : null;
+  return MODULE_OPTIONS.includes(normalized as AdminConfigModule)
+    ? (normalized as AdminConfigModule)
+    : null;
 }
 
 function parseStatus(value: string | undefined) {
@@ -68,30 +71,56 @@ function statusLabel(status: AdminImportSessionStatus) {
 
 function StatusBadge({ status }: { status: AdminImportSessionStatus }) {
   const classes: Record<AdminImportSessionStatus, string> = {
-    preview: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
-    applied: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-    failed: "border-red-500/30 bg-red-500/10 text-red-100",
-    rolled_back: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    preview: "border-[#0f4c6b]/24 bg-[#0f4c6b]/10 text-[#0f4c6b]",
+    applied: "border-[#0c5f3a]/22 bg-[#ddf8ea] text-[#0c5f3a]",
+    failed: "border-[#8a2d2d]/22 bg-[#fde7e7] text-[#8a2d2d]",
+    rolled_back: "border-[#7a4a00]/22 bg-[#fff3d6] text-[#7a4a00]",
   };
 
   return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
-        classes[status] ?? "border-white/10 bg-white/10 text-slate-100"
-      }`}
-    >
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-extrabold ${classes[status]}`}>
       {statusLabel(status)}
     </span>
   );
 }
 
-function MetricCard({ label, value, helper }: { label: string; value: number; helper: string }) {
+function MetricCard({ label, value, helper, tone = "neutral" }: { label: string; value: number; helper: string; tone?: "neutral" | "success" | "warning" | "danger" }) {
+  const valueClass =
+    tone === "success"
+      ? "text-[#0c5f3a]"
+      : tone === "warning"
+        ? "text-[#7a4a00]"
+        : tone === "danger"
+          ? "text-[#8a2d2d]"
+          : "text-[#102838]";
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-4">
-      <div className="text-xs uppercase tracking-[0.24em] text-slate-400">{label}</div>
-      <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
-      <div className="mt-1 text-sm text-slate-400">{helper}</div>
+    <div className="rounded-[24px] border border-[#c8d6e2] bg-white p-4 shadow-[0_12px_34px_rgb(16_32_42/0.05)]">
+      <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#536a7c]">
+        {label}
+      </div>
+      <div className={`mt-2 text-2xl font-black tracking-[-0.04em] ${valueClass}`}>
+        {value}
+      </div>
+      <div className="mt-1 text-sm leading-5 text-[#536a7c]">{helper}</div>
     </div>
+  );
+}
+
+function CountPill({ label, value, tone = "neutral" }: { label: string; value: number; tone?: "neutral" | "warning" | "danger" | "success" }) {
+  const classes =
+    tone === "danger"
+      ? "border-[#8a2d2d]/22 bg-[#fde7e7] text-[#8a2d2d]"
+      : tone === "warning"
+        ? "border-[#7a4a00]/22 bg-[#fff3d6] text-[#7a4a00]"
+        : tone === "success"
+          ? "border-[#0c5f3a]/22 bg-[#ddf8ea] text-[#0c5f3a]"
+          : "border-[#c8d6e2] bg-[#f7fafc] text-[#163247]";
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-extrabold ${classes}`}>
+      {label} {value}
+    </span>
   );
 }
 
@@ -110,34 +139,38 @@ function ImportSessionRow({ session }: { session: AdminImportSessionSerialized }
   const resultItems = jsonCount(session.result ?? session.summary);
 
   return (
-    <tr className="border-t border-white/10 align-top">
-      <td className="p-3 text-slate-300">{formatDate(session.createdAt)}</td>
-      <td className="p-3">
-        <div className="font-medium text-slate-100">{moduleMeta.label}</div>
-        <div className="mt-1 text-xs text-slate-500">{session.module}</div>
+    <tr>
+      <td>{formatDate(session.createdAt)}</td>
+      <td>
+        <div className="font-extrabold text-[#102838]">{moduleMeta.label}</div>
+        <div className="mt-1 text-xs font-semibold text-[#536a7c]">{session.module}</div>
       </td>
-      <td className="p-3">
+      <td>
         <StatusBadge status={session.status} />
       </td>
-      <td className="p-3">
-        <div className="max-w-[260px] truncate text-slate-200">{session.fileName ?? "Sin archivo"}</div>
-        <div className="mt-1 text-xs text-slate-500">{formatChecksum(session.fileChecksum)}</div>
+      <td>
+        <div className="max-w-[300px] truncate font-semibold text-[#163247]" title={session.fileName ?? "Sin archivo"}>
+          {session.fileName ?? "Sin archivo"}
+        </div>
+        <div className="mt-1 text-xs font-semibold text-[#536a7c]">{formatChecksum(session.fileChecksum)}</div>
       </td>
-      <td className="p-3 text-slate-300">
-        <div>{session.createdByEmail ?? "—"}</div>
-        {session.appliedByEmail ? <div className="mt-1 text-xs text-slate-500">Aplicó: {session.appliedByEmail}</div> : null}
+      <td>
+        <div className="font-semibold text-[#163247]">{session.createdByEmail ?? "—"}</div>
+        {session.appliedByEmail ? (
+          <div className="mt-1 text-xs font-semibold text-[#536a7c]">Aplicó: {session.appliedByEmail}</div>
+        ) : null}
       </td>
-      <td className="p-3">
-        <div className="flex flex-wrap gap-2 text-xs">
-          <span className="rounded-full bg-amber-500/10 px-2 py-1 text-amber-100">warnings {warnings}</span>
-          <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-100">errores {errors}</span>
-          <span className="rounded-full bg-white/10 px-2 py-1 text-slate-200">resultado {resultItems}</span>
+      <td>
+        <div className="flex flex-wrap gap-2">
+          <CountPill label="warnings" value={warnings} tone={warnings ? "warning" : "neutral"} />
+          <CountPill label="errores" value={errors} tone={errors ? "danger" : "neutral"} />
+          <CountPill label="resultado" value={resultItems} tone="success" />
         </div>
       </td>
-      <td className="p-3 text-right">
+      <td>
         <Link
           href={`/admin/importaciones/${session.id}`}
-          className="inline-flex rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-500/20"
+          className="inline-flex min-h-9 items-center justify-center rounded-full border border-[#0f4c6b]/28 bg-[#0f4c6b]/10 px-3 text-xs font-extrabold text-[#0f4c6b] transition hover:border-[#0f4c6b]/44 hover:bg-[#0f4c6b]/15"
         >
           Ver detalle
         </Link>
@@ -162,32 +195,59 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
   const rolledBackCount = sessions.filter((session) => session.status === AdminImportSessionStatus.rolled_back).length;
 
   return (
-    <div className="grid gap-6 p-6">
-      <section className="ui-card ui-card-pad">
-        <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Importaciones</div>
-        <h1 className="mt-1 text-xl font-semibold">Sesiones de importación</h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          Historial centralizado de previews, aplicaciones y rollbacks de archivos cargados desde el admin. Esta pantalla
-          usa la base común de sesiones para auditar qué se validó, quién lo hizo y qué resultado dejó.
-        </p>
+    <div className="grid gap-5 p-4 sm:p-5 lg:p-6">
+      <section className="rounded-[28px] border border-[#c8d6e2] bg-white p-5 shadow-[0_18px_60px_rgb(16_32_42/0.07)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+              Importaciones
+            </div>
+            <h1 className="mt-2 max-w-4xl text-3xl font-black leading-tight tracking-[-0.055em] text-[#102838] md:text-4xl">
+              Sesiones de importación, previews, aplicaciones y rollback.
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#536a7c]">
+              Historial centralizado para auditar archivos cargados desde el admin, revisar quién ejecutó cada cambio y abrir el detalle operativo de cada sesión.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/importaciones/plantillas"
+              className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-white px-4 text-sm font-extrabold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
+            >
+              Plantillas
+            </Link>
+            <Link
+              href="/admin/importaciones/flujo-publicacion"
+              className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white transition hover:bg-[#0b3d56]"
+            >
+              Flujo publicación
+            </Link>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Preview" value={previewCount} helper="Sesiones listas para revisión" />
-        <MetricCard label="Aplicadas" value={appliedCount} helper="Cambios ya ejecutados" />
-        <MetricCard label="Fallidas" value={failedCount} helper="Sesiones con errores" />
-        <MetricCard label="Rollback" value={rolledBackCount} helper="Sesiones revertidas" />
+        <MetricCard label="Aplicadas" value={appliedCount} helper="Cambios ejecutados" tone="success" />
+        <MetricCard label="Fallidas" value={failedCount} helper="Sesiones con errores" tone="danger" />
+        <MetricCard label="Rollback" value={rolledBackCount} helper="Sesiones revertidas" tone="warning" />
       </section>
 
-      <section className="ui-card ui-card-pad">
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-5 shadow-[0_16px_50px_rgb(16_32_42/0.06)]">
+        <div className="mb-5">
+          <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+            Filtros
+          </div>
+          <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">Explorar sesiones</h2>
+          <p className="mt-2 text-sm leading-6 text-[#536a7c]">
+            Reduce la vista por módulo, estado y cantidad máxima de registros para evitar tablas largas.
+          </p>
+        </div>
+
         <form className="grid gap-3 md:grid-cols-[1fr_1fr_120px_auto_auto]">
-          <label className="grid gap-1 text-sm">
-            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Módulo</span>
-            <select
-              name="module"
-              defaultValue={module ?? ""}
-              className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
-            >
+          <label className="grid gap-2 text-sm font-bold text-[#163247]">
+            Módulo
+            <select name="module" defaultValue={module ?? ""} className="ui-control">
               <option value="">Todos</option>
               {MODULE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -197,13 +257,9 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
             </select>
           </label>
 
-          <label className="grid gap-1 text-sm">
-            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Estado</span>
-            <select
-              name="status"
-              defaultValue={status ?? ""}
-              className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
-            >
+          <label className="grid gap-2 text-sm font-bold text-[#163247]">
+            Estado
+            <select name="status" defaultValue={status ?? ""} className="ui-control">
               <option value="">Todos</option>
               {STATUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -213,20 +269,13 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
             </select>
           </label>
 
-          <label className="grid gap-1 text-sm">
-            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Límite</span>
-            <input
-              name="limit"
-              type="number"
-              min={10}
-              max={100}
-              defaultValue={limit}
-              className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
-            />
+          <label className="grid gap-2 text-sm font-bold text-[#163247]">
+            Límite
+            <input name="limit" type="number" min={10} max={100} defaultValue={limit} className="ui-control" />
           </label>
 
           <div className="flex items-end">
-            <button className="w-full rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20">
+            <button className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white transition hover:bg-[#0b3d56]">
               Filtrar
             </button>
           </div>
@@ -234,46 +283,55 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
           <div className="flex items-end">
             <Link
               href="/admin/importaciones"
-              className="w-full rounded-2xl border border-white/10 px-4 py-2 text-center text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[#c8d6e2] bg-white px-4 text-center text-sm font-extrabold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
             >
               Limpiar
             </Link>
           </div>
         </form>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
-          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.preview, limit })} className="rounded-full border border-white/10 px-3 py-1 transition hover:bg-white/10">
+        <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#536a7c]">
+          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.preview, limit })} className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
             Ver previews
           </Link>
-          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.failed, limit })} className="rounded-full border border-white/10 px-3 py-1 transition hover:bg-white/10">
+          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.failed, limit })} className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
             Ver fallidas
           </Link>
-          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.applied, limit })} className="rounded-full border border-white/10 px-3 py-1 transition hover:bg-white/10">
+          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.applied, limit })} className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
             Ver aplicadas
           </Link>
         </div>
       </section>
 
-      <section className="ui-card ui-card-pad">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-5 shadow-[0_16px_50px_rgb(16_32_42/0.06)]">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Historial</div>
-            <h2 className="mt-1 text-lg font-semibold">Sesiones recientes</h2>
+            <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+              Historial
+            </div>
+            <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">Sesiones recientes</h2>
           </div>
-          <div className="text-sm text-slate-400">{sessions.length} registros</div>
+          <div className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 text-xs font-extrabold text-[#163247]">
+            {sessions.length} registros
+          </div>
         </div>
 
-        <div className="mt-5 overflow-auto rounded-2xl border border-white/10">
-          <table className="w-full min-w-[980px] border-collapse text-sm">
-            <thead className="bg-slate-950/40 text-slate-300">
+        <AdminDataTable
+          title="Historial de importaciones"
+          count={sessions.length}
+          description="Tabla con scroll controlado para revisar estado, archivo, usuario, alertas y detalle."
+          maxHeight="min(72dvh, 760px)"
+        >
+          <table>
+            <thead>
               <tr>
-                <th className="p-3 text-left font-semibold">Fecha</th>
-                <th className="p-3 text-left font-semibold">Módulo</th>
-                <th className="p-3 text-left font-semibold">Estado</th>
-                <th className="p-3 text-left font-semibold">Archivo</th>
-                <th className="p-3 text-left font-semibold">Usuario</th>
-                <th className="p-3 text-left font-semibold">Resumen</th>
-                <th className="p-3 text-right font-semibold">Acción</th>
+                <th>Fecha</th>
+                <th>Módulo</th>
+                <th>Estado</th>
+                <th>Archivo</th>
+                <th>Usuario</th>
+                <th>Resumen</th>
+                <th>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -281,14 +339,16 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
                 sessions.map((session) => <ImportSessionRow key={session.id} session={session} />)
               ) : (
                 <tr>
-                  <td className="p-6 text-center text-slate-400" colSpan={7}>
-                    No hay sesiones de importación para los filtros actuales.
+                  <td colSpan={7}>
+                    <div className="rounded-[18px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-center text-sm text-[#536a7c]">
+                      No hay sesiones de importación para los filtros actuales.
+                    </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-        </div>
+        </AdminDataTable>
       </section>
     </div>
   );
