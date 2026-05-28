@@ -4,7 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AppFooter from "@/components/app/AppFooter";
 import ApplyChangesButton from "@/components/admin/ApplyChangesButton";
@@ -61,6 +61,8 @@ type AdminChromeProps = {
 
 type VisibleNavGroups = ReturnType<typeof filterNavGroupsByCapabilities>;
 
+const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
+
 function getRoleLabel(adminRole: string) {
   const knownRole = (SYSTEM_ROLES as readonly string[]).includes(adminRole);
 
@@ -69,11 +71,11 @@ function getRoleLabel(adminRole: string) {
     : adminRole;
 }
 
-function AdminBrand() {
+function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <div className={styles.brand}>
       <div className={styles.brandBadge}>Admin</div>
-      <div className={styles.brandCopy}>
+      <div className={styles.brandCopy} aria-hidden={collapsed}>
         <div className={styles.brandEyebrow}>Scholarship</div>
         <div className={styles.brandTitleRow}>
           <Image
@@ -107,78 +109,70 @@ function StatusPill({
   );
 }
 
-function AdminAccessCard({
-  roleLabel,
-  adminCapabilities,
-  isSystemOwner,
+function SidebarCollapseButton({
+  collapsed,
+  onToggle,
 }: {
-  roleLabel: string;
-  adminCapabilities: string[];
-  isSystemOwner: boolean;
+  collapsed: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <section className={styles.accessCard} aria-label="Contexto de acceso admin">
-      <div className={styles.sectionKicker}>Acceso admin</div>
-      <div className={styles.accessGrid}>
-        <StatusPill label="Rol" value={roleLabel} tone="accent" />
-        <StatusPill
-          label="Permisos"
-          value={`${adminCapabilities.length}`}
-          tone="neutral"
-        />
-        <StatusPill
-          label="Owner"
-          value={isSystemOwner ? "Sí" : "No"}
-          tone={isSystemOwner ? "success" : "neutral"}
-        />
-      </div>
-    </section>
+    <button
+      type="button"
+      className={styles.sidebarCollapseButton}
+      aria-label={collapsed ? "Expandir barra lateral" : "Contraer barra lateral"}
+      aria-pressed={collapsed}
+      onClick={onToggle}
+      title={collapsed ? "Expandir" : "Contraer"}
+    >
+      <DashboardIcon
+        name={collapsed ? "menu" : "close"}
+        className={styles.icon}
+      />
+      <span className={styles.sidebarCollapseLabel}>
+        {collapsed ? "Expandir" : "Contraer"}
+      </span>
+    </button>
   );
 }
 
 function AdminNavPanel({
   navGroups,
-  adminCapabilities,
-  roleLabel,
-  isSystemOwner,
   pathname,
   onNavigate,
+  collapsed = false,
   sidebarTopAnnouncements,
   sidebarTopCtas,
   sidebarBottomAnnouncements,
   sidebarBottomCtas,
 }: {
   navGroups: VisibleNavGroups;
-  adminCapabilities: string[];
-  roleLabel: string;
-  isSystemOwner: boolean;
   pathname: string;
   onNavigate: () => void;
+  collapsed?: boolean;
   sidebarTopAnnouncements: Announcement[];
   sidebarTopCtas: PublicCta[];
   sidebarBottomAnnouncements: Announcement[];
   sidebarBottomCtas: PublicCta[];
 }) {
   return (
-    <div className={styles.sidebarStack}>
-      <AdminAccessCard
-        roleLabel={roleLabel}
-        adminCapabilities={adminCapabilities}
-        isSystemOwner={isSystemOwner}
-      />
-
-      <AnnouncementOutlet
-        announcements={sidebarTopAnnouncements}
-        appearance="compact"
-        className={styles.sidebarMessages}
-      />
-      {sidebarTopCtas.length ? (
-        <ConfiguredCtaList
-          ctas={sidebarTopCtas}
-          className={styles.sidebarCtas}
-          itemClassName={styles.sidebarCtaItem}
-          appearance="compact"
-        />
+    <div className={styles.sidebarStack} data-collapsed={collapsed ? "true" : "false"}>
+      {!collapsed ? (
+        <>
+          <AnnouncementOutlet
+            announcements={sidebarTopAnnouncements}
+            appearance="compact"
+            className={styles.sidebarMessages}
+          />
+          {sidebarTopCtas.length ? (
+            <ConfiguredCtaList
+              ctas={sidebarTopCtas}
+              className={styles.sidebarCtas}
+              itemClassName={styles.sidebarCtaItem}
+              appearance="compact"
+            />
+          ) : null}
+        </>
       ) : null}
 
       <div className={styles.navScrollArea}>
@@ -189,18 +183,22 @@ function AdminNavPanel({
         />
       </div>
 
-      <AnnouncementOutlet
-        announcements={sidebarBottomAnnouncements}
-        appearance="compact"
-        className={styles.sidebarMessages}
-      />
-      {sidebarBottomCtas.length ? (
-        <ConfiguredCtaList
-          ctas={sidebarBottomCtas}
-          className={styles.sidebarCtas}
-          itemClassName={styles.sidebarCtaItem}
-          appearance="compact"
-        />
+      {!collapsed ? (
+        <>
+          <AnnouncementOutlet
+            announcements={sidebarBottomAnnouncements}
+            appearance="compact"
+            className={styles.sidebarMessages}
+          />
+          {sidebarBottomCtas.length ? (
+            <ConfiguredCtaList
+              ctas={sidebarBottomCtas}
+              className={styles.sidebarCtas}
+              itemClassName={styles.sidebarCtaItem}
+              appearance="compact"
+            />
+          ) : null}
+        </>
       ) : null}
     </div>
   );
@@ -298,8 +296,19 @@ export default function AdminChrome({
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (saved) setSidebarCollapsed(saved === "true");
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   const roleLabel = getRoleLabel(adminRole);
+  const roleStatusLabel = isSystemOwner ? `${roleLabel} · Owner` : roleLabel;
   const breadcrumbs = resolveDashboardBreadcrumbs(pathname);
   const pageTitle = resolveDashboardTitle(pathname);
 
@@ -319,19 +328,27 @@ export default function AdminChrome({
     contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
 
   const closeMobileNav = () => setMobileNavOpen(false);
+  const toggleSidebar = () => setSidebarCollapsed((current) => !current);
 
   return (
-    <div className={styles.shell}>
+    <div
+      className={styles.shell}
+      data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}
+    >
       <div className={styles.layout}>
         <aside className={styles.desktopSidebar} aria-label="Navegación admin">
-          <AdminBrand />
+          <AdminBrand collapsed={sidebarCollapsed} />
+          <div className={styles.sidebarControls}>
+            <SidebarCollapseButton
+              collapsed={sidebarCollapsed}
+              onToggle={toggleSidebar}
+            />
+          </div>
           <AdminNavPanel
             navGroups={navGroups}
-            adminCapabilities={adminCapabilities}
-            roleLabel={roleLabel}
-            isSystemOwner={isSystemOwner}
             pathname={pathname}
             onNavigate={() => undefined}
+            collapsed={sidebarCollapsed}
             sidebarTopAnnouncements={sidebarTopAnnouncements}
             sidebarTopCtas={sidebarTopCtas}
             sidebarBottomAnnouncements={sidebarBottomAnnouncements}
@@ -356,9 +373,6 @@ export default function AdminChrome({
               <AdminBrand />
               <AdminNavPanel
                 navGroups={navGroups}
-                adminCapabilities={adminCapabilities}
-                roleLabel={roleLabel}
-                isSystemOwner={isSystemOwner}
                 pathname={pathname}
                 onNavigate={closeMobileNav}
                 sidebarTopAnnouncements={sidebarTopAnnouncements}
@@ -413,7 +427,7 @@ export default function AdminChrome({
                 <ApplyChangesButton />
                 <SessionActionsDialog
                   adminEmail={adminEmail}
-                  roleLabel={roleLabel}
+                  roleLabel={roleStatusLabel}
                   logoutAction={logoutAction}
                   open={mobileActionsOpen}
                   onOpenChange={setMobileActionsOpen}
@@ -428,7 +442,7 @@ export default function AdminChrome({
 
             <div className={styles.contextBar} aria-label="Estado del panel">
               <StatusPill label="Sesión" value={adminEmail} tone="neutral" />
-              <StatusPill label="Rol" value={roleLabel} tone="accent" />
+              <StatusPill label="Rol" value={roleStatusLabel} tone="accent" />
               <StatusPill
                 label="Permisos"
                 value={`${adminCapabilities.length}`}

@@ -19,50 +19,94 @@ const SUMMARY_SECTIONS: Array<{
   cards: SummaryCard[];
 }> = [
   {
-    title: "Operación comercial",
-    description: "Lo que impacta oferta, costos, simulador y atencion comercial.",
+    title: "Operación",
+    description: "Usuarios, organizaciones, accesos y sincronización operativa.",
+    cards: [
+      {
+        title: "Usuarios",
+        description: "Rol del sistema, acceso administrativo y permisos visibles.",
+        href: "/admin/users",
+        eyebrow: "Acceso",
+        capability: [AdminCapability.view_users, AdminCapability.manage_users],
+      },
+      {
+        title: "Organizaciones",
+        description: "Membresías por organización y estructura multiempresa.",
+        href: "/admin/organizations",
+        eyebrow: "Acceso",
+        capability: [
+          AdminCapability.view_org_members,
+          AdminCapability.manage_org_members,
+        ],
+      },
+      {
+        title: "Invitaciones",
+        description: "Altas, reenvíos, estados y consumo explícito de tokens.",
+        href: "/admin/invitations",
+        eyebrow: "Acceso",
+        capability: [AdminCapability.view_invites, AdminCapability.manage_invites],
+      },
+      {
+        title: "Auth sync",
+        description: "Diagnóstico técnico de identidad y sesiones.",
+        href: "/admin/auth-sync",
+        eyebrow: "Sistema",
+        capability: AdminCapability.view_admin_operations,
+      },
+    ],
+  },
+  {
+    title: "Oferta académica",
+    description: "Catálogos, beneficios, precios, simulador y programas.",
     cards: [
       {
         title: "Beneficios",
         description: "Reglas de beneficios adicionales, primer pago y vigencias.",
         href: "/admin/benefits",
-        eyebrow: "Operacion",
+        eyebrow: "Draft / publish",
         capability: AdminCapability.manage_benefits,
       },
       {
         title: "Precios",
-        description: "Overrides, costos academicos y ajustes que afectan la cotizacion.",
+        description: "Overrides, costos académicos y ajustes que afectan cotización.",
         href: "/admin/prices",
-        eyebrow: "Operacion",
+        eyebrow: "Catálogo",
         capability: AdminCapability.manage_prices,
       },
       {
-        title: "Oferta academica",
-        description: "Programas, planes y estructura oficial de oferta.",
+        title: "Oferta académica",
+        description: "Carga, previsualización y publicación de oferta por ciclo.",
         href: "/admin/oferta",
-        eyebrow: "Operacion",
+        eyebrow: "Importación",
         capability: AdminCapability.manage_offers,
       },
       {
-        title: "Directorio UNIDEP",
+        title: "Programas",
+        description: "Programas académicos, PDFs y estructura visible.",
+        href: "/admin/unidep/programs",
+        eyebrow: "Catálogo",
+        capability: AdminCapability.manage_offers,
+      },
+      {
+        title: "Simulador",
+        description: "Sesiones, escenarios guardados, CTAs y monitoreo lateral.",
+        href: "/admin/unidep/simulador",
+        eyebrow: "UNIDEP",
+        capability: [AdminCapability.manage_prices, AdminCapability.manage_offers],
+      },
+      {
+        title: "Directorio",
         description: "Planteles, campus y contactos operativos publicados.",
         href: "/admin/unidep/directory",
-        eyebrow: "Operacion",
+        eyebrow: "Directorio",
         capability: AdminCapability.manage_directory,
       },
     ],
   },
   {
-    title: "Contenido público",
-    description: "Elementos visibles que ordenan la experiencia y el mensaje.",
+    title: "Contenido y comunicación",
+    description: "Mensajes, CTAs, WhatsApp, extensión y contenido público.",
     cards: [
-      {
-        title: "CTAs",
-        description: "Mapa visual por pagina, seccion y slot para botones y llamados.",
-        href: "/admin/ctas",
-        eyebrow: "Contenido",
-        capability: AdminCapability.manage_ctas,
-      },
       {
         title: "Comunicados",
         description: "Mensajes publicados sobre superficies visibles de la app.",
@@ -71,51 +115,74 @@ const SUMMARY_SECTIONS: Array<{
         capability: AdminCapability.manage_ctas,
       },
       {
-        title: "Informacion publica",
-        description: "Datos de contacto y orientacion del rail publico del home.",
+        title: "CTAs",
+        description: "Mapa visual por página, sección y slot para llamados.",
+        href: "/admin/ctas",
+        eyebrow: "Contenido",
+        capability: AdminCapability.manage_ctas,
+      },
+      {
+        title: "WhatsApp",
+        description: "Canal Meta, templates y estado técnico de comunicación.",
+        href: "/admin/whatsapp",
+        eyebrow: "Integración",
+        capability: AdminCapability.manage_ctas,
+      },
+      {
+        title: "Extensión Chrome",
+        description: "Runtime, selector pack, handoff a WhatsApp Web y métricas.",
+        href: "/admin/extension-panel",
+        eyebrow: "Integración",
+        capability: [
+          AdminCapability.manage_ctas,
+          AdminCapability.view_admin_operations,
+        ],
+      },
+      {
+        title: "Información pública",
+        description: "Contacto y orientación del rail público del home.",
         href: "/admin/sidebar",
         eyebrow: "Contenido",
         capability: AdminCapability.manage_sidebar,
       },
-      {
-        title: "Templates WhatsApp",
-        description: "Versiones oficiales, revision y salida comercial de cotizaciones.",
-        href: "/admin/whatsapp-templates",
-        eyebrow: "Contenido",
-        capability: AdminCapability.manage_ctas,
-      },
     ],
   },
   {
-    title: "Accesos",
-    description: "Gobernanza del sistema, accesos y trazabilidad de ingreso.",
+    title: "Auditoría y publicación",
+    description: "Estado del sistema, importaciones, actividad y trazabilidad.",
     cards: [
       {
-        title: "Usuarios",
-        description: "Rol del sistema, acceso administrativo y segmentos visuales reales.",
-        href: "/admin/users",
-        eyebrow: "Acceso",
-        capability: [AdminCapability.view_users, AdminCapability.manage_users],
+        title: "Reporte operativo",
+        description: "Actividad, estado general y señales de seguimiento.",
+        href: "/admin/reporting",
+        eyebrow: "Monitoreo",
+        capability: [
+          AdminCapability.view_admin_operations,
+          AdminCapability.view_reports,
+        ],
       },
       {
-        title: "Invitaciones",
-        description: "Flujo de altas, reenvios, estados y consumo explicito de tokens.",
-        href: "/admin/invitations",
-        eyebrow: "Acceso",
-        capability: [AdminCapability.view_invites, AdminCapability.manage_invites],
+        title: "Importaciones",
+        description: "Historial, previews, aplicaciones y rollbacks de archivos.",
+        href: "/admin/importaciones",
+        eyebrow: "Importaciones",
+        capability: AdminCapability.view_admin_operations,
       },
       {
-        title: "Organizaciones",
-        description: "Membresias por organizacion y estructura multiempresa.",
-        href: "/admin/organizations",
-        eyebrow: "Acceso",
-        capability: [AdminCapability.view_org_members, AdminCapability.manage_org_members],
+        title: "Auditoría",
+        description: "Eventos y trazas de cambios relevantes dentro del sistema.",
+        href: "/admin/audit",
+        eyebrow: "Auditoría",
+        capability: [
+          AdminCapability.view_admin_operations,
+          AdminCapability.view_reports,
+        ],
       },
       {
         title: "Capacitación",
-        description: "Permisos de rolplay, creación de salas y trazabilidad del módulo de entrenamiento.",
+        description: "Permisos de roleplay, salas operativas y sesiones recientes.",
         href: "/admin/capacitacion",
-        eyebrow: "Acceso",
+        eyebrow: "Entrenamiento",
         capability: [
           AdminCapability.view_users,
           AdminCapability.manage_users,
@@ -125,139 +192,109 @@ const SUMMARY_SECTIONS: Array<{
       },
     ],
   },
-  {
-    title: "Sistema",
-    description: "Configuración, diagnóstico y gobierno técnico del sistema.",
-    cards: [
-      {
-        title: "WhatsApp",
-        description: "Conexión Meta, embedded signup, sincronización y estado técnico del canal.",
-        href: "/admin/whatsapp",
-        eyebrow: "Sistema",
-        capability: AdminCapability.manage_ctas,
-      },
-      {
-        title: "Extensión Chrome",
-        description: "Runtime, selector pack, handoff a WhatsApp Web y métricas del canal.",
-        href: "/admin/extension-panel",
-        eyebrow: "Sistema",
-        capability: [AdminCapability.manage_ctas, AdminCapability.view_admin_operations],
-      },
-      {
-        title: "Reporte operativo",
-        description: "Actividad, estado general y señales para seguimiento.",
-        href: "/admin/reporting",
-        eyebrow: "Sistema",
-        capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
-      },
-      {
-        title: "Auditoria",
-        description: "Eventos y trazas de cambios relevantes dentro del sistema.",
-        href: "/admin/audit",
-        eyebrow: "Sistema",
-        capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
-      },
-      {
-        title: "Sincronizacion auth",
-        description: "Herramientas tecnicas para revisar identidad y sesiones.",
-        href: "/admin/auth-sync",
-        eyebrow: "Sistema",
-        capability: AdminCapability.view_admin_operations,
-      },
-    ],
-  },
 ];
+
+function capabilityVisible(admin: Awaited<ReturnType<typeof requireAdminAccessUser>>, card: SummaryCard) {
+  return !card.capability || adminHasCapability(admin, card.capability);
+}
 
 export default async function AdminIndexPage() {
   const admin = await requireAdminAccessUser();
   const roleMeta = getSystemRoleMeta(admin.role);
   const visibleSections = SUMMARY_SECTIONS.map((section) => ({
     ...section,
-    cards: section.cards.filter(
-      (card) => !card.capability || adminHasCapability(admin, card.capability),
-    ),
+    cards: section.cards.filter((card) => capabilityVisible(admin, card)),
   })).filter((section) => section.cards.length > 0);
 
   const visibleCardCount = visibleSections.reduce(
     (count, section) => count + section.cards.length,
     0,
   );
+  const visibleSectionCount = visibleSections.length;
+  const primaryCards = visibleSections.flatMap((section) => section.cards).slice(0, 6);
 
   return (
-    <div className="grid gap-6 p-6">
-      <section className="ui-shell-page-intro">
-        <div className="ui-shell-page-intro__grid">
-          <div className="ui-shell-page-intro__headline">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="ui-pill ui-pill--accent">Resumen operativo</span>
-              {admin.isSystemOwner ? <span className="ui-pill">Owner</span> : null}
-            </div>
-            <div className="ui-kicker">Mapa principal</div>
-            <h1 className="ui-shell-page-intro__title">
-              Módulos, accesos y puntos de operación disponibles en esta sesión.
-            </h1>
-            <p className="ui-shell-page-intro__copy">
-              Usa este resumen como mapa de entrada. Cada bloque agrupa las superficies
-              administrativas reales que puedes modificar sin recorrer todo el panel.
-            </p>
-            <div className="flex flex-wrap gap-2.5">
-              <span className="ui-pill">Operación</span>
-              <span className="ui-pill">Contenido</span>
-              <span className="ui-pill">Acceso</span>
-              <span className="ui-pill">Desarrollo</span>
-            </div>
-          </div>
-
-          <div className="ui-shell-page-intro__aside">
-            <div className="ui-kicker">Tu alcance actual</div>
-            <div className="text-xl font-semibold text-white">{roleMeta.label}</div>
-            <div className="text-sm text-slate-300">{roleMeta.description}</div>
-            <div className="ui-shell-metric-grid">
-              <div className="ui-shell-metric">
-                <div className="ui-shell-metric__label">Módulos visibles</div>
-                <div className="ui-shell-metric__value">{visibleCardCount}</div>
-                <div className="ui-shell-metric__copy">Accesos mostrados en este panel</div>
-              </div>
-              <div className="ui-shell-metric">
-                <div className="ui-shell-metric__label">Rol protegido</div>
-                <div className="ui-shell-metric__value">
-                  {admin.isSystemOwner ? "Sí" : "No"}
-                </div>
-                <div className="ui-shell-metric__copy">Control global del sistema</div>
-              </div>
-            </div>
-          </div>
+    <div className="grid gap-5 p-4 sm:p-5 lg:p-6">
+      <section className="ui-admin-dashboard-hero">
+        <div>
+          <div className="ui-kicker">Panel operativo</div>
+          <h1 className="ui-admin-dashboard-hero__title">
+            Estado, módulos y acciones principales del administrador.
+          </h1>
+          <p className="ui-admin-dashboard-hero__copy">
+            Usa esta vista como entrada de trabajo: prioriza operación, oferta,
+            contenido, integraciones y auditoría sin recorrer todo el panel.
+          </p>
+        </div>
+        <div className="ui-admin-dashboard-identity">
+          <div className="ui-kicker">Alcance actual</div>
+          <div className="ui-admin-dashboard-identity__role">{roleMeta.label}</div>
+          <p>{roleMeta.description}</p>
         </div>
       </section>
+
+      <section className="ui-admin-kpi-grid" aria-label="Resumen administrativo">
+        <div className="ui-admin-kpi-card">
+          <span>Módulos visibles</span>
+          <strong>{visibleCardCount}</strong>
+          <small>Accesos habilitados por permisos</small>
+        </div>
+        <div className="ui-admin-kpi-card">
+          <span>Áreas activas</span>
+          <strong>{visibleSectionCount}</strong>
+          <small>Grupos operativos disponibles</small>
+        </div>
+        <div className="ui-admin-kpi-card">
+          <span>Rol protegido</span>
+          <strong>{admin.isSystemOwner ? "Owner" : roleMeta.label}</strong>
+          <small>Contexto de sesión actual</small>
+        </div>
+        <div className="ui-admin-kpi-card">
+          <span>Prioridad</span>
+          <strong>Publicación</strong>
+          <small>Revisa draft, importaciones y auditoría</small>
+        </div>
+      </section>
+
+      <section className="ui-admin-section-head">
+        <div>
+          <div className="ui-kicker">Accesos rápidos</div>
+          <h2 className="ui-admin-section-head__title">Tareas frecuentes</h2>
+          <p className="ui-admin-section-head__copy">
+            Atajos a las superficies más usadas para operación diaria.
+          </p>
+        </div>
+      </section>
+
+      <div className="ui-admin-quick-grid">
+        {primaryCards.map((card) => (
+          <Link key={card.href} href={card.href} className="ui-admin-quick-card">
+            <span>{card.eyebrow}</span>
+            <strong>{card.title}</strong>
+            <small>{card.description}</small>
+          </Link>
+        ))}
+      </div>
 
       {visibleSections.map((section) => (
         <section key={section.title} className="grid gap-4">
           <div className="ui-admin-section-head">
-            <div className="ui-kicker">
-              {section.title}
+            <div>
+              <div className="ui-kicker">{section.title}</div>
+              <h2 className="ui-admin-section-head__title">{section.title}</h2>
+              <p className="ui-admin-section-head__copy">{section.description}</p>
             </div>
-            <h2 className="ui-admin-section-head__title">{section.title}</h2>
-            <p className="ui-admin-section-head__copy">{section.description}</p>
           </div>
 
           <div className="ui-admin-tile-grid">
             {section.cards.map((card) => (
-              <Link
-                key={card.href}
-                href={card.href}
-                className="ui-admin-tile group"
-              >
-                <div className="ui-admin-tile__eyebrow">
-                  {card.eyebrow}
-                </div>
+              <Link key={card.href} href={card.href} className="ui-admin-tile group">
+                <div className="ui-admin-tile__eyebrow">{card.eyebrow}</div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="ui-admin-tile__title">{card.title}</div>
                   <span className="ui-admin-chip ui-admin-chip--accent">Abrir</span>
                 </div>
                 <p className="ui-admin-tile__copy">{card.description}</p>
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300 transition group-hover:text-white">
-                  Abrir módulo
-                </div>
               </Link>
             ))}
           </div>
