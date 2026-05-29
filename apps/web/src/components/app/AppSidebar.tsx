@@ -45,6 +45,11 @@ export default function AppSidebar({
   onNavigate?: () => void;
   collapsed?: boolean;
   userEmail?: string | null;
+  /**
+   * Accepted for compatibility with the workspace drawer identity wrapper.
+   * The visible identity is rendered by AppChrome, not by AppSidebar.
+   */
+  accountLabel?: string;
 }) {
   const filteredWorkspaceNavGroups = workspaceNavGroups.map((group) => ({
     ...group,
@@ -57,7 +62,7 @@ export default function AppSidebar({
         groups={filteredWorkspaceNavGroups}
         activeKey={activeKey ?? "becas"}
         collapsed={collapsed}
-        onItemSelect={onSelect}
+        onItemSelected={onSelect}
         onLinkNavigate={onNavigate}
       />
       <div className="ui-shell-nav-footer" aria-label="Navegación fija">
@@ -65,7 +70,7 @@ export default function AppSidebar({
           groups={[{ key: "footer", label: "Footer", items: workspaceFooterNavItems }]}
           activeKey={activeKey}
           collapsed={collapsed}
-          onItemSelect={onSelect}
+          onItemSelected={onSelect}
           onLinkNavigate={onNavigate}
         />
       </div>
