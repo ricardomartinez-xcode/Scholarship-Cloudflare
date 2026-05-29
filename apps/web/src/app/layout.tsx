@@ -10,6 +10,7 @@ import "./workspace-sidebar-identity.css";
 import "./admin-drawer-fix.css";
 import "./interface-unification.css";
 import "./interface-structure-phase-2.css";
+import "./interface-light-blue-white.css";
 
 export const metadata: Metadata = {
   title: "ReCalc",

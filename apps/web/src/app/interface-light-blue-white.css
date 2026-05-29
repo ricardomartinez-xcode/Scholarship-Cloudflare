@@ -1,0 +1,215 @@
+/*
+  Light blue / white correction.
+  Restores the intended ReCalc feel: white UI, very subtle blue tint, clear blue accents.
+*/
+
+:root {
+  --recalc-page: #fbfdff;
+  --recalc-surface: #ffffff;
+  --recalc-surface-soft: #f8fcff;
+  --recalc-surface-blue: #f1f8fc;
+  --recalc-border: #d5e5ef;
+  --recalc-border-soft: #e5f0f6;
+  --recalc-ink: #102838;
+  --recalc-muted: #587083;
+  --recalc-subtle: #6f8797;
+  --recalc-accent: #0f5f82;
+  --recalc-accent-hover: #0d4f6c;
+  --recalc-accent-soft: #eaf6fb;
+  --recalc-success-bg: #eaf9f1;
+  --recalc-warning-bg: #fff8e8;
+  --recalc-danger-bg: #fff0f0;
+  --recalc-shadow-lg: 0 18px 58px rgb(39 84 111 / 0.055);
+  --recalc-shadow-md: 0 14px 42px rgb(39 84 111 / 0.045);
+  --recalc-shadow-sm: 0 10px 28px rgb(39 84 111 / 0.035);
+}
+
+html,
+body {
+  background: #ffffff !important;
+}
+
+body {
+  color: var(--recalc-ink) !important;
+  background:
+    radial-gradient(circle at 0 0, rgb(92 177 215 / 0.08), transparent 33rem),
+    linear-gradient(180deg, #fbfdff 0%, #ffffff 54%, #ffffff 100%) !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(15 95 130 / 0.025) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(15 95 130 / 0.018) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.55;
+}
+
+.ui-page-frame,
+.shell,
+[class*="shell"],
+[class*="page"] {
+  background-color: transparent !important;
+}
+
+.ui-shell-header,
+.ui-shell-header--workspace,
+.ui-workspace-header,
+.ui-page-frame header,
+header[class*="border"],
+.ui-card,
+.ui-card-pad,
+.ui-panel,
+.ui-section,
+.ui-form-card,
+.ui-summary-card,
+.ui-result-card,
+.ui-chat-panel,
+.ui-offer-card,
+body :is(main, section) > [class*="rounded"][class*="border"],
+body :is(form, article, aside)[class*="rounded"][class*="border"] {
+  border-color: var(--recalc-border) !important;
+  background: rgb(255 255 255 / 0.97) !important;
+  color: var(--recalc-ink) !important;
+  box-shadow: var(--recalc-shadow-md) !important;
+}
+
+.ui-shell-header,
+.ui-shell-header--workspace,
+.ui-workspace-header {
+  background: rgb(255 255 255 / 0.96) !important;
+  box-shadow: 0 16px 48px rgb(39 84 111 / 0.055) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(select),
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(input),
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(textarea),
+body:has(input[name*="nickname" i]) main > :is(section, div),
+body:has(input[placeholder*="nickname" i]) main > :is(section, div),
+body:has(form input[type="password"]):has(a[href="/"]) form,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) form,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) form {
+  border-color: var(--recalc-border) !important;
+  background: #ffffff !important;
+  box-shadow: var(--recalc-shadow-md) !important;
+}
+
+body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"], .ui-control, .ui-select-trigger, .ui-input, .ui-textarea) {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+}
+
+body :is(input:disabled, select:disabled, textarea:disabled),
+body :is(button:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  border-color: #d8e7f0 !important;
+  background: #f3f9fc !important;
+  color: #668092 !important;
+}
+
+.ui-configured-cta,
+.ui-configured-cta--zone,
+.ui-configured-cta--compact,
+.ui-configured-cta--neutral,
+.ui-configured-cta--primary,
+.ui-page-frame .ui-workspace-header__ctas :is(a, button) {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+}
+
+.ui-configured-cta--primary,
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta--primary,
+body :is([class*="bg-cyan"], [class*="bg-sky"]) {
+  border-color: #b9ddeb !important;
+  background: var(--recalc-accent-soft) !important;
+  color: var(--recalc-accent) !important;
+}
+
+.ui-configured-cta:hover,
+.ui-configured-cta--zone:hover,
+.ui-configured-cta--compact:hover,
+.ui-configured-cta--neutral:hover,
+.ui-configured-cta--primary:hover,
+.ui-cta-secondary:hover,
+.ui-button:hover,
+.ui-shell-icon-button:hover,
+body button:not(:disabled):not([data-variant="primary"]):hover {
+  border-color: #9fcfdf !important;
+  background: #eef8fc !important;
+  color: var(--recalc-accent) !important;
+}
+
+.ui-cta-primary,
+button[data-variant="primary"],
+body .bg-primary,
+body .bg-\[\#0f4c6b\] {
+  border-color: var(--recalc-accent) !important;
+  background: var(--recalc-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px rgb(15 95 130 / 0.12) !important;
+}
+
+.ui-cta-secondary,
+.ui-button,
+.ui-shell-icon-button,
+body button:not(:disabled):not([data-variant="primary"]) {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+}
+
+body table,
+.ui-table,
+.ui-table-wrap,
+.table-wrap,
+[data-table-wrap="true"] {
+  background: #ffffff !important;
+}
+
+body thead,
+body table thead tr,
+body th {
+  background: #f8fcff !important;
+}
+
+body :is([role="dialog"], [role="listbox"], .select-content, .dropdown-content, .radix-select-content) {
+  border-color: var(--recalc-border) !important;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+  box-shadow: 0 22px 60px rgb(39 84 111 / 0.12) !important;
+}
+
+body [class*="bg-emerald"] {
+  background: var(--recalc-success-bg) !important;
+}
+
+body :is([class*="bg-amber"], [class*="bg-yellow"]) {
+  background: var(--recalc-warning-bg) !important;
+}
+
+body :is([class*="bg-red"], [class*="bg-rose"]) {
+  background: var(--recalc-danger-bg) !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header,
+body:has(a[href="/auth/sign-in"]) header,
+body:has(a[href="/auth/sign-up"]) header {
+  background: rgb(255 255 255 / 0.96) !important;
+  border-color: #e5f0f6 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type {
+  background: transparent !important;
+}
+
+@media (max-width: 720px) {
+  body::before {
+    opacity: 0.3;
+    background-size: 48px 48px;
+  }
+}
