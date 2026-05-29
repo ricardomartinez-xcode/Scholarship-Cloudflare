@@ -1,0 +1,196 @@
+/*
+  Light UI component pass.
+  Keeps the app white/blue while improving concrete screens after the global unification.
+*/
+
+/* Workspace shell: keep header compact, CTAs integrated and actions visible. */
+.ui-page-frame .ui-workspace-header {
+  margin-bottom: 0 !important;
+  border-color: #d5e5ef !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+}
+
+.ui-page-frame .ui-workspace-header__top {
+  align-items: center !important;
+}
+
+.ui-page-frame .ui-workspace-header__identity nav {
+  color: #6f8797 !important;
+  font-size: 0.72rem !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.04em;
+}
+
+.ui-page-frame .ui-workspace-header__title {
+  margin-top: 0.12rem !important;
+  color: #102838 !important;
+  font-size: clamp(1.18rem, 1.9vw, 1.55rem) !important;
+}
+
+.ui-page-frame .ui-workspace-header__account {
+  display: flex !important;
+}
+
+.ui-page-frame .ui-workspace-header__account :is(a, button) {
+  min-height: 2.45rem !important;
+  border-radius: 999px !important;
+  padding-inline: 1rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 850 !important;
+}
+
+.ui-page-frame .ui-workspace-header__ctas {
+  margin-top: 0.1rem !important;
+}
+
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta,
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta--zone,
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta--compact,
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta--neutral,
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta--primary {
+  min-height: 2.8rem !important;
+  background: #ffffff !important;
+  border-color: #d5e5ef !important;
+}
+
+/* Workspace main: less grey, clearer white cards and balanced calculator/result split. */
+body:has(.ui-workspace-header) .ui-page-frame main {
+  gap: clamp(0.85rem, 1.45vw, 1.15rem) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(select),
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(input),
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(textarea) {
+  background: #ffffff !important;
+  border-color: #d5e5ef !important;
+  box-shadow: 0 16px 42px rgb(39 84 111 / 0.045) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(h2, h3) {
+  color: #102838 !important;
+  font-weight: 850 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(input, select, textarea, [role="combobox"]) {
+  min-height: 2.7rem !important;
+  border-radius: 13px !important;
+  background: #ffffff !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(input:disabled, select:disabled, textarea:disabled, [aria-disabled="true"]) {
+  background: #f5fbfe !important;
+  color: #60798b !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main [class*="bg-lime"],
+body:has(.ui-workspace-header) .ui-page-frame main [class*="bg-green"] {
+  background: #eef9e9 !important;
+  color: #245b20 !important;
+}
+
+/* Right quote panel should look like a white floating card, not a detached grey box. */
+body:has(.ui-workspace-header) .ui-page-frame main > :is(div, section) :is(aside, [class*="sticky"], [class*="shadow"]):has(:is(h2, h3, strong, p)) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 40px rgb(39 84 111 / 0.045) !important;
+}
+
+/* Profile: cleaner white cards, tighter hero, less empty panel feeling. */
+body:has(input[name*="nickname" i]) main > :is(section, div),
+body:has(input[placeholder*="nickname" i]) main > :is(section, div) {
+  background: #ffffff !important;
+  border-color: #d5e5ef !important;
+  box-shadow: 0 14px 40px rgb(39 84 111 / 0.04) !important;
+}
+
+body:has(input[name*="nickname" i]) main h1,
+body:has(input[placeholder*="nickname" i]) main h1 {
+  color: #102838 !important;
+  letter-spacing: -0.045em;
+}
+
+body:has(input[name*="nickname" i]) aside,
+body:has(input[placeholder*="nickname" i]) aside {
+  background: #ffffff !important;
+}
+
+body:has(input[name*="nickname" i]) form button,
+body:has(input[placeholder*="nickname" i]) form button {
+  min-height: 2.55rem !important;
+}
+
+/* Auth: still airy, but card reads as a real product surface. */
+body:has(form input[type="password"]):has(a[href="/"]) form,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) form,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) form {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+  border-color: #d5e5ef !important;
+  box-shadow: 0 18px 52px rgb(39 84 111 / 0.055) !important;
+}
+
+body:has(form input[type="password"]):has(a[href="/"]) main,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) main,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) main {
+  background: transparent !important;
+}
+
+body:has(form input[type="password"]):has(a[href="/"]) form input,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) form input,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) form input {
+  background: #ffffff !important;
+}
+
+/* Landing: keep commercial, brighter and closer to white. */
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type {
+  background: transparent !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type :is(article, aside, div[class*="rounded"][class*="border"]) {
+  background: #ffffff !important;
+  border-color: #d5e5ef !important;
+  box-shadow: 0 18px 52px rgb(39 84 111 / 0.052) !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header {
+  background: rgb(255 255 255 / 0.97) !important;
+}
+
+/* Admin should remain readable but not darker than the rest of the app. */
+body:has(.adminContent),
+body:has([aria-label="Contenido admin"]) {
+  background: #ffffff !important;
+}
+
+[aria-label="Contenido admin"],
+[aria-label="Centro operativo"],
+[aria-label="Estado del panel"] > * {
+  background-color: #ffffff !important;
+}
+
+/* Utility cleanup for very pale disabled buttons that were hard to read. */
+body :is(button:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  background: #f2f8fc !important;
+  color: #5f788a !important;
+  border-color: #d8e7f0 !important;
+}
+
+@media (max-width: 760px) {
+  .ui-page-frame .ui-workspace-header__top {
+    align-items: stretch !important;
+  }
+
+  .ui-page-frame .ui-workspace-header__account {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ui-page-frame .ui-workspace-header__account :is(a, button) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .ui-page-frame .ui-workspace-header__account {
+    grid-template-columns: 1fr;
+  }
+}
