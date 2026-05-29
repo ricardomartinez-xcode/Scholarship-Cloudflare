@@ -1,0 +1,179 @@
+/*
+  UNIDEP workspace pass.
+  Focus: keep /unidep white/light-blue while making the calculator and operational sections feel cohesive.
+*/
+
+body:has(.ui-workspace-header) .ui-page-frame main {
+  isolation: isolate;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main > main {
+  display: grid;
+  min-width: 0;
+  gap: clamp(0.85rem, 1.5vw, 1.2rem);
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main > main > div,
+body:has(.ui-workspace-header) .ui-page-frame main > main > section {
+  min-width: 0;
+}
+
+/* Calculator composition */
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-card, .ui-card-pad, .ui-panel, .ui-form-card, .ui-summary-card, .ui-result-card, .ui-chat-panel, .ui-offer-card) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 38px rgb(39 84 111 / 0.045) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-card-pad, .ui-form-card, .ui-panel, .ui-section) {
+  padding: clamp(1rem, 1.55vw, 1.35rem) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(h1, h2, h3) {
+  color: #102838 !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.035em;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(p, small, li) {
+  color: #587083 !important;
+}
+
+/* Form rhythm */
+body:has(.ui-workspace-header) .ui-page-frame main :is(label, legend) {
+  color: #102838 !important;
+  font-weight: 780 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"], .ui-control, .ui-select-trigger) {
+  min-height: 2.65rem !important;
+  border-color: #cfe1ec !important;
+  border-radius: 13px !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(input::placeholder, textarea::placeholder) {
+  color: #6f8797 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(input:disabled, select:disabled, textarea:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  border-color: #d8e7f0 !important;
+  background: #f5fbfe !important;
+  color: #627d8f !important;
+}
+
+/* Result/cotización panels */
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-summary-card, .ui-result-card) {
+  border-color: #cfe1ec !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-summary-card, .ui-result-card) :is(strong, h2, h3) {
+  color: #102838 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-summary-card, .ui-result-card) [class*="text-emerald"],
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-summary-card, .ui-result-card) [class*="text-green"] {
+  color: #0c6b42 !important;
+}
+
+/* CTA and announcements in workspace content should not compete with the hero. */
+body:has(.ui-workspace-header) .ui-page-frame main .ui-configured-cta,
+body:has(.ui-workspace-header) .ui-page-frame main .ui-configured-cta--zone,
+body:has(.ui-workspace-header) .ui-page-frame main .ui-configured-cta--compact {
+  min-height: 2.75rem !important;
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main .ui-configured-cta--primary {
+  border-color: #b9ddeb !important;
+  background: #eaf6fb !important;
+  color: #0f5f82 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-note, [class*="rounded"][class*="border"]:has(.ui-kicker)) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+}
+
+/* Tables and dense datasets */
+body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-table-wrap, .table-wrap, [data-table-wrap="true"]) {
+  max-height: min(68dvh, 680px);
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main table {
+  min-width: 760px;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(th, thead tr) {
+  background: #f8fcff !important;
+  color: #102838 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main td {
+  color: #102838 !important;
+}
+
+/* Directory/format/plan cards that still use dark utility classes */
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="bg-slate-950"], [class*="bg-slate-900"], [class*="bg-slate-800"], [class*="bg-black/"]) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="text-slate-100"], [class*="text-slate-200"], [class*="text-white"]) {
+  color: #102838 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="text-slate-300"], [class*="text-slate-400"], [class*="text-slate-500"]) {
+  color: #587083 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="border-white/"], [class*="border-slate-"]) {
+  border-color: #d5e5ef !important;
+}
+
+/* Keep positive/WhatsApp actions distinct but softer. */
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="bg-emerald"], [class*="bg-green"], [class*="bg-lime"]) {
+  border-color: #bfe7d1 !important;
+  background: #eef9f3 !important;
+  color: #0c6b42 !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="text-emerald"], [class*="text-green"], [class*="text-lime"]) {
+  color: #0c6b42 !important;
+}
+
+/* PDF previews should feel embedded in the product, not heavy/dark. */
+body:has(.ui-workspace-header) .ui-page-frame main iframe {
+  background: #ffffff;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(div, section):has(> iframe) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 38px rgb(39 84 111 / 0.045) !important;
+}
+
+/* Responsive */
+@media (min-width: 1180px) {
+  body:has(.ui-workspace-header) .ui-page-frame main > main,
+  body:has(.ui-workspace-header) .ui-page-frame main > div {
+    gap: clamp(1rem, 1.5vw, 1.35rem);
+  }
+}
+
+@media (max-width: 760px) {
+  body:has(.ui-workspace-header) .ui-page-frame main :is(.ui-card, .ui-card-pad, .ui-panel, .ui-section, .ui-form-card, .ui-summary-card, .ui-result-card) {
+    border-radius: 20px !important;
+  }
+
+  body:has(.ui-workspace-header) .ui-page-frame main table {
+    min-width: 820px;
+  }
+}

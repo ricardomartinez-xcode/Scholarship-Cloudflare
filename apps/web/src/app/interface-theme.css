@@ -7,6 +7,7 @@
   2. Structural screen-level refinements.
   3. Final white/light-blue theme correction.
   4. Light component pass.
+  5. Workspace-specific polish.
 
   Design direction:
   - white-first UI (#FFFFFF surfaces);
@@ -19,3 +20,4 @@
 @import "./interface-structure-phase-2.css";
 @import "./interface-light-blue-white.css";
 @import "./interface-component-pass-light.css";
+@import "./interface-unidep-pass.css";
