@@ -5,7 +5,6 @@ import "./globals.css";
 import "./workspace-ui.css";
 import "./workspace-brand-fix.css";
 import "./workspace-width-balance.css";
-import "./workspace-sidebar-identity.css";
 import "./admin-drawer-fix.css";
 import "./interface-theme.css";
 
