@@ -80,17 +80,23 @@ export default async function ProfilePage({
   const user = await requireAuth();
   const email = user.email;
   const displayName = user.displayName?.trim() ?? "";
+  const visibleName = displayName || email;
 
   return (
     <div className="grid gap-[var(--ui-shell-gap)]">
-      <section className="ui-card ui-card-pad">
-        <div className="ui-module-summary ui-module-summary-grid">
-          <div>
+      <section className="ui-card ui-card-pad overflow-hidden">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:items-stretch">
+          <div className="min-w-0">
             <div className="ui-kicker">Área personal</div>
             <h1 className="ui-title-section mt-2 text-[color:var(--ui-text-primary)]">
               Seguimiento y cuenta
             </h1>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--ui-text-secondary)]">
+              Gestiona tu identidad visible, revisa tu agenda y mantén segura tu
+              sesión sin salir del flujo operativo de ReCalc.
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href="/unidep"
                 className="ui-button-secondary text-xs uppercase tracking-[0.2em]"
@@ -99,17 +105,21 @@ export default async function ProfilePage({
               </Link>
             </div>
           </div>
-          <div className="ui-card-muted p-4 text-sm">
-            <div className="ui-kicker">Sesión</div>
-            <div className="mt-2 font-semibold text-[color:var(--ui-text-primary)]">
-              {displayName || email}
-            </div>
-            {displayName ? (
-              <div className="mt-1 text-xs text-[color:var(--ui-text-secondary)]">
-                {email}
+
+          <aside className="ui-card-muted grid content-start gap-4 p-4 text-sm">
+            <div>
+              <div className="ui-kicker">Sesión activa</div>
+              <div className="mt-2 truncate font-semibold text-[color:var(--ui-text-primary)]">
+                {visibleName}
               </div>
-            ) : null}
-            <form action={updateDisplayNameAction} className="mt-4 grid gap-2">
+              {displayName ? (
+                <div className="mt-1 truncate text-xs text-[color:var(--ui-text-secondary)]">
+                  {email}
+                </div>
+              ) : null}
+            </div>
+
+            <form action={updateDisplayNameAction} className="grid gap-2">
               <label className="grid gap-1 text-xs font-semibold text-[color:var(--ui-text-primary)]">
                 Nickname visible
                 <input
@@ -124,73 +134,83 @@ export default async function ProfilePage({
                 Guardar nickname
               </button>
             </form>
-            <div className="mt-2 text-xs leading-5 text-[color:var(--ui-text-secondary)]">
-              Este nombre se muestra en el header, Inbox y mensajes internos.
-            </div>
-            <form action={signOutAction} className="mt-4">
+
+            <p className="text-xs leading-5 text-[color:var(--ui-text-secondary)]">
+              Este nombre aparece en tu drawer, Inbox y mensajes internos.
+            </p>
+
+            <form action={signOutAction}>
               <button type="submit" className="ui-button-secondary w-full">
                 Cerrar sesión
               </button>
             </form>
-          </div>
+          </aside>
         </div>
       </section>
 
-      <AgendaPanel collapsible={false} defaultOpen integrationNextPath="/profile" />
+      <section className="grid gap-[var(--ui-shell-gap)] xl:grid-cols-[minmax(0,1.05fr)_minmax(24rem,0.95fr)]">
+        <div className="min-w-0">
+          <AgendaPanel collapsible={false} defaultOpen integrationNextPath="/profile" />
+        </div>
 
-      <section className="ui-card ui-card-pad">
-        <div className="ui-kicker">Ajustes de cuenta</div>
-        <h2 className="mt-2 text-lg font-semibold text-[color:var(--ui-text-primary)]">
-          Cambiar contraseña
-        </h2>
+        <section className="ui-card ui-card-pad min-w-0 self-start">
+          <div className="ui-kicker">Ajustes de cuenta</div>
+          <h2 className="mt-2 text-lg font-semibold text-[color:var(--ui-text-primary)]">
+            Cambiar contraseña
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[color:var(--ui-text-secondary)]">
+            Actualiza tus credenciales y revoca otras sesiones para mantener tu
+            acceso protegido.
+          </p>
 
-        {params?.error ? (
-          <div className="ui-note ui-note--danger mt-4 text-sm">{params.error}</div>
-        ) : null}
-        {params?.success ? (
-          <div className="ui-note ui-note--success mt-4 text-sm">{params.success}</div>
-        ) : null}
+          {params?.error ? (
+            <div className="ui-note ui-note--danger mt-4 text-sm">{params.error}</div>
+          ) : null}
+          {params?.success ? (
+            <div className="ui-note ui-note--success mt-4 text-sm">{params.success}</div>
+          ) : null}
 
-        <form action={changePasswordAction} className="mt-6 grid max-w-xl gap-4">
-          <label className="grid gap-2 text-sm">
-            Correo
-            <input value={email} readOnly className="ui-control opacity-70" />
-          </label>
-          <label className="grid gap-2 text-sm">
-            Contraseña actual
-            <input
-              name="currentPassword"
-              type="password"
-              autoComplete="current-password"
-              className="ui-control"
-              placeholder="Tu contraseña actual"
-            />
-          </label>
-          <label className="grid gap-2 text-sm">
-            Nueva contraseña
-            <input
-              name="newPassword"
-              type="password"
-              autoComplete="new-password"
-              className="ui-control"
-              placeholder="Nueva contraseña"
-            />
-          </label>
-          <label className="grid gap-2 text-sm">
-            Confirmar nueva contraseña
-            <input
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              className="ui-control"
-              placeholder="Repite la nueva contraseña"
-            />
-          </label>
+          <form action={changePasswordAction} className="mt-6 grid gap-4">
+            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+              Correo
+              <input value={email} readOnly className="ui-control opacity-80" />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+              Contraseña actual
+              <input
+                name="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                className="ui-control"
+                placeholder="Tu contraseña actual"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+              Nueva contraseña
+              <input
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                className="ui-control"
+                placeholder="Nueva contraseña"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+              Confirmar nueva contraseña
+              <input
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                className="ui-control"
+                placeholder="Repite la nueva contraseña"
+              />
+            </label>
 
-          <button type="submit" className="ui-button-primary w-full">
-            Guardar cambios
-          </button>
-        </form>
+            <button type="submit" className="ui-button-primary w-full">
+              Guardar cambios
+            </button>
+          </form>
+        </section>
       </section>
     </div>
   );
