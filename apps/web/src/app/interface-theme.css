@@ -1,0 +1,21 @@
+/*
+  ReCalc interface theme entrypoint.
+
+  Keep this file as the single import point for the global UI unification layers.
+  The order is intentional:
+  1. Base interface tokens and contrast rules.
+  2. Structural screen-level refinements.
+  3. Final white/light-blue theme correction.
+  4. Light component pass.
+
+  Design direction:
+  - white-first UI (#FFFFFF surfaces);
+  - very subtle blue-tinted page background;
+  - light blue borders and accents;
+  - accessible contrast without darkening the app.
+*/
+
+@import "./interface-unification.css";
+@import "./interface-structure-phase-2.css";
+@import "./interface-light-blue-white.css";
+@import "./interface-component-pass-light.css";
