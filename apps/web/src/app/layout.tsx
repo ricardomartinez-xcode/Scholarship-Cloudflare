@@ -9,6 +9,7 @@ import "./workspace-width-balance.css";
 import "./workspace-sidebar-identity.css";
 import "./admin-drawer-fix.css";
 import "./interface-unification.css";
+import "./interface-structure-phase-2.css";
 
 export const metadata: Metadata = {
   title: "ReCalc",

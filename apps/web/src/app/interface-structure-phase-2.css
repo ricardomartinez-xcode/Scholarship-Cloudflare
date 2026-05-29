@@ -1,0 +1,217 @@
+/*
+  Interface unification — phase 2.
+  Structural visual pass for authenticated workspace, profile, auth and landing pages.
+  CSS-only by design: no business logic, no auth changes, no route behavior changes.
+*/
+
+/* Authenticated workspace: make the calculator feel like an operating panel, not a legacy form. */
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(select),
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(input),
+body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(textarea) {
+  border-color: var(--recalc-border) !important;
+  border-radius: var(--recalc-radius-xl) !important;
+  background: rgb(255 255 255 / 0.96) !important;
+  box-shadow: var(--recalc-shadow-lg) !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main {
+  display: grid;
+  gap: clamp(0.9rem, 1.6vw, 1.25rem);
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main > div:first-child,
+body:has(.ui-workspace-header) .ui-page-frame main > section:first-child {
+  margin-top: 0.1rem;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(h1, h2, h3) {
+  letter-spacing: -0.035em;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(label, legend) {
+  font-weight: 750;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is(input, select, textarea, [role="combobox"]) {
+  min-height: 2.75rem !important;
+}
+
+body:has(.ui-workspace-header) .ui-page-frame main :is([class*="grid"]) {
+  min-width: 0;
+}
+
+/* Make adjacent calculator/result panels more balanced on desktop. */
+@media (min-width: 1180px) {
+  body:has(.ui-workspace-header) .ui-page-frame main > :is(div, section):has(> :is(div, section):nth-child(2)) {
+    gap: clamp(0.9rem, 1.6vw, 1.25rem) !important;
+  }
+}
+
+/* Header action rhythm: hide stale nickname text if any remains and keep actions readable. */
+.ui-workspace-header__account > :not(a):not(form):not(button) {
+  display: none !important;
+}
+
+.ui-workspace-header__account form,
+.ui-workspace-header__account a,
+.ui-workspace-header__account button {
+  min-width: max-content;
+}
+
+/* Profile: reduce the disconnected/empty feel and align cards to the admin visual system. */
+body:has(input[name*="nickname" i]),
+body:has(input[placeholder*="nickname" i]) {
+  background:
+    radial-gradient(circle at 0 0, rgb(17 78 109 / 0.055), transparent 34rem),
+    linear-gradient(180deg, var(--recalc-page), #ffffff 76%);
+}
+
+body:has(input[name*="nickname" i]) main,
+body:has(input[placeholder*="nickname" i]) main {
+  display: grid;
+  gap: clamp(0.9rem, 1.8vw, 1.35rem);
+}
+
+body:has(input[name*="nickname" i]) main > :is(section, div),
+body:has(input[placeholder*="nickname" i]) main > :is(section, div) {
+  border-color: var(--recalc-border) !important;
+  border-radius: var(--recalc-radius-xl) !important;
+  background: rgb(255 255 255 / 0.96) !important;
+  box-shadow: var(--recalc-shadow-md) !important;
+}
+
+body:has(input[name*="nickname" i]) main > :is(section, div):first-child,
+body:has(input[placeholder*="nickname" i]) main > :is(section, div):first-child {
+  min-height: auto !important;
+}
+
+body:has(input[name*="nickname" i]) aside,
+body:has(input[placeholder*="nickname" i]) aside,
+body:has(input[name*="nickname" i]) form,
+body:has(input[placeholder*="nickname" i]) form {
+  border-color: var(--recalc-border) !important;
+  border-radius: var(--recalc-radius-lg) !important;
+  background: var(--recalc-surface) !important;
+  box-shadow: var(--recalc-shadow-sm) !important;
+}
+
+/* Auth pages: give forms a premium contained card and reduce the excessive vertical emptiness. */
+body:has(form input[type="password"]):has(a[href="/"]) main,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) main,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) main {
+  min-height: calc(100dvh - 6rem);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding-block: clamp(2.5rem, 7vw, 5.5rem) !important;
+}
+
+body:has(form input[type="password"]):has(a[href="/"]) form,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) form,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) form {
+  width: min(100%, 29rem) !important;
+  border: 1px solid var(--recalc-border) !important;
+  border-radius: var(--recalc-radius-xl) !important;
+  background: rgb(255 255 255 / 0.96) !important;
+  box-shadow: var(--recalc-shadow-lg) !important;
+  padding: clamp(1rem, 2.4vw, 1.45rem) !important;
+}
+
+body:has(form input[type="password"]):has(a[href="/"]) form :is(input, button),
+body:has(form input[type="password"]):has(a[href*="sign-up"]) form :is(input, button),
+body:has(form input[type="password"]):has(a[href*="sign-in"]) form :is(input, button) {
+  min-height: 2.85rem !important;
+}
+
+body:has(form input[type="password"]):has(a[href="/"]) form > :first-child,
+body:has(form input[type="password"]):has(a[href*="sign-up"]) form > :first-child,
+body:has(form input[type="password"]):has(a[href*="sign-in"]) form > :first-child {
+  margin-top: 0 !important;
+}
+
+/* Public landing: keep it commercial, but bring proportions closer to the product UI. */
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid var(--recalc-border-soft) !important;
+  background: rgb(255 255 255 / 0.92) !important;
+  backdrop-filter: blur(16px);
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header a,
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header button {
+  border-radius: 999px !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type {
+  min-height: min(76dvh, 47rem);
+  display: grid;
+  align-items: center;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type :is(article, aside, div[class*="rounded"][class*="border"]) {
+  border-color: var(--recalc-border) !important;
+  border-radius: var(--recalc-radius-xl) !important;
+  box-shadow: var(--recalc-shadow-md) !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main h1 {
+  color: var(--recalc-ink) !important;
+  letter-spacing: -0.055em;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main p {
+  color: var(--recalc-muted) !important;
+}
+
+/* Admin: preserve current system, just ensure section rhythm matches new global layer. */
+body:has(a[href="/admin"]),
+body:has(form button):has(.ui-workspace-header) {
+  color: var(--recalc-ink);
+}
+
+/* Generic density cleanup for large empty cards. */
+body :is(section, article, aside, div)[class*="rounded"][class*="border"]:empty {
+  min-height: 4rem;
+}
+
+body :is(section, article, aside, div)[class*="rounded"][class*="border"] > :only-child:empty {
+  min-height: 3rem;
+}
+
+/* Responsive protections */
+@media (max-width: 900px) {
+  body:has(.ui-workspace-header) .ui-page-frame main,
+  body:has(input[name*="nickname" i]) main,
+  body:has(input[placeholder*="nickname" i]) main {
+    gap: 0.85rem;
+  }
+
+  body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(select),
+  body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(input),
+  body:has(.ui-workspace-header) .ui-page-frame main > :is(section, div):has(textarea) {
+    border-radius: 20px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  body:has(form input[type="password"]):has(a[href="/"]) main,
+  body:has(form input[type="password"]):has(a[href*="sign-up"]) main,
+  body:has(form input[type="password"]):has(a[href*="sign-in"]) main {
+    align-content: start;
+    padding-block: 1.25rem 2rem !important;
+  }
+
+  body:has(form input[type="password"]):has(a[href="/"]) form,
+  body:has(form input[type="password"]):has(a[href*="sign-up"]) form,
+  body:has(form input[type="password"]):has(a[href*="sign-in"]) form {
+    border-radius: 20px !important;
+    padding: 1rem !important;
+  }
+
+  body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type {
+    min-height: auto;
+    padding-block: 3rem !important;
+  }
+}
