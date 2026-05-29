@@ -8,6 +8,33 @@ import {
 } from "@/config/dashboard-navigation";
 import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
 
+type AppSidebarProps = {
+  /**
+   * Currently active section key. When provided, the matching navigation item
+   * is highlighted. Defaults to "becas" in the workspace.
+   */
+  activeKey?: string;
+  /**
+   * Callback invoked when a navigation item is selected.
+   */
+  onSelect?: (item: DashboardNavItem) => void;
+  /**
+   * Callback invoked after following a navigation link. Used by drawers to close
+   * the mobile menu after navigation.
+   */
+  onNavigate?: () => void;
+  collapsed?: boolean;
+  userEmail?: string | null;
+  /**
+   * Drawer account label contract.
+   *
+   * The nickname/user label must remain visible in the sidebar shell, rendered
+   * by AppChrome's drawer identity block. AppSidebar itself only renders nav
+   * items, but accepts this prop while the shell keeps a shared sidebar API.
+   */
+  accountLabel?: string;
+};
+
 function filterWorkspaceNavItems(items: DashboardNavItem[], userEmail: string | null) {
   const showWorkspaceWhatsapp = canAccessWorkspaceWhatsapp(userEmail);
 
@@ -31,26 +58,7 @@ export default function AppSidebar({
   onNavigate,
   collapsed = false,
   userEmail,
-}: {
-  /**
-   * Currently active section key. When provided, the matching navigation item
-   * will be highlighted. Defaults to "becas" on the public workspace.
-   */
-  activeKey?: string;
-  /**
-   * Callback invoked when a navigation item is selected. Receives the key of
-   * the selected section.
-   */
-  onSelect?: (item: DashboardNavItem) => void;
-  onNavigate?: () => void;
-  collapsed?: boolean;
-  userEmail?: string | null;
-  /**
-   * Accepted for compatibility with the workspace drawer identity wrapper.
-   * The visible identity is rendered by AppChrome, not by AppSidebar.
-   */
-  accountLabel?: string;
-}) {
+}: AppSidebarProps) {
   const filteredWorkspaceNavGroups = workspaceNavGroups.map((group) => ({
     ...group,
     items: filterWorkspaceNavItems(group.items, userEmail ?? null),
