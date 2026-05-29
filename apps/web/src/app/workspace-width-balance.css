@@ -1,0 +1,31 @@
+/* Workspace width balance: slightly wider desktop layout without changing mobile responsiveness. */
+
+@media (min-width: 1024px) {
+  .ui-page-frame .ui-page-grid,
+  .ui-page-frame .ui-page-main {
+    max-width: min(100%, 1900px);
+    padding-inline: clamp(0.75rem, 1.35vw, 1.25rem);
+  }
+}
+
+@media (min-width: 1600px) {
+  .ui-page-frame .ui-page-grid,
+  .ui-page-frame .ui-page-main {
+    max-width: min(100%, 1940px);
+    padding-inline: clamp(0.75rem, 1vw, 1.1rem);
+  }
+}
+
+@media (min-width: 1920px) {
+  .ui-page-frame .ui-page-grid,
+  .ui-page-frame .ui-page-main {
+    max-width: min(100%, 1980px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .ui-page-frame .ui-page-grid,
+  .ui-page-frame .ui-page-main {
+    max-width: 100%;
+  }
+}

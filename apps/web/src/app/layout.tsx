@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import "./workspace-ui.css";
 import "./workspace-brand-fix.css";
+import "./workspace-width-balance.css";
 
 export const metadata: Metadata = {
   title: "ReCalc",
