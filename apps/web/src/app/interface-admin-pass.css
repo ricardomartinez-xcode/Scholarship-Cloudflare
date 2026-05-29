@@ -1,0 +1,136 @@
+/*
+  Admin light pass.
+  Keep admin operational and legible while aligning it with the white/light-blue global UI.
+*/
+
+body:has([aria-label="Contenido admin"]),
+body:has([aria-label="Estado del panel"]) {
+  background:
+    radial-gradient(circle at 0 0, rgb(92 177 215 / 0.08), transparent 32rem),
+    linear-gradient(180deg, #fbfdff 0%, #ffffff 58%, #ffffff 100%) !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(header, section, aside, article, div)[class*="rounded"],
+body:has([aria-label="Estado del panel"]) :is(header, section, aside, article, div)[class*="rounded"] {
+  border-color: #d5e5ef !important;
+}
+
+body:has([aria-label="Contenido admin"]) [aria-label="Estado del panel"] > *,
+body:has([aria-label="Estado del panel"]) [aria-label="Estado del panel"] > * {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+  box-shadow: none !important;
+}
+
+body:has([aria-label="Contenido admin"]) [aria-label="Estado del panel"] > *:nth-child(2),
+body:has([aria-label="Estado del panel"]) [aria-label="Estado del panel"] > *:nth-child(2) {
+  border-color: #b9ddeb !important;
+  background: #eaf6fb !important;
+  color: #0f5f82 !important;
+}
+
+body:has([aria-label="Contenido admin"]) [aria-label="Centro operativo"],
+body:has([aria-label="Contenido admin"]) [aria-label="Contenido admin"],
+body:has([aria-label="Estado del panel"]) [aria-label="Centro operativo"],
+body:has([aria-label="Estado del panel"]) [aria-label="Contenido admin"] {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  box-shadow: 0 16px 44px rgb(39 84 111 / 0.045) !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(h1, h2, h3, h4, strong, label, th),
+body:has([aria-label="Estado del panel"]) :is(h1, h2, h3, h4, strong, label, th) {
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(p, small, li, td),
+body:has([aria-label="Estado del panel"]) :is(p, small, li, td) {
+  color: #587083 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"], .ui-control),
+body:has([aria-label="Estado del panel"]) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"], .ui-control) {
+  min-height: 2.65rem !important;
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(input::placeholder, textarea::placeholder),
+body:has([aria-label="Estado del panel"]) :is(input::placeholder, textarea::placeholder) {
+  color: #6f8797 !important;
+  opacity: 1 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(button:not(:disabled), a[role="button"], .ui-button, .ui-cta-secondary),
+body:has([aria-label="Estado del panel"]) :is(button:not(:disabled), a[role="button"], .ui-button, .ui-cta-secondary) {
+  border-color: #cfe1ec !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(button:disabled, [aria-disabled="true"], [data-disabled="true"]),
+body:has([aria-label="Estado del panel"]) :is(button:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  border-color: #d8e7f0 !important;
+  background: #f5fbfe !important;
+  color: #627d8f !important;
+  opacity: 1 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(.ui-configured-cta, .ui-configured-cta--zone, .ui-configured-cta--compact),
+body:has([aria-label="Estado del panel"]) :is(.ui-configured-cta, .ui-configured-cta--zone, .ui-configured-cta--compact) {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) .ui-configured-cta--primary,
+body:has([aria-label="Estado del panel"]) .ui-configured-cta--primary {
+  border-color: #b9ddeb !important;
+  background: #eaf6fb !important;
+  color: #0f5f82 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(.ui-table-wrap, .table-wrap, [data-table-wrap="true"]),
+body:has([aria-label="Estado del panel"]) :is(.ui-table-wrap, .table-wrap, [data-table-wrap="true"]) {
+  max-height: min(70dvh, 700px);
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+}
+
+body:has([aria-label="Contenido admin"]) table,
+body:has([aria-label="Estado del panel"]) table {
+  min-width: 780px;
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is(thead, thead tr, th),
+body:has([aria-label="Estado del panel"]) :is(thead, thead tr, th) {
+  background: #f8fcff !important;
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is([class*="bg-slate-950"], [class*="bg-slate-900"], [class*="bg-slate-800"], [class*="bg-black"]),
+body:has([aria-label="Estado del panel"]) :is([class*="bg-slate-950"], [class*="bg-slate-900"], [class*="bg-slate-800"], [class*="bg-black"]) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is([class*="text-white"], [class*="text-slate-100"], [class*="text-slate-200"]),
+body:has([aria-label="Estado del panel"]) :is([class*="text-white"], [class*="text-slate-100"], [class*="text-slate-200"]) {
+  color: #102838 !important;
+}
+
+body:has([aria-label="Contenido admin"]) :is([class*="bg-emerald"], [class*="bg-green"], [class*="bg-lime"]),
+body:has([aria-label="Estado del panel"]) :is([class*="bg-emerald"], [class*="bg-green"], [class*="bg-lime"]) {
+  border-color: #bfe7d1 !important;
+  background: #eef9f3 !important;
+  color: #0c6b42 !important;
+}
+
+@media (max-width: 760px) {
+  body:has([aria-label="Contenido admin"]) table,
+  body:has([aria-label="Estado del panel"]) table {
+    min-width: 840px;
+  }
+}
