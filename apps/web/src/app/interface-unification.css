@@ -1,0 +1,463 @@
+/*
+  Global interface unification phase.
+  Goal: make public, auth, workspace, profile and admin share the same premium technical UI language
+  without changing business logic or route behavior.
+*/
+
+:root {
+  --recalc-page: #f4f7f9;
+  --recalc-surface: #ffffff;
+  --recalc-surface-soft: #f7fafc;
+  --recalc-border: #c8d6e2;
+  --recalc-border-soft: #d8e4ec;
+  --recalc-ink: #102838;
+  --recalc-muted: #536a7c;
+  --recalc-subtle: #667c8d;
+  --recalc-accent: #0f4c6b;
+  --recalc-accent-hover: #0b3d56;
+  --recalc-accent-soft: rgb(15 76 107 / 0.1);
+  --recalc-success: #0c5f3a;
+  --recalc-success-bg: #ddf8ea;
+  --recalc-warning: #7a4a00;
+  --recalc-warning-bg: #fff3d6;
+  --recalc-danger: #8a2d2d;
+  --recalc-danger-bg: #fde7e7;
+  --recalc-radius-xl: 28px;
+  --recalc-radius-lg: 24px;
+  --recalc-radius-md: 18px;
+  --recalc-shadow-lg: 0 18px 60px rgb(16 32 42 / 0.07);
+  --recalc-shadow-md: 0 16px 50px rgb(16 32 42 / 0.06);
+  --recalc-shadow-sm: 0 12px 34px rgb(16 32 42 / 0.05);
+}
+
+html {
+  background: var(--recalc-page);
+}
+
+body {
+  color: var(--recalc-ink);
+  background:
+    radial-gradient(circle at 0 0, rgb(17 78 109 / 0.055), transparent 34rem),
+    linear-gradient(180deg, var(--recalc-page), #ffffff 76%);
+}
+
+/* Shared readability */
+body :is(h1, h2, h3, h4, h5, h6, strong, label, legend, th) {
+  color: var(--recalc-ink);
+}
+
+body :is(p, small, li, figcaption),
+body [class*="text-gray-400"],
+body [class*="text-gray-500"],
+body [class*="text-slate-300"],
+body [class*="text-slate-400"],
+body [class*="text-slate-500"],
+body [class*="text-zinc-400"],
+body [class*="text-zinc-500"] {
+  color: var(--recalc-muted);
+}
+
+body [class*="text-white"],
+body [class*="text-slate-50"],
+body [class*="text-slate-100"] {
+  color: #ffffff;
+}
+
+body a {
+  text-underline-offset: 0.18em;
+}
+
+/* Shared shell/header surfaces */
+.ui-shell-header,
+.ui-shell-header--workspace,
+.ui-workspace-header,
+.ui-page-frame header,
+header[class*="border"],
+.ui-card,
+.ui-card-pad,
+.ui-panel,
+.ui-section,
+.ui-form-card,
+.ui-summary-card,
+.ui-result-card,
+.ui-chat-panel,
+.ui-offer-card,
+[role="dialog"],
+.ui-modal,
+.ui-popover,
+.ui-dropdown {
+  border-color: var(--recalc-border) !important;
+  background-color: rgb(255 255 255 / 0.94) !important;
+  color: var(--recalc-ink) !important;
+}
+
+.ui-shell-header,
+.ui-shell-header--workspace,
+.ui-workspace-header,
+.ui-page-frame header[class*="rounded"],
+.ui-card,
+.ui-card-pad,
+.ui-panel,
+.ui-section,
+.ui-form-card,
+.ui-summary-card,
+.ui-result-card,
+.ui-chat-panel,
+.ui-offer-card {
+  box-shadow: var(--recalc-shadow-md) !important;
+}
+
+.ui-shell-header,
+.ui-shell-header--workspace,
+.ui-workspace-header {
+  border-radius: var(--recalc-radius-xl) !important;
+  backdrop-filter: blur(18px);
+}
+
+/* Workspace header must behave like the admin hero */
+.ui-page-frame .ui-workspace-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 1rem !important;
+  align-items: start !important;
+  min-height: 92px !important;
+  height: auto !important;
+  overflow: visible !important;
+  padding: clamp(0.9rem, 2vw, 1.25rem) !important;
+}
+
+.ui-page-frame .ui-workspace-header__top {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 0;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+}
+
+.ui-page-frame .ui-workspace-header__identity {
+  align-items: flex-start !important;
+  min-width: 0;
+}
+
+.ui-page-frame .ui-workspace-header__title {
+  color: var(--recalc-ink) !important;
+  font-size: clamp(1.25rem, 2vw, 1.65rem) !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+}
+
+.ui-page-frame .ui-workspace-header__account {
+  flex-shrink: 0;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.55rem !important;
+}
+
+.ui-page-frame .ui-workspace-header__account > div:first-child {
+  display: none !important;
+}
+
+.ui-page-frame .ui-workspace-header__ctas {
+  display: grid !important;
+  width: 100% !important;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)) !important;
+  gap: 0.65rem !important;
+}
+
+/* CTA/status pills — same rhythm as admin context pills */
+.ui-page-frame .ui-workspace-header__ctas :is(a, button),
+.ui-configured-cta,
+.ui-configured-cta--zone,
+.ui-configured-cta--compact,
+.ui-configured-cta--neutral,
+.ui-configured-cta--primary {
+  min-height: 3.1rem !important;
+  border: 1px solid var(--recalc-border) !important;
+  border-radius: 999px !important;
+  background: var(--recalc-surface-soft) !important;
+  color: var(--recalc-ink) !important;
+  box-shadow: none !important;
+}
+
+.ui-configured-cta--primary,
+.ui-page-frame .ui-workspace-header__ctas .ui-configured-cta--primary {
+  border-color: rgb(15 76 107 / 0.34) !important;
+  background: var(--recalc-accent-soft) !important;
+  color: var(--recalc-accent) !important;
+}
+
+.ui-configured-cta:hover,
+.ui-configured-cta--zone:hover,
+.ui-configured-cta--compact:hover,
+.ui-configured-cta--neutral:hover,
+.ui-configured-cta--primary:hover {
+  border-color: rgb(15 76 107 / 0.38) !important;
+  background: rgb(15 76 107 / 0.08) !important;
+  color: var(--recalc-accent) !important;
+}
+
+.ui-configured-cta__icon {
+  border-color: var(--recalc-border) !important;
+  background: #ffffff !important;
+  color: var(--recalc-accent) !important;
+}
+
+.ui-configured-cta__label {
+  color: currentColor !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* Buttons */
+body :is(button, [role="button"], .ui-cta-primary, .ui-cta-secondary, .ui-button, .ui-shell-icon-button) {
+  opacity: 1 !important;
+}
+
+.ui-cta-primary,
+button[data-variant="primary"],
+body .bg-primary,
+body .bg-\[\#0f4c6b\] {
+  border-color: var(--recalc-accent) !important;
+  background: var(--recalc-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgb(15 76 107 / 0.16) !important;
+}
+
+.ui-cta-primary:hover,
+button[data-variant="primary"]:hover {
+  background: var(--recalc-accent-hover) !important;
+}
+
+.ui-cta-secondary,
+.ui-button,
+.ui-shell-icon-button,
+body button:not(:disabled):not([data-variant="primary"]) {
+  border-color: var(--recalc-border) !important;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+}
+
+.ui-cta-secondary:hover,
+.ui-button:hover,
+.ui-shell-icon-button:hover,
+body button:not(:disabled):not([data-variant="primary"]):hover {
+  border-color: rgb(15 76 107 / 0.38) !important;
+  background: rgb(15 76 107 / 0.08) !important;
+  color: var(--recalc-accent) !important;
+}
+
+body :is(button:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  cursor: not-allowed !important;
+  border-color: var(--recalc-border) !important;
+  background: #e5ebef !important;
+  color: #647684 !important;
+  opacity: 1 !important;
+}
+
+/* Forms and selectors */
+body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"], .ui-control, .ui-select-trigger, .ui-input, .ui-textarea) {
+  max-width: 100%;
+  min-height: 2.55rem;
+  border: 1px solid var(--recalc-border) !important;
+  border-radius: 12px;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+  box-shadow: none !important;
+}
+
+body :is(input::placeholder, textarea::placeholder) {
+  color: #5f7180 !important;
+  opacity: 1 !important;
+}
+
+body :is(input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [role="combobox"]:focus-visible) {
+  outline: 3px solid rgb(15 76 107 / 0.26) !important;
+  outline-offset: 2px;
+}
+
+/* Tables */
+.ui-table-wrap,
+.table-wrap,
+[data-table-wrap="true"] {
+  max-width: 100%;
+  max-height: min(72dvh, 720px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--recalc-border) !important;
+  border-radius: 20px;
+  background: #ffffff !important;
+}
+
+body table,
+.ui-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  color: var(--recalc-ink) !important;
+  white-space: nowrap;
+}
+
+body thead,
+body table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc !important;
+}
+
+body th {
+  background: #f8fafc !important;
+  color: var(--recalc-ink) !important;
+  font-weight: 850 !important;
+}
+
+body td {
+  color: var(--recalc-ink) !important;
+}
+
+body :is(th, td) {
+  border-color: var(--recalc-border-soft) !important;
+}
+
+/* Popovers/dropdowns */
+body :is([role="dialog"], [role="listbox"], .select-content, .dropdown-content, .radix-select-content) {
+  border-color: var(--recalc-border) !important;
+  background: #ffffff !important;
+  color: var(--recalc-ink) !important;
+  box-shadow: 0 24px 70px rgb(16 32 42 / 0.18) !important;
+}
+
+body :is([role="option"], .select-item, .dropdown-item) {
+  color: var(--recalc-ink) !important;
+}
+
+body :is([role="option"][data-highlighted], .select-item[data-highlighted], .dropdown-item:hover) {
+  background: var(--recalc-accent-soft) !important;
+  color: var(--recalc-accent) !important;
+}
+
+/* Semantic badges */
+body [class*="bg-emerald"] {
+  border-color: rgb(12 95 58 / 0.22) !important;
+  background: var(--recalc-success-bg) !important;
+  color: var(--recalc-success) !important;
+}
+
+body [class*="text-emerald"] {
+  color: var(--recalc-success) !important;
+}
+
+body :is([class*="bg-amber"], [class*="bg-yellow"]) {
+  border-color: rgb(122 74 0 / 0.22) !important;
+  background: var(--recalc-warning-bg) !important;
+  color: var(--recalc-warning) !important;
+}
+
+body :is([class*="text-amber"], [class*="text-yellow"]) {
+  color: var(--recalc-warning) !important;
+}
+
+body :is([class*="bg-red"], [class*="bg-rose"]) {
+  border-color: rgb(138 45 45 / 0.22) !important;
+  background: var(--recalc-danger-bg) !important;
+  color: var(--recalc-danger) !important;
+}
+
+body :is([class*="text-red"], [class*="text-rose"]) {
+  color: var(--recalc-danger) !important;
+}
+
+body :is([class*="bg-cyan"], [class*="bg-sky"]) {
+  border-color: rgb(15 76 107 / 0.26) !important;
+  background: var(--recalc-accent-soft) !important;
+  color: var(--recalc-accent) !important;
+}
+
+body :is([class*="text-cyan"], [class*="text-sky"]) {
+  color: var(--recalc-accent) !important;
+}
+
+/* Profile/auth/public alignment */
+body :is(main, section) > [class*="rounded"][class*="border"],
+body :is(form, article, aside)[class*="rounded"][class*="border"] {
+  border-color: var(--recalc-border) !important;
+  box-shadow: var(--recalc-shadow-sm) !important;
+}
+
+body :is(form)[class*="max-w"],
+body :is(form) [class*="rounded"],
+body [class*="auth"] form {
+  color: var(--recalc-ink);
+}
+
+/* Landing and auth should be related, not admin-heavy */
+body:has(a[href="/auth/sign-in"]) header,
+body:has(a[href="/auth/sign-up"]) header {
+  border-color: var(--recalc-border-soft) !important;
+  background: rgb(255 255 255 / 0.92) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* Inbox dock remains compact but legible */
+[aria-label*="Inbox"],
+[class*="Inbox"] {
+  color: var(--recalc-ink);
+}
+
+@media (min-width: 1024px) {
+  .ui-page-frame .ui-page-grid,
+  .ui-page-frame .ui-page-main {
+    max-width: min(100%, 1980px) !important;
+    padding-inline: clamp(0.75rem, 1.35vw, 1.25rem) !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ui-shell-header,
+  .ui-shell-header--workspace,
+  .ui-workspace-header {
+    border-radius: 20px !important;
+  }
+
+  body table,
+  .ui-table {
+    min-width: 860px;
+  }
+}
+
+@media (max-width: 720px) {
+  .ui-page-frame .ui-workspace-header__top {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.85rem !important;
+  }
+
+  .ui-page-frame .ui-workspace-header__account {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .ui-page-frame .ui-workspace-header__account :is(a, button) {
+    width: 100%;
+  }
+
+  .ui-page-frame .ui-workspace-header__ctas {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px) {
+  body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .ui-control) {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+
+  .ui-page-frame .ui-workspace-header__account {
+    grid-template-columns: 1fr;
+  }
+}
