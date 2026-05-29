@@ -1,0 +1,161 @@
+/*
+  Auth/public-access pass.
+  Keeps sign-in, sign-up and recovery screens white, light-blue and premium without looking like admin.
+*/
+
+body:has(form input[type="password"]):has(a[href*="auth"]),
+body:has(form input[type="email"]):has(a[href*="auth"]),
+body:has(form input[name="email"]):has(a[href*="auth"]) {
+  background:
+    radial-gradient(circle at 12% 0%, rgb(92 177 215 / 0.09), transparent 28rem),
+    radial-gradient(circle at 100% 16%, rgb(15 95 130 / 0.055), transparent 30rem),
+    linear-gradient(180deg, #fbfdff 0%, #ffffff 58%, #ffffff 100%) !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) main,
+body:has(form input[type="email"]):has(a[href*="auth"]) main,
+body:has(form input[name="email"]):has(a[href*="auth"]) main {
+  width: 100%;
+  min-height: calc(100dvh - 5.5rem);
+  display: grid !important;
+  align-content: center !important;
+  justify-items: center !important;
+  padding: clamp(1.5rem, 5vw, 4.5rem) 1rem !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form,
+body:has(form input[type="email"]):has(a[href*="auth"]) form,
+body:has(form input[name="email"]):has(a[href*="auth"]) form {
+  position: relative;
+  width: min(100%, 30rem) !important;
+  overflow: hidden;
+  border: 1px solid #d5e5ef !important;
+  border-radius: 28px !important;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.99), rgb(251 253 255 / 0.98)) !important;
+  color: #102838 !important;
+  box-shadow: 0 22px 62px rgb(39 84 111 / 0.07) !important;
+  padding: clamp(1.1rem, 2.6vw, 1.55rem) !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form::before,
+body:has(form input[type="email"]):has(a[href*="auth"]) form::before,
+body:has(form input[name="email"]):has(a[href*="auth"]) form::before {
+  content: "";
+  display: block;
+  width: 2.75rem;
+  height: 0.28rem;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0f5f82, #8bd3ec);
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form :is(h1, h2, h3),
+body:has(form input[type="email"]):has(a[href*="auth"]) form :is(h1, h2, h3),
+body:has(form input[name="email"]):has(a[href*="auth"]) form :is(h1, h2, h3) {
+  color: #102838 !important;
+  font-weight: 880 !important;
+  letter-spacing: -0.04em;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form :is(p, small),
+body:has(form input[type="email"]):has(a[href*="auth"]) form :is(p, small),
+body:has(form input[name="email"]):has(a[href*="auth"]) form :is(p, small) {
+  color: #587083 !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form label,
+body:has(form input[type="email"]):has(a[href*="auth"]) form label,
+body:has(form input[name="email"]):has(a[href*="auth"]) form label {
+  color: #102838 !important;
+  font-weight: 780 !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form :is(input, select, textarea),
+body:has(form input[type="email"]):has(a[href*="auth"]) form :is(input, select, textarea),
+body:has(form input[name="email"]):has(a[href*="auth"]) form :is(input, select, textarea) {
+  min-height: 2.85rem !important;
+  border-color: #cfe1ec !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form :is(input::placeholder, textarea::placeholder),
+body:has(form input[type="email"]):has(a[href*="auth"]) form :is(input::placeholder, textarea::placeholder),
+body:has(form input[name="email"]):has(a[href*="auth"]) form :is(input::placeholder, textarea::placeholder) {
+  color: #6f8797 !important;
+  opacity: 1 !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form button[type="submit"],
+body:has(form input[type="email"]):has(a[href*="auth"]) form button[type="submit"],
+body:has(form input[name="email"]):has(a[href*="auth"]) form button[type="submit"] {
+  min-height: 2.85rem !important;
+  border-radius: 999px !important;
+  border-color: #0f5f82 !important;
+  background: #0f5f82 !important;
+  color: #ffffff !important;
+  font-weight: 850 !important;
+  box-shadow: 0 12px 26px rgb(15 95 130 / 0.12) !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form button[type="submit"]:hover,
+body:has(form input[type="email"]):has(a[href*="auth"]) form button[type="submit"]:hover,
+body:has(form input[name="email"]):has(a[href*="auth"]) form button[type="submit"]:hover {
+  background: #0d4f6c !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form a,
+body:has(form input[type="email"]):has(a[href*="auth"]) form a,
+body:has(form input[name="email"]):has(a[href*="auth"]) form a {
+  color: #0f5f82 !important;
+  font-weight: 720;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form a:hover,
+body:has(form input[type="email"]):has(a[href*="auth"]) form a:hover,
+body:has(form input[name="email"]):has(a[href*="auth"]) form a:hover {
+  color: #0d4f6c !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form :is([role="alert"], .ui-note, [class*="bg-red"], [class*="bg-rose"]),
+body:has(form input[type="email"]):has(a[href*="auth"]) form :is([role="alert"], .ui-note, [class*="bg-red"], [class*="bg-rose"]),
+body:has(form input[name="email"]):has(a[href*="auth"]) form :is([role="alert"], .ui-note, [class*="bg-red"], [class*="bg-rose"]) {
+  border-color: rgb(138 45 45 / 0.22) !important;
+  background: #fff0f0 !important;
+  color: #8a2d2d !important;
+}
+
+body:has(form input[type="password"]):has(a[href*="auth"]) form :is([class*="bg-emerald"], [class*="bg-green"]),
+body:has(form input[type="email"]):has(a[href*="auth"]) form :is([class*="bg-emerald"], [class*="bg-green"]),
+body:has(form input[name="email"]):has(a[href*="auth"]) form :is([class*="bg-emerald"], [class*="bg-green"]) {
+  border-color: rgb(12 95 58 / 0.22) !important;
+  background: #eaf9f1 !important;
+  color: #0c5f3a !important;
+}
+
+/* Access denied / recovery pages often have cards but no password field. */
+body:has(main a[href="/"]):has(main [class*="rounded"][class*="border"]) main > :is(section, div, article),
+body:has(main a[href*="sign-in"]):has(main [class*="rounded"][class*="border"]) main > :is(section, div, article) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+  box-shadow: 0 18px 52px rgb(39 84 111 / 0.055) !important;
+}
+
+@media (max-width: 640px) {
+  body:has(form input[type="password"]):has(a[href*="auth"]) main,
+  body:has(form input[type="email"]):has(a[href*="auth"]) main,
+  body:has(form input[name="email"]):has(a[href*="auth"]) main {
+    align-content: start !important;
+    padding-block: 1.25rem 2rem !important;
+  }
+
+  body:has(form input[type="password"]):has(a[href*="auth"]) form,
+  body:has(form input[type="email"]):has(a[href*="auth"]) form,
+  body:has(form input[name="email"]):has(a[href*="auth"]) form {
+    border-radius: 22px !important;
+    padding: 1rem !important;
+  }
+}
