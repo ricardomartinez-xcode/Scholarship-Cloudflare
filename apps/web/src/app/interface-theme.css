@@ -9,6 +9,7 @@
   4. Light component pass.
   5. Workspace-specific polish.
   6. Auth/public-access polish.
+  7. Landing/public marketing polish.
 
   Design direction:
   - white-first UI (#FFFFFF surfaces);
@@ -23,3 +24,4 @@
 @import "./interface-component-pass-light.css";
 @import "./interface-unidep-pass.css";
 @import "./interface-auth-pass.css";
+@import "./interface-public-pass.css";

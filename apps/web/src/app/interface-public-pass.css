@@ -1,0 +1,123 @@
+/*
+  Public landing pass.
+  Keep the homepage commercial and open, while aligning it with the white/light-blue ReCalc UI system.
+*/
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) {
+  background:
+    radial-gradient(circle at 8% 0%, rgb(92 177 215 / 0.1), transparent 30rem),
+    radial-gradient(circle at 92% 12%, rgb(15 95 130 / 0.06), transparent 32rem),
+    linear-gradient(180deg, #fbfdff 0%, #ffffff 56%, #ffffff 100%) !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header {
+  border-bottom: 1px solid #e5f0f6 !important;
+  background: rgb(255 255 255 / 0.96) !important;
+  box-shadow: 0 10px 30px rgb(39 84 111 / 0.035) !important;
+  backdrop-filter: blur(18px);
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) header :is(a, button) {
+  border-radius: 999px !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main {
+  color: #102838 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section {
+  position: relative;
+  isolation: isolate;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type {
+  min-height: min(78dvh, 50rem);
+  display: grid;
+  align-items: center;
+  background: transparent !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main h1 {
+  color: #102838 !important;
+  letter-spacing: -0.06em;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(h2, h3) {
+  color: #102838 !important;
+  letter-spacing: -0.035em;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(p, li, small) {
+  color: #587083 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(article, aside, div[class*="rounded"][class*="border"], section[class*="rounded"][class*="border"]) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+  box-shadow: 0 18px 52px rgb(39 84 111 / 0.055) !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is([class*="bg-slate-950"], [class*="bg-slate-900"], [class*="bg-slate-800"], [class*="bg-black"]) {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is([class*="text-white"], [class*="text-slate-100"], [class*="text-slate-200"]) {
+  color: #102838 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is([class*="text-slate-300"], [class*="text-slate-400"], [class*="text-slate-500"]) {
+  color: #587083 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(a, button) {
+  opacity: 1 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(a[class*="bg"], button[class*="bg"], .ui-cta-primary) {
+  border-color: #0f5f82 !important;
+  background: #0f5f82 !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px rgb(15 95 130 / 0.12) !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(a[class*="border"], button[class*="border"], .ui-cta-secondary) {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(a[class*="border"], button[class*="border"], .ui-cta-secondary):hover {
+  border-color: #9fcfdf !important;
+  background: #eef8fc !important;
+  color: #0f5f82 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is([class*="bg-cyan"], [class*="bg-sky"], [class*="bg-blue"]) {
+  border-color: #b9ddeb !important;
+  background: #eaf6fb !important;
+  color: #0f5f82 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is([class*="text-cyan"], [class*="text-sky"], [class*="text-blue"]) {
+  color: #0f5f82 !important;
+}
+
+body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) footer {
+  border-color: #e5f0f6 !important;
+  background: #ffffff !important;
+  color: #587083 !important;
+}
+
+@media (max-width: 760px) {
+  body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main > section:first-of-type {
+    min-height: auto;
+    padding-block: 3rem !important;
+  }
+
+  body:has(a[href="/auth/sign-in"]):has(a[href="/auth/sign-up"]) main :is(article, aside, div[class*="rounded"][class*="border"], section[class*="rounded"][class*="border"]) {
+    border-radius: 22px !important;
+  }
+}
