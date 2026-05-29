@@ -62,7 +62,7 @@ export default function AppSidebar({
         groups={filteredWorkspaceNavGroups}
         activeKey={activeKey ?? "becas"}
         collapsed={collapsed}
-        onItemSelected={onSelect}
+        onItemSelect={onSelect}
         onLinkNavigate={onNavigate}
       />
       <div className="ui-shell-nav-footer" aria-label="Navegación fija">
@@ -70,7 +70,7 @@ export default function AppSidebar({
           groups={[{ key: "footer", label: "Footer", items: workspaceFooterNavItems }]}
           activeKey={activeKey}
           collapsed={collapsed}
-          onItemSelected={onSelect}
+          onItemSelect={onSelect}
           onLinkNavigate={onNavigate}
         />
       </div>
