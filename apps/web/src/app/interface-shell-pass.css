@@ -1,0 +1,141 @@
+/*
+  Shared shell/navigation stability pass.
+  Focus: headers, drawers, sidebars and nav controls across workspace/admin.
+*/
+
+.ui-shell-header,
+.ui-shell-header--workspace,
+.ui-workspace-header,
+body:has([aria-label="Contenido admin"]) header,
+body:has([aria-label="Estado del panel"]) header {
+  border-color: #d5e5ef !important;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(251 253 255 / 0.96)) !important;
+  color: #102838 !important;
+  box-shadow: 0 14px 42px rgb(39 84 111 / 0.05) !important;
+}
+
+.ui-workspace-header__account :is(a, button),
+.ui-shell-header :is(a, button),
+body:has([aria-label="Contenido admin"]) header :is(a, button),
+body:has([aria-label="Estado del panel"]) header :is(a, button) {
+  min-height: 2.45rem !important;
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+.ui-workspace-header__account :is(a, button):hover,
+.ui-shell-header :is(a, button):hover,
+body:has([aria-label="Contenido admin"]) header :is(a, button):hover,
+body:has([aria-label="Estado del panel"]) header :is(a, button):hover {
+  border-color: #9fcfdf !important;
+  background: #eef8fc !important;
+  color: #0f5f82 !important;
+}
+
+.ui-shell-drawer {
+  border-color: #d5e5ef !important;
+  background: rgb(255 255 255 / 0.98) !important;
+  color: #102838 !important;
+  box-shadow: 24px 0 70px rgb(39 84 111 / 0.15) !important;
+}
+
+.ui-shell-drawer :is(a, button) {
+  color: #102838 !important;
+}
+
+.ui-shell-drawer :is(a, button):hover {
+  background: #eef8fc !important;
+  color: #0f5f82 !important;
+}
+
+.ui-shell-drawer .ui-shell-icon-button,
+.ui-shell-drawer > button[aria-label="Cerrar menú"] {
+  border-color: #cfe1ec !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+}
+
+.ui-sidebar-stack,
+.ui-shell-nav-layout {
+  min-width: 0;
+}
+
+.ui-sidebar-action-panel,
+.ui-shell-drawer section[aria-label="Identidad admin"] {
+  border-color: #d5e5ef !important;
+  background: #ffffff !important;
+  color: #102838 !important;
+  box-shadow: 0 12px 32px rgb(39 84 111 / 0.045) !important;
+}
+
+.ui-shell-brand__eyebrow,
+.ui-shell-drawer section[aria-label="Identidad admin"] :is([class*="Eyebrow"], div:first-child) {
+  color: #587083 !important;
+}
+
+.ui-shell-brand__title,
+.ui-shell-drawer section[aria-label="Identidad admin"] :is([class*="Title"], div:last-child) {
+  color: #102838 !important;
+}
+
+.ui-shell-nav-layout :is(nav, ul, li),
+.ui-shell-drawer :is(nav, ul, li) {
+  min-width: 0;
+}
+
+.ui-shell-nav-layout :is(a, button),
+.ui-shell-drawer :is(nav a, nav button) {
+  min-height: 2.35rem;
+  border-radius: 14px !important;
+}
+
+.ui-shell-nav-layout :is(a[aria-current="page"], button[aria-current="page"], [data-active="true"]),
+.ui-shell-drawer :is(a[aria-current="page"], button[aria-current="page"], [data-active="true"]) {
+  border-color: #b9ddeb !important;
+  background: #eaf6fb !important;
+  color: #0f5f82 !important;
+}
+
+.ui-scrollbar,
+.ui-shell-drawer,
+.ui-shell-drawer * {
+  scrollbar-color: #bfd9e7 transparent;
+  scrollbar-width: thin;
+}
+
+.ui-scrollbar::-webkit-scrollbar,
+.ui-shell-drawer::-webkit-scrollbar,
+.ui-shell-drawer *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb,
+.ui-shell-drawer::-webkit-scrollbar-thumb,
+.ui-shell-drawer *::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #bfd9e7;
+  background-clip: padding-box;
+}
+
+.ui-scrollbar::-webkit-scrollbar-track,
+.ui-shell-drawer::-webkit-scrollbar-track,
+.ui-shell-drawer *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .ui-shell-header,
+  .ui-shell-header--workspace,
+  .ui-workspace-header,
+  body:has([aria-label="Contenido admin"]) header,
+  body:has([aria-label="Estado del panel"]) header {
+    border-radius: 20px !important;
+  }
+
+  .ui-shell-drawer {
+    width: min(92vw, 23rem) !important;
+  }
+}
