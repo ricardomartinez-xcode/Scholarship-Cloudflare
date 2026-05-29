@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import WorkspaceSidebarIdentitySync from "@/components/app/WorkspaceSidebarIdentitySync";
 import "./globals.css";
 import "./workspace-ui.css";
 import "./workspace-brand-fix.css";
 import "./workspace-width-balance.css";
-import "./admin-drawer-fix.css";
-import "./workspace-header-admin-cta.css";
+import "./workspace-sidebar-identity.css";
 
 export const metadata: Metadata = {
   title: "ReCalc",
@@ -33,6 +33,7 @@ export default function RootLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} ui-density-compact-desktop antialiased`}
       >
+        <WorkspaceSidebarIdentitySync />
         <div>{children}</div>
       </body>
     </html>
