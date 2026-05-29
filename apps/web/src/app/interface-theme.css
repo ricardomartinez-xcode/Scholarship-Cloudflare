@@ -12,6 +12,7 @@
   7. Landing/public marketing polish.
   8. Admin light polish.
   9. Shared shell/navigation stability.
+  10. Accessibility/responsive stability.
 
   Design direction:
   - white-first UI (#FFFFFF surfaces);
@@ -29,3 +30,4 @@
 @import "./interface-public-pass.css";
 @import "./interface-admin-pass.css";
 @import "./interface-shell-pass.css";
+@import "./interface-a11y-responsive-pass.css";

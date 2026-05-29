@@ -1,0 +1,139 @@
+/*
+  Accessibility and responsive stability pass.
+  Focus: keyboard focus, reduced motion, touch targets, safe overflow and long text handling.
+*/
+
+:root {
+  --recalc-focus-ring: rgb(15 95 130 / 0.32);
+  --recalc-focus-border: #0f5f82;
+  --recalc-touch-target: 2.65rem;
+}
+
+/* Keyboard/focus visibility */
+body :is(a, button, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="combobox"], summary):focus-visible {
+  outline: 3px solid var(--recalc-focus-ring) !important;
+  outline-offset: 2px !important;
+  border-color: var(--recalc-focus-border) !important;
+}
+
+body :is(a, button, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="combobox"], summary):focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Touch targets without forcing huge desktop controls */
+body :is(button, [role="button"], a[class*="button"], .ui-button, .ui-cta-primary, .ui-cta-secondary, .ui-shell-icon-button) {
+  min-height: max(var(--recalc-touch-target), 2.35rem);
+}
+
+body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"], .ui-control) {
+  min-height: max(var(--recalc-touch-target), 2.5rem);
+}
+
+body :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: #0f5f82;
+}
+
+/* Safe horizontal behavior */
+body :is(main, section, article, aside, form, header, footer, nav, div) {
+  min-width: 0;
+}
+
+body :is(p, li, td, th, label, span, strong, small, a, button) {
+  overflow-wrap: anywhere;
+}
+
+body :is(h1, h2, h3, h4, h5, h6) {
+  overflow-wrap: balance;
+}
+
+/* Data-heavy surfaces */
+body :is(.ui-table-wrap, .table-wrap, [data-table-wrap="true"], [class*="overflow-x-auto"]):has(table) {
+  max-width: 100%;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body table {
+  max-width: 100%;
+}
+
+body :is(td, th) {
+  vertical-align: top;
+}
+
+/* Scroll containers should never trap the page visually */
+body :is(.ui-scrollbar, .ui-shell-drawer, [class*="overflow-y-auto"], [class*="overflow-auto"]) {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Dialogs/drawers/popovers stay usable on small screens */
+body :is([role="dialog"], .ui-shell-drawer, .ui-modal, .ui-popover) {
+  max-width: min(100vw - 1rem, 42rem);
+  max-height: calc(100dvh - 1rem);
+}
+
+body :is([role="dialog"], .ui-modal, .ui-popover) {
+  overflow: auto;
+}
+
+/* Prevent disabled/readonly controls from losing readability */
+body :is(input[readonly], textarea[readonly], select[readonly]) {
+  background: #f8fcff !important;
+  color: #465f70 !important;
+  cursor: default;
+}
+
+body :is(button:disabled, input:disabled, select:disabled, textarea:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  opacity: 1 !important;
+}
+
+/* Reduce visual noise for users who request less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Better mobile density */
+@media (max-width: 760px) {
+  :root {
+    --recalc-touch-target: 2.8rem;
+  }
+
+  body {
+    text-size-adjust: 100%;
+  }
+
+  body :is(main, section, article, aside, form)[class*="px-"] {
+    max-width: 100%;
+  }
+
+  body :is(.ui-shell-header, .ui-workspace-header, [aria-label="Contenido admin"], [aria-label="Centro operativo"]) {
+    max-width: 100%;
+  }
+
+  body :is(input, select, textarea) {
+    font-size: 1rem !important;
+  }
+
+  body :is(.ui-table-wrap, .table-wrap, [data-table-wrap="true"]):has(table) {
+    max-height: min(66dvh, 34rem);
+  }
+}
+
+@media (max-width: 420px) {
+  body :is(.ui-shell-header, .ui-workspace-header) {
+    padding-inline: 0.85rem !important;
+  }
+
+  body :is(button, [role="button"], .ui-button, .ui-cta-primary, .ui-cta-secondary) {
+    white-space: normal;
+  }
+}
