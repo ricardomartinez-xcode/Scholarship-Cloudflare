@@ -1,15 +1,15 @@
-/* Admin drawer header polish: keeps the workspace-style drawer but cleans up the brand row. */
+/* Admin drawer header polish: same control rhythm as the authenticated app drawer. */
 
 .ui-shell-drawer {
   gap: 0.65rem;
 }
 
 .ui-shell-drawer > button[aria-label="Cerrar menú"] {
-  top: 0.92rem !important;
-  right: 0.92rem !important;
-  z-index: 5 !important;
-  width: 2.45rem !important;
-  min-height: 2.45rem !important;
+  top: 0.75rem !important;
+  right: 0.75rem !important;
+  z-index: 6 !important;
+  width: 2.25rem !important;
+  min-height: 2.25rem !important;
   border-color: #c8d6e2 !important;
   background: #ffffff !important;
   color: #102838 !important;
@@ -22,9 +22,10 @@
 }
 
 .ui-shell-drawer section[aria-label="Identidad admin"] {
-  min-height: 4.8rem;
+  min-height: 4.6rem;
+  margin-top: 3rem !important;
   border-radius: 26px !important;
-  padding: 0.75rem 3.55rem 0.75rem 0.75rem !important;
+  padding: 0.72rem 0.8rem !important;
   background: rgb(255 255 255 / 0.98) !important;
   box-shadow: 0 14px 40px rgb(16 32 42 / 0.07) !important;
 }
@@ -66,7 +67,7 @@
 @media (max-width: 420px) {
   .ui-shell-drawer section[aria-label="Identidad admin"] {
     min-height: 4.6rem;
-    padding-right: 3.25rem !important;
+    margin-top: 2.8rem !important;
   }
 
   .ui-shell-drawer section[aria-label="Identidad admin"] > div > div:last-child > div:last-child {

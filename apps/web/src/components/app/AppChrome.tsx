@@ -129,13 +129,13 @@ function WorkspaceSidebarNav({
   onNavigate,
   sidebarTopAnnouncements,
   sidebarBottomAnnouncements,
-  userEmail,
+  accountLabel,
 }: {
   activeSection: string;
   onNavigate?: () => void;
   sidebarTopAnnouncements: Announcement[];
   sidebarBottomAnnouncements: Announcement[];
-  userEmail: string | null;
+  accountLabel: string;
 }) {
   const appTopAnnouncements = sidebarTopAnnouncements.filter(
     (item) => !isAdminPanelAnnouncement(item),
@@ -158,8 +158,10 @@ function WorkspaceSidebarNav({
             />
           </div>
           <div className="ui-shell-brand min-w-0">
-            <div className="ui-shell-brand__eyebrow">Workspace</div>
-            <div className="ui-shell-brand__title">UNIDEP</div>
+            <div className="ui-shell-brand__eyebrow">Usuario</div>
+            <div className="ui-shell-brand__title" title={accountLabel}>
+              {accountLabel}
+            </div>
           </div>
         </div>
       </section>
@@ -170,7 +172,7 @@ function WorkspaceSidebarNav({
         className="grid gap-2"
       />
 
-      <AppSidebar activeKey={activeSection} onNavigate={onNavigate} userEmail={userEmail} />
+      <AppSidebar activeKey={activeSection} onNavigate={onNavigate} accountLabel={accountLabel} />
 
       <AnnouncementOutlet
         announcements={appBottomAnnouncements}
@@ -192,6 +194,7 @@ export default function AppChrome({
   userEmail,
   userDisplayName,
   isAdmin,
+  signOutAction,
   profileHref = "/profile",
   navBannerCtas = [],
   sidebarTopCtas = [],
@@ -229,7 +232,7 @@ export default function AppChrome({
 
   const unlockAdmin = () => setAdminUnlocked(true);
   const resolvedProfileHref = profileHref ?? null;
-  const accountLabel = userDisplayName?.trim() || userEmail || "n/a";
+  const accountLabel = userDisplayName?.trim() || userEmail || "Usuario";
   const showProfileActions = Boolean(resolvedProfileHref);
   const workspaceTab = searchParams.get("tab");
   const workspaceSection = searchParams.get("section");
@@ -329,69 +332,90 @@ export default function AppChrome({
       <SimulatorProvider>
         <div className="min-h-screen overflow-x-clip text-[color:var(--ui-text-primary)]">
           <div className="ui-page-frame ui-page-grid grid-cols-1">
-            <div className="ui-page-main grid-rows-[auto_auto_auto_1fr_auto]">
-              <header className="ui-shell-header ui-shell-header--workspace ui-workspace-header flex min-h-[var(--ui-shell-topbar-height)] items-center justify-between gap-3">
-                <div className="ui-workspace-header__identity flex min-w-0 items-center gap-3">
-                  {showWorkspaceLayout ? (
-                    <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-                      <Dialog.Trigger asChild>
-                        <button
-                          type="button"
-                          className="ui-shell-icon-button h-9 w-9"
-                          aria-label="Abrir menú"
-                        >
-                          <DashboardIcon name="menu" className="h-4 w-4" />
-                        </button>
-                      </Dialog.Trigger>
-                      <Dialog.Portal>
-                        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-                        <Dialog.Content className="ui-shell-drawer fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[372px] flex-col overflow-hidden border-r p-3 shadow-2xl outline-none">
-                          <Dialog.Title className="sr-only">Navegación UNIDEP</Dialog.Title>
-                          <Dialog.Close asChild>
-                            <button
-                              type="button"
-                              className="ui-shell-icon-button absolute right-3 top-3 h-9 w-9"
-                              aria-label="Cerrar menú"
-                            >
-                              <DashboardIcon name="close" className="h-4 w-4" />
-                            </button>
-                          </Dialog.Close>
-                          <div className="ui-scrollbar mt-12 flex-1 overflow-y-auto">
-                            <WorkspaceSidebarNav
-                              activeSection={resolvedActiveSection}
-                              onNavigate={() => setMobileNavOpen(false)}
-                              sidebarTopAnnouncements={sidebarTopAnnouncements}
-                              sidebarBottomAnnouncements={sidebarBottomAnnouncements}
-                              userEmail={userEmail}
-                            />
-                          </div>
-                        </Dialog.Content>
-                      </Dialog.Portal>
-                    </Dialog.Root>
-                  ) : null}
-
-                  <div className="min-w-0">
-                    <nav className="flex items-center gap-1.5 text-xs text-[color:var(--ui-text-secondary)]">
-                      {breadcrumbs.map((crumb, index) => (
-                        <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
-                          {index > 0 ? (
-                            <span className="text-[color:var(--ui-text-secondary)]">/</span>
-                          ) : null}
-                          <span
-                            className={
-                              index === breadcrumbs.length - 1
-                                ? "font-semibold text-[color:var(--ui-text-primary)]"
-                                : "text-[color:var(--ui-text-secondary)]"
-                            }
+            <div className="ui-page-main grid-rows-[auto_1fr_auto]">
+              <header className="ui-shell-header ui-shell-header--workspace ui-workspace-header">
+                <div className="ui-workspace-header__top">
+                  <div className="ui-workspace-header__identity flex min-w-0 items-center gap-3">
+                    {showWorkspaceLayout ? (
+                      <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                        <Dialog.Trigger asChild>
+                          <button
+                            type="button"
+                            className="ui-shell-icon-button h-9 w-9"
+                            aria-label="Abrir menú"
                           >
-                            {crumb}
+                            <DashboardIcon name="menu" className="h-4 w-4" />
+                          </button>
+                        </Dialog.Trigger>
+                        <Dialog.Portal>
+                          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+                          <Dialog.Content className="ui-shell-drawer fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[372px] flex-col overflow-hidden border-r p-3 shadow-2xl outline-none">
+                            <Dialog.Title className="sr-only">Navegación UNIDEP</Dialog.Title>
+                            <Dialog.Close asChild>
+                              <button
+                                type="button"
+                                className="ui-shell-icon-button absolute right-3 top-3 h-9 w-9"
+                                aria-label="Cerrar menú"
+                              >
+                                <DashboardIcon name="close" className="h-4 w-4" />
+                              </button>
+                            </Dialog.Close>
+                            <div className="ui-scrollbar mt-12 flex-1 overflow-y-auto">
+                              <WorkspaceSidebarNav
+                                activeSection={resolvedActiveSection}
+                                onNavigate={() => setMobileNavOpen(false)}
+                                sidebarTopAnnouncements={sidebarTopAnnouncements}
+                                sidebarBottomAnnouncements={sidebarBottomAnnouncements}
+                                accountLabel={accountLabel}
+                              />
+                            </div>
+                          </Dialog.Content>
+                        </Dialog.Portal>
+                      </Dialog.Root>
+                    ) : null}
+
+                    <div className="min-w-0">
+                      <nav className="flex items-center gap-1.5 text-xs text-[color:var(--ui-text-secondary)]">
+                        {breadcrumbs.map((crumb, index) => (
+                          <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
+                            {index > 0 ? (
+                              <span className="text-[color:var(--ui-text-secondary)]">/</span>
+                            ) : null}
+                            <span
+                              className={
+                                index === breadcrumbs.length - 1
+                                  ? "font-semibold text-[color:var(--ui-text-primary)]"
+                                  : "text-[color:var(--ui-text-secondary)]"
+                              }
+                            >
+                              {crumb}
+                            </span>
                           </span>
-                        </span>
-                      ))}
-                    </nav>
-                    <div className="ui-workspace-header__title mt-1 text-base font-semibold text-[color:var(--ui-text-primary)] sm:text-lg">
-                      {pageTitle}
+                        ))}
+                      </nav>
+                      <div className="ui-workspace-header__title mt-1 text-base font-semibold text-[color:var(--ui-text-primary)] sm:text-lg">
+                        {pageTitle}
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="ui-workspace-header__account flex min-w-0 items-center gap-2.5">
+                    {showProfileActions ? (
+                      <Link
+                        href={resolvedProfileHref!}
+                        className="ui-cta-secondary min-h-9 px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
+                      >
+                        Área personal
+                      </Link>
+                    ) : null}
+                    <form action={signOutAction}>
+                      <button
+                        type="submit"
+                        className="ui-cta-secondary min-h-9 px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
+                      >
+                        Cerrar sesión
+                      </button>
+                    </form>
                   </div>
                 </div>
 
@@ -399,26 +423,9 @@ export default function AppChrome({
                   <ConfiguredCtaList
                     ctas={workspaceNavBannerCtas}
                     appearance="card"
-                    className="grid gap-2 md:grid-cols-2 xl:grid-cols-3"
+                    className="ui-workspace-header__ctas"
                   />
                 ) : null}
-
-                <div className="ui-workspace-header__account flex min-w-0 items-center gap-2.5">
-                  <div className="hidden text-right sm:block">
-                    <div className="ui-workspace-header__email max-w-[260px] truncate text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                      {accountLabel}
-                    </div>
-                  </div>
-
-                  {showProfileActions ? (
-                    <Link
-                      href={resolvedProfileHref!}
-                      className="ui-cta-secondary min-h-9 px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
-                    >
-                      Área personal
-                    </Link>
-                  ) : null}
-                </div>
               </header>
 
               <main className="min-w-0 pb-1">{children}</main>
