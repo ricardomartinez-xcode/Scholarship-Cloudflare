@@ -1,0 +1,40 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { requireAdminAccessUser } from "@/lib/admin-session";
+import { getFileAssetById } from "@/lib/file-assets";
+import { isPreviewableMimeType } from "@/lib/r2-storage";
+
+export const dynamic = "force-dynamic";
+
+type PageProps = { params: Promise<{ id: string }> };
+
+export default async function FilePreviewPage({ params }: PageProps) {
+  await requireAdminAccessUser();
+  const { id } = await params;
+  const asset = await getFileAssetById(id);
+  if (!asset) notFound();
+  const canPreview = isPreviewableMimeType(asset.mimeType);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-6 py-8">
+      <div className="flex flex-col gap-2">
+        <Link href="/admin/files" className="text-sm font-medium text-blue-700 hover:underline">
+          ← Volver a archivos
+        </Link>
+        <h1 className="text-2xl font-semibold text-slate-950">{asset.title || asset.fileName}</h1>
+        <p className="text-sm text-slate-600">{asset.fileName}</p>
+      </div>
+      {canPreview ? (
+        <iframe src={`/api/files/${asset.id}/signed-view`} title={asset.fileName} className="h-[78vh] w-full rounded-2xl border border-slate-200 bg-white" />
+      ) : (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <p className="text-sm text-slate-700">Este tipo de archivo no tiene preview nativa en navegador. Puedes abrirlo con el botón de abajo.</p>
+          <a href={`/api/files/${asset.id}/signed-view`} className="mt-4 inline-flex rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+            Abrir archivo
+          </a>
+        </div>
+      )}
+    </main>
+  );
+}
