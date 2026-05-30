@@ -1,0 +1,101 @@
+/*
+  Sidebar identity contract polish.
+
+  Contract:
+  - Header: no nickname.
+  - Sidebar/drawer: Usuario / nickname.
+
+  This file only reinforces the drawer identity block visually. The identity is
+  rendered structurally by AppChrome; no DOM synchronization or MutationObserver
+  should be reintroduced.
+*/
+
+.ui-sidebar-action-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: #d5e5ef !important;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.99), rgb(248 252 255 / 0.98)) !important;
+  color: #102838 !important;
+}
+
+.ui-sidebar-action-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.2rem;
+  background: linear-gradient(180deg, #0f5f82, #8bd3ec);
+  opacity: 0.9;
+}
+
+.ui-sidebar-action-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ui-sidebar-action-panel .ui-shell-brand {
+  min-width: 0;
+}
+
+.ui-sidebar-action-panel .ui-shell-brand__eyebrow {
+  color: #587083 !important;
+  font-size: 0.68rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.16em !important;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.ui-sidebar-action-panel .ui-shell-brand__title {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: #102838 !important;
+  font-size: 0.95rem !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-sidebar-action-panel [title] {
+  cursor: default;
+}
+
+.ui-shell-drawer .ui-sidebar-action-panel {
+  margin-right: 2.35rem;
+}
+
+.ui-shell-drawer .ui-sidebar-action-panel img {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Avoid duplicate nickname patterns leaking back into the authenticated header. */
+.ui-workspace-header__account .ui-shell-brand,
+.ui-workspace-header__account .ui-shell-brand__eyebrow,
+.ui-workspace-header__account .ui-shell-brand__title {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .ui-shell-drawer .ui-sidebar-action-panel {
+    margin-right: 2.1rem;
+    border-radius: 20px !important;
+  }
+
+  .ui-sidebar-action-panel .ui-shell-brand__title {
+    font-size: 0.9rem !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .ui-shell-drawer .ui-sidebar-action-panel {
+    margin-right: 1.95rem;
+  }
+
+  .ui-sidebar-action-panel .ui-shell-brand__title {
+    max-width: 10.5rem;
+  }
+}
