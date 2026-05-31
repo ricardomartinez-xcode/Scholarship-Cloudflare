@@ -23,6 +23,8 @@
   --admin-shell-radius: 22px;
   --admin-shell-gap: clamp(0.875rem, 1.8vw, 1.25rem);
   --admin-shell-shadow: 0 18px 60px rgb(16 32 42 / 0.07);
+  --admin-sidebar-width: minmax(17rem, 19rem);
+  --admin-sidebar-collapsed-width: 5.4rem;
 }
 
 .shell {
@@ -34,20 +36,23 @@
 }
 
 .layout {
-  display: block;
+  display: grid;
+  grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
   min-height: 100dvh;
   transition: grid-template-columns 180ms ease;
 }
 
 .shell[data-sidebar-collapsed="true"] .layout {
-  grid-template-columns: 5.4rem minmax(0, 1fr);
+  grid-template-columns: var(--admin-sidebar-collapsed-width) minmax(0, 1fr);
 }
 
 .desktopSidebar {
   position: sticky;
   top: 0;
+  z-index: 30;
   height: 100dvh;
   min-width: 0;
+  width: 100%;
   overflow: hidden;
   border-right: 1px solid var(--admin-shell-border);
   background: rgb(255 255 255 / 0.94);
@@ -211,11 +216,17 @@
   box-shadow: 0 12px 34px rgb(16 32 42 / 0.05);
 }
 
+.brand,
+.brandTitleRow,
 .brandRow {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 0.75rem;
+}
+
+.brand {
+  padding: 0.85rem;
 }
 
 .brandBadge {
@@ -228,6 +239,11 @@
   border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgb(16 32 42 / 0.08);
+  color: var(--admin-shell-accent);
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .brandLogo {
@@ -306,6 +322,38 @@
   padding: 0.9rem;
 }
 
+.shell[data-sidebar-collapsed="true"] .brand {
+  justify-content: center;
+  padding-inline: 0.45rem;
+}
+
+.shell[data-sidebar-collapsed="true"] .brandBadge {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.shell[data-sidebar-collapsed="true"] .sidebarControls {
+  padding-inline: 0.55rem;
+}
+
+.shell[data-sidebar-collapsed="true"] .sidebarStack {
+  padding-inline: 0.45rem;
+}
+
+.shell[data-sidebar-collapsed="true"] .desktopSidebar {
+  width: var(--admin-sidebar-collapsed-width);
+}
+
+.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(a span:not(:first-child)),
+.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(button span:not(:first-child)) {
+  display: none;
+}
+
+.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(a),
+.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(button) {
+  justify-content: center;
+}
+
 .navScrollArea {
   min-height: 0;
   overflow-y: auto;
@@ -338,7 +386,6 @@
 
 .inlineAnnouncementList,
 .inlineCtaGrid { display: grid; gap: 0.6rem; }
-
 .inlineCtaGrid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
 
 .adminContent {
@@ -386,8 +433,6 @@
 .iconButton { width: 2.5rem; padding: 0; }
 .secondaryActionButton { padding: 0 1rem; white-space: nowrap; }
 
-.iconButton { width: 2.5rem; padding: 0; }
-.secondaryActionButton { padding: 0 1rem; white-space: nowrap; }
 .iconButton:hover,
 .secondaryActionButton:hover {
   border-color: rgb(15 76 107 / 0.38);
@@ -485,16 +530,6 @@
 }
 
 .dialogActionGroup { display: grid; gap: 0.55rem; margin-top: 1rem; }
-
-.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(a span:not(:first-child)),
-.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(button span:not(:first-child)) {
-  display: none;
-}
-
-.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(a),
-.shell[data-sidebar-collapsed="true"] .desktopSidebar :global(button) {
-  justify-content: center;
-}
 
 .adminContent :global(table) {
   display: block;
