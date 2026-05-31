@@ -18,6 +18,18 @@ export type FileAsset = {
   updatedAt: Date;
 };
 
+export type FileAssetUsage = {
+  id: string;
+  fileId: string;
+  targetType: string;
+  targetId: string;
+  slot: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type FileAssetRow = {
   id: string;
   owner_user_id: string | null;
@@ -31,6 +43,26 @@ type FileAssetRow = {
   visibility: "private" | "link" | "public";
   created_at: Date;
   updated_at: Date;
+};
+
+type FileAssetUsageRow = {
+  id: string;
+  file_id: string;
+  target_type: string;
+  target_id: string;
+  slot: string;
+  sort_order: number;
+  is_primary: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export type FileAssetUsageInput = {
+  targetType: string;
+  targetId: string;
+  slot: string;
+  sortOrder?: number;
+  isPrimary?: boolean;
 };
 
 function mapFileAsset(row: FileAssetRow): FileAsset {
@@ -47,6 +79,34 @@ function mapFileAsset(row: FileAssetRow): FileAsset {
     visibility: row.visibility,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function mapFileAssetUsage(row: FileAssetUsageRow): FileAssetUsage {
+  return {
+    id: row.id,
+    fileId: row.file_id,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    slot: row.slot,
+    sortOrder: row.sort_order,
+    isPrimary: row.is_primary,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function normalizeUsage(input: FileAssetUsageInput) {
+  const targetType = input.targetType.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
+  const targetId = input.targetId.trim();
+  const slot = input.slot.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
+  if (!targetType || !targetId || !slot) return null;
+  return {
+    targetType,
+    targetId,
+    slot,
+    sortOrder: Number.isFinite(input.sortOrder) ? Number(input.sortOrder) : 0,
+    isPrimary: input.isPrimary ?? true,
   };
 }
 
@@ -92,6 +152,58 @@ export async function getFileAssetById(id: string) {
   const rows = await prisma.$queryRaw<FileAssetRow[]>`
     SELECT * FROM "recalc_admin"."file_asset"
     WHERE "id" = ${id}::uuid
+    LIMIT 1;
+  `;
+  return rows[0] ? mapFileAsset(rows[0]) : null;
+}
+
+export async function assignFileAssetUsage(fileId: string, input: FileAssetUsageInput) {
+  const usage = normalizeUsage(input);
+  if (!usage) return null;
+
+  const rows = await prisma.$queryRaw<FileAssetUsageRow[]>`
+    INSERT INTO "recalc_admin"."file_asset_usage" (
+      "file_id", "target_type", "target_id", "slot", "sort_order", "is_primary"
+    ) VALUES (
+      ${fileId}::uuid,
+      ${usage.targetType},
+      ${usage.targetId},
+      ${usage.slot},
+      ${usage.sortOrder},
+      ${usage.isPrimary}
+    )
+    ON CONFLICT ("target_type", "target_id", "slot") WHERE "is_primary" = true
+    DO UPDATE SET
+      "file_id" = EXCLUDED."file_id",
+      "sort_order" = EXCLUDED."sort_order",
+      "updated_at" = now()
+    RETURNING *;
+  `;
+  return rows[0] ? mapFileAssetUsage(rows[0]) : null;
+}
+
+export async function listFileAssetUsages(fileId: string) {
+  const rows = await prisma.$queryRaw<FileAssetUsageRow[]>`
+    SELECT * FROM "recalc_admin"."file_asset_usage"
+    WHERE "file_id" = ${fileId}::uuid
+    ORDER BY "target_type" ASC, "target_id" ASC, "slot" ASC, "sort_order" ASC;
+  `;
+  return rows.map(mapFileAssetUsage);
+}
+
+export async function getFileAssetForUsage(input: Pick<FileAssetUsageInput, "targetType" | "targetId" | "slot">) {
+  const usage = normalizeUsage({ ...input, isPrimary: true });
+  if (!usage) return null;
+
+  const rows = await prisma.$queryRaw<FileAssetRow[]>`
+    SELECT fa.*
+    FROM "recalc_admin"."file_asset" fa
+    INNER JOIN "recalc_admin"."file_asset_usage" fau ON fau."file_id" = fa."id"
+    WHERE fau."target_type" = ${usage.targetType}
+      AND fau."target_id" = ${usage.targetId}
+      AND fau."slot" = ${usage.slot}
+      AND fau."is_primary" = true
+    ORDER BY fau."sort_order" ASC, fau."created_at" DESC
     LIMIT 1;
   `;
   return rows[0] ? mapFileAsset(rows[0]) : null;

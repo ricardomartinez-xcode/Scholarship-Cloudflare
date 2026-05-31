@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAdminUser } from "@/lib/admin-session";
-import { createFileAsset } from "@/lib/file-assets";
+import { assignFileAssetUsage, createFileAsset, type FileAssetUsageInput } from "@/lib/file-assets";
 import { getMaxUploadBytes, isAllowedFileMimeType } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     sizeBytes?: number;
     title?: string;
     description?: string;
+    usage?: Partial<FileAssetUsageInput>;
   } | null;
 
   const objectKey = body?.objectKey?.trim();
@@ -45,5 +46,16 @@ export async function POST(request: Request) {
     description: body?.description?.trim() || null,
   });
 
-  return NextResponse.json({ ok: true, asset, previewUrl: `/preview/${asset.id}` });
+  let usage = null;
+  if (body?.usage?.targetType && body.usage.targetId && body.usage.slot) {
+    usage = await assignFileAssetUsage(asset.id, {
+      targetType: body.usage.targetType,
+      targetId: body.usage.targetId,
+      slot: body.usage.slot,
+      sortOrder: body.usage.sortOrder ?? 0,
+      isPrimary: body.usage.isPrimary ?? true,
+    });
+  }
+
+  return NextResponse.json({ ok: true, asset, usage, previewUrl: `/preview/${asset.id}` });
 }
