@@ -20,6 +20,12 @@ function yes(value: string) {
   return ["1", "si", "true", "verdadero", "x", "activo", "activa"].includes(normalizeHeader(value));
 }
 
+function isInactive(row: CsvRecord) {
+  const value = pick(row, ["activo", "activa", "active", "is_active", "visible"]);
+  if (!value) return false;
+  return !yes(value);
+}
+
 function isOnline(row: CsvRecord) {
   const campus = normalizeHeader(pick(row, ["plantel", "campus", "sede"]));
   const modality = normalizeHeader(pick(row, ["modalidad", "delivery", "tipo", "formato"]));
@@ -65,6 +71,7 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
   for (const row of records) {
     const program = pick(row, ["programa", "carrera", "plan de estudios", "oferta"]);
     if (!program) continue;
+    if (isInactive(row)) continue;
 
     const plans = pick(row, ["planes", "plan", "cuatrimestres", "cuatrimestre", "duracion"]);
     if (isOnline(row)) {
@@ -79,17 +86,26 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     const modality = normalizeHeader(pick(row, ["modalidad", "delivery", "tipo", "formato"]));
     const escolarizadoRaw = pick(row, ["escolarizado", "escolarizada", "presencial"]);
     const ejecutivoRaw = pick(row, ["ejecutivo", "ejecutiva"]);
+    const commonSchedule = pick(row, ["horario", "horarios", "schedule"]);
     const escolarizado =
-      yes(escolarizadoRaw) || (!ejecutivoRaw && (modality.includes("escolar") || modality.includes("presencial") || !modality));
-    const ejecutivo = yes(ejecutivoRaw) || modality.includes("ejecut");
+      yes(escolarizadoRaw) ||
+      (!ejecutivoRaw &&
+        (modality.includes("escolar") ||
+          modality.includes("presencial") ||
+          modality.includes("mixt") ||
+          !modality));
+    const ejecutivo =
+      yes(ejecutivoRaw) || modality.includes("ejecut") || modality.includes("mixt");
 
     plantelesSheet.addRow([
       campus,
       program,
       escolarizado ? "SI" : "",
       ejecutivo ? "SI" : "",
-      pick(row, ["horario escolarizado", "horario escolarizada", "hor escolarizado", "horario"]),
-      pick(row, ["horario ejecutivo", "hor ejecutivo"]),
+      pick(row, ["horario escolarizado", "horario escolarizada", "hor escolarizado"]) ||
+        (escolarizado ? commonSchedule : ""),
+      pick(row, ["horario ejecutivo", "hor ejecutivo"]) ||
+        (ejecutivo ? commonSchedule : ""),
       plans,
     ]);
   }

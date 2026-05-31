@@ -191,7 +191,11 @@ export default function SimulatorProvider({
 
       lastHandledQueryRef.current = `${sessionPublicId ?? ""}:${scenarioId ?? ""}`;
       const nextQuery = params.toString();
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      const targetPathname =
+        pathname === "/unidep" || pathname.startsWith("/unidep/cotizador")
+          ? pathname
+          : "/unidep";
+      router.replace(nextQuery ? `${targetPathname}?${nextQuery}` : targetPathname, {
         scroll: false,
       });
     },

@@ -324,7 +324,7 @@ function OfertaAcademicaSection() {
 
   return (
     <section className="ui-card ui-card-pad min-w-0">
-      <h2 className="text-lg font-semibold">Oferta académica</h2>
+      <h2 className="text-lg font-semibold">Oferta por plantel</h2>
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div className="grid min-w-0 gap-2 text-sm">
