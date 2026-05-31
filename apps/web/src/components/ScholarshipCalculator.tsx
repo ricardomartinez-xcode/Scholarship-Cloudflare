@@ -494,11 +494,6 @@ export default function ScholarshipCalculator({
   void userEmail;
   void isAdmin;
   void adminUnlocked;
-  void ctasInsideResult;
-  void ctasBelowResult;
-  void resultBelowAnnouncements;
-  void calculatorFooterAnnouncements;
-  void ctasCalculatorFooter;
   void quoteMode;
   const useCanonicalQuote = true;
   const normalizedVisibleOfferCycles = useMemo(
@@ -2237,6 +2232,28 @@ export default function ScholarshipCalculator({
               ) : null}
             </div>
           ) : null}
+
+          {calculatorFooterAnnouncements.length || ctasCalculatorFooter.length ? (
+            <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/25 p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.26em] text-slate-400">
+                Acciones del cotizador
+              </div>
+              {calculatorFooterAnnouncements.length ? (
+                <AnnouncementOutlet
+                  announcements={calculatorFooterAnnouncements}
+                  className="grid gap-2"
+                />
+              ) : null}
+              {ctasCalculatorFooter.length ? (
+                <ConfiguredCtaList
+                  ctas={ctasCalculatorFooter}
+                  className="flex flex-wrap gap-2"
+                  appearance="pill"
+                  onCtaClick={trackConfiguredResultCta}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -2566,10 +2583,30 @@ export default function ScholarshipCalculator({
                   />
                 </div>
               </details>
+
+              {resultBelowAnnouncements.length || ctasBelowResult.length ? (
+                <section className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">
+                    Siguiente acción
+                  </div>
+                  {resultBelowAnnouncements.length ? (
+                    <AnnouncementOutlet
+                      announcements={resultBelowAnnouncements}
+                      className="mt-3 grid gap-2"
+                    />
+                  ) : null}
+                  {ctasBelowResult.length ? (
+                    <ConfiguredCtaList
+                      ctas={ctasBelowResult}
+                      className="mt-3 flex flex-wrap gap-2"
+                      appearance="pill"
+                      onCtaClick={trackConfiguredResultCta}
+                    />
+                  ) : null}
+                </section>
+              ) : null}
             </div>
           ) : null}
-
-          {/* Admin debug panel removed — CTAs are now sourced from admin locations */}
         </section>
 
         {belowResultSlot}
