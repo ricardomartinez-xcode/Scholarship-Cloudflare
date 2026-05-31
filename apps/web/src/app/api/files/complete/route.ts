@@ -1,32 +1,38 @@
 import { NextResponse } from "next/server";
 
 import { getAdminUser } from "@/lib/admin-session";
-import { assignFileAssetUsage, createFileAsset, type FileAssetUsageInput } from "@/lib/file-assets";
+import { assignFileAssetUsage, createFileAsset } from "@/lib/file-assets";
 import { getMaxUploadBytes, isAllowedFileMimeType } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+type CompleteBody = {
+  objectKey?: string;
+  fileName?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  usage?: Partial<{
+    targetType: string;
+    targetId: string;
+    slot: string;
+    sortOrder: number;
+    isPrimary: boolean;
+  }>;
+};
+
 export async function POST(request: Request) {
   const admin = await getAdminUser();
   if (!admin) return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
 
-  const body = (await request.json().catch(() => null)) as {
-    objectKey?: string;
-    fileName?: string;
-    mimeType?: string;
-    sizeBytes?: number;
-    title?: string;
-    description?: string;
-    usage?: Partial<FileAssetUsageInput>;
-  } | null;
+  const body = (await request.json().catch(() => null)) as CompleteBody | null;
 
   const objectKey = body?.objectKey?.trim();
   const fileName = body?.fileName?.trim();
   const mimeType = body?.mimeType?.trim();
   const sizeBytes = Number(body?.sizeBytes);
 
-  if (!objectKey?.startsWith("uploads/") || !fileName || !mimeType || !Number.isFinite(sizeBytes)) {
+  if (!objectKey || !fileName || !mimeType || !Number.isFinite(sizeBytes)) {
     return NextResponse.json({ ok: false, error: "Metadata inválida." }, { status: 400 });
   }
   if (!isAllowedFileMimeType(mimeType)) {
@@ -37,13 +43,12 @@ export async function POST(request: Request) {
   }
 
   const asset = await createFileAsset({
-    ownerUserId: admin.id,
-    objectKey,
+    r2Key: objectKey,
     fileName,
     mimeType,
     sizeBytes,
-    title: body?.title?.trim() || null,
-    description: body?.description?.trim() || null,
+    uploadedByUserId: admin.id,
+    status: "uploaded",
   });
 
   let usage = null;

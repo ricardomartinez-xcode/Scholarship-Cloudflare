@@ -21,9 +21,10 @@ export default async function FilePreviewPage({ params }: PageProps) {
   const signedUrl = canPreview
     ? createR2SignedUrl({
         method: "GET",
-        key: asset.objectKey,
+        key: asset.r2Key,
         expiresSeconds: 600,
         responseContentDisposition: `inline; filename="${asset.fileName.replace(/"/g, "")}"`,
+        contentType: asset.mimeType,
       })
     : null;
 
@@ -33,12 +34,12 @@ export default async function FilePreviewPage({ params }: PageProps) {
         <Link href="/admin/files" className="text-sm font-medium text-blue-700 hover:underline">
           ← Volver a archivos
         </Link>
-        <h1 className="text-2xl font-semibold text-slate-950">{asset.title || asset.fileName}</h1>
-        <p className="text-sm text-slate-600">{asset.fileName}</p>
+        <h1 className="text-2xl font-semibold text-slate-950">{asset.fileName}</h1>
+        <p className="text-sm text-slate-600">{asset.mimeType}</p>
       </div>
       {isImage && signedUrl ? (
         <div className="relative min-h-[70vh] w-full overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <Image src={signedUrl} alt={asset.title || asset.fileName} fill sizes="(max-width: 768px) 100vw, 1100px" className="object-contain" unoptimized={false} />
+          <Image src={signedUrl} alt={asset.fileName} fill sizes="(max-width: 768px) 100vw, 1100px" className="object-contain" unoptimized={false} />
         </div>
       ) : canPreview ? (
         <iframe src={`/api/files/${asset.id}/signed-view`} title={asset.fileName} className="h-[78vh] w-full rounded-2xl border border-slate-200 bg-white" />

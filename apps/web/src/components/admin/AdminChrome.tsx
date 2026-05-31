@@ -8,9 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import AppFooter from "@/components/app/AppFooter";
 import ApplyChangesButton from "@/components/admin/ApplyChangesButton";
-import AnnouncementOutlet, {
-  type Announcement,
-} from "@/components/announcement/AnnouncementOutlet";
+import AnnouncementOutlet, { type Announcement } from "@/components/announcement/AnnouncementOutlet";
 import ConfiguredCtaList from "@/components/cta/ConfiguredCtaList";
 import EngagementZone from "@/components/engagement/EngagementZone";
 import DashboardSidebarNav from "@/components/layout/DashboardSidebarNav";
@@ -65,10 +63,7 @@ const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
 
 function getRoleLabel(adminRole: string) {
   const knownRole = (SYSTEM_ROLES as readonly string[]).includes(adminRole);
-
-  return knownRole
-    ? getSystemRoleMeta(adminRole as (typeof SYSTEM_ROLES)[number]).label
-    : adminRole;
+  return knownRole ? getSystemRoleMeta(adminRole as (typeof SYSTEM_ROLES)[number]).label : adminRole;
 }
 
 function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
@@ -78,32 +73,18 @@ function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
       <div className={styles.brandCopy} aria-hidden={collapsed}>
         <div className={styles.brandEyebrow}>Scholarship</div>
         <div className={styles.brandTitleRow}>
-          <Image
-            src="/icons/icon48.png"
-            alt=""
-            width={28}
-            height={28}
-            className={styles.brandLogo}
-          />
-        </div>
-        <div className={styles.brandCopy}>
-          <div className={styles.brandEyebrow}>Panel</div>
-          <div className={styles.brandTitle}>ADMINISTRADOR</div>
+          <Image src="/icons/icon48.png" alt="" width={28} height={28} className={styles.brandLogo} />
+          <div className={styles.brandCopy}>
+            <div className={styles.brandEyebrow}>Panel</div>
+            <div className={styles.brandTitle}>ADMINISTRADOR</div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
-function StatusPill({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  tone?: "neutral" | "accent" | "warning" | "success";
-}) {
+function StatusPill({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "accent" | "warning" | "success" }) {
   return (
     <div className={`${styles.statusPill} ${styles[`statusPill_${tone}`]}`}>
       <span className={styles.statusLabel}>{label}</span>
@@ -112,13 +93,7 @@ function StatusPill({
   );
 }
 
-function SidebarCollapseButton({
-  collapsed,
-  onToggle,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
+function SidebarCollapseButton({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
@@ -128,13 +103,8 @@ function SidebarCollapseButton({
       onClick={onToggle}
       title={collapsed ? "Expandir" : "Contraer"}
     >
-      <DashboardIcon
-        name={collapsed ? "menu" : "close"}
-        className={styles.icon}
-      />
-      <span className={styles.sidebarCollapseLabel}>
-        {collapsed ? "Expandir" : "Contraer"}
-      </span>
+      <DashboardIcon name={collapsed ? "menu" : "close"} className={styles.icon} />
+      <span className={styles.sidebarCollapseLabel}>{collapsed ? "Expandir" : "Contraer"}</span>
     </button>
   );
 }
@@ -162,44 +132,22 @@ function AdminNavPanel({
     <div className={styles.sidebarStack} data-collapsed={collapsed ? "true" : "false"}>
       {!collapsed ? (
         <>
-          <AnnouncementOutlet
-            announcements={sidebarTopAnnouncements}
-            appearance="compact"
-            className={styles.sidebarMessages}
-          />
+          <AnnouncementOutlet announcements={sidebarTopAnnouncements} appearance="compact" className={styles.sidebarMessages} />
           {sidebarTopCtas.length ? (
-            <ConfiguredCtaList
-              ctas={sidebarTopCtas}
-              className={styles.sidebarCtas}
-              itemClassName={styles.sidebarCtaItem}
-              appearance="compact"
-            />
+            <ConfiguredCtaList ctas={sidebarTopCtas} className={styles.sidebarCtas} itemClassName={styles.sidebarCtaItem} appearance="compact" />
           ) : null}
         </>
       ) : null}
 
       <div className={`${styles.navScrollArea} ui-scrollbar`}>
-        <DashboardSidebarNav
-          groups={navGroups}
-          pathname={pathname}
-          onLinkNavigate={onNavigate}
-        />
+        <DashboardSidebarNav groups={navGroups} pathname={pathname} onLinkNavigate={onNavigate} collapsed={collapsed} />
       </div>
 
       {!collapsed ? (
         <>
-          <AnnouncementOutlet
-            announcements={sidebarBottomAnnouncements}
-            appearance="compact"
-            className={styles.sidebarMessages}
-          />
+          <AnnouncementOutlet announcements={sidebarBottomAnnouncements} appearance="compact" className={styles.sidebarMessages} />
           {sidebarBottomCtas.length ? (
-            <ConfiguredCtaList
-              ctas={sidebarBottomCtas}
-              className={styles.sidebarCtas}
-              itemClassName={styles.sidebarCtaItem}
-              appearance="compact"
-            />
+            <ConfiguredCtaList ctas={sidebarBottomCtas} className={styles.sidebarCtas} itemClassName={styles.sidebarCtaItem} appearance="compact" />
           ) : null}
         </>
       ) : null}
@@ -207,21 +155,14 @@ function AdminNavPanel({
   );
 }
 
-function CampusIntegrityNotice({
-  campusIntegrity,
-}: {
-  campusIntegrity: CampusIntegrity;
-}) {
+function CampusIntegrityNotice({ campusIntegrity }: { campusIntegrity: CampusIntegrity }) {
   if (campusIntegrity.ok) return null;
-
   return (
     <div className={styles.integrityNotice} role="status">
       <div className={styles.sectionKicker}>Aviso operativo</div>
       <div className={styles.noticeTitle}>Catálogo de planteles incompleto</div>
       <p className={styles.noticeText}>
-        Ejecuta <code>npm run campus:seed</code>. Estado actual: campus{" "}
-        {campusIntegrity.activeCampus}/24, online {campusIntegrity.activeOnline}
-        /1.
+        Ejecuta <code>npm run campus:seed</code>. Estado actual: campus {campusIntegrity.activeCampus}/24, online {campusIntegrity.activeOnline}/1.
       </p>
     </div>
   );
@@ -243,33 +184,21 @@ function SessionActionsDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger asChild>
-        <button
-          type="button"
-          className={`${styles.iconButton} ${styles.mobileOnly}`}
-          aria-label="Abrir acciones de sesión"
-        >
+        <button type="button" className={`${styles.iconButton} ${styles.mobileOnly}`} aria-label="Abrir acciones de sesión">
           <DashboardIcon name="more" className={styles.icon} />
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className={styles.dialogOverlay} />
         <Dialog.Content className={styles.actionsDialog}>
-          <Dialog.Title className={styles.dialogTitle}>
-            Acciones de sesión
-          </Dialog.Title>
-          <Dialog.Description className={styles.dialogDescription}>
-            Gestiona tu sesión administrativa actual.
-          </Dialog.Description>
-
+          <Dialog.Title className={styles.dialogTitle}>Acciones de sesión</Dialog.Title>
+          <Dialog.Description className={styles.dialogDescription}>Gestiona tu sesión administrativa actual.</Dialog.Description>
           <div className={styles.sessionIdentity}>
             <span className={styles.sessionEmail}>{adminEmail}</span>
             <span className={styles.sessionRole}>{roleLabel}</span>
           </div>
-
           <form action={logoutAction} className={styles.dialogActionGroup}>
-            <button type="submit" className={styles.secondaryActionButton}>
-              Cerrar sesión
-            </button>
+            <button type="submit" className={styles.secondaryActionButton}>Cerrar sesión</button>
           </form>
         </Dialog.Content>
       </Dialog.Portal>
@@ -304,9 +233,7 @@ export default function AdminChrome({
   useEffect(() => {
     const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     let timer: number | undefined;
-    if (saved) {
-      timer = window.setTimeout(() => setSidebarCollapsed(saved === "true"), 0);
-    }
+    if (saved) timer = window.setTimeout(() => setSidebarCollapsed(saved === "true"), 0);
     return () => {
       if (timer !== undefined) window.clearTimeout(timer);
     };
@@ -326,32 +253,21 @@ export default function AdminChrome({
     [adminCapabilities],
   );
 
-  const actionCenterAnnouncements = [
-    ...headerBannerAnnouncements,
-    ...contentTopAnnouncements,
-  ];
+  const actionCenterAnnouncements = [...headerBannerAnnouncements, ...contentTopAnnouncements];
   const actionCenterCtas = [...headerBannerCtas, ...contentTopCtas];
-  const hasActionCenterContent =
-    actionCenterAnnouncements.length > 0 || actionCenterCtas.length > 0;
-  const hasInsideContent =
-    contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
+  const hasActionCenterContent = actionCenterAnnouncements.length > 0 || actionCenterCtas.length > 0;
+  const hasInsideContent = contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
 
-  const closeMobileNav = () => setMobileNavOpen(false);
+  const closeMobileNav = () => setNavOpen(false);
   const toggleSidebar = () => setSidebarCollapsed((current) => !current);
 
   return (
-    <div
-      className={styles.shell}
-      data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}
-    >
+    <div className={styles.shell} data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}>
       <div className={styles.layout}>
         <aside className={styles.desktopSidebar} aria-label="Navegación admin">
           <AdminBrand collapsed={sidebarCollapsed} />
           <div className={styles.sidebarControls}>
-            <SidebarCollapseButton
-              collapsed={sidebarCollapsed}
-              onToggle={toggleSidebar}
-            />
+            <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
           </div>
           <AdminNavPanel
             navGroups={navGroups}
@@ -365,17 +281,13 @@ export default function AdminChrome({
           />
         </aside>
 
-        <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <Dialog.Root open={navOpen} onOpenChange={setNavOpen}>
           <Dialog.Portal>
             <Dialog.Overlay className={styles.dialogOverlay} />
             <Dialog.Content className={`${styles.mobileDrawer} ui-shell-drawer`}>
               <Dialog.Title className="sr-only">Navegación admin</Dialog.Title>
               <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className={`${styles.iconButton} ${styles.drawerClose}`}
-                  aria-label="Cerrar menú"
-                >
+                <button type="button" className={`${styles.iconButton} ${styles.drawerClose}`} aria-label="Cerrar menú">
                   <DashboardIcon name="close" className={styles.icon} />
                 </button>
               </Dialog.Close>
@@ -383,7 +295,7 @@ export default function AdminChrome({
               <AdminNavPanel
                 navGroups={navGroups}
                 pathname={pathname}
-                onNavigate={closeNav}
+                onNavigate={closeMobileNav}
                 sidebarTopAnnouncements={sidebarTopAnnouncements}
                 sidebarTopCtas={sidebarTopCtas}
                 sidebarBottomAnnouncements={sidebarBottomAnnouncements}
@@ -397,34 +309,15 @@ export default function AdminChrome({
           <header className={styles.header}>
             <div className={styles.headerTop}>
               <div className={styles.headingCluster}>
-                <button
-                  type="button"
-                  className={styles.iconButton}
-                  aria-label="Abrir menú"
-                  onClick={() => setNavOpen(true)}
-                >
+                <button type="button" className={styles.iconButton} aria-label="Abrir menú" onClick={() => setNavOpen(true)}>
                   <DashboardIcon name="menu" className={styles.icon} />
                 </button>
-
                 <div className={styles.titleBlock}>
                   <nav className={styles.breadcrumbs} aria-label="Ruta actual">
                     {breadcrumbs.map((crumb, index) => (
-                      <span
-                        key={`${crumb}-${index}`}
-                        className={styles.breadcrumbItem}
-                      >
-                        {index > 0 ? (
-                          <span className={styles.breadcrumbSeparator}>/</span>
-                        ) : null}
-                        <span
-                          className={
-                            index === breadcrumbs.length - 1
-                              ? styles.breadcrumbCurrent
-                              : styles.breadcrumbMuted
-                          }
-                        >
-                          {crumb}
-                        </span>
+                      <span key={`${crumb}-${index}`} className={styles.breadcrumbItem}>
+                        {index > 0 ? <span className={styles.breadcrumbSeparator}>/</span> : null}
+                        <span className={index === breadcrumbs.length - 1 ? styles.breadcrumbCurrent : styles.breadcrumbMuted}>{crumb}</span>
                       </span>
                     ))}
                   </nav>
@@ -442,9 +335,7 @@ export default function AdminChrome({
                   onOpenChange={setMobileActionsOpen}
                 />
                 <form action={logoutAction} className={styles.desktopOnly}>
-                  <button type="submit" className={styles.secondaryActionButton}>
-                    Cerrar sesión
-                  </button>
+                  <button type="submit" className={styles.secondaryActionButton}>Cerrar sesión</button>
                 </form>
               </div>
             </div>
@@ -452,26 +343,14 @@ export default function AdminChrome({
             <div className={styles.contextBar} aria-label="Estado del panel">
               <StatusPill label="Sesión" value={adminEmail} tone="neutral" />
               <StatusPill label="Rol" value={roleStatusLabel} tone="accent" />
-              <StatusPill
-                label="Permisos"
-                value={`${adminCapabilities.length}`}
-                tone="neutral"
-              />
-              <StatusPill
-                label="Planteles"
-                value={`${campusIntegrity.activeCampus}/24`}
-                tone={campusIntegrity.ok ? "success" : "warning"}
-              />
-              <StatusPill
-                label="Online"
-                value={`${campusIntegrity.activeOnline}/1`}
-                tone={campusIntegrity.ok ? "success" : "warning"}
-              />
+              <StatusPill label="Permisos" value={`${adminCapabilities.length}`} tone="neutral" />
+              <StatusPill label="Planteles" value={`${campusIntegrity.activeCampus}/24`} tone={campusIntegrity.ok ? "success" : "warning"} />
+              <StatusPill label="Online" value={`${campusIntegrity.activeOnline}/1`} tone={campusIntegrity.ok ? "success" : "warning"} />
             </div>
           </header>
 
           {hasActionCenterContent ? (
-            <section className={styles.actionCenter} aria-label="Centro operativo">
+            <div className={styles.actionCenter} aria-label="Centro operativo">
               <EngagementZone
                 title="Centro operativo"
                 description="Comunicados y accesos directos configurados para administrar, publicar y coordinar cambios."
@@ -480,30 +359,20 @@ export default function AdminChrome({
                 variant="admin"
                 emptyLabel="Sin acciones ni comunicados activos en este espacio."
               />
-            </section>
+            </div>
           ) : null}
 
-          <section className={styles.contentSurface} aria-label="Contenido admin">
+          <div className={styles.contentSurface} aria-label="Contenido admin">
             {hasInsideContent ? (
               <div className={styles.inlineMessages}>
-                <AnnouncementOutlet
-                  announcements={contentInsideAnnouncements}
-                  className={styles.inlineAnnouncementList}
-                />
-                {contentInsideCtas.length ? (
-                  <ConfiguredCtaList
-                    ctas={contentInsideCtas}
-                    className={styles.inlineCtaGrid}
-                  />
-                ) : null}
+                <AnnouncementOutlet announcements={contentInsideAnnouncements} className={styles.inlineAnnouncementList} />
+                {contentInsideCtas.length ? <ConfiguredCtaList ctas={contentInsideCtas} className={styles.inlineCtaGrid} /> : null}
               </div>
             ) : null}
-
             <div className={styles.adminContent}>{children}</div>
-          </section>
+          </div>
 
           <CampusIntegrityNotice campusIntegrity={campusIntegrity} />
-
           <AppFooter />
         </main>
       </div>
