@@ -3,8 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import type { FileAssetRecord } from "@/lib/file-assets";
-import { buildFileAssetLinks } from "@/lib/file-assets";
+import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets";
 
 type PresignResponse =
   | {
@@ -32,6 +31,7 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
   function uploadSelectedFile(file: File) {
     setNotice("");
     setError("");
+
     startTransition(async () => {
       try {
         const presignRes = await fetch("/api/files/presigned-upload", {
@@ -44,18 +44,14 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
           }),
         });
         const presign = (await presignRes.json()) as PresignResponse;
-        if (!presign.ok) {
-          throw new Error(presign.error || "No fue posible preparar la carga.");
-        }
+        if (!presign.ok) throw new Error(presign.error || "No fue posible preparar la carga.");
 
         const uploadRes = await fetch(presign.uploadUrl, {
           method: "PUT",
           headers: presign.uploadHeaders ?? { "Content-Type": file.type },
           body: file,
         });
-        if (!uploadRes.ok) {
-          throw new Error(`R2 rechazó la carga (${uploadRes.status}).`);
-        }
+        if (!uploadRes.ok) throw new Error(`R2 rechazó la carga (${uploadRes.status}).`);
 
         await fetch(`/api/files/${presign.asset.id}/complete`, {
           method: "POST",
@@ -83,6 +79,7 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
               Carga PDFs e imágenes. La relación con programas se configura en Programas UNIDEP.
             </p>
           </div>
+
           <label className="cursor-pointer rounded-full border border-blue-900/40 bg-blue-950/30 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-blue-950/40">
             {isPending ? "Cargando..." : "Subir archivo"}
             <input
@@ -98,22 +95,13 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
             />
           </label>
         </div>
-        {notice ? (
-          <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-300">
-            {notice}
-          </div>
-        ) : null}
-        {error ? (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
-            {error}
-          </div>
-        ) : null}
+
+        {notice ? <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-4 py-2 text-sm text-emerald-300">{notice}</div> : null}
+        {error ? <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">{error}</div> : null}
       </section>
 
       <section className="ui-card overflow-hidden">
-        <div className="border-b border-white/10 px-4 py-3 text-sm text-slate-300">
-          {files.length} archivo(s)
-        </div>
+        <div className="border-b border-white/10 px-4 py-3 text-sm text-slate-300">{files.length} archivo(s)</div>
         <div className="ui-scrollbar overflow-auto">
           <table className="w-full min-w-[860px] border-collapse text-sm">
             <thead className="bg-slate-950/80 text-slate-300">
@@ -132,31 +120,19 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
                   <tr key={file.id} className="border-t border-white/10">
                     <td className="p-3">
                       <div className="font-semibold text-slate-100">{file.fileName}</div>
-                      <div className="mt-1 max-w-[420px] truncate text-xs text-slate-500">
-                        {file.r2Key}
-                      </div>
+                      <div className="mt-1 max-w-[420px] truncate text-xs text-slate-500">{file.r2Key}</div>
                     </td>
                     <td className="p-3 text-slate-300">{file.mimeType}</td>
                     <td className="p-3 text-slate-300">{formatBytes(file.sizeBytes)}</td>
                     <td className="p-3">
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200">
-                        {file.status}
-                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200">{file.status}</span>
                     </td>
                     <td className="p-3">
                       <div className="flex justify-end gap-2">
-                        <a
-                          href={links.previewUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-                        >
+                        <a href={links.previewUrl} target="_blank" rel="noreferrer" className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10">
                           Preview
                         </a>
-                        <a
-                          href={links.downloadUrl}
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-                        >
+                        <a href={links.downloadUrl} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10">
                           Descargar
                         </a>
                       </div>
@@ -164,11 +140,10 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
                   </tr>
                 );
               })}
-              {!files.length ? (
+
+              {files.length === 0 ? (
                 <tr>
-                  <td className="p-4 text-slate-400" colSpan={5}>
-                    Aún no hay archivos R2.
-                  </td>
+                  <td className="p-4 text-slate-400" colSpan={5}>Aún no hay archivos R2.</td>
                 </tr>
               ) : null}
             </tbody>
