@@ -1,6 +1,21 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 
 const SIGNED_URL_EXPIRES_SECONDS = 10 * 60;
+const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+export const PREVIEWABLE_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+
+export const ALLOWED_FILE_MIME_TYPES = new Set([
+  ...PREVIEWABLE_MIME_TYPES,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
 
 type R2Config = {
   endpoint: string;
@@ -21,8 +36,17 @@ type SignedGetOptions = {
 
 type SignedPutOptions = {
   key: string;
-  contentType: string;
+  contentType?: string;
   expiresSeconds?: number;
+};
+
+type CompatSignedUrlOptions = {
+  method: "GET" | "PUT";
+  key: string;
+  expiresSeconds?: number;
+  responseContentDisposition?: string;
+  fileName?: string;
+  contentType?: string | null;
 };
 
 function getR2Config(): R2Config {
@@ -92,6 +116,16 @@ function amzDate(now: Date) {
 function contentDisposition(disposition: "inline" | "attachment", fileName: string) {
   const safeName = fileName.replace(/[\\"]/g, "_");
   return `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
+function fileNameFromDisposition(disposition: string | undefined, fallback: string) {
+  if (!disposition) return fallback;
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return match?.[1] || fallback;
+}
+
+function dispositionFromHeader(value: string | undefined): "inline" | "attachment" {
+  return value?.toLowerCase().startsWith("attachment") ? "attachment" : "inline";
 }
 
 function presignUrl(input: {
@@ -187,4 +221,39 @@ export function getR2RemotePatternHost() {
   }
   const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
   return accountId ? `${accountId}.r2.cloudflarestorage.com` : null;
+}
+
+// Backward-compatible aliases used by older routes that were merged with the R2 work.
+export const createObjectKey = createR2ObjectKey;
+
+export function getMaxUploadBytes() {
+  const configured = Number(process.env.MAX_UPLOAD_BYTES);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_UPLOAD_BYTES;
+}
+
+export function isAllowedFileMimeType(mimeType: string) {
+  return ALLOWED_FILE_MIME_TYPES.has(mimeType);
+}
+
+export function isPreviewableMimeType(mimeType: string) {
+  return PREVIEWABLE_MIME_TYPES.has(mimeType);
+}
+
+export function createR2SignedUrl(options: CompatSignedUrlOptions) {
+  if (options.method === "PUT") {
+    return getSignedR2PutUrl({
+      key: options.key,
+      contentType: options.contentType ?? undefined,
+      expiresSeconds: options.expiresSeconds,
+    });
+  }
+
+  const fallbackName = options.key.split("/").pop() || "archivo";
+  return getSignedR2GetUrl({
+    key: options.key,
+    fileName: options.fileName ?? fileNameFromDisposition(options.responseContentDisposition, fallbackName),
+    contentType: options.contentType,
+    disposition: dispositionFromHeader(options.responseContentDisposition),
+    expiresSeconds: options.expiresSeconds,
+  });
 }

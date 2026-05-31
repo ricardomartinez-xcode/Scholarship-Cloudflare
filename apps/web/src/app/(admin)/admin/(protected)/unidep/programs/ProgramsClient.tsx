@@ -19,10 +19,10 @@ type Program = {
   businessLine: BusinessLine | null;
   planPdfUrl: string | null;
   brochurePdfUrl: string | null;
-  r2Assets?: Record<string, PublicFileAssetPayload>;
+  r2Assets?: Record<string, PublicFileAssetPayload | null>;
 };
 
-const LINE_LABELS: Record<string, string> = {
+const LINE_LABELS: Record<BusinessLine, string> = {
   salud: "Salud",
   licenciatura: "Licenciatura",
   prepa: "Bachillerato",
@@ -31,6 +31,15 @@ const LINE_LABELS: Record<string, string> = {
 
 const PAGE_SIZE = 15;
 const STORAGE_KEY = "admin.unidep.programs.table";
+
+function formatAssetOption(file: FileAssetRecord) {
+  const size = file.sizeBytes
+    ? file.sizeBytes < 1024 * 1024
+      ? `${Math.round(file.sizeBytes / 1024)} KB`
+      : `${(file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+    : "sin tamaño";
+  return `${file.fileName} · ${size}`;
+}
 
 function AssetBadge({
   label,
@@ -54,6 +63,7 @@ function AssetBadge({
       </a>
     );
   }
+
   if (existingUrl) {
     return (
       <a
@@ -66,6 +76,7 @@ function AssetBadge({
       </a>
     );
   }
+
   return (
     <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-500">
       {label}: —
@@ -73,13 +84,39 @@ function AssetBadge({
   );
 }
 
-function formatAssetOption(file: FileAssetRecord) {
-  const size = file.sizeBytes
-    ? file.sizeBytes < 1024 * 1024
-      ? `${Math.round(file.sizeBytes / 1024)} KB`
-      : `${(file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`
-    : "sin tamaño";
-  return `${file.fileName} · ${size}`;
+function LineBadge({ line }: { line: BusinessLine | null }) {
+  if (!line) return <span className="text-xs text-slate-500">—</span>;
+  return (
+    <span className="rounded-full bg-blue-950/20 px-2 py-0.5 text-xs text-emerald-300">
+      {LINE_LABELS[line]}
+    </span>
+  );
+}
+
+function AssetSelect({
+  label,
+  name,
+  assets,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  assets: FileAssetRecord[];
+  defaultValue?: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm">
+      {label}
+      <select name={name} defaultValue={defaultValue ?? ""} className="ui-control">
+        <option value="">Sin R2</option>
+        {assets.map((asset) => (
+          <option key={asset.id} value={asset.id}>
+            {formatAssetOption(asset)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 export default function ProgramsClient({
@@ -101,28 +138,18 @@ export default function ProgramsClient({
   const [tableExpanded, setTableExpanded] = useState(true);
 
   useEffect(() => {
-    let timer: number | undefined;
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw === "collapsed") {
-        timer = window.setTimeout(() => setTableExpanded(false), 0);
-      }
+      setTableExpanded(window.localStorage.getItem(STORAGE_KEY) !== "collapsed");
     } catch {
-      // ignore persisted UI errors
+      // Ignore persisted UI errors.
     }
-    return () => {
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
   }, []);
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        tableExpanded ? "expanded" : "collapsed",
-      );
+      window.localStorage.setItem(STORAGE_KEY, tableExpanded ? "expanded" : "collapsed");
     } catch {
-      // ignore persisted UI errors
+      // Ignore persisted UI errors.
     }
   }, [tableExpanded]);
 
@@ -130,12 +157,7 @@ export default function ProgramsClient({
     const q = search.trim().toLowerCase();
     return programs.filter((program) => {
       const matchLine = !lineFilter || program.businessLine === lineFilter;
-      const searchable = [
-        program.name,
-        program.category,
-        program.level,
-        program.businessLine,
-      ]
+      const searchable = [program.name, program.category, program.level, program.businessLine]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -162,14 +184,7 @@ export default function ProgramsClient({
   }
 
   function handleDelete(program: Program) {
-    if (
-      !window.confirm(
-        `¿Eliminar "${program.name}"? Esta acción no se puede deshacer.`,
-      )
-    ) {
-      return;
-    }
-
+    if (!window.confirm(`¿Eliminar "${program.name}"? Esta acción no se puede deshacer.`)) return;
     const fd = new FormData();
     fd.set("id", program.id);
     startDeleteTransition(async () => {
@@ -193,9 +208,9 @@ export default function ProgramsClient({
         setSuccess("Programa actualizado.");
         setEditing(null);
         router.refresh();
-      } else {
-        setError(res.error ?? "Error desconocido.");
+        return;
       }
+      setError(res.error ?? "Error desconocido.");
     });
   }
 
@@ -211,12 +226,9 @@ export default function ProgramsClient({
               Catálogo de PDFs y metadata
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">
-              Administra campos operativos, línea de negocio y URLs de PDFs sin
-              desbordar la pantalla. Las acciones frecuentes se compactan en
-              iconos accesibles.
+              Administra campos operativos, línea de negocio y archivos R2 por programa.
             </p>
           </div>
-
           <button
             type="button"
             onClick={() => setTableExpanded((prev) => !prev)}
@@ -263,141 +275,78 @@ export default function ProgramsClient({
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-[#536a7c]">
           <div>{filtered.length} programa(s)</div>
-          <div className="text-xs font-semibold text-[#536a7c]">
-            PDFs de plan y brochure se administran por separado.
-          </div>
+          <div className="text-xs font-semibold">PDFs de plan y brochure se administran por separado.</div>
         </div>
 
         {tableExpanded ? (
-          <div className="ui-scrollbar max-h-[72vh] max-w-full overflow-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[1080px] border-collapse text-sm">
-              <thead className="sticky top-0 bg-slate-950/95 text-slate-300 backdrop-blur">
-                <tr>
-                  <th className="w-[260px] p-3 text-left font-semibold">Programa</th>
-                  <th className="w-[180px] p-3 text-left font-semibold">Categoría</th>
-                  <th className="w-[160px] p-3 text-left font-semibold">Línea</th>
-                  <th className="w-[140px] p-3 text-left font-semibold">Nivel interno</th>
-                  <th className="w-[220px] p-3 text-left font-semibold">Assets</th>
-                  <th className="w-[160px] p-3 text-right font-semibold">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageRows.map((prog) => (
-                  <tr key={prog.id} className="border-t border-white/10 align-top">
-                    <td className="p-3 text-slate-100">
-                      <div className="font-semibold">{prog.name}</div>
-                    </td>
-                    <td className="p-3 text-slate-300">
-                      <span className="block max-w-[180px] truncate" title={prog.category ?? "—"}>
-                        {prog.category ?? "—"}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-300">
-                      {prog.businessLine ? (
-                        <span className="rounded-full bg-blue-950/20 px-2 py-0.5 text-xs text-emerald-300">
-                          {LINE_LABELS[prog.businessLine]}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500">—</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-slate-400">{prog.level ?? "—"}</td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-2">
-                        <AssetBadge
-                          label="Plan"
-                          r2Asset={prog.r2Assets?.study_plan_pdf}
-                          existingUrl={prog.planPdfUrl}
-                        />
-                        <AssetBadge
-                          label="Brochure"
-                          r2Asset={prog.r2Assets?.brochure_pdf}
-                          existingUrl={prog.brochurePdfUrl}
-                        />
-                        <AssetBadge label="Imagen" r2Asset={prog.r2Assets?.hero_image} />
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(prog)}
-                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(prog)}
-                          disabled={isDeleting}
-                          className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!pageRows.length ? (
+          <div className="mt-4">
+            <AdminDataTable maxHeight="72vh">
+              <table className="w-full min-w-[1080px] border-collapse text-sm">
+                <thead className="sticky top-0 bg-slate-950/95 text-slate-300 backdrop-blur">
                   <tr>
-                    <td className="p-4 text-slate-300" colSpan={6}>
-                      Sin resultados.
-                    </td>
+                    <th className="w-[260px] p-3 text-left font-semibold">Programa</th>
+                    <th className="w-[180px] p-3 text-left font-semibold">Categoría</th>
+                    <th className="w-[160px] p-3 text-left font-semibold">Línea</th>
+                    <th className="w-[140px] p-3 text-left font-semibold">Nivel interno</th>
+                    <th className="w-[260px] p-3 text-left font-semibold">Assets</th>
+                    <th className="w-[160px] p-3 text-right font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.map((program) => (
-                    <tr key={program.id}>
-                      <td>
-                        <div className="font-extrabold text-[#102838]">
-                          {program.name}
-                        </div>
+                    <tr key={program.id} className="border-t border-white/10 align-top">
+                      <td className="p-3 text-slate-100">
+                        <div className="font-semibold">{program.name}</div>
                       </td>
-                      <td>
-                        <span
-                          className="block max-w-[220px] truncate text-[#536a7c]"
-                          title={program.category ?? "—"}
-                        >
+                      <td className="p-3 text-slate-300">
+                        <span className="block max-w-[180px] truncate" title={program.category ?? "—"}>
                           {program.category ?? "—"}
                         </span>
                       </td>
-                      <td>
+                      <td className="p-3 text-slate-300">
                         <LineBadge line={program.businessLine} />
                       </td>
-                      <td>{program.level ?? "—"}</td>
-                      <td>
-                        <PdfLink href={program.planPdfUrl} label="Abrir" />
+                      <td className="p-3 text-slate-400">{program.level ?? "—"}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <AssetBadge
+                            label="Plan"
+                            r2Asset={program.r2Assets?.study_plan_pdf}
+                            existingUrl={program.planPdfUrl}
+                          />
+                          <AssetBadge
+                            label="Brochure"
+                            r2Asset={program.r2Assets?.brochure_pdf}
+                            existingUrl={program.brochurePdfUrl}
+                          />
+                          <AssetBadge label="Imagen" r2Asset={program.r2Assets?.hero_image} />
+                        </div>
                       </td>
-                      <td>
-                        <PdfLink href={program.brochurePdfUrl} label="Abrir" />
-                      </td>
-                      <td>
-                        <AdminRowActions
-                          actions={[
-                            {
-                              type: "edit",
-                              label: `Editar ${program.name}`,
-                              onClick: () => openEdit(program),
-                              tone: "primary",
-                            },
-                            {
-                              type: "delete",
-                              label: `Eliminar ${program.name}`,
-                              onClick: () => handleDelete(program),
-                              tone: "danger",
-                              disabled: isDeleting,
-                            },
-                          ]}
-                        />
+                      <td className="p-3">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(program)}
+                            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(program)}
+                            disabled={isDeleting}
+                            className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                   {!pageRows.length ? (
                     <tr>
-                      <td colSpan={7}>
-                        <div className="rounded-[18px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">
-                          Sin resultados para los filtros seleccionados.
-                        </div>
+                      <td className="p-4 text-slate-300" colSpan={6}>
+                        Sin resultados.
                       </td>
                     </tr>
                   ) : null}
@@ -407,8 +356,7 @@ export default function ProgramsClient({
           </div>
         ) : (
           <div className="mt-4 rounded-[22px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-5 text-sm text-[#536a7c]">
-            La tabla está contraída. Usa el botón superior para volver a
-            expandirla.
+            La tabla está contraída. Usa el botón superior para volver a expandirla.
           </div>
         )}
 
@@ -477,11 +425,7 @@ export default function ProgramsClient({
 
               <label className="grid gap-2 text-sm font-bold text-[#163247]">
                 Línea de negocio
-                <select
-                  name="businessLine"
-                  defaultValue={editing.businessLine ?? ""}
-                  className="ui-control"
-                >
+                <select name="businessLine" defaultValue={editing.businessLine ?? ""} className="ui-control">
                   <option value="">Sin asignar</option>
                   <option value="salud">Salud</option>
                   <option value="licenciatura">Licenciatura</option>
@@ -499,11 +443,9 @@ export default function ProgramsClient({
                   name="planPdfUrl"
                   defaultValue={editing.planPdfUrl ?? ""}
                   className="ui-control"
-                  placeholder="https://res.cloudinary.com/..."
+                  placeholder="https://..."
                 />
-                <span className="text-xs text-slate-400">
-                  URL existente. Si hay R2 asignado, R2 tiene prioridad.
-                </span>
+                <span className="text-xs text-slate-400">URL existente. Si hay R2 asignado, R2 tiene prioridad.</span>
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">
@@ -512,11 +454,9 @@ export default function ProgramsClient({
                   name="brochurePdfUrl"
                   defaultValue={editing.brochurePdfUrl ?? ""}
                   className="ui-control"
-                  placeholder="https://res.cloudinary.com/..."
+                  placeholder="https://..."
                 />
-                <span className="text-xs text-slate-400">
-                  URL existente. Si hay R2 asignado, R2 tiene prioridad.
-                </span>
+                <span className="text-xs text-slate-400">URL existente. Si hay R2 asignado, R2 tiene prioridad.</span>
               </label>
             </div>
 
@@ -530,51 +470,24 @@ export default function ProgramsClient({
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
-                <label className="grid gap-2 text-sm">
-                  Plan PDF
-                  <select
-                    name="r2StudyPlanFileId"
-                    defaultValue={editing.r2Assets?.study_plan_pdf?.fileId ?? ""}
-                    className="ui-control"
-                  >
-                    <option value="">Sin R2</option>
-                    {pdfAssets.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {formatAssetOption(asset)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-2 text-sm">
-                  Brochure PDF
-                  <select
-                    name="r2BrochureFileId"
-                    defaultValue={editing.r2Assets?.brochure_pdf?.fileId ?? ""}
-                    className="ui-control"
-                  >
-                    <option value="">Sin R2</option>
-                    {pdfAssets.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {formatAssetOption(asset)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-2 text-sm">
-                  Imagen principal
-                  <select
-                    name="r2HeroImageFileId"
-                    defaultValue={editing.r2Assets?.hero_image?.fileId ?? ""}
-                    className="ui-control"
-                  >
-                    <option value="">Sin R2</option>
-                    {imageAssets.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {formatAssetOption(asset)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <AssetSelect
+                  label="Plan PDF"
+                  name="r2StudyPlanFileId"
+                  assets={pdfAssets}
+                  defaultValue={editing.r2Assets?.study_plan_pdf?.fileId}
+                />
+                <AssetSelect
+                  label="Brochure PDF"
+                  name="r2BrochureFileId"
+                  assets={pdfAssets}
+                  defaultValue={editing.r2Assets?.brochure_pdf?.fileId}
+                />
+                <AssetSelect
+                  label="Imagen principal"
+                  name="r2HeroImageFileId"
+                  assets={imageAssets}
+                  defaultValue={editing.r2Assets?.hero_image?.fileId}
+                />
               </div>
             </section>
 
