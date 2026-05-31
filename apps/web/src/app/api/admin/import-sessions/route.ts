@@ -48,10 +48,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const moduleRaw = url.searchParams.get("module");
     const statusRaw = url.searchParams.get("status");
-    const module = parseAdminConfigModule(moduleRaw);
+    const moduleFilter = parseAdminConfigModule(moduleRaw);
     const status = parseImportSessionStatus(statusRaw);
 
-    if (moduleRaw && !module) {
+    if (moduleRaw && !moduleFilter) {
       return adminApiError({
         requestId,
         status: 400,
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     }
 
     const sessions = await listAdminImportSessions({
-      module,
+      module: moduleFilter,
       status,
       limit: parseLimit(url.searchParams.get("limit")),
     });

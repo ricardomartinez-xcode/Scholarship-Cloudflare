@@ -42,11 +42,8 @@ type SharedProps = {
 };
 
 type ButtonProps = SharedProps &
-  Omit<
-    ButtonHTMLAttributes<HTMLButtonElement>,
-    "children" | "className" | "aria-label" | "title" | "disabled"
-  > & {
-    href?: undefined;
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className"> & {
+    href?: never;
   };
 
 type LinkProps = SharedProps & {
@@ -69,7 +66,7 @@ export default function AdminIconButton(props: AdminIconButtonProps) {
     </>
   );
 
-  if (typeof props.href === "string") {
+  if ("href" in props && typeof props.href === "string") {
     if (disabled) {
       return (
         <span
@@ -95,16 +92,7 @@ export default function AdminIconButton(props: AdminIconButtonProps) {
     );
   }
 
-  const {
-    action: _action,
-    label: _label,
-    tone: _tone,
-    disabled: _disabled,
-    children: _children,
-    href: _href,
-    type = "button",
-    ...buttonProps
-  } = props;
+  const { type = "button", ...buttonProps } = props;
 
   return (
     <button

@@ -1,22 +1,24 @@
-import { requireAdminAccessUser } from "@/lib/admin-session";
-import { listFileAssets } from "@/lib/file-assets";
+import { AdminCapability } from "@prisma/client";
 
-import { FilesUploader } from "./FilesUploader";
+import { requireAdminCapabilityUser } from "@/lib/admin-session";
+import { listFileAssets } from "@/lib/file-assets";
+import FilesClient from "./FilesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminFilesPage() {
-  await requireAdminAccessUser();
-  const assets = await listFileAssets();
+  await requireAdminCapabilityUser(AdminCapability.manage_offers);
+  const files = await listFileAssets({ limit: 500 });
 
   return (
-    <main className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Storage</p>
-        <h1 className="text-2xl font-semibold text-slate-950">Archivos y previews</h1>
-        <p className="max-w-2xl text-sm text-slate-600">Subida directa a Cloudflare R2 con URLs firmadas, metadata en Postgres y links compartibles desde el sitio.</p>
+    <div className="grid gap-6 p-6">
+      <div>
+        <h1 className="text-xl font-semibold">Archivos R2</h1>
+        <p className="mt-1 text-sm text-slate-300">
+          Gestiona assets reutilizables para programas académicos.
+        </p>
       </div>
-      <FilesUploader initialAssets={assets.map((asset) => ({ ...asset, createdAt: asset.createdAt.toISOString(), updatedAt: asset.updatedAt.toISOString() }))} />
-    </main>
+      <FilesClient files={files} />
+    </div>
   );
 }

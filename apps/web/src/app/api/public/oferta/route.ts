@@ -23,6 +23,11 @@ import {
   matchesUnidepProgramLine,
   normalizeUnidepProgramBusinessLine,
 } from "@/lib/unidep-program-catalog";
+import {
+  listFileAssetAssignmentsForTargets,
+  resolveProgramR2AssetPayload,
+  type PublicFileAssetPayload,
+} from "@/lib/file-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -57,12 +62,21 @@ type OfertaPayload = {
     businessLine: string | null;
     brochurePdfUrl: string | null;
     planPdfUrl: string | null;
+    heroImageUrl: string | null;
+    planDownloadUrl: string | null;
+    brochureDownloadUrl: string | null;
+    r2Assets: {
+      studyPlan: PublicFileAssetPayload | null;
+      brochure: PublicFileAssetPayload | null;
+      heroImage: PublicFileAssetPayload | null;
+    };
   }>;
   offerings: Array<{
     id: string;
     modality: string;
     schedule: string | null;
     planLink: string | null;
+    planDownloadLink: string | null;
     pricingPlans: number[];
     campus: {
       id: string;
@@ -183,6 +197,10 @@ async function loadOfertaPayload(
 
   const catalog = await getUnidepProgramCatalog();
   const programMap = new Map(catalog.map((program) => [program.id, program]));
+  const r2Assignments = await listFileAssetAssignmentsForTargets(
+    "program",
+    catalog.map((program) => program.id),
+  );
   const lineEnum = normalizeUnidepProgramBusinessLine(lineRaw);
   const normalizedLineRaw = normalizeKey(lineRaw);
 
@@ -260,14 +278,7 @@ async function loadOfertaPayload(
 
   const seen = new Set<string>();
   const campusMap = new Map<string, OfertaCampusPayload>();
-  const programs: Array<{
-    programId: string;
-    name: string;
-    category: string | null;
-    businessLine: string | null;
-    brochurePdfUrl: string | null;
-    planPdfUrl: string | null;
-  }> = [];
+  const programs: OfertaPayload["programs"] = [];
 
   for (const offering of filteredOfferings) {
     campusMap.set(offering.campus.id, buildCampusPayload(offering.campus));
@@ -275,13 +286,23 @@ async function loadOfertaPayload(
     const program = programMap.get(offering.programId);
     if (!program) continue;
     seen.add(offering.programId);
+    const r2Payload = resolveProgramR2AssetPayload({
+      programId: program.id,
+      planPdfUrl: getUnidepProgramPlanUrl(program),
+      brochurePdfUrl: program.brochurePdfUrl ?? null,
+      assets: r2Assignments.get(program.id) ?? {},
+    });
     programs.push({
       programId: program.id,
       name: program.name,
       category: program.category,
       businessLine: program.businessLine,
-      brochurePdfUrl: program.brochurePdfUrl ?? null,
-      planPdfUrl: getUnidepProgramPlanUrl(program),
+      brochurePdfUrl: r2Payload.brochurePdfUrl,
+      planPdfUrl: r2Payload.planPdfUrl,
+      heroImageUrl: r2Payload.heroImageUrl,
+      planDownloadUrl: r2Payload.planDownloadUrl,
+      brochureDownloadUrl: r2Payload.brochureDownloadUrl,
+      r2Assets: r2Payload.r2Assets,
     });
   }
 
@@ -291,11 +312,18 @@ async function loadOfertaPayload(
     .map((offering) => {
       const program = programMap.get(offering.programId);
       if (!program) return null;
+      const r2Payload = resolveProgramR2AssetPayload({
+        programId: program.id,
+        planPdfUrl: getUnidepProgramPlanUrl(program),
+        brochurePdfUrl: program.brochurePdfUrl ?? null,
+        assets: r2Assignments.get(program.id) ?? {},
+      });
       return {
         id: offering.id,
         modality: getModalityLabel(offering),
         schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
-        planLink: getUnidepProgramPlanUrl(program),
+        planLink: r2Payload.planPdfUrl,
+        planDownloadLink: r2Payload.planDownloadUrl,
         pricingPlans: offering.pricingPlans ?? [],
         campus: buildCampusPayload(offering.campus),
         program: { id: program.id, name: program.name },

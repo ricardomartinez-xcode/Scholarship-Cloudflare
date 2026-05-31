@@ -1,6 +1,7 @@
 import { AdminCapability } from "@prisma/client";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
+import { listFileAssetAssignmentsForTargets, listFileAssets } from "@/lib/file-assets";
 import { getUnidepProgramCatalog } from "@/lib/unidep-program-catalog";
 import ProgramsClient from "./ProgramsClient";
 import MigrateClient from "../MigrateClient";
@@ -21,6 +22,17 @@ export default async function UnidepProgramsPage() {
   if (!programs) {
     return <NeedsMigration title="Programas UNIDEP" />;
   }
+  const [files, assignments] = await Promise.all([
+    listFileAssets({ limit: 500 }),
+    listFileAssetAssignmentsForTargets(
+      "program",
+      programs.map((program) => program.id),
+    ),
+  ]);
+  const programsWithAssets = programs.map((program) => ({
+    ...program,
+    r2Assets: assignments.get(program.id) ?? {},
+  }));
 
   return (
     <div className="grid gap-6 p-6">
@@ -30,7 +42,7 @@ export default async function UnidepProgramsPage() {
           Administra categoría, línea de negocio y los PDFs públicos de cada programa.
         </p>
       </div>
-      <ProgramsClient programs={programs} />
+      <ProgramsClient programs={programsWithAssets} fileAssets={files} />
     </div>
   );
 }

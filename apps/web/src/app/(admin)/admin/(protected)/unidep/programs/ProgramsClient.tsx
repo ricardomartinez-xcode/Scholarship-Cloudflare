@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import AdminDataTable from "@/components/admin/AdminDataTable";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
-import AdminRowActions from "@/components/admin/AdminRowActions";
+import type { FileAssetRecord, PublicFileAssetPayload } from "@/lib/file-assets";
 import { deleteProgramAction, updateProgramUnidepAction } from "./actions";
 
 type BusinessLine = "salud" | "licenciatura" | "prepa" | "posgrado";
@@ -19,6 +19,7 @@ type Program = {
   businessLine: BusinessLine | null;
   planPdfUrl: string | null;
   brochurePdfUrl: string | null;
+  r2Assets?: Record<string, PublicFileAssetPayload>;
 };
 
 const LINE_LABELS: Record<string, string> = {
@@ -31,36 +32,63 @@ const LINE_LABELS: Record<string, string> = {
 const PAGE_SIZE = 15;
 const STORAGE_KEY = "admin.unidep.programs.table";
 
-function PdfLink({ href, label }: { href: string | null; label: string }) {
-  if (!href) {
-    return <span className="text-xs font-semibold text-[#6b7f8e]">—</span>;
+function AssetBadge({
+  label,
+  r2Asset,
+  existingUrl,
+}: {
+  label: string;
+  r2Asset?: PublicFileAssetPayload | null;
+  existingUrl?: string | null;
+}) {
+  if (r2Asset) {
+    return (
+      <a
+        href={r2Asset.previewUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+        title={r2Asset.fileName}
+      >
+        {label}: R2
+      </a>
+    );
   }
-
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex rounded-full border border-[#c8d6e2] bg-white px-2.5 py-1 text-xs font-extrabold text-[#0f4c6b] underline-offset-2 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10 hover:underline"
-    >
-      {label}
-    </a>
-  );
-}
-
-function LineBadge({ line }: { line: BusinessLine | null }) {
-  if (!line) {
-    return <span className="text-xs font-semibold text-[#6b7f8e]">—</span>;
+  if (existingUrl) {
+    return (
+      <a
+        href={existingUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-200 transition hover:bg-amber-500/20"
+      >
+        {label}: URL
+      </a>
+    );
   }
-
   return (
-    <span className="inline-flex rounded-full border border-[#0f4c6b]/25 bg-[#0f4c6b]/10 px-2.5 py-1 text-xs font-extrabold text-[#0f4c6b]">
-      {LINE_LABELS[line] ?? line}
+    <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-500">
+      {label}: —
     </span>
   );
 }
 
-export default function ProgramsClient({ programs }: { programs: Program[] }) {
+function formatAssetOption(file: FileAssetRecord) {
+  const size = file.sizeBytes
+    ? file.sizeBytes < 1024 * 1024
+      ? `${Math.round(file.sizeBytes / 1024)} KB`
+      : `${(file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+    : "sin tamaño";
+  return `${file.fileName} · ${size}`;
+}
+
+export default function ProgramsClient({
+  programs,
+  fileAssets,
+}: {
+  programs: Program[];
+  fileAssets: FileAssetRecord[];
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [lineFilter, setLineFilter] = useState("");
@@ -117,9 +145,14 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const pageRows = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pdfAssets = useMemo(
+    () => fileAssets.filter((asset) => asset.mimeType === "application/pdf"),
+    [fileAssets],
+  );
+  const imageAssets = useMemo(
+    () => fileAssets.filter((asset) => asset.mimeType.startsWith("image/")),
+    [fileAssets],
   );
 
   function openEdit(program: Program) {
@@ -236,23 +269,80 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
         </div>
 
         {tableExpanded ? (
-          <div className="mt-4">
-            <AdminDataTable
-              title="Programas académicos"
-              count={filtered.length}
-              description="Máximo 15 filas por página, scroll horizontal controlado y acciones compactas por fila."
-              maxHeight="min(72dvh, 720px)"
-            >
-              <table>
-                <thead>
+          <div className="ui-scrollbar max-h-[72vh] max-w-full overflow-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[1080px] border-collapse text-sm">
+              <thead className="sticky top-0 bg-slate-950/95 text-slate-300 backdrop-blur">
+                <tr>
+                  <th className="w-[260px] p-3 text-left font-semibold">Programa</th>
+                  <th className="w-[180px] p-3 text-left font-semibold">Categoría</th>
+                  <th className="w-[160px] p-3 text-left font-semibold">Línea</th>
+                  <th className="w-[140px] p-3 text-left font-semibold">Nivel interno</th>
+                  <th className="w-[220px] p-3 text-left font-semibold">Assets</th>
+                  <th className="w-[160px] p-3 text-right font-semibold">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((prog) => (
+                  <tr key={prog.id} className="border-t border-white/10 align-top">
+                    <td className="p-3 text-slate-100">
+                      <div className="font-semibold">{prog.name}</div>
+                    </td>
+                    <td className="p-3 text-slate-300">
+                      <span className="block max-w-[180px] truncate" title={prog.category ?? "—"}>
+                        {prog.category ?? "—"}
+                      </span>
+                    </td>
+                    <td className="p-3 text-slate-300">
+                      {prog.businessLine ? (
+                        <span className="rounded-full bg-blue-950/20 px-2 py-0.5 text-xs text-emerald-300">
+                          {LINE_LABELS[prog.businessLine]}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-slate-400">{prog.level ?? "—"}</td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-2">
+                        <AssetBadge
+                          label="Plan"
+                          r2Asset={prog.r2Assets?.study_plan_pdf}
+                          existingUrl={prog.planPdfUrl}
+                        />
+                        <AssetBadge
+                          label="Brochure"
+                          r2Asset={prog.r2Assets?.brochure_pdf}
+                          existingUrl={prog.brochurePdfUrl}
+                        />
+                        <AssetBadge label="Imagen" r2Asset={prog.r2Assets?.hero_image} />
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(prog)}
+                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(prog)}
+                          disabled={isDeleting}
+                          className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!pageRows.length ? (
                   <tr>
-                    <th>Programa</th>
-                    <th>Categoría</th>
-                    <th>Línea</th>
-                    <th>Nivel interno</th>
-                    <th>Plan PDF</th>
-                    <th>Brochure PDF</th>
-                    <th>Acciones</th>
+                    <td className="p-4 text-slate-300" colSpan={6}>
+                      Sin resultados.
+                    </td>
                   </tr>
                 </thead>
                 <tbody>
@@ -411,8 +501,8 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   className="ui-control"
                   placeholder="https://res.cloudinary.com/..."
                 />
-                <span className="text-xs font-semibold text-[#536a7c]">
-                  Se usa en la sección pública de Planes.
+                <span className="text-xs text-slate-400">
+                  URL existente. Si hay R2 asignado, R2 tiene prioridad.
                 </span>
               </label>
 
@@ -424,11 +514,69 @@ export default function ProgramsClient({ programs }: { programs: Program[] }) {
                   className="ui-control"
                   placeholder="https://res.cloudinary.com/..."
                 />
-                <span className="text-xs font-semibold text-[#536a7c]">
-                  Se usa en la sección pública de Oferta académica.
+                <span className="text-xs text-slate-400">
+                  URL existente. Si hay R2 asignado, R2 tiene prioridad.
                 </span>
               </label>
             </div>
+
+            <section className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+              <div>
+                <div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">
+                  Assets R2 del programa
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  Selecciona archivos ya cargados en R2. Vacío limpia la relación, no borra el archivo.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="grid gap-2 text-sm">
+                  Plan PDF
+                  <select
+                    name="r2StudyPlanFileId"
+                    defaultValue={editing.r2Assets?.study_plan_pdf?.fileId ?? ""}
+                    className="ui-control"
+                  >
+                    <option value="">Sin R2</option>
+                    {pdfAssets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {formatAssetOption(asset)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm">
+                  Brochure PDF
+                  <select
+                    name="r2BrochureFileId"
+                    defaultValue={editing.r2Assets?.brochure_pdf?.fileId ?? ""}
+                    className="ui-control"
+                  >
+                    <option value="">Sin R2</option>
+                    {pdfAssets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {formatAssetOption(asset)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm">
+                  Imagen principal
+                  <select
+                    name="r2HeroImageFileId"
+                    defaultValue={editing.r2Assets?.hero_image?.fileId ?? ""}
+                    className="ui-control"
+                  >
+                    <option value="">Sin R2</option>
+                    {imageAssets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {formatAssetOption(asset)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
 
             {error ? (
               <div className="rounded-[18px] border border-[#8a2d2d]/20 bg-[#fde7e7] px-4 py-2 text-sm font-semibold text-[#8a2d2d]">

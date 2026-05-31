@@ -1,24 +1,23 @@
-import crypto from "node:crypto";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { getR2BucketName } from "@/lib/r2-storage";
 
-export type FileAsset = {
+export type FileAssetSlot = "study_plan_pdf" | "brochure_pdf" | "hero_image";
+
+export type FileAssetRecord = {
   id: string;
-  ownerUserId: string | null;
-  bucket: string;
-  objectKey: string;
+  r2Key: string;
+  bucket: string | null;
   fileName: string;
   mimeType: string;
-  sizeBytes: number;
-  title: string | null;
-  description: string | null;
-  visibility: "private" | "link" | "public";
+  sizeBytes: number | null;
+  etag: string | null;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export type FileAssetUsage = {
+export type FileAssetUsageRecord = {
   id: string;
   fileId: string;
   targetType: string;
@@ -26,216 +25,404 @@ export type FileAssetUsage = {
   slot: string;
   sortOrder: number;
   isPrimary: boolean;
+  file: FileAssetRecord;
+};
+
+export type PublicFileAssetPayload = {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  previewUrl: string;
+  downloadUrl: string;
+};
+
+export type ProgramAssetInput = PublicFileAssetPayload | {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+};
+
+export type ProgramAssetSlots = Partial<Record<FileAssetSlot, ProgramAssetInput | null>>;
+
+type RawFileAssetRow = {
+  id: string;
+  r2Key: string;
+  bucket: string | null;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: bigint | number | null;
+  etag: string | null;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
 };
 
-type FileAssetRow = {
-  id: string;
-  owner_user_id: string | null;
-  bucket: string;
-  object_key: string;
-  file_name: string;
-  mime_type: string;
-  size_bytes: number;
-  title: string | null;
-  description: string | null;
-  visibility: "private" | "link" | "public";
-  created_at: Date;
-  updated_at: Date;
-};
-
-type FileAssetUsageRow = {
-  id: string;
-  file_id: string;
-  target_type: string;
-  target_id: string;
-  slot: string;
-  sort_order: number;
-  is_primary: boolean;
-  created_at: Date;
-  updated_at: Date;
-};
-
-export type FileAssetUsageInput = {
+type RawFileAssetUsageRow = RawFileAssetRow & {
+  usageId: string;
+  fileId: string;
   targetType: string;
   targetId: string;
   slot: string;
-  sortOrder?: number;
-  isPrimary?: boolean;
+  sortOrder: number;
+  isPrimary: boolean;
 };
 
-function mapFileAsset(row: FileAssetRow): FileAsset {
+function toNumber(value: bigint | number | null) {
+  if (value === null) return null;
+  return typeof value === "bigint" ? Number(value) : value;
+}
+
+function mapFileAsset(row: RawFileAssetRow): FileAssetRecord {
   return {
     id: row.id,
-    ownerUserId: row.owner_user_id,
+    r2Key: row.r2Key,
     bucket: row.bucket,
-    objectKey: row.object_key,
-    fileName: row.file_name,
-    mimeType: row.mime_type,
-    sizeBytes: row.size_bytes,
-    title: row.title,
-    description: row.description,
-    visibility: row.visibility,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    fileName: row.fileName,
+    mimeType: row.mimeType,
+    sizeBytes: toNumber(row.sizeBytes),
+    etag: row.etag,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
-function mapFileAssetUsage(row: FileAssetUsageRow): FileAssetUsage {
+function mapUsage(row: RawFileAssetUsageRow): FileAssetUsageRecord {
   return {
-    id: row.id,
-    fileId: row.file_id,
-    targetType: row.target_type,
-    targetId: row.target_id,
+    id: row.usageId,
+    fileId: row.fileId,
+    targetType: row.targetType,
+    targetId: row.targetId,
     slot: row.slot,
-    sortOrder: row.sort_order,
-    isPrimary: row.is_primary,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    sortOrder: row.sortOrder,
+    isPrimary: row.isPrimary,
+    file: mapFileAsset(row),
   };
 }
 
-function normalizeUsage(input: FileAssetUsageInput) {
-  const targetType = input.targetType.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
-  const targetId = input.targetId.trim();
-  const slot = input.slot.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
-  if (!targetType || !targetId || !slot) return null;
+export function normalizeFileAssetUsageKey(input: {
+  targetType: string;
+  targetId: string;
+  slot: string;
+}) {
   return {
-    targetType,
-    targetId,
-    slot,
-    sortOrder: Number.isFinite(input.sortOrder) ? Number(input.sortOrder) : 0,
-    isPrimary: input.isPrimary ?? true,
+    targetType: normalizeSnakeish(input.targetType),
+    targetId: input.targetId,
+    slot: normalizeSnakeish(input.slot),
+  };
+}
+
+function normalizeSnakeish(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export function buildFileAssetLinks(fileId: string) {
+  return {
+    previewUrl: `/api/files/${encodeURIComponent(fileId)}/auth-view`,
+    downloadUrl: `/api/files/${encodeURIComponent(fileId)}/download`,
+  };
+}
+
+export function toPublicFileAssetPayload(
+  file: Pick<FileAssetRecord, "id" | "fileName" | "mimeType" | "sizeBytes"> | null | undefined,
+): PublicFileAssetPayload | null {
+  if (!file) return null;
+  return {
+    fileId: file.id,
+    fileName: file.fileName,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    ...buildFileAssetLinks(file.id),
+  };
+}
+
+export function resolveProgramR2AssetPayload(input: {
+  programId: string;
+  planPdfUrl: string | null;
+  brochurePdfUrl: string | null;
+  assets: ProgramAssetSlots;
+}) {
+  const studyPlan = normalizeProgramAssetPayload(input.assets.study_plan_pdf);
+  const brochure = normalizeProgramAssetPayload(input.assets.brochure_pdf);
+  const heroImage = normalizeProgramAssetPayload(input.assets.hero_image);
+
+  return {
+    planPdfUrl: studyPlan?.previewUrl ?? input.planPdfUrl,
+    brochurePdfUrl: brochure?.previewUrl ?? input.brochurePdfUrl,
+    heroImageUrl: heroImage?.previewUrl ?? null,
+    planDownloadUrl: studyPlan?.downloadUrl ?? input.planPdfUrl,
+    brochureDownloadUrl: brochure?.downloadUrl ?? input.brochurePdfUrl,
+    r2Assets: {
+      studyPlan,
+      brochure,
+      heroImage,
+    },
+  };
+}
+
+function normalizeProgramAssetPayload(
+  asset: ProgramAssetInput | null | undefined,
+): PublicFileAssetPayload | null {
+  if (!asset) return null;
+  if ("previewUrl" in asset && "downloadUrl" in asset) return asset;
+  const links = buildFileAssetLinks(asset.fileId);
+  return {
+    ...asset,
+    ...links,
   };
 }
 
 export async function createFileAsset(input: {
-  ownerUserId: string;
-  objectKey: string;
+  r2Key: string;
+  bucket?: string | null;
   fileName: string;
   mimeType: string;
-  sizeBytes: number;
-  title?: string | null;
-  description?: string | null;
-  visibility?: "private" | "link" | "public";
+  sizeBytes?: number | null;
+  uploadedByUserId?: string | null;
+  status?: string;
 }) {
-  const rows = await prisma.$queryRaw<FileAssetRow[]>`
-    INSERT INTO "recalc_admin"."file_asset" (
-      "owner_user_id", "bucket", "object_key", "file_name", "mime_type", "size_bytes", "title", "description", "visibility"
-    ) VALUES (
-      ${input.ownerUserId}::uuid,
-      ${getR2BucketName()},
-      ${input.objectKey},
-      ${input.fileName},
-      ${input.mimeType},
-      ${input.sizeBytes},
-      ${input.title ?? null},
-      ${input.description ?? null},
-      ${input.visibility ?? "private"}
-    )
-    RETURNING *;
+  const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
+    INSERT INTO "recalc_admin"."file_asset"
+      ("r2_key", "bucket", "file_name", "mime_type", "size_bytes", "uploaded_by_user_id", "status")
+    VALUES
+      (${input.r2Key}, ${input.bucket ?? null}, ${input.fileName}, ${input.mimeType}, ${input.sizeBytes ?? null}, ${input.uploadedByUserId ?? null}::uuid, ${input.status ?? "uploaded"})
+    RETURNING
+      "id",
+      "r2_key" AS "r2Key",
+      "bucket",
+      "file_name" AS "fileName",
+      "mime_type" AS "mimeType",
+      "size_bytes" AS "sizeBytes",
+      "etag",
+      "status",
+      "created_at" AS "createdAt",
+      "updated_at" AS "updatedAt"
   `;
   return mapFileAsset(rows[0]);
 }
 
-export async function listFileAssets(limit = 50) {
-  const rows = await prisma.$queryRaw<FileAssetRow[]>`
-    SELECT * FROM "recalc_admin"."file_asset"
+export async function markFileAssetUploaded(fileId: string, etag?: string | null) {
+  const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
+    UPDATE "recalc_admin"."file_asset"
+    SET "status" = 'uploaded',
+        "etag" = COALESCE(${etag ?? null}, "etag"),
+        "updated_at" = now()
+    WHERE "id" = ${fileId}::uuid
+    RETURNING
+      "id",
+      "r2_key" AS "r2Key",
+      "bucket",
+      "file_name" AS "fileName",
+      "mime_type" AS "mimeType",
+      "size_bytes" AS "sizeBytes",
+      "etag",
+      "status",
+      "created_at" AS "createdAt",
+      "updated_at" AS "updatedAt"
+  `;
+  return rows[0] ? mapFileAsset(rows[0]) : null;
+}
+
+export async function getFileAssetById(fileId: string) {
+  const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
+    SELECT
+      "id",
+      "r2_key" AS "r2Key",
+      "bucket",
+      "file_name" AS "fileName",
+      "mime_type" AS "mimeType",
+      "size_bytes" AS "sizeBytes",
+      "etag",
+      "status",
+      "created_at" AS "createdAt",
+      "updated_at" AS "updatedAt"
+    FROM "recalc_admin"."file_asset"
+    WHERE "id" = ${fileId}::uuid
+    LIMIT 1
+  `;
+  return rows[0] ? mapFileAsset(rows[0]) : null;
+}
+
+export async function listFileAssets(options?: {
+  mimePrefix?: string;
+  mimeType?: string;
+  limit?: number;
+}) {
+  const limit = Math.min(Math.max(options?.limit ?? 500, 1), 1000);
+  const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
+    SELECT
+      "id",
+      "r2_key" AS "r2Key",
+      "bucket",
+      "file_name" AS "fileName",
+      "mime_type" AS "mimeType",
+      "size_bytes" AS "sizeBytes",
+      "etag",
+      "status",
+      "created_at" AS "createdAt",
+      "updated_at" AS "updatedAt"
+    FROM "recalc_admin"."file_asset"
+    WHERE (${options?.mimeType ?? null}::text IS NULL OR "mime_type" = ${options?.mimeType ?? null})
+      AND (${options?.mimePrefix ?? null}::text IS NULL OR "mime_type" LIKE ${options?.mimePrefix ? `${options.mimePrefix}%` : null})
     ORDER BY "created_at" DESC
-    LIMIT ${Math.min(Math.max(limit, 1), 100)};
+    LIMIT ${limit}
   `;
   return rows.map(mapFileAsset);
 }
 
-export async function getFileAssetById(id: string) {
-  const rows = await prisma.$queryRaw<FileAssetRow[]>`
-    SELECT * FROM "recalc_admin"."file_asset"
-    WHERE "id" = ${id}::uuid
-    LIMIT 1;
-  `;
-  return rows[0] ? mapFileAsset(rows[0]) : null;
-}
-
-export async function assignFileAssetUsage(fileId: string, input: FileAssetUsageInput) {
-  const usage = normalizeUsage(input);
-  if (!usage) return null;
-
-  const rows = await prisma.$queryRaw<FileAssetUsageRow[]>`
-    INSERT INTO "recalc_admin"."file_asset_usage" (
-      "file_id", "target_type", "target_id", "slot", "sort_order", "is_primary"
-    ) VALUES (
-      ${fileId}::uuid,
-      ${usage.targetType},
-      ${usage.targetId},
-      ${usage.slot},
-      ${usage.sortOrder},
-      ${usage.isPrimary}
-    )
-    ON CONFLICT ("target_type", "target_id", "slot") WHERE "is_primary" = true
-    DO UPDATE SET
-      "file_id" = EXCLUDED."file_id",
-      "sort_order" = EXCLUDED."sort_order",
-      "updated_at" = now()
-    RETURNING *;
-  `;
-  return rows[0] ? mapFileAssetUsage(rows[0]) : null;
-}
-
-export async function listFileAssetUsages(fileId: string) {
-  const rows = await prisma.$queryRaw<FileAssetUsageRow[]>`
-    SELECT * FROM "recalc_admin"."file_asset_usage"
-    WHERE "file_id" = ${fileId}::uuid
-    ORDER BY "target_type" ASC, "target_id" ASC, "slot" ASC, "sort_order" ASC;
-  `;
-  return rows.map(mapFileAssetUsage);
-}
-
-export async function getFileAssetForUsage(input: Pick<FileAssetUsageInput, "targetType" | "targetId" | "slot">) {
-  const usage = normalizeUsage({ ...input, isPrimary: true });
-  if (!usage) return null;
-
-  const rows = await prisma.$queryRaw<FileAssetRow[]>`
-    SELECT fa.*
-    FROM "recalc_admin"."file_asset" fa
-    INNER JOIN "recalc_admin"."file_asset_usage" fau ON fau."file_id" = fa."id"
-    WHERE fau."target_type" = ${usage.targetType}
-      AND fau."target_id" = ${usage.targetId}
-      AND fau."slot" = ${usage.slot}
-      AND fau."is_primary" = true
-    ORDER BY fau."sort_order" ASC, fau."created_at" DESC
-    LIMIT 1;
-  `;
-  return rows[0] ? mapFileAsset(rows[0]) : null;
-}
-
-export async function createShareLink(fileId: string, expiresAt?: Date | null) {
-  const token = crypto.randomBytes(32).toString("base64url");
-  const tokenHash = hashShareToken(token);
+export async function clearFileAssetUsage(input: {
+  targetType: string;
+  targetId: string;
+  slot: string;
+}) {
+  const key = normalizeFileAssetUsageKey(input);
   await prisma.$executeRaw`
-    INSERT INTO "recalc_admin"."file_share_link" ("file_id", "token_hash", "expires_at")
-    VALUES (${fileId}::uuid, ${tokenHash}, ${expiresAt ?? null});
+    DELETE FROM "recalc_admin"."file_asset_usage"
+    WHERE "target_type" = ${key.targetType}
+      AND "target_id" = ${key.targetId}
+      AND "slot" = ${key.slot}
   `;
-  await prisma.$executeRaw`
-    UPDATE "recalc_admin"."file_asset"
-    SET "visibility" = 'link', "updated_at" = now()
-    WHERE "id" = ${fileId}::uuid;
-  `;
-  return token;
 }
 
-export async function getFileAssetByShareToken(token: string) {
-  const rows = await prisma.$queryRaw<FileAssetRow[]>`
-    SELECT fa.*
-    FROM "recalc_admin"."file_asset" fa
-    INNER JOIN "recalc_admin"."file_share_link" sl ON sl."file_id" = fa."id"
-    WHERE sl."token_hash" = ${hashShareToken(token)}
-      AND (sl."expires_at" IS NULL OR sl."expires_at" > now())
-    LIMIT 1;
-  `;
-  return rows[0] ? mapFileAsset(rows[0]) : null;
+export async function assignFileAssetUsage(
+  fileId: string,
+  input: {
+    targetType: string;
+    targetId: string;
+    slot: string;
+    isPrimary?: boolean;
+    sortOrder?: number;
+  },
+) {
+  const key = normalizeFileAssetUsageKey(input);
+  const isPrimary = input.isPrimary ?? true;
+  const sortOrder = input.sortOrder ?? 0;
+
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`
+      DELETE FROM "recalc_admin"."file_asset_usage"
+      WHERE "target_type" = ${key.targetType}
+        AND "target_id" = ${key.targetId}
+        AND "slot" = ${key.slot}
+    `;
+
+    const rows = await tx.$queryRaw<RawFileAssetUsageRow[]>`
+      INSERT INTO "recalc_admin"."file_asset_usage"
+        ("file_id", "target_type", "target_id", "slot", "sort_order", "is_primary")
+      VALUES
+        (${fileId}::uuid, ${key.targetType}, ${key.targetId}, ${key.slot}, ${sortOrder}, ${isPrimary})
+      RETURNING
+        "id" AS "usageId",
+        "file_id" AS "fileId",
+        "target_type" AS "targetType",
+        "target_id" AS "targetId",
+        "slot",
+        "sort_order" AS "sortOrder",
+        "is_primary" AS "isPrimary",
+        (SELECT "id" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "id",
+        (SELECT "r2_key" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "r2Key",
+        (SELECT "bucket" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "bucket",
+        (SELECT "file_name" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "fileName",
+        (SELECT "mime_type" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "mimeType",
+        (SELECT "size_bytes" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "sizeBytes",
+        (SELECT "etag" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "etag",
+        (SELECT "status" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "status",
+        (SELECT "created_at" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "createdAt",
+        (SELECT "updated_at" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "updatedAt"
+    `;
+
+    return mapUsage(rows[0]);
+  });
 }
 
-export function hashShareToken(token: string) {
-  return crypto.createHash("sha256").update(token, "utf8").digest("hex");
+export async function getFileAssetForUsage(input: {
+  targetType: string;
+  targetId: string;
+  slot: string;
+}) {
+  const key = normalizeFileAssetUsageKey(input);
+  const rows = await prisma.$queryRaw<RawFileAssetUsageRow[]>`
+    SELECT
+      u."id" AS "usageId",
+      u."file_id" AS "fileId",
+      u."target_type" AS "targetType",
+      u."target_id" AS "targetId",
+      u."slot",
+      u."sort_order" AS "sortOrder",
+      u."is_primary" AS "isPrimary",
+      f."id",
+      f."r2_key" AS "r2Key",
+      f."bucket",
+      f."file_name" AS "fileName",
+      f."mime_type" AS "mimeType",
+      f."size_bytes" AS "sizeBytes",
+      f."etag",
+      f."status",
+      f."created_at" AS "createdAt",
+      f."updated_at" AS "updatedAt"
+    FROM "recalc_admin"."file_asset_usage" u
+    INNER JOIN "recalc_admin"."file_asset" f ON f."id" = u."file_id"
+    WHERE u."target_type" = ${key.targetType}
+      AND u."target_id" = ${key.targetId}
+      AND u."slot" = ${key.slot}
+    ORDER BY u."is_primary" DESC, u."sort_order" ASC, u."created_at" DESC
+    LIMIT 1
+  `;
+  return rows[0] ? mapUsage(rows[0]) : null;
+}
+
+export async function listFileAssetAssignmentsForTargets(
+  targetType: string,
+  targetIds: string[],
+) {
+  const normalizedTargetType = normalizeSnakeish(targetType);
+  const uniqueTargetIds = Array.from(new Set(targetIds.filter(Boolean)));
+  if (!uniqueTargetIds.length) return new Map<string, Record<string, PublicFileAssetPayload>>();
+  if (typeof prisma.$queryRaw !== "function") {
+    return new Map<string, Record<string, PublicFileAssetPayload>>();
+  }
+
+  const rows = await prisma.$queryRaw<RawFileAssetUsageRow[]>`
+    SELECT
+      u."id" AS "usageId",
+      u."file_id" AS "fileId",
+      u."target_type" AS "targetType",
+      u."target_id" AS "targetId",
+      u."slot",
+      u."sort_order" AS "sortOrder",
+      u."is_primary" AS "isPrimary",
+      f."id",
+      f."r2_key" AS "r2Key",
+      f."bucket",
+      f."file_name" AS "fileName",
+      f."mime_type" AS "mimeType",
+      f."size_bytes" AS "sizeBytes",
+      f."etag",
+      f."status",
+      f."created_at" AS "createdAt",
+      f."updated_at" AS "updatedAt"
+    FROM "recalc_admin"."file_asset_usage" u
+    INNER JOIN "recalc_admin"."file_asset" f ON f."id" = u."file_id"
+    WHERE u."target_type" = ${normalizedTargetType}
+      AND u."target_id" IN (${Prisma.join(uniqueTargetIds)})
+      AND u."is_primary" = true
+    ORDER BY u."target_id" ASC, u."slot" ASC, u."sort_order" ASC
+  `;
+
+  const byTarget = new Map<string, Record<string, PublicFileAssetPayload>>();
+  for (const usage of rows.map(mapUsage)) {
+    const targetAssets = byTarget.get(usage.targetId) ?? {};
+    if (!targetAssets[usage.slot]) {
+      targetAssets[usage.slot] = toPublicFileAssetPayload(usage.file) as PublicFileAssetPayload;
+    }
+    byTarget.set(usage.targetId, targetAssets);
+  }
+
+  return byTarget;
 }

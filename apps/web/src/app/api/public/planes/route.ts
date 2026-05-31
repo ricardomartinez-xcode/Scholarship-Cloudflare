@@ -15,6 +15,10 @@ import {
 } from "@/lib/unidep-program-catalog";
 import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
+import {
+  listFileAssetAssignmentsForTargets,
+  resolveProgramR2AssetPayload,
+} from "@/lib/file-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -66,22 +70,37 @@ async function loadPlanesPayload(params: {
   const programs = await getUnidepProgramCatalog({
     businessLine: params.lineRaw,
     query: params.query,
-    onlyWithPlan: true,
   });
   const offeredProgramIds = await getOfferedProgramIds(params);
   const visiblePrograms = offeredProgramIds
     ? programs.filter((program) => offeredProgramIds.has(program.id))
     : programs;
+  const r2Assignments = await listFileAssetAssignmentsForTargets(
+    "program",
+    visiblePrograms.map((program) => program.id),
+  );
 
   return {
-    programs: visiblePrograms.map((program) => ({
-      id: program.id,
-      name: program.name,
-      category: program.category,
-      businessLine: program.businessLine,
-      planPdfUrl: getUnidepProgramPlanUrl(program),
-      hasPlan: Boolean(getUnidepProgramPlanUrl(program)),
-    })),
+    programs: visiblePrograms.map((program) => {
+      const legacyPlanUrl = getUnidepProgramPlanUrl(program);
+      const r2Payload = resolveProgramR2AssetPayload({
+        programId: program.id,
+        planPdfUrl: legacyPlanUrl,
+        brochurePdfUrl: program.brochurePdfUrl ?? null,
+        assets: r2Assignments.get(program.id) ?? {},
+      });
+      return {
+        id: program.id,
+        name: program.name,
+        category: program.category,
+        businessLine: program.businessLine,
+        planPdfUrl: r2Payload.planPdfUrl,
+        planDownloadUrl: r2Payload.planDownloadUrl,
+        heroImageUrl: r2Payload.heroImageUrl,
+        hasPlan: Boolean(r2Payload.planPdfUrl ?? legacyPlanUrl),
+        r2Assets: r2Payload.r2Assets,
+      };
+    }).filter((program) => program.hasPlan),
   };
 }
 

@@ -4,7 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AppFooter from "@/components/app/AppFooter";
 import ApplyChangesButton from "@/components/admin/ApplyChangesButton";
@@ -61,6 +61,8 @@ type AdminChromeProps = {
 
 type VisibleNavGroups = ReturnType<typeof filterNavGroupsByCapabilities>;
 
+const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
+
 function getRoleLabel(adminRole: string) {
   const knownRole = (SYSTEM_ROLES as readonly string[]).includes(adminRole);
 
@@ -69,11 +71,13 @@ function getRoleLabel(adminRole: string) {
     : adminRole;
 }
 
-function AdminBrand() {
+function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
   return (
-    <section className={styles.brandPanel} aria-label="Identidad admin">
-      <div className={styles.brandRow}>
-        <div className={styles.brandBadge} aria-hidden="true">
+    <div className={styles.brand}>
+      <div className={styles.brandBadge}>Admin</div>
+      <div className={styles.brandCopy} aria-hidden={collapsed}>
+        <div className={styles.brandEyebrow}>Scholarship</div>
+        <div className={styles.brandTitleRow}>
           <Image
             src="/icons/icon48.png"
             alt=""
@@ -108,10 +112,38 @@ function StatusPill({
   );
 }
 
+function SidebarCollapseButton({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={styles.sidebarCollapseButton}
+      aria-label={collapsed ? "Expandir barra lateral" : "Contraer barra lateral"}
+      aria-pressed={collapsed}
+      onClick={onToggle}
+      title={collapsed ? "Expandir" : "Contraer"}
+    >
+      <DashboardIcon
+        name={collapsed ? "menu" : "close"}
+        className={styles.icon}
+      />
+      <span className={styles.sidebarCollapseLabel}>
+        {collapsed ? "Expandir" : "Contraer"}
+      </span>
+    </button>
+  );
+}
+
 function AdminNavPanel({
   navGroups,
   pathname,
   onNavigate,
+  collapsed = false,
   sidebarTopAnnouncements,
   sidebarTopCtas,
   sidebarBottomAnnouncements,
@@ -120,14 +152,15 @@ function AdminNavPanel({
   navGroups: VisibleNavGroups;
   pathname: string;
   onNavigate: () => void;
+  collapsed?: boolean;
   sidebarTopAnnouncements: Announcement[];
   sidebarTopCtas: PublicCta[];
   sidebarBottomAnnouncements: Announcement[];
   sidebarBottomCtas: PublicCta[];
 }) {
   return (
-    <div className={`${styles.sidebarStack} ui-sidebar-stack`}>
-      {sidebarTopAnnouncements.length || sidebarTopCtas.length ? (
+    <div className={styles.sidebarStack} data-collapsed={collapsed ? "true" : "false"}>
+      {!collapsed ? (
         <>
           <AnnouncementOutlet
             announcements={sidebarTopAnnouncements}
@@ -153,7 +186,7 @@ function AdminNavPanel({
         />
       </div>
 
-      {sidebarBottomAnnouncements.length || sidebarBottomCtas.length ? (
+      {!collapsed ? (
         <>
           <AnnouncementOutlet
             announcements={sidebarBottomAnnouncements}
@@ -266,6 +299,22 @@ export default function AdminChrome({
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    let timer: number | undefined;
+    if (saved) {
+      timer = window.setTimeout(() => setSidebarCollapsed(saved === "true"), 0);
+    }
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   const roleLabel = getRoleLabel(adminRole);
   const roleStatusLabel = isSystemOwner ? `${roleLabel} · Owner` : roleLabel;
@@ -287,12 +336,36 @@ export default function AdminChrome({
   const hasInsideContent =
     contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
 
-  const closeNav = () => setNavOpen(false);
+  const closeMobileNav = () => setMobileNavOpen(false);
+  const toggleSidebar = () => setSidebarCollapsed((current) => !current);
 
   return (
-    <div className={styles.shell}>
+    <div
+      className={styles.shell}
+      data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}
+    >
       <div className={styles.layout}>
-        <Dialog.Root open={navOpen} onOpenChange={setNavOpen}>
+        <aside className={styles.desktopSidebar} aria-label="Navegación admin">
+          <AdminBrand collapsed={sidebarCollapsed} />
+          <div className={styles.sidebarControls}>
+            <SidebarCollapseButton
+              collapsed={sidebarCollapsed}
+              onToggle={toggleSidebar}
+            />
+          </div>
+          <AdminNavPanel
+            navGroups={navGroups}
+            pathname={pathname}
+            onNavigate={() => undefined}
+            collapsed={sidebarCollapsed}
+            sidebarTopAnnouncements={sidebarTopAnnouncements}
+            sidebarTopCtas={sidebarTopCtas}
+            sidebarBottomAnnouncements={sidebarBottomAnnouncements}
+            sidebarBottomCtas={sidebarBottomCtas}
+          />
+        </aside>
+
+        <Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <Dialog.Portal>
             <Dialog.Overlay className={styles.dialogOverlay} />
             <Dialog.Content className={`${styles.mobileDrawer} ui-shell-drawer`}>

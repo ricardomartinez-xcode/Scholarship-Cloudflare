@@ -43,6 +43,9 @@ type OfertaProgram = {
   businessLine: string | null;
   brochurePdfUrl: string | null;
   planPdfUrl: string | null;
+  heroImageUrl: string | null;
+  planDownloadUrl: string | null;
+  brochureDownloadUrl: string | null;
 };
 
 type OfertaOffering = {
@@ -50,6 +53,7 @@ type OfertaOffering = {
   modality: string;
   schedule: string | null;
   planLink: string | null;
+  planDownloadLink: string | null;
   campus?: {
     id: string;
     code: string;
@@ -71,6 +75,8 @@ type PlanProgram = {
   category: string | null;
   businessLine: string | null;
   planPdfUrl: string | null;
+  planDownloadUrl: string | null;
+  heroImageUrl: string | null;
   hasPlan: boolean;
 };
 
@@ -380,6 +386,16 @@ function OfertaAcademicaSection() {
         <div className="mt-6 grid gap-4">
           <div className="grid gap-[var(--ui-card-gap)] xl:grid-cols-[minmax(280px,0.78fr)_minmax(0,1.22fr)]">
             <div className="grid content-start gap-3 rounded-3xl border border-white/10 bg-slate-950/35 p-[calc(var(--ui-card-pad)*0.9)]">
+              {currentProgram.heroImageUrl ? (
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentProgram.heroImageUrl}
+                    alt={currentProgram.name}
+                    className="h-36 w-full object-cover"
+                  />
+                </div>
+              ) : null}
               <div>
                 <div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">
                   Programa seleccionado
@@ -411,24 +427,39 @@ function OfertaAcademicaSection() {
 
               <div className="grid gap-2">
                 {currentProgram.planPdfUrl ? (
-                  <a
-                    href={currentProgram.planPdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                  >
-                    Abrir plan PDF
-                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={currentProgram.planPdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                      Preview plan
+                    </a>
+                    <a
+                      href={currentProgram.planDownloadUrl ?? currentProgram.planPdfUrl}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                      Descargar
+                    </a>
+                  </div>
                 ) : null}
                 {currentProgram.brochurePdfUrl ? (
-                  <a
-                    href={currentProgram.brochurePdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl border border-emerald-500/30 bg-emerald-500/16 px-4 py-3 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/24"
-                  >
-                    Abrir brochure PDF
-                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewUrl(currentProgram.brochurePdfUrl)}
+                      className="rounded-2xl border border-emerald-500/30 bg-emerald-500/16 px-4 py-3 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/24"
+                    >
+                      Preview brochure
+                    </button>
+                    <a
+                      href={currentProgram.brochureDownloadUrl ?? currentProgram.brochurePdfUrl}
+                      className="rounded-2xl border border-emerald-500/30 bg-emerald-500/16 px-4 py-3 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/24"
+                    >
+                      Descargar
+                    </a>
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -453,6 +484,10 @@ function OfertaAcademicaSection() {
                   <div className="divide-y divide-white/10">
                     {currentOfferings.map((offering) => {
                       const link = offering.planLink ?? currentProgram.planPdfUrl;
+                      const downloadLink =
+                        offering.planDownloadLink ??
+                        currentProgram.planDownloadUrl ??
+                        link;
                       return (
                         <div
                           key={offering.id}
@@ -486,12 +521,12 @@ function OfertaAcademicaSection() {
                                   Ver PDF
                                 </button>
                                 <a
-                                  href={link}
+                                  href={downloadLink ?? link}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="ui-button-info min-h-[34px] px-3 text-xs"
                                 >
-                                  Abrir
+                                  Descargar
                                 </a>
                               </div>
                             ) : (
@@ -739,25 +774,54 @@ function PlanesSection() {
           {rows.map((row) => (
             <div
               key={row.id}
-              className="rounded-2xl border border-white/10 bg-slate-950/30 p-4"
+              className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
             >
-              <div className="font-semibold text-slate-100">{row.name}</div>
-              {row.category && (
-                <div className="mt-0.5 text-xs text-slate-400">{row.category}</div>
-              )}
-              <div className="mt-3">
-                {row.planPdfUrl ? (
-                  <a
-                    href={row.planPdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
-                  >
-                    Abrir / Descargar plan
-                  </a>
-                ) : (
-                  <span className="text-xs text-slate-500">Plan no disponible</span>
+              {row.heroImageUrl ? (
+                <div className="h-28 border-b border-white/10 bg-black/20">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={row.heroImageUrl}
+                    alt={row.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <div className="p-4">
+                <div className="font-semibold text-slate-100">{row.name}</div>
+                {row.category && (
+                  <div className="mt-0.5 text-xs text-slate-400">{row.category}</div>
                 )}
+                <div className="mt-3">
+                  <span
+                    className={
+                      row.hasPlan
+                        ? "rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200"
+                        : "rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-500"
+                    }
+                  >
+                    {row.hasPlan ? "Plan disponible" : "Plan no disponible"}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {row.planPdfUrl ? (
+                    <a
+                      href={row.planPdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ui-button-secondary min-h-[32px] rounded-full px-3 py-1 text-xs"
+                    >
+                      Abrir preview
+                    </a>
+                  ) : null}
+                  {row.planDownloadUrl ? (
+                    <a
+                      href={row.planDownloadUrl}
+                      className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
+                    >
+                      Descargar
+                    </a>
+                  ) : null}
+                </div>
               </div>
             </div>
           ))}

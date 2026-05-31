@@ -49,6 +49,7 @@ type StudyProgramOption = {
   name: string;
   businessLine: string;
   planPdfUrl?: string | null;
+  planDownloadUrl?: string | null;
 };
 
 type PricingOptionsResponse = {
@@ -291,6 +292,7 @@ type OfferProgram = {
   modality: string;
   schedule: string | null;
   planLink: string | null;
+  planDownloadLink: string | null;
 };
 
 type PublicCta = {
@@ -861,6 +863,10 @@ export default function ScholarshipCalculator({
     if (modalidad === "online") return true;
     return !requierePlantel(nivel, modalidad) || Boolean(plantel);
   }, [nivel, modalidad, studyProgramId, plantel]);
+  const selectedOfferProgram =
+    offerPrograms.find((item) => item.offeringId === offerProgramId) ?? null;
+  const selectedStudyProgram =
+    studyPrograms.find((program) => program.id === studyProgramId) ?? null;
 
   useEffect(() => {
     if (!useCanonicalQuote) {
@@ -953,6 +959,8 @@ export default function ScholarshipCalculator({
     studyProgramId,
     offerProgramId,
     selectedOfferCycle,
+    selectedOfferProgram?.programName,
+    selectedStudyProgram?.name,
   ]);
 
   useEffect(() => {
@@ -1040,6 +1048,7 @@ export default function ScholarshipCalculator({
             modality: string;
             schedule?: string | null;
             planLink?: string | null;
+            planDownloadLink?: string | null;
             pricingPlans?: number[];
             program: {
               id: string;
@@ -1057,6 +1066,7 @@ export default function ScholarshipCalculator({
             modality: row.modality,
             schedule: row.schedule ?? null,
             planLink: row.planLink ?? null,
+            planDownloadLink: row.planDownloadLink ?? row.planLink ?? null,
           }))
           .filter((item) => item.programId === studyProgramId);
         setOfferPrograms(items);
@@ -1161,11 +1171,6 @@ export default function ScholarshipCalculator({
         { value: "kardex", label: "Kardex", cost: 0 },
         { value: "revalidacion", label: "Revalidación", cost: 0 },
       ];
-  const selectedOfferProgram =
-    offerPrograms.find((item) => item.offeringId === offerProgramId) ?? null;
-  const selectedStudyProgram =
-    studyPrograms.find((program) => program.id === studyProgramId) ?? null;
-
   const porcentajeBenefit = benefitBundle?.benefit ?? null;
   const firstPaymentBenefit = benefitBundle?.firstPaymentBenefit ?? null;
   const beneficioPercent =
@@ -2055,9 +2060,10 @@ export default function ScholarshipCalculator({
                   <div>
                     {selectedOfferProgram?.planLink ? (
                       <a
-                        href={selectedOfferProgram.planLink}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={
+                          selectedOfferProgram.planDownloadLink ??
+                          selectedOfferProgram.planLink
+                        }
                         className="ui-button-secondary inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
                       >
                         Descargar plan de estudios

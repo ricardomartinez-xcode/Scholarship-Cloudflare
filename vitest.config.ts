@@ -4,6 +4,7 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: [
+      { find: "server-only", replacement: path.resolve(__dirname, "./apps/web/tests/vitest/server-only-stub.ts") },
       { find: "@", replacement: path.resolve(__dirname, "./apps/web/src") },
       { find: /^@relead\/ui\/(.+)$/, replacement: `${path.resolve(__dirname, "./packages/ui/src")}/$1` },
       { find: "@relead/ui", replacement: path.resolve(__dirname, "./packages/ui/src/index.ts") },

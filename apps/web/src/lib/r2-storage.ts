@@ -1,129 +1,190 @@
-import crypto from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 
-const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const SIGNED_URL_EXPIRES_SECONDS = 10 * 60;
 
-export const PREVIEWABLE_MIME_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp"]);
-
-export const ALLOWED_FILE_MIME_TYPES = new Set([
-  ...PREVIEWABLE_MIME_TYPES,
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-]);
-
-type SignedUrlOptions = {
-  method: "GET" | "PUT";
-  key: string;
-  expiresSeconds?: number;
-  responseContentDisposition?: string;
+type R2Config = {
+  endpoint: string;
+  hostname: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
 };
 
-function requiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required env var: ${name}`);
-  return value;
-}
+type SignedGetOptions = {
+  key: string;
+  fileName: string;
+  contentType?: string | null;
+  disposition: "inline" | "attachment";
+  expiresSeconds?: number;
+};
 
-function getR2Config() {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const endpoint = process.env.R2_ENDPOINT || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
+type SignedPutOptions = {
+  key: string;
+  contentType: string;
+  expiresSeconds?: number;
+};
+
+function getR2Config(): R2Config {
+  const bucket = process.env.R2_BUCKET ?? process.env.CLOUDFLARE_R2_BUCKET;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID ?? process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+  const secretAccessKey =
+    process.env.R2_SECRET_ACCESS_KEY ?? process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
+  const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
+  const endpoint =
+    process.env.R2_ENDPOINT ??
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : null);
+
+  if (!bucket || !accessKeyId || !secretAccessKey || !endpoint) {
+    throw new Error("R2 storage is not configured.");
+  }
+
+  const parsedEndpoint = new URL(endpoint);
   return {
-    endpoint: endpoint ? endpoint.replace(/\/+$/, "") : requiredEnv("R2_ENDPOINT"),
-    bucket: requiredEnv("R2_BUCKET"),
-    accessKeyId: requiredEnv("R2_ACCESS_KEY_ID"),
-    secretAccessKey: requiredEnv("R2_SECRET_ACCESS_KEY"),
+    endpoint: parsedEndpoint.origin,
+    hostname: parsedEndpoint.hostname,
+    bucket,
+    accessKeyId,
+    secretAccessKey,
+    region: process.env.R2_REGION ?? "auto",
   };
 }
 
-function hmac(key: crypto.BinaryLike | crypto.KeyObject, value: string) {
-  return crypto.createHmac("sha256", key).update(value, "utf8").digest();
-}
-
-function sha256Hex(value: string) {
-  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
-}
-
 function encodePathSegment(value: string) {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
+    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
-function toAmzDate(date: Date) {
-  return date.toISOString().replace(/[:-]|\.\d{3}/g, "");
+function encodeR2Path(key: string) {
+  return key.split("/").map(encodePathSegment).join("/");
 }
 
-function toDateStamp(date: Date) {
-  return toAmzDate(date).slice(0, 8);
+function encodeQueryValue(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
+    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
-function getCanonicalUri(endpoint: string, bucket: string, key: string) {
-  const url = new URL(endpoint);
-  const basePath = url.pathname.replace(/\/+$/, "");
-  const endpointAlreadyIncludesBucket = basePath.split("/").filter(Boolean).at(-1) === bucket;
-  const bucketPath = endpointAlreadyIncludesBucket ? basePath : `${basePath}/${bucket}`;
-  return `${bucketPath}/${key.split("/").map(encodePathSegment).join("/")}`.replace(/\/+/g, "/");
+function hmac(key: Buffer | string, value: string) {
+  return createHmac("sha256", key).update(value).digest();
 }
 
-export function getMaxUploadBytes() {
-  const configured = Number(process.env.MAX_UPLOAD_BYTES);
-  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_UPLOAD_BYTES;
+function hmacHex(key: Buffer | string, value: string) {
+  return createHmac("sha256", key).update(value).digest("hex");
 }
 
-export function createObjectKey(fileName: string) {
-  const safeName = fileName
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120) || "archivo";
+function getSigningKey(secretAccessKey: string, date: string, region: string) {
+  const kDate = hmac(`AWS4${secretAccessKey}`, date);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, "s3");
+  return hmac(kService, "aws4_request");
+}
+
+function amzDate(now: Date) {
+  const iso = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  return {
+    shortDate: iso.slice(0, 8),
+    longDate: iso,
+  };
+}
+
+function contentDisposition(disposition: "inline" | "attachment", fileName: string) {
+  const safeName = fileName.replace(/[\\"]/g, "_");
+  return `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
+function presignUrl(input: {
+  method: "GET" | "PUT";
+  key: string;
+  query?: Record<string, string>;
+  expiresSeconds?: number;
+}) {
+  const config = getR2Config();
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  return `uploads/${year}/${month}/${crypto.randomUUID()}-${safeName}`;
+  const { shortDate, longDate } = amzDate(now);
+  const credentialScope = `${shortDate}/${config.region}/s3/aws4_request`;
+  const credential = `${config.accessKeyId}/${credentialScope}`;
+  const canonicalUri = `/${encodePathSegment(config.bucket)}/${encodeR2Path(input.key)}`;
+  const query: Record<string, string> = {
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": credential,
+    "X-Amz-Date": longDate,
+    "X-Amz-Expires": String(input.expiresSeconds ?? SIGNED_URL_EXPIRES_SECONDS),
+    "X-Amz-SignedHeaders": "host",
+    ...(input.query ?? {}),
+  };
+
+  const canonicalQuery = Object.entries(query)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${encodeQueryValue(key)}=${encodeQueryValue(value)}`)
+    .join("&");
+
+  const canonicalHeaders = `host:${config.hostname}\n`;
+  const canonicalRequest = [
+    input.method,
+    canonicalUri,
+    canonicalQuery,
+    canonicalHeaders,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    longDate,
+    credentialScope,
+    createHash("sha256").update(canonicalRequest).digest("hex"),
+  ].join("\n");
+  const signature = hmacHex(
+    getSigningKey(config.secretAccessKey, shortDate, config.region),
+    stringToSign,
+  );
+
+  return `${config.endpoint}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 }
 
-export function isAllowedFileMimeType(mimeType: string) {
-  return ALLOWED_FILE_MIME_TYPES.has(mimeType);
-}
-
-export function isPreviewableMimeType(mimeType: string) {
-  return PREVIEWABLE_MIME_TYPES.has(mimeType);
+export function createR2ObjectKey(fileName: string) {
+  const extension = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() : null;
+  const suffix = extension ? `.${extension.replace(/[^a-z0-9]/g, "")}` : "";
+  return `program-assets/${new Date().toISOString().slice(0, 10)}/${randomUUID()}${suffix}`;
 }
 
 export function getR2BucketName() {
   return getR2Config().bucket;
 }
 
-export function createR2SignedUrl(options: SignedUrlOptions) {
-  const { endpoint, bucket, accessKeyId, secretAccessKey } = getR2Config();
-  const now = new Date();
-  const amzDate = toAmzDate(now);
-  const dateStamp = toDateStamp(now);
-  const region = "auto";
-  const service = "s3";
-  const expiresSeconds = String(Math.min(Math.max(options.expiresSeconds ?? 900, 60), 60 * 60 * 24));
-  const endpointUrl = new URL(endpoint);
-  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const credential = `${accessKeyId}/${credentialScope}`;
-  const canonicalUri = getCanonicalUri(endpoint, bucket, options.key);
-  const query = new URLSearchParams({
-    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
-    "X-Amz-Credential": credential,
-    "X-Amz-Date": amzDate,
-    "X-Amz-Expires": expiresSeconds,
-    "X-Amz-SignedHeaders": "host",
+export function getSignedR2GetUrl(options: SignedGetOptions) {
+  return presignUrl({
+    method: "GET",
+    key: options.key,
+    expiresSeconds: options.expiresSeconds,
+    query: {
+      "response-content-disposition": contentDisposition(
+        options.disposition,
+        options.fileName,
+      ),
+      ...(options.contentType ? { "response-content-type": options.contentType } : {}),
+    },
   });
-  if (options.responseContentDisposition) {
-    query.set("response-content-disposition", options.responseContentDisposition);
+}
+
+export function getSignedR2PutUrl(options: SignedPutOptions) {
+  return presignUrl({
+    method: "PUT",
+    key: options.key,
+    expiresSeconds: options.expiresSeconds,
+  });
+}
+
+export function getR2RemotePatternHost() {
+  const endpoint = process.env.R2_ENDPOINT;
+  if (endpoint) {
+    try {
+      return new URL(endpoint).hostname;
+    } catch {
+      return null;
+    }
   }
-  const canonicalQueryString = Array.from(query.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join("&");
-  const canonicalHeaders = `host:${endpointUrl.host}\n`;
-  const canonicalRequest = [options.method, canonicalUri, canonicalQueryString, canonicalHeaders, "host", "UNSIGNED-PAYLOAD"].join("\n");
-  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
-  const signingKey = hmac(hmac(hmac(hmac(`AWS4${secretAccessKey}`, dateStamp), region), service), "aws4_request");
-  const signature = crypto.createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
-  query.set("X-Amz-Signature", signature);
-  return `${endpointUrl.origin}${canonicalUri}?${query.toString()}`;
+  const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
+  return accountId ? `${accountId}.r2.cloudflarestorage.com` : null;
 }

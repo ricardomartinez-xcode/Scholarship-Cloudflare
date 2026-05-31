@@ -1,23 +1,20 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-function getR2RemotePattern() {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const endpoint = process.env.R2_ENDPOINT || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
-  if (!endpoint) return null;
-  try {
-    const url = new URL(endpoint);
-    return {
-      protocol: url.protocol.replace(":", "") as "http" | "https",
-      hostname: url.hostname,
-      pathname: "/**",
-    };
-  } catch {
-    return null;
+function getR2ImageHostname() {
+  const endpoint = process.env.R2_ENDPOINT;
+  if (endpoint) {
+    try {
+      return new URL(endpoint).hostname;
+    } catch {
+      return null;
+    }
   }
+  const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
+  return accountId ? `${accountId}.r2.cloudflarestorage.com` : null;
 }
 
-const r2RemotePattern = getR2RemotePattern();
+const r2ImageHostname = getR2ImageHostname();
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@relead/ui", "@relead/config", "@relead/db", "@relead/auth", "@relead/domain", "@relead/realtime"],
@@ -31,7 +28,14 @@ const nextConfig: NextConfig = {
   ],
   images: {
     qualities: [100, 75],
-    remotePatterns: r2RemotePattern ? [r2RemotePattern] : [],
+    remotePatterns: r2ImageHostname
+      ? [
+          {
+            protocol: "https",
+            hostname: r2ImageHostname,
+          },
+        ]
+      : [],
   },
 };
 

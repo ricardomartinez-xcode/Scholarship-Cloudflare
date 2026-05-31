@@ -310,6 +310,14 @@ export const adminNavGroups: DashboardNavGroup[] = [
             requiredAny: ["manage_offers"],
           },
           {
+            key: "admin-files",
+            label: "Archivos R2",
+            icon: "plan",
+            href: "/admin/files",
+            group: "admin-oferta-academica",
+            requiredAny: ["manage_offers"],
+          },
+          {
             key: "simulator",
             label: "Simulador",
             icon: "simulator",

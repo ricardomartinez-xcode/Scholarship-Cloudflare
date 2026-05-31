@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { AdminCapability } from "@prisma/client";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
+import { assignFileAssetUsage, clearFileAssetUsage } from "@/lib/file-assets";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_ROUTE_CACHE_TAGS,
@@ -66,6 +67,30 @@ export async function updateProgramUnidepAction(formData: FormData) {
         updatedAt: new Date(),
       },
     });
+
+    const assetSlots = [
+      ["study_plan_pdf", String(formData.get("r2StudyPlanFileId") ?? "").trim()],
+      ["brochure_pdf", String(formData.get("r2BrochureFileId") ?? "").trim()],
+      ["hero_image", String(formData.get("r2HeroImageFileId") ?? "").trim()],
+    ] as const;
+
+    for (const [slot, fileId] of assetSlots) {
+      if (fileId) {
+        await assignFileAssetUsage(fileId, {
+          targetType: "program",
+          targetId: id,
+          slot,
+          isPrimary: true,
+          sortOrder: 0,
+        });
+      } else {
+        await clearFileAssetUsage({
+          targetType: "program",
+          targetId: id,
+          slot,
+        });
+      }
+    }
 
     for (const p of REVALIDATE_PATHS) revalidatePath(p);
     revalidatePublicRouteTags([

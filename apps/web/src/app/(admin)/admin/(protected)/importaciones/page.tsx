@@ -183,11 +183,11 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
   await requireAdminCapabilityUser(AdminCapability.view_admin_operations);
 
   const params = (await searchParams) ?? {};
-  const module = parseModule(firstParam(params.module));
+  const moduleFilter = parseModule(firstParam(params.module));
   const status = parseStatus(firstParam(params.status));
   const limit = parseLimit(firstParam(params.limit));
 
-  const sessions = await listAdminImportSessions({ module, status, limit });
+  const sessions = await listAdminImportSessions({ module: moduleFilter, status, limit });
 
   const previewCount = sessions.filter((session) => session.status === AdminImportSessionStatus.preview).length;
   const appliedCount = sessions.filter((session) => session.status === AdminImportSessionStatus.applied).length;
@@ -245,9 +245,13 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
         </div>
 
         <form className="grid gap-3 md:grid-cols-[1fr_1fr_120px_auto_auto]">
-          <label className="grid gap-2 text-sm font-bold text-[#163247]">
-            Módulo
-            <select name="module" defaultValue={module ?? ""} className="ui-control">
+          <label className="grid gap-1 text-sm">
+            <span className="text-xs uppercase tracking-[0.22em] text-slate-400">Módulo</span>
+            <select
+              name="module"
+              defaultValue={moduleFilter ?? ""}
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
+            >
               <option value="">Todos</option>
               {MODULE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -290,14 +294,14 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
           </div>
         </form>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#536a7c]">
-          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.preview, limit })} className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+          <Link href={buildFilterHref({ module: moduleFilter, status: AdminImportSessionStatus.preview, limit })} className="rounded-full border border-white/10 px-3 py-1 transition hover:bg-white/10">
             Ver previews
           </Link>
-          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.failed, limit })} className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
+          <Link href={buildFilterHref({ module: moduleFilter, status: AdminImportSessionStatus.failed, limit })} className="rounded-full border border-white/10 px-3 py-1 transition hover:bg-white/10">
             Ver fallidas
           </Link>
-          <Link href={buildFilterHref({ module, status: AdminImportSessionStatus.applied, limit })} className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
+          <Link href={buildFilterHref({ module: moduleFilter, status: AdminImportSessionStatus.applied, limit })} className="rounded-full border border-white/10 px-3 py-1 transition hover:bg-white/10">
             Ver aplicadas
           </Link>
         </div>
