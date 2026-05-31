@@ -14,6 +14,7 @@
   9. Shared shell/navigation stability.
   10. Accessibility/responsive stability.
   11. Sidebar identity contract polish.
+  12. Data surfaces and dense lists stability.
 
   Design direction:
   - white-first UI (#FFFFFF surfaces);
@@ -33,3 +34,4 @@
 @import "./interface-shell-pass.css";
 @import "./interface-a11y-responsive-pass.css";
 @import "./interface-sidebar-identity-pass.css";
+@import "./interface-data-surfaces-pass.css";
