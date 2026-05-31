@@ -11,6 +11,7 @@ import { getAdminUser } from "@/lib/admin-session";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import {
+  type ImportAcademicOfferInput,
   prepareAcademicOfferImport,
   resolveDefaultOfferExcelPath,
 } from "@/lib/importers/academic-offer";
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Selecciona un ciclo válido: C1, C2 o C3." }, { status: 400 });
     }
 
-    let prepared: Awaited<ReturnType<typeof prepareAcademicOfferImport>>;
+    let input: ImportAcademicOfferInput;
     let fileName: string | undefined;
     let fileChecksum: string | null = null;
 
@@ -86,10 +87,7 @@ export async function POST(request: Request) {
       }
 
       await fs.access(filePath);
-      prepared = await prepareAcademicOfferImport({
-        input: { kind: "path", filePath },
-        cycle,
-      });
+      input = { kind: "path", filePath };
       fileName = filePath.split(/[\\/]/).pop();
 
       try {
