@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import AdminDataTable from "@/components/admin/AdminDataTable";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
+import AdminRowActions from "@/components/admin/AdminRowActions";
 import type { FileAssetRecord, PublicFileAssetPayload } from "@/lib/file-assets";
 import { deleteProgramAction, updateProgramUnidepAction } from "./actions";
 
@@ -222,10 +223,22 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
                         </div>
                       </td>
                       <td className="p-3">
-                        <div className="flex justify-end gap-2">
-                          <button type="button" onClick={() => openEdit(program)} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10">Editar</button>
-                          <button type="button" onClick={() => handleDelete(program)} disabled={isDeleting} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50">Eliminar</button>
-                        </div>
+                        <AdminRowActions
+                          actions={[
+                            {
+                              type: "edit",
+                              label: `Editar ${program.name}`,
+                              onClick: () => openEdit(program),
+                            },
+                            {
+                              type: "delete",
+                              label: `Eliminar ${program.name}`,
+                              tone: "danger",
+                              disabled: isDeleting,
+                              onClick: () => handleDelete(program),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}

@@ -24,7 +24,7 @@ export default async function EnrollmentFormatsAdminPage() {
     <div className="grid gap-6">
       <section className="ui-card p-4 sm:p-5">
         <div className="text-xs uppercase tracking-[0.28em] text-slate-400">
-          Oferta académica
+          Oferta por plantel
         </div>
         <h1 className="mt-1 text-xl font-semibold text-slate-100">Formatos</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">

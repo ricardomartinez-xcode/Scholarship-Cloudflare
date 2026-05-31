@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { DashboardIcon, type DashboardIconName } from "@/components/layout/DashboardIcons";
 import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets";
 import type { ContentBucketObject } from "@/lib/r2-content-bucket";
 
@@ -19,7 +20,7 @@ const targetTypeOptions = [
   { value: "", label: "Sin relación" },
   { value: "program", label: "Programa académico" },
   { value: "training_material", label: "Material de capacitación" },
-  { value: "academic_offer", label: "Oferta académica" },
+  { value: "academic_offer", label: "Oferta por plantel" },
   { value: "campus", label: "Plantel / campus" },
   { value: "global", label: "Global" },
 ];
@@ -52,6 +53,32 @@ function StatusMessage({ kind, children }: { kind: "success" | "error"; children
   return <div className={className}>{children}</div>;
 }
 
+function FileActionLink({
+  href,
+  label,
+  icon,
+  target,
+}: {
+  href: string;
+  label: string;
+  icon: DashboardIconName;
+  target?: "_blank";
+}) {
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={target === "_blank" ? "noreferrer" : undefined}
+      className="ui-icon-action"
+      aria-label={label}
+      title={label}
+    >
+      <DashboardIcon name={icon} className="ui-icon-action__icon" />
+      <span className="ui-icon-action__label">{label}</span>
+    </a>
+  );
+}
+
 function FileRows({ files }: { files: FileAssetRecord[] }) {
   if (files.length === 0) {
     return (
@@ -80,20 +107,17 @@ function FileRows({ files }: { files: FileAssetRecord[] }) {
         </td>
         <td className="p-3">
           <div className="flex justify-end gap-2">
-            <a
+            <FileActionLink
               href={links.previewUrl}
+              label={`Preview ${file.fileName}`}
+              icon="web"
               target="_blank"
-              rel="noreferrer"
-              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-            >
-              Preview
-            </a>
-            <a
+            />
+            <FileActionLink
               href={links.downloadUrl}
-              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-            >
-              Descargar
-            </a>
+              label={`Descargar ${file.fileName}`}
+              icon="inbox"
+            />
           </div>
         </td>
       </tr>
@@ -127,20 +151,17 @@ function ContentBucketRows({ files }: { files: ContentBucketObject[] }) {
       </td>
       <td className="p-3">
         <div className="flex justify-end gap-2">
-          <a
+          <FileActionLink
             href={file.previewUrl}
+            label={`Preview ${file.fileName}`}
+            icon="web"
             target="_blank"
-            rel="noreferrer"
-            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-          >
-            Preview
-          </a>
-          <a
+          />
+          <FileActionLink
             href={file.downloadUrl}
-            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-          >
-            Descargar
-          </a>
+            label={`Descargar ${file.fileName}`}
+            icon="inbox"
+          />
         </div>
       </td>
     </tr>

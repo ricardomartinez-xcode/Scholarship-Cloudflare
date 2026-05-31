@@ -2028,7 +2028,7 @@ export default function ScholarshipCalculator({
               <div className="mt-4 grid min-w-0 gap-[var(--ui-card-gap)] xl:grid-cols-[minmax(0,1.24fr)_minmax(248px,0.76fr)]">
                 <div className="grid min-w-0 gap-3 rounded-2xl border ui-border bg-slate-950/40 p-[calc(var(--ui-card-pad)*0.9)] text-sm text-slate-200">
                   <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                    Oferta académica
+                    Oferta por plantel
                   </div>
                   <div className="min-w-0 break-words text-base font-semibold text-slate-100">
                     {offerProgramsLoading

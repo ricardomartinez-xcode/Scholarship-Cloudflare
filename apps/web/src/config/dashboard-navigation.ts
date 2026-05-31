@@ -41,14 +41,14 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
       },
       {
         key: "oferta",
-        label: "Oferta académica",
+        label: "Oferta por plantel",
         icon: "offer",
         href: "/unidep/oferta",
         group: "workspace",
         children: [
           {
             key: "oferta-academica",
-            label: "Oferta académica",
+            label: "Oferta por plantel",
             icon: "offer",
             href: "/unidep/oferta",
             group: "oferta",
@@ -272,7 +272,7 @@ export const adminNavGroups: DashboardNavGroup[] = [
       },
       {
         key: "admin-oferta-academica",
-        label: "Oferta académica",
+        label: "Oferta por plantel",
         icon: "offer",
         href: "/admin/oferta",
         group: "admin-workspace",
@@ -295,7 +295,7 @@ export const adminNavGroups: DashboardNavGroup[] = [
           },
           {
             key: "oferta",
-            label: "Oferta académica",
+            label: "Oferta por plantel",
             icon: "offer",
             href: "/admin/oferta",
             group: "admin-oferta-academica",
@@ -498,7 +498,7 @@ export const dashboardTitles: Record<string, string> = {
   "/unidep/capacitacion/rolplay": "Rolplay",
   "/unidep/capacitacion/materiales": "Materiales",
   "/unidep/capacitacion/evaluaciones": "Evaluaciones",
-  "/unidep/oferta": "Oferta Académica",
+  "/unidep/oferta": "Oferta por plantel",
   "/unidep/formatos": "Formatos",
   "/unidep/costos": "Costos",
   "/unidep/planes": "Planes de estudio",
@@ -507,7 +507,7 @@ export const dashboardTitles: Record<string, string> = {
   "/admin": "Resumen operativo",
   "/admin/benefits": "Beneficios",
   "/admin/prices": "Precios",
-  "/admin/oferta": "Oferta académica",
+  "/admin/oferta": "Oferta por plantel",
   "/admin/capacitacion": "Capacitación",
   "/admin/unidep/programs": "Programas académicos",
   "/admin/unidep/campuses": "Planteles",

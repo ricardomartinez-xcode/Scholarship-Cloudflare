@@ -3,6 +3,7 @@
 import { type FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import AdminRowActions from "@/components/admin/AdminRowActions";
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import { formatAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import {
@@ -328,7 +329,7 @@ export default function OfferImportClient({
       const result = await upsertAcademicOfferAction(new FormData(event.currentTarget));
       if (!result.ok) throw new Error(result.error ?? "No fue posible guardar la oferta.");
       setManualDraft(null);
-      setManualFeedback("Oferta académica guardada correctamente.");
+      setManualFeedback("Oferta por plantel guardada correctamente.");
       router.refresh();
     } catch (err) {
       setManualError(err instanceof Error ? err.message : "No fue posible guardar la oferta.");
@@ -350,7 +351,7 @@ export default function OfferImportClient({
       formData.set("id", row.id);
       const result = await deleteAcademicOfferAction(formData);
       if (!result.ok) throw new Error(result.error ?? "No fue posible eliminar la oferta.");
-      setManualFeedback("Oferta académica eliminada correctamente.");
+      setManualFeedback("Oferta por plantel eliminada correctamente.");
       router.refresh();
     } catch (err) {
       setManualError(err instanceof Error ? err.message : "No fue posible eliminar la oferta.");
@@ -424,27 +425,26 @@ export default function OfferImportClient({
                   </span>
                 </td>
                 <td className="ui-cell-nowrap text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setManualError(null);
-                        setManualFeedback(null);
-                        setManualDraft(buildManualDraft({ row, campusOptions, programOptions }));
-                      }}
-                      className="rounded-xl border border-white/10 bg-white/0 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/5"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void deleteManualOffer(row)}
-                      disabled={manualLoading}
-                      className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
+                  <AdminRowActions
+                    actions={[
+                      {
+                        type: "edit",
+                        label: `Editar ${row.programName}`,
+                        onClick: () => {
+                          setManualError(null);
+                          setManualFeedback(null);
+                          setManualDraft(buildManualDraft({ row, campusOptions, programOptions }));
+                        },
+                      },
+                      {
+                        type: "delete",
+                        label: `Eliminar ${row.programName}`,
+                        tone: "danger",
+                        disabled: manualLoading,
+                        onClick: () => void deleteManualOffer(row),
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
             ))
@@ -464,10 +464,10 @@ export default function OfferImportClient({
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
         <div>
-          <h1 className="mt-1 text-lg font-semibold">Oferta académica</h1>
+          <h1 className="mt-1 text-lg font-semibold">Oferta por plantel</h1>
           <p className="mt-1 text-sm text-slate-300">
             Oferta activa de la calculadora. Usa <strong className="text-slate-100">Editar</strong> para crear o actualizar
-            una oferta académica, o importa cambios masivos por XLSX/CSV.
+            una oferta por plantel, o importa cambios masivos por XLSX/CSV.
           </p>
         </div>
         <button
@@ -475,13 +475,13 @@ export default function OfferImportClient({
           onClick={openNewOffer}
           className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
         >
-          Nueva oferta académica
+          Nueva oferta por plantel
         </button>
       </div>
 
       <div className="mt-5">
         <AdminSegmentedTabs
-          ariaLabel="Vistas de oferta académica"
+          ariaLabel="Vistas de oferta por plantel"
           activeId={activePanel}
           onChange={(panel) => setActivePanel(panel as OfferPanel)}
           items={[
@@ -681,7 +681,7 @@ export default function OfferImportClient({
           <section className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Importar oferta académica</div>
+                <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Importar oferta por plantel</div>
                 <p className="mt-1 text-sm text-slate-300">
                   Importa archivos XLSX o CSV. La sesión primero valida y previsualiza; después puedes aplicar al draft y publicar cuando el diff esté aprobado.
                 </p>
