@@ -149,6 +149,22 @@ function normalizeProgramaKey(
   return key;
 }
 
+function normalizeExistingProgramaKey(value: unknown) {
+  const key = normalizeText(value);
+  if (!key || LEGACY_PROGRAMA_KEYS.has(key)) return null;
+  return key;
+}
+
+function readProgramaKeyFromTarget(target: Record<string, unknown>) {
+  return normalizeExistingProgramaKey(
+    target.programa_key ??
+      target.programaKey ??
+      target.program_key ??
+      target.programa ??
+      target.program,
+  );
+}
+
 function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
   for (const alias of aliases) {
     const index = headerMap.get(alias);
@@ -290,17 +306,7 @@ async function buildExistingPriceOverridesByScopeKey() {
         : {};
     const key = buildPriceScopeKey({
       plantel: target.plantel ? String(target.plantel) : null,
-      programaKey: target.programa_key
-        ? String(target.programa_key)
-        : target.programaKey
-          ? String(target.programaKey)
-          : target.program_key
-            ? String(target.program_key)
-            : target.programa
-              ? String(target.programa)
-              : target.program
-                ? String(target.program)
-                : null,
+      programaKey: readProgramaKeyFromTarget(target),
       nivelKey: String(target.nivel_key ?? ""),
       modalidadKey: String(target.modalidad_key ?? ""),
       plan: String(target.plan ?? ""),

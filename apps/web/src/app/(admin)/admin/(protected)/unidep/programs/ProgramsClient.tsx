@@ -87,13 +87,14 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
   const [success, setSuccess] = useState("");
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
-  const [tableExpanded, setTableExpanded] = useState(true);
-
-  useEffect(() => {
+  const [tableExpanded, setTableExpanded] = useState(() => {
+    if (typeof window === "undefined") return true;
     try {
-      setTableExpanded(window.localStorage.getItem(STORAGE_KEY) !== "collapsed");
-    } catch {}
-  }, []);
+      return window.localStorage.getItem(STORAGE_KEY) !== "collapsed";
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     try {

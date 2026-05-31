@@ -77,7 +77,7 @@ function get(record: CsvRecord, aliases: readonly string[]) {
   for (const alias of aliases) {
     const key = normalizeHeader(alias);
     if (record[key]) {
-      return record[ke].trim();
+      return record[key].trim();
     }
   }
   return "";
