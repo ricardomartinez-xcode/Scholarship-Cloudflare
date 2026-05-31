@@ -19,9 +19,15 @@ import { isCtaLocation } from "@/config/adminCatalogs";
 import { isUserCapability } from "@/lib/user-capabilities";
 
 function isValidLinkUrl(url: string) {
+  if (url.startsWith("/")) return true;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    return (
+      parsed.protocol === "http:" ||
+      parsed.protocol === "https:" ||
+      parsed.protocol === "mailto:" ||
+      parsed.protocol === "tel:"
+    );
   } catch {
     return false;
   }
@@ -158,7 +164,7 @@ export async function upsertPublicCtaAction(formData: FormData) {
     if (kind === AdminPublicCtaKind.link) {
       if (!url) return { ok: false, error: "URL es requerida cuando kind=link." };
       if (!isValidLinkUrl(url)) {
-        return { ok: false, error: "URL debe ser http/https válida cuando kind=link." };
+        return { ok: false, error: "URL debe ser /ruta, http/https, mailto o tel cuando kind=link." };
       }
     }
 

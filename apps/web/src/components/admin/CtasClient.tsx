@@ -252,7 +252,7 @@ export default function CtasClient({
                     </div>
                   </td>
                   <td className="p-3 text-slate-100">
-                    {c.kind === "action" ? "Accion guiada" : "Link http/https"}
+                    {c.kind === "action" ? "Accion guiada" : "Link / ruta"}
                   </td>
                   <td className="p-3 text-slate-200">
                     <div className="flex flex-wrap gap-2">
@@ -425,7 +425,7 @@ export default function CtasClient({
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     className="ui-control"
-                    placeholder="https://..."
+                    placeholder="/unidep, /admin/oferta, https://..., mailto:..."
                   />
                 </label>
               ) : (
@@ -454,7 +454,7 @@ export default function CtasClient({
                       setKind(nextValue === "action" ? "action" : "link")
                     }
                     options={[
-                      { value: "link", label: "Link http/https" },
+                      { value: "link", label: "Link o ruta" },
                       { value: "action", label: "Accion guiada" },
                     ]}
                   />

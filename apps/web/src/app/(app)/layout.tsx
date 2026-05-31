@@ -14,6 +14,9 @@ import {
   getSidebarTopCtas,
   getSimulatorBottomCtas,
   getSimulatorTopCtas,
+  getAuthWelcomeCtas,
+  getAuthWelcomeInsideCtas,
+  getUnidepPrimaryCtas,
 } from "@/lib/admin-public";
 import { getUserCapabilitySet } from "@/lib/user-capabilities";
 import { prisma } from "@/lib/prisma";
@@ -40,6 +43,8 @@ export default async function AppLayout({
   let sidebarTopCtas: Awaited<ReturnType<typeof getSidebarTopCtas>> = [];
   let sidebarBottomAnnouncements: typeof navAnnouncements = [];
   let sidebarBottomCtas: Awaited<ReturnType<typeof getSidebarBottomCtas>> = [];
+  let workspaceHeaderCtas: Awaited<ReturnType<typeof getUnidepPrimaryCtas>> = [];
+  let workspaceHeaderNewUserCtas: Awaited<ReturnType<typeof getUnidepPrimaryCtas>> = [];
   let simulatorTopAnnouncements: typeof navAnnouncements = [];
   let simulatorTopCtas: Awaited<ReturnType<typeof getSimulatorTopCtas>> = [];
   let simulatorBottomAnnouncements: typeof navAnnouncements = [];
@@ -57,6 +62,8 @@ export default async function AppLayout({
       sidebarTopCtas,
       sidebarBottomAnnouncements,
       sidebarBottomCtas,
+      workspaceHeaderCtas,
+      workspaceHeaderNewUserCtas,
       simulatorTopAnnouncements,
       simulatorTopCtas,
       simulatorBottomAnnouncements,
@@ -92,6 +99,49 @@ export default async function AppLayout({
         roles: [user.role],
         userCapabilities,
       }),
+      Promise.all([
+        getUnidepPrimaryCtas({
+          userId: user.id,
+          userOrganizationIds: organizationIds,
+          roles: [user.role],
+          userCapabilities,
+        }),
+        getAuthWelcomeCtas({
+          userId: user.id,
+          userOrganizationIds: organizationIds,
+          roles: [user.role],
+          userCapabilities,
+        }),
+        getAuthWelcomeInsideCtas({
+          userId: user.id,
+          userOrganizationIds: organizationIds,
+          roles: [user.role],
+          userCapabilities,
+        }),
+      ]).then((groups) => groups.flat()),
+      Promise.all([
+        getUnidepPrimaryCtas({
+          userId: user.id,
+          userOrganizationIds: organizationIds,
+          roles: [user.role],
+          newUser: true,
+          userCapabilities,
+        }),
+        getAuthWelcomeCtas({
+          userId: user.id,
+          userOrganizationIds: organizationIds,
+          roles: [user.role],
+          newUser: true,
+          userCapabilities,
+        }),
+        getAuthWelcomeInsideCtas({
+          userId: user.id,
+          userOrganizationIds: organizationIds,
+          roles: [user.role],
+          newUser: true,
+          userCapabilities,
+        }),
+      ]).then((groups) => groups.flat()),
       getActiveAnnouncementsByLocation({
         location: "SIMULATOR_TOP",
         userOrganizationIds: organizationIds,
@@ -135,6 +185,8 @@ export default async function AppLayout({
       sidebarTopCtas={sidebarTopCtas}
       sidebarBottomAnnouncements={sidebarBottomAnnouncements}
       sidebarBottomCtas={sidebarBottomCtas}
+      workspaceHeaderCtas={workspaceHeaderCtas}
+      workspaceHeaderNewUserCtas={workspaceHeaderNewUserCtas}
       simulatorTopAnnouncements={simulatorTopAnnouncements}
       simulatorTopCtas={simulatorTopCtas}
       simulatorBottomAnnouncements={simulatorBottomAnnouncements}

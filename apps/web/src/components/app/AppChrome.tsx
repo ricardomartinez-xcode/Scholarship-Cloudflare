@@ -129,12 +129,16 @@ function WorkspaceSidebarNav({
   onNavigate,
   sidebarTopAnnouncements,
   sidebarBottomAnnouncements,
+  sidebarTopCtas,
+  sidebarBottomCtas,
   accountLabel,
 }: {
   activeSection: string;
   onNavigate?: () => void;
   sidebarTopAnnouncements: Announcement[];
   sidebarBottomAnnouncements: Announcement[];
+  sidebarTopCtas: PublicCta[];
+  sidebarBottomCtas: PublicCta[];
   accountLabel: string;
 }) {
   const appTopAnnouncements = sidebarTopAnnouncements.filter(
@@ -143,6 +147,8 @@ function WorkspaceSidebarNav({
   const appBottomAnnouncements = sidebarBottomAnnouncements.filter(
     (item) => !isAdminPanelAnnouncement(item),
   );
+  const appTopCtas = sidebarTopCtas.filter((cta) => !isAdminPanelCta(cta));
+  const appBottomCtas = sidebarBottomCtas.filter((cta) => !isAdminPanelCta(cta));
 
   return (
     <div className="ui-sidebar-stack">
@@ -171,9 +177,19 @@ function WorkspaceSidebarNav({
         appearance="compact"
         className="grid gap-2"
       />
+      <ConfiguredCtaList
+        ctas={appTopCtas}
+        appearance="compact"
+        className="grid gap-2"
+      />
 
       <AppSidebar activeKey={activeSection} onNavigate={onNavigate} accountLabel={accountLabel} />
 
+      <ConfiguredCtaList
+        ctas={appBottomCtas}
+        appearance="compact"
+        className="grid gap-2"
+      />
       <AnnouncementOutlet
         announcements={appBottomAnnouncements}
         appearance="compact"
@@ -199,6 +215,8 @@ export default function AppChrome({
   navBannerCtas = [],
   sidebarTopCtas = [],
   sidebarBottomCtas = [],
+  workspaceHeaderCtas = [],
+  workspaceHeaderNewUserCtas = [],
   sidebarTopAnnouncements = [],
   sidebarBottomAnnouncements = [],
 }: {
@@ -210,6 +228,8 @@ export default function AppChrome({
   profileHref?: string | null;
   navBannerCtas?: PublicCta[];
   sidebarTopCtas?: PublicCta[];
+  workspaceHeaderCtas?: PublicCta[];
+  workspaceHeaderNewUserCtas?: PublicCta[];
   unidepSidebarCtas?: PublicCta[];
   simulatorTopCtas?: PublicCta[];
   simulatorBottomCtas?: PublicCta[];
@@ -236,6 +256,7 @@ export default function AppChrome({
   const showProfileActions = Boolean(resolvedProfileHref);
   const workspaceTab = searchParams.get("tab");
   const workspaceSection = searchParams.get("section");
+  const newUser = searchParams.get("newUser") === "1";
   const pathWorkspaceSection = resolveWorkspaceSectionFromPath(pathname);
   const queryWorkspaceSection = resolveWorkspaceSectionFromCompatQuery(
     workspaceTab,
@@ -262,11 +283,12 @@ export default function AppChrome({
   const workspaceNavBannerCtas = useMemo(
     () =>
       dedupeCtas(
-        [...navBannerCtas, ...sidebarTopCtas, ...sidebarBottomCtas].filter(
-          (cta) => !isAdminPanelCta(cta),
-        ),
+        [
+          ...navBannerCtas,
+          ...(newUser ? workspaceHeaderNewUserCtas : workspaceHeaderCtas),
+        ].filter((cta) => !isAdminPanelCta(cta)),
       ),
-    [navBannerCtas, sidebarBottomCtas, sidebarTopCtas],
+    [navBannerCtas, newUser, workspaceHeaderCtas, workspaceHeaderNewUserCtas],
   );
 
   const ctx = useMemo<AppContextValue>(
@@ -366,6 +388,8 @@ export default function AppChrome({
                                 onNavigate={() => setMobileNavOpen(false)}
                                 sidebarTopAnnouncements={sidebarTopAnnouncements}
                                 sidebarBottomAnnouncements={sidebarBottomAnnouncements}
+                                sidebarTopCtas={sidebarTopCtas}
+                                sidebarBottomCtas={sidebarBottomCtas}
                                 accountLabel={accountLabel}
                               />
                             </div>

@@ -14,7 +14,6 @@ import ContactsPanel from "@/components/unidep/ContactsPanel";
 import WebCampaignsPanel from "@/components/unidep/WebCampaignsPanel";
 import WabaEmbeddedSignupSection from "@/components/unidep/WabaEmbeddedSignupSection";
 import ScholarshipCalculator from "@/components/ScholarshipCalculator";
-import ConfiguredCtaList from "@/components/cta/ConfiguredCtaList";
 import SimulatorSidebarPanel from "@/components/simulator/SimulatorSidebarPanel";
 import SmartSelect from "@/components/SmartSelect";
 import { useAppContext } from "@/components/app/AppChrome";
@@ -135,12 +134,6 @@ type PublicCta = {
   url: string | null;
   variant: string | null;
 };
-
-function isAdminPanelCta(cta: PublicCta) {
-  const label = cta.label.toLowerCase();
-  const url = (cta.url ?? "").toLowerCase();
-  return url === "/admin" || label.includes("panel de administr");
-}
 
 function isAdminPanelAnnouncement(item: Announcement) {
   const title = item.title.toLowerCase();
@@ -1156,10 +1149,7 @@ export default function UnidepWorkspace({
   authWelcomeInsideAnnouncements = [],
   unidepPrimaryAnnouncements = [],
   calculatorFooterAnnouncements = [],
-  ctasUnidepPrimary = [],
   ctasCalculatorFooter = [],
-  ctasAuthWelcome = [],
-  ctasAuthWelcomeInside = [],
   ctasSimulatorTop = [],
   ctasSimulatorBottom = [],
   simulatorTopAnnouncements = [],
@@ -1180,10 +1170,7 @@ export default function UnidepWorkspace({
   authWelcomeInsideAnnouncements?: Announcement[];
   unidepPrimaryAnnouncements?: Announcement[];
   calculatorFooterAnnouncements?: Announcement[];
-  ctasUnidepPrimary?: PublicCta[];
   ctasCalculatorFooter?: PublicCta[];
-  ctasAuthWelcome?: PublicCta[];
-  ctasAuthWelcomeInside?: PublicCta[];
   ctasSimulatorTop?: PublicCta[];
   ctasSimulatorBottom?: PublicCta[];
   simulatorTopAnnouncements?: Announcement[];
@@ -1196,11 +1183,6 @@ export default function UnidepWorkspace({
 }) {
   const { activeSection, setActiveSection, userEmail } = useAppContext();
   const sectionToRender = forcedSection ?? (activeSection as WorkspaceSectionKey);
-  const workspacePrimaryCtas = ctasUnidepPrimary.filter((cta) => !isAdminPanelCta(cta));
-  const authWelcomePrimaryCtas = ctasAuthWelcome.filter((cta) => !isAdminPanelCta(cta));
-  const authWelcomeInsidePrimaryCtas = ctasAuthWelcomeInside.filter(
-    (cta) => !isAdminPanelCta(cta),
-  );
   const workspacePrimaryAnnouncements = unidepPrimaryAnnouncements.filter(
     (item) => !isAdminPanelAnnouncement(item),
   );
@@ -1264,37 +1246,16 @@ export default function UnidepWorkspace({
           className="grid gap-2"
         />
       ) : null}
-      {workspacePrimaryCtas.length ? (
-        <ConfiguredCtaList
-          ctas={workspacePrimaryCtas}
-          className="flex flex-wrap gap-2"
-          appearance="pill"
-        />
-      ) : null}
       {authWelcomePrimaryAnnouncements.length ? (
         <AnnouncementOutlet
           announcements={authWelcomePrimaryAnnouncements}
           className="grid gap-2"
         />
       ) : null}
-      {authWelcomePrimaryCtas.length ? (
-        <ConfiguredCtaList
-          ctas={authWelcomePrimaryCtas}
-          className="flex flex-wrap gap-2"
-          appearance="pill"
-        />
-      ) : null}
       {authWelcomeInsidePrimaryAnnouncements.length ? (
         <AnnouncementOutlet
           announcements={authWelcomeInsidePrimaryAnnouncements}
           className="grid gap-2"
-        />
-      ) : null}
-      {authWelcomeInsidePrimaryCtas.length ? (
-        <ConfiguredCtaList
-          ctas={authWelcomeInsidePrimaryCtas}
-          className="flex flex-wrap gap-2"
-          appearance="pill"
         />
       ) : null}
 

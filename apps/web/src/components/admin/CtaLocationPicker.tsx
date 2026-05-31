@@ -51,19 +51,24 @@ const PAGE_SECTIONS: Record<
   ],
   app: [
     {
-      title: "Barra superior del workspace",
-      description: "Se muestra junto a la navegación principal.",
-      keys: ["UNIDEP_PRIMARY"],
+      title: "Header / hero autenticado",
+      description: "Acciones que aparecen dentro del header principal, fuera del cotizador.",
+      keys: ["UNIDEP_PRIMARY", "AUTH_WELCOME", "AUTH_WELCOME_INSIDE"],
     },
     {
-      title: "Panel de resultado",
-      description: "Visible arriba del bloque donde aparece la cotización final.",
-      keys: ["APP_RESULTS_ABOVE"],
+      title: "Cotizador",
+      description: "Acciones renderizadas dentro de la calculadora o junto al resultado.",
+      keys: [
+        "APP_RESULTS_ABOVE",
+        "APP_RESULTS_INSIDE",
+        "APP_RESULTS_BELOW",
+        "CALCULATOR_FOOTER",
+      ],
     },
     {
-      title: "Workspace",
-      description: "Acciones ligadas al resultado y al cierre del flujo.",
-      keys: ["APP_RESULTS_INSIDE", "CALCULATOR_FOOTER"],
+      title: "Sidebar y simulador",
+      description: "Acciones de navegación lateral o panel de historial/simulador.",
+      keys: ["SIDEBAR_TOP", "SIDEBAR_BOTTOM", "SIMULATOR_TOP", "SIMULATOR_BOTTOM"],
     },
   ],
   admin: [
