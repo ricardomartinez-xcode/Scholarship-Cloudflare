@@ -4,7 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import AppFooter from "@/components/app/AppFooter";
 import ApplyChangesButton from "@/components/admin/ApplyChangesButton";
@@ -59,18 +59,16 @@ type AdminChromeProps = {
 
 type VisibleNavGroups = ReturnType<typeof filterNavGroupsByCapabilities>;
 
-const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
-
 function getRoleLabel(adminRole: string) {
   const knownRole = (SYSTEM_ROLES as readonly string[]).includes(adminRole);
   return knownRole ? getSystemRoleMeta(adminRole as (typeof SYSTEM_ROLES)[number]).label : adminRole;
 }
 
-function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
+function AdminBrand() {
   return (
     <div className={styles.brand}>
       <div className={styles.brandBadge}>Admin</div>
-      <div className={styles.brandCopy} aria-hidden={collapsed}>
+      <div className={styles.brandCopy}>
         <div className={styles.brandEyebrow}>Scholarship</div>
         <div className={styles.brandTitleRow}>
           <Image src="/icons/icon48.png" alt="" width={28} height={28} className={styles.brandLogo} />
@@ -93,27 +91,10 @@ function StatusPill({ label, value, tone = "neutral" }: { label: string; value: 
   );
 }
 
-function SidebarCollapseButton({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      className={styles.sidebarCollapseButton}
-      aria-label={collapsed ? "Expandir barra lateral" : "Contraer barra lateral"}
-      aria-pressed={collapsed}
-      onClick={onToggle}
-      title={collapsed ? "Expandir" : "Contraer"}
-    >
-      <DashboardIcon name={collapsed ? "menu" : "close"} className={styles.icon} />
-      <span className={styles.sidebarCollapseLabel}>{collapsed ? "Expandir" : "Contraer"}</span>
-    </button>
-  );
-}
-
 function AdminNavPanel({
   navGroups,
   pathname,
   onNavigate,
-  collapsed = false,
   sidebarTopAnnouncements,
   sidebarTopCtas,
   sidebarBottomAnnouncements,
@@ -122,35 +103,30 @@ function AdminNavPanel({
   navGroups: VisibleNavGroups;
   pathname: string;
   onNavigate: () => void;
-  collapsed?: boolean;
   sidebarTopAnnouncements: Announcement[];
   sidebarTopCtas: PublicCta[];
   sidebarBottomAnnouncements: Announcement[];
   sidebarBottomCtas: PublicCta[];
 }) {
   return (
-    <div className={styles.sidebarStack} data-collapsed={collapsed ? "true" : "false"}>
-      {!collapsed ? (
-        <>
-          <AnnouncementOutlet announcements={sidebarTopAnnouncements} appearance="compact" className={styles.sidebarMessages} />
-          {sidebarTopCtas.length ? (
-            <ConfiguredCtaList ctas={sidebarTopCtas} className={styles.sidebarCtas} itemClassName={styles.sidebarCtaItem} appearance="compact" />
-          ) : null}
-        </>
-      ) : null}
-
-      <div className={`${styles.navScrollArea} ui-scrollbar`}>
-        <DashboardSidebarNav groups={navGroups} pathname={pathname} onLinkNavigate={onNavigate} collapsed={collapsed} />
+    <div className={styles.sidebarStack}>
+      <div className={styles.sidebarTopSlot}>
+        <AnnouncementOutlet announcements={sidebarTopAnnouncements} appearance="compact" className={styles.sidebarMessages} />
+        {sidebarTopCtas.length ? (
+          <ConfiguredCtaList ctas={sidebarTopCtas} className={styles.sidebarCtas} itemClassName={styles.sidebarCtaItem} appearance="compact" />
+        ) : null}
       </div>
 
-      {!collapsed ? (
-        <>
-          <AnnouncementOutlet announcements={sidebarBottomAnnouncements} appearance="compact" className={styles.sidebarMessages} />
-          {sidebarBottomCtas.length ? (
-            <ConfiguredCtaList ctas={sidebarBottomCtas} className={styles.sidebarCtas} itemClassName={styles.sidebarCtaItem} appearance="compact" />
-          ) : null}
-        </>
-      ) : null}
+      <div className={`${styles.navScrollArea} ui-scrollbar`}>
+        <DashboardSidebarNav groups={navGroups} pathname={pathname} onLinkNavigate={onNavigate} collapsed={false} />
+      </div>
+
+      <div className={styles.sidebarBottomSlot}>
+        <AnnouncementOutlet announcements={sidebarBottomAnnouncements} appearance="compact" className={styles.sidebarMessages} />
+        {sidebarBottomCtas.length ? (
+          <ConfiguredCtaList ctas={sidebarBottomCtas} className={styles.sidebarCtas} itemClassName={styles.sidebarCtaItem} appearance="compact" />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -228,20 +204,6 @@ export default function AdminChrome({
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    let timer: number | undefined;
-    if (saved) timer = window.setTimeout(() => setSidebarCollapsed(saved === "true"), 0);
-    return () => {
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
-  }, [sidebarCollapsed]);
 
   const roleLabel = getRoleLabel(adminRole);
   const roleStatusLabel = isSystemOwner ? `${roleLabel} · Owner` : roleLabel;
@@ -259,21 +221,16 @@ export default function AdminChrome({
   const hasInsideContent = contentInsideAnnouncements.length > 0 || contentInsideCtas.length > 0;
 
   const closeMobileNav = () => setNavOpen(false);
-  const toggleSidebar = () => setSidebarCollapsed((current) => !current);
 
   return (
-    <div className={styles.shell} data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}>
+    <div className={styles.shell}>
       <div className={styles.layout}>
         <aside className={styles.desktopSidebar} aria-label="Navegación admin">
-          <AdminBrand collapsed={sidebarCollapsed} />
-          <div className={styles.sidebarControls}>
-            <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-          </div>
+          <AdminBrand />
           <AdminNavPanel
             navGroups={navGroups}
             pathname={pathname}
             onNavigate={() => undefined}
-            collapsed={sidebarCollapsed}
             sidebarTopAnnouncements={sidebarTopAnnouncements}
             sidebarTopCtas={sidebarTopCtas}
             sidebarBottomAnnouncements={sidebarBottomAnnouncements}
