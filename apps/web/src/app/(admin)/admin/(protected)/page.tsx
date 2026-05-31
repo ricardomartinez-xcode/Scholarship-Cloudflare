@@ -13,7 +13,13 @@ type SummaryCard = {
   capability?: AdminCapability | AdminCapability[];
 };
 
-const SUMMARY_CARDS: SummaryCard[] = [
+type SummarySection = {
+  title: string;
+  description: string;
+  cards: SummaryCard[];
+};
+
+const SUMMARY_SECTIONS: SummarySection[] = [
   {
     title: "Operación",
     description: "Usuarios, organizaciones, accesos y sincronización operativa.",
@@ -30,10 +36,7 @@ const SUMMARY_CARDS: SummaryCard[] = [
         description: "Membresías por organización y estructura multiempresa.",
         href: "/admin/organizations",
         eyebrow: "Acceso",
-        capability: [
-          AdminCapability.view_org_members,
-          AdminCapability.manage_org_members,
-        ],
+        capability: [AdminCapability.view_org_members, AdminCapability.manage_org_members],
       },
       {
         title: "Invitaciones",
@@ -129,10 +132,7 @@ const SUMMARY_CARDS: SummaryCard[] = [
         description: "Runtime, selector pack, handoff a WhatsApp Web y métricas.",
         href: "/admin/extension-panel",
         eyebrow: "Integración",
-        capability: [
-          AdminCapability.manage_ctas,
-          AdminCapability.view_admin_operations,
-        ],
+        capability: [AdminCapability.manage_ctas, AdminCapability.view_admin_operations],
       },
       {
         title: "Información pública",
@@ -152,10 +152,7 @@ const SUMMARY_CARDS: SummaryCard[] = [
         description: "Actividad, estado general y señales de seguimiento.",
         href: "/admin/reporting",
         eyebrow: "Monitoreo",
-        capability: [
-          AdminCapability.view_admin_operations,
-          AdminCapability.view_reports,
-        ],
+        capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
       },
       {
         title: "Importaciones",
@@ -169,10 +166,7 @@ const SUMMARY_CARDS: SummaryCard[] = [
         description: "Eventos y trazas de cambios relevantes dentro del sistema.",
         href: "/admin/audit",
         eyebrow: "Auditoría",
-        capability: [
-          AdminCapability.view_admin_operations,
-          AdminCapability.view_reports,
-        ],
+        capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
       },
       {
         title: "Capacitación",
@@ -202,11 +196,7 @@ export default async function AdminIndexPage() {
     cards: section.cards.filter((card) => capabilityVisible(admin, card)),
   })).filter((section) => section.cards.length > 0);
 
-  const visibleCardCount = visibleSections.reduce(
-    (count, section) => count + section.cards.length,
-    0,
-  );
-  const visibleSectionCount = visibleSections.length;
+  const visibleCardCount = visibleSections.reduce((count, section) => count + section.cards.length, 0);
   const primaryCards = visibleSections.flatMap((section) => section.cards).slice(0, 6);
 
   return (
@@ -214,12 +204,9 @@ export default async function AdminIndexPage() {
       <section className="ui-admin-dashboard-hero">
         <div>
           <div className="ui-kicker">Panel operativo</div>
-          <h1 className="ui-admin-dashboard-hero__title">
-            Estado, módulos y acciones principales del administrador.
-          </h1>
+          <h1 className="ui-admin-dashboard-hero__title">Estado, módulos y acciones principales del administrador.</h1>
           <p className="ui-admin-dashboard-hero__copy">
-            Usa esta vista como entrada de trabajo: prioriza operación, oferta,
-            contenido, integraciones y auditoría sin recorrer todo el panel.
+            Usa esta vista como entrada de trabajo: prioriza operación, oferta, contenido, integraciones y auditoría sin recorrer todo el panel.
           </p>
         </div>
         <div className="ui-admin-dashboard-identity">
@@ -237,7 +224,7 @@ export default async function AdminIndexPage() {
         </div>
         <div className="ui-admin-kpi-card">
           <span>Áreas activas</span>
-          <strong>{visibleSectionCount}</strong>
+          <strong>{visibleSections.length}</strong>
           <small>Grupos operativos disponibles</small>
         </div>
         <div className="ui-admin-kpi-card">
@@ -256,9 +243,7 @@ export default async function AdminIndexPage() {
         <div>
           <div className="ui-kicker">Accesos rápidos</div>
           <h2 className="ui-admin-section-head__title">Tareas frecuentes</h2>
-          <p className="ui-admin-section-head__copy">
-            Atajos a las superficies más usadas para operación diaria.
-          </p>
+          <p className="ui-admin-section-head__copy">Atajos a las superficies más usadas para operación diaria.</p>
         </div>
       </section>
 

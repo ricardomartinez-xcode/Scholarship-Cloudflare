@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getAdminUser } from "@/lib/admin-session";
-import { createShareLink, getFileAssetById } from "@/lib/file-assets";
+import { getFileAssetById } from "@/lib/file-assets";
+import { createShareLink } from "@/lib/file-share-links";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

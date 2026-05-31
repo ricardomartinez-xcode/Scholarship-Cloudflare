@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getFileAssetByShareToken } from "@/lib/file-assets";
+import { getFileAssetByShareToken } from "@/lib/file-share-links";
 import { createR2SignedUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +13,11 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
 
   const signedUrl = createR2SignedUrl({
     method: "GET",
-    key: asset.objectKey,
+    key: asset.r2Key,
     expiresSeconds: 600,
     responseContentDisposition: `inline; filename="${asset.fileName.replace(/"/g, "")}"`,
+    contentType: asset.mimeType,
   });
+
   return NextResponse.redirect(signedUrl);
 }
