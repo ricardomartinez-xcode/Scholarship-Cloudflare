@@ -14,7 +14,10 @@ import {
   prepareAcademicOfferImport,
   resolveDefaultOfferExcelPath,
 } from "@/lib/importers/academic-offer";
-import { prepareAcademicOfferCsvImport } from "@/lib/importers/academic-offer-csv";
+import {
+  academicOfferCsvToXlsxBuffer,
+  isAcademicOfferCsvFileName,
+} from "@/lib/importers/academic-offer-csv";
 import { captureException, logStructured } from "@/lib/observability";
 import {
   createAdminImportPreviewSession,
@@ -24,15 +27,18 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isUploadFile(value: FormDataEntryValue | null): value is File {
-  return Boolean(value && typeof value === "object" && "arrayBuffer" in value);
-}
-
-function fileExtension(fileName?: string | null) {
-  const normalized = String(fileName ?? "").trim().toLowerCase();
-  if (normalized.endsWith(".csv")) return "csv";
-  if (normalized.endsWith(".xlsx")) return "xlsx";
-  return "";
+async function normalizeUploadedFile(file: File) {
+  const originalBuffer = Buffer.from(await file.arrayBuffer());
+  if (isAcademicOfferCsvFileName(file.name) || file.type === "text/csv") {
+    return {
+      importBuffer: await academicOfferCsvToXlsxBuffer(originalBuffer),
+      checksumBuffer: originalBuffer,
+    };
+  }
+  if (!file.name.toLowerCase().endsWith(".xlsx")) {
+    throw new Error("Formato no soportado. Usa un archivo .xlsx o .csv.");
+  }
+  return { importBuffer: originalBuffer, checksumBuffer: originalBuffer };
 }
 
 export async function POST(request: Request) {
@@ -60,32 +66,23 @@ export async function POST(request: Request) {
     let fileName: string | undefined;
     let fileChecksum: string | null = null;
 
-    if (isUploadFile(maybeFile)) {
-      const file = maybeFile;
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const extension = fileExtension(file.name);
-
+    if (maybeFile && typeof maybeFile === "object" && "arrayBuffer" in maybeFile) {
+      const file = maybeFile as File;
+      const { importBuffer, checksumBuffer } = await normalizeUploadedFile(file);
+      input = { kind: "buffer", buffer: importBuffer, fileName: file.name };
       fileName = file.name;
-      fileChecksum = createImportFileChecksum(buffer);
-
-      if (extension === "csv") {
-        prepared = await prepareAcademicOfferCsvImport({
-          buffer,
-          fileName,
-          cycle,
-        });
-      } else if (extension === "xlsx") {
-        prepared = await prepareAcademicOfferImport({
-          input: { kind: "buffer", buffer, fileName },
-          cycle,
-        });
-      } else {
-        return NextResponse.json({ ok: false, error: "Formato no soportado. Usa un archivo .xlsx o .csv." }, { status: 400 });
-      }
+      fileChecksum = createImportFileChecksum(checksumBuffer);
     } else {
       const filePath = await resolveDefaultOfferExcelPath();
       if (!filePath) {
-        return NextResponse.json({ ok: false, error: "No se encontró un Excel por defecto en /docs. Sube un archivo .xlsx o .csv para validar." }, { status: 400 });
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "No se encontró un Excel por defecto en /docs. Sube un archivo .xlsx o .csv para validar.",
+          },
+          { status: 400 },
+        );
       }
 
       await fs.access(filePath);
@@ -101,6 +98,8 @@ export async function POST(request: Request) {
         fileChecksum = null;
       }
     }
+
+    const prepared = await prepareAcademicOfferImport({ input, cycle });
 
     const session = await createAdminImportPreviewSession({
       module: AdminConfigModule.OFFER,
@@ -152,7 +151,8 @@ export async function POST(request: Request) {
       previewRows: prepared.previewRows,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "No fue posible validar el archivo.";
+    const message =
+      error instanceof Error ? error.message : "No fue posible validar el archivo.";
     const admin = await getAdminUser().catch(() => null);
 
     captureException(error, {
