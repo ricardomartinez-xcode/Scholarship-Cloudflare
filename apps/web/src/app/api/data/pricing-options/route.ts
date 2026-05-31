@@ -24,6 +24,11 @@ import {
   getUnidepProgramCatalog,
   getUnidepProgramPlanUrl,
 } from "@/lib/unidep-program-catalog";
+import {
+  listFileAssetAssignmentsForTargets,
+  resolveProgramR2AssetPayload,
+  type PublicFileAssetPayload,
+} from "@/lib/file-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -121,14 +126,21 @@ function buildStudyProgram(program: {
   level: string | null;
   category: string | null;
   planPdfUrl: string | null;
+  brochurePdfUrl?: string | null;
   planDriveLink: string | null;
   planUrl: string | null;
-}) {
+}, assets?: Record<string, PublicFileAssetPayload | null>) {
   const businessLine =
     normalizeBusinessLine(program.businessLine) ??
     normalizeBusinessLine(program.level) ??
     normalizeBusinessLine(program.category);
-  const planPdfUrl = getUnidepProgramPlanUrl(program);
+  const r2Payload = resolveProgramR2AssetPayload({
+    programId: program.id,
+    planPdfUrl: getUnidepProgramPlanUrl(program),
+    brochurePdfUrl: program.brochurePdfUrl ?? null,
+    assets: assets ?? {},
+  });
+  const planPdfUrl = r2Payload.planPdfUrl;
 
   if (!businessLine || !planPdfUrl) return null;
 
@@ -137,6 +149,7 @@ function buildStudyProgram(program: {
     name: program.name,
     businessLine,
     planPdfUrl,
+    planDownloadUrl: r2Payload.planDownloadUrl,
   };
 }
 
@@ -154,10 +167,12 @@ function buildConfiguredOfferingPricingOptions(
       level: string | null;
       category: string | null;
       planPdfUrl: string | null;
+      brochurePdfUrl: string | null;
       planDriveLink: string | null;
       planUrl: string | null;
     };
   }>,
+  r2Assignments: Map<string, Record<string, PublicFileAssetPayload>>,
 ): QuotePricingOption[] {
   const options = new Map<string, QuotePricingOption>();
 
@@ -169,7 +184,7 @@ function buildConfiguredOfferingPricingOptions(
       ...offering.program,
       businessLine:
         normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
-    });
+    }, r2Assignments.get(offering.program.id));
     if (!studyProgram) continue;
 
     for (const modality of getOfferingModalities(offering)) {
@@ -288,19 +303,29 @@ export async function GET() {
             level: true,
             category: true,
             planPdfUrl: true,
+            brochurePdfUrl: true,
             planDriveLink: true,
             planUrl: true,
           },
         },
       },
     }),
-    getUnidepProgramCatalog({ onlyWithPlan: true }),
+    getUnidepProgramCatalog(),
   ]);
 
   const academicOfferByCampus = new Map<string, typeof activeOfferings>();
+  const r2Assignments = await listFileAssetAssignmentsForTargets(
+    "program",
+    Array.from(
+      new Set([
+        ...activeOfferings.map((offering) => offering.program.id),
+        ...catalogPrograms.map((program) => program.id),
+      ]),
+    ),
+  );
   const pricingOptions = [
     ...buildQuotePricingOptions(rules, priceOverrides),
-    ...buildConfiguredOfferingPricingOptions(activeOfferings),
+    ...buildConfiguredOfferingPricingOptions(activeOfferings, r2Assignments),
   ];
   const priceOverrideSnapshots = priceOverrides.map(
     (override): PriceOverrideSnapshot => ({
@@ -400,7 +425,13 @@ export async function GET() {
       );
       const studyPrograms = new Map<
         string,
-        { id: string; name: string; businessLine: string; planPdfUrl: string }
+        {
+          id: string;
+          name: string;
+          businessLine: string;
+          planPdfUrl: string;
+          planDownloadUrl: string | null;
+        }
       >();
       const pricingWithPrograms = new Map<
         string,
@@ -419,7 +450,7 @@ export async function GET() {
           ...offering.program,
           businessLine:
             normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
-        });
+        }, r2Assignments.get(offering.program.id));
         if (!studyProgram) continue;
         studyPrograms.set(studyProgram.id, studyProgram);
 
@@ -488,7 +519,7 @@ export async function GET() {
     new Map(
       [
         ...catalogPrograms
-          .map((program) => buildStudyProgram(program))
+          .map((program) => buildStudyProgram(program, r2Assignments.get(program.id)))
           .filter((program): program is NonNullable<ReturnType<typeof buildStudyProgram>> =>
             Boolean(program),
           ),

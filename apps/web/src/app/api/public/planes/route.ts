@@ -97,6 +97,7 @@ async function loadPlanesPayload(params: {
         planPdfUrl: r2Payload.planPdfUrl,
         planDownloadUrl: r2Payload.planDownloadUrl,
         heroImageUrl: r2Payload.heroImageUrl,
+        thumbnailImageUrl: r2Payload.thumbnailImageUrl,
         hasPlan: Boolean(r2Payload.planPdfUrl ?? legacyPlanUrl),
         r2Assets: r2Payload.r2Assets,
       };

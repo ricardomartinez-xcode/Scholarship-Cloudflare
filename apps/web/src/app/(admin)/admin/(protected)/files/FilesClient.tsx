@@ -14,6 +14,28 @@ type PresignResponse =
     }
   | { ok: false; error: string };
 
+const targetTypeOptions = [
+  { value: "", label: "Sin relación" },
+  { value: "program", label: "Programa académico" },
+  { value: "training_material", label: "Material de capacitación" },
+  { value: "academic_offer", label: "Oferta académica" },
+  { value: "campus", label: "Plantel / campus" },
+  { value: "global", label: "Global" },
+];
+
+const slotOptions = [
+  { value: "", label: "Sin uso específico" },
+  { value: "study_plan_pdf", label: "Plan de estudios PDF" },
+  { value: "brochure_pdf", label: "Brochure / oferta PDF" },
+  { value: "hero_image", label: "Imagen principal" },
+  { value: "thumbnail_image", label: "Miniatura" },
+  { value: "training_material", label: "Material capacitación" },
+  { value: "training_video", label: "Video capacitación" },
+  { value: "training_pdf", label: "PDF capacitación" },
+  { value: "training_image", label: "Imagen capacitación" },
+  { value: "training_file", label: "Archivo capacitación" },
+];
+
 function formatBytes(value: number | null) {
   if (!value) return "—";
   if (value < 1024) return `${value} B`;
@@ -83,6 +105,10 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [targetType, setTargetType] = useState("");
+  const [targetId, setTargetId] = useState("");
+  const [slot, setSlot] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
   const [isPending, startTransition] = useTransition();
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -115,13 +141,40 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
         });
         if (!uploadRes.ok) throw new Error(`R2 rechazó la carga (${uploadRes.status}).`);
 
-        await fetch(`/api/files/${presign.asset.id}/complete`, {
+        const completeRes = await fetch(`/api/files/${presign.asset.id}/complete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ etag: uploadRes.headers.get("etag") }),
         });
+        const complete = (await completeRes.json().catch(() => null)) as
+          | { ok?: boolean; error?: string }
+          | null;
+        if (!completeRes.ok || !complete?.ok) {
+          throw new Error(complete?.error || "No fue posible confirmar la carga.");
+        }
 
-        setNotice("Archivo cargado en R2.");
+        const hasUsage = Boolean(targetType && slot);
+        if (hasUsage) {
+          const usageRes = await fetch(`/api/files/${presign.asset.id}/usage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              targetType,
+              targetId: targetId.trim(),
+              slot,
+              sortOrder: Number(sortOrder) || 0,
+              isPrimary: true,
+            }),
+          });
+          const usage = (await usageRes.json().catch(() => null)) as
+            | { ok?: boolean; error?: string }
+            | null;
+          if (!usageRes.ok || !usage?.ok) {
+            throw new Error(usage?.error || "El archivo subió, pero no se pudo relacionar.");
+          }
+        }
+
+        setNotice(hasUsage ? "Archivo cargado y relacionado en R2." : "Archivo cargado en R2.");
         if (inputRef.current) inputRef.current.value = "";
         router.refresh();
       } catch (err) {
@@ -136,9 +189,9 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.28em] text-slate-400">R2</div>
-            <h2 className="mt-1 text-lg font-semibold">Assets de programas</h2>
+            <h2 className="mt-1 text-lg font-semibold">Assets y materiales</h2>
             <p className="mt-1 max-w-2xl text-sm text-slate-300">
-              Carga PDFs e imágenes. La relación con programas se configura en Programas UNIDEP.
+              Carga PDFs, imágenes, videos y documentos. Puedes dejarlos libres o relacionarlos con programas y materiales.
             </p>
           </div>
 
@@ -147,13 +200,71 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
             <input
               ref={inputRef}
               type="file"
-              accept="application/pdf,image/*"
+              accept="application/pdf,image/*,video/mp4,video/webm,.docx,.xlsx,.pptx"
               className="hidden"
               disabled={isPending}
               onChange={handleFileChange}
             />
           </label>
         </div>
+
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_120px]">
+          <label className="grid gap-2 text-sm font-semibold text-slate-200">
+            Relacionar con
+            <select
+              value={targetType}
+              onChange={(event) => setTargetType(event.target.value)}
+              className="ui-control"
+            >
+              {targetTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-200">
+            ID o slug
+            <input
+              value={targetId}
+              onChange={(event) => setTargetId(event.target.value)}
+              className="ui-control"
+              placeholder={
+                targetType === "training_material"
+                  ? "Opcional: se usa el ID del archivo"
+                  : "Ej. ID del programa o plantel"
+              }
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-200">
+            Uso / preview
+            <select
+              value={slot}
+              onChange={(event) => setSlot(event.target.value)}
+              className="ui-control"
+            >
+              {slotOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-200">
+            Orden
+            <input
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value)}
+              className="ui-control"
+              inputMode="numeric"
+              placeholder="0"
+            />
+          </label>
+        </div>
+        <p className="text-xs leading-5 text-slate-400">
+          Para materiales de capacitación basta elegir “Material de capacitación” y un uso; el ID puede quedar vacío.
+          Para planes por licenciatura, la asignación recomendada sigue en Programas UNIDEP.
+        </p>
 
         {notice ? <StatusMessage kind="success">{notice}</StatusMessage> : null}
         {error ? <StatusMessage kind="error">{error}</StatusMessage> : null}

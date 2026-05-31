@@ -2,6 +2,7 @@ import { AdminCapability } from "@prisma/client";
 
 import AdminDataTable from "@/components/admin/AdminDataTable";
 import { adminHasCapability } from "@/lib/admin-session";
+import { buildFileAssetLinks, listFileAssetUsagesByTargetType } from "@/lib/file-assets";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -121,7 +122,7 @@ export default async function AdminCapacitacionPage({
   const statusMessage = readQueryValue(query?.status);
   const errorMessage = readQueryValue(query?.error);
 
-  const [users, organizations, permissions, rooms] = await Promise.all([
+  const [users, organizations, permissions, rooms, materials] = await Promise.all([
     prisma.user.findMany({
       where: { isActive: true },
       orderBy: { email: "asc" },
@@ -191,6 +192,10 @@ export default async function AdminCapacitacionPage({
       },
       take: 24,
     }),
+    listFileAssetUsagesByTargetType("training_material", {
+      slotPrefix: "training",
+      limit: 24,
+    }),
   ]);
 
   const activeViewPermissions = permissions.filter(
@@ -247,7 +252,7 @@ export default async function AdminCapacitacionPage({
                 </div>
               </div>
               <div className="rounded-[18px] border border-[#c8d6e2] bg-white p-3">
-                <div className="text-xs font-bold text-[#536a7c]">Salas</div>
+              <div className="text-xs font-bold text-[#536a7c]">Salas</div>
                 <div className="mt-1 text-xl font-black text-[#102838]">
                   {rooms.length}
                 </div>
@@ -289,6 +294,11 @@ export default async function AdminCapacitacionPage({
           label="Crear salas"
           value={activeCreatorPermissions}
           description="Usuarios con capacidad para iniciar salas."
+        />
+        <TrainingKpi
+          label="Materiales"
+          value={materials.length}
+          description="Recursos publicados desde R2 para capacitación."
         />
       </section>
 
@@ -442,6 +452,61 @@ export default async function AdminCapacitacionPage({
         </div>
 
         <div className="grid gap-5 content-start">
+          <TrainingSection
+            kicker="Materiales R2"
+            title="Recursos publicados"
+            description="Sube videos, PDFs, imágenes o documentos en Archivos R2 y relaciónalos como Material de capacitación."
+          >
+            <div className="grid gap-3">
+              <a
+                href="/admin/files"
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgb(15_76_107/0.16)] transition hover:bg-[#0b3d56]"
+              >
+                Configurar archivos R2
+              </a>
+              {materials.length === 0 ? (
+                <div className="rounded-[20px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">
+                  Aún no hay materiales relacionados.
+                </div>
+              ) : (
+                <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1">
+                  {materials.map((usage) => {
+                    const links = buildFileAssetLinks(usage.file.id);
+                    return (
+                      <article
+                        key={usage.id}
+                        className="rounded-[20px] border border-[#c8d6e2] bg-[#f7fafc] p-4"
+                      >
+                        <div className="text-sm font-black text-[#102838]">
+                          {usage.file.fileName}
+                        </div>
+                        <div className="mt-1 text-xs font-semibold text-[#536a7c]">
+                          {usage.slot} · {usage.file.mimeType}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <a
+                            href={links.previewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-[#c8d6e2] bg-white px-3 py-1 text-xs font-bold text-[#163247]"
+                          >
+                            Preview
+                          </a>
+                          <a
+                            href={links.downloadUrl}
+                            className="rounded-full border border-[#c8d6e2] bg-white px-3 py-1 text-xs font-bold text-[#163247]"
+                          >
+                            Descargar
+                          </a>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </TrainingSection>
+
           <TrainingSection
             kicker="Salas iniciales"
             title="Crear una sala operativa"

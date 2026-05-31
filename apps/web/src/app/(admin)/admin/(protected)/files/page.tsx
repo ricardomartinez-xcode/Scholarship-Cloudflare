@@ -15,7 +15,7 @@ export default async function AdminFilesPage() {
       <div>
         <h1 className="text-xl font-semibold">Archivos R2</h1>
         <p className="mt-1 text-sm text-slate-300">
-          Gestiona assets reutilizables para programas académicos.
+          Gestiona assets reutilizables para programas, previews, formatos y capacitación.
         </p>
       </div>
       <FilesClient files={files} />

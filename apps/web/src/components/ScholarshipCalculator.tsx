@@ -867,6 +867,12 @@ export default function ScholarshipCalculator({
     offerPrograms.find((item) => item.offeringId === offerProgramId) ?? null;
   const selectedStudyProgram =
     studyPrograms.find((program) => program.id === studyProgramId) ?? null;
+  const selectedPlanPreviewUrl =
+    selectedOfferProgram?.planLink ?? selectedStudyProgram?.planPdfUrl ?? null;
+  const selectedPlanDownloadUrl =
+    selectedOfferProgram?.planDownloadLink ??
+    selectedStudyProgram?.planDownloadUrl ??
+    selectedPlanPreviewUrl;
 
   useEffect(() => {
     if (!useCanonicalQuote) {
@@ -2058,16 +2064,32 @@ export default function ScholarshipCalculator({
                     </div>
                   </div>
                   <div>
-                    {selectedOfferProgram?.planLink ? (
-                      <a
-                        href={
-                          selectedOfferProgram.planDownloadLink ??
-                          selectedOfferProgram.planLink
-                        }
-                        className="ui-button-secondary inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
-                      >
-                        Descargar plan de estudios
-                      </a>
+                    {selectedPlanPreviewUrl ? (
+                      <div className="grid gap-3">
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={selectedPlanPreviewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="ui-button-secondary inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
+                          >
+                            Preview plan
+                          </a>
+                          <a
+                            href={selectedPlanDownloadUrl ?? selectedPlanPreviewUrl}
+                            className="ui-button-info inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
+                          >
+                            Descargar plan
+                          </a>
+                        </div>
+                        <div className="h-44 overflow-hidden rounded-2xl border border-white/10 bg-white">
+                          <iframe
+                            src={selectedPlanPreviewUrl}
+                            title={`Preview plan: ${selectedStudyProgram?.name ?? "programa"}`}
+                            className="h-full w-full"
+                          />
+                        </div>
+                      </div>
                     ) : (
                       <button
                         type="button"
@@ -2411,6 +2433,32 @@ export default function ScholarshipCalculator({
                   ) : null}
                 </div>
               </div>
+              {selectedPlanPreviewUrl ? (
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-200">
+                    Plan de estudios
+                  </div>
+                  <div className="mt-2 break-words text-sm font-semibold text-slate-100">
+                    {selectedStudyProgram?.name ?? selectedOfferProgram?.programName}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href={selectedPlanPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ui-button-secondary min-h-8 rounded-full px-3 py-1 text-xs"
+                    >
+                      Abrir preview
+                    </a>
+                    <a
+                      href={selectedPlanDownloadUrl ?? selectedPlanPreviewUrl}
+                      className="ui-button-info min-h-8 rounded-full px-3 py-1 text-xs"
+                    >
+                      Descargar
+                    </a>
+                  </div>
+                </div>
+              ) : null}
             </div>
             )}
           </div>

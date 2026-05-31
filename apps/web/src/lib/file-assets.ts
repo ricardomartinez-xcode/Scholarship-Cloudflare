@@ -2,7 +2,16 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
-export type FileAssetSlot = "study_plan_pdf" | "brochure_pdf" | "hero_image";
+export type FileAssetSlot =
+  | "study_plan_pdf"
+  | "brochure_pdf"
+  | "hero_image"
+  | "thumbnail_image"
+  | "training_material"
+  | "training_video"
+  | "training_pdf"
+  | "training_image"
+  | "training_file";
 
 export type FileAssetRecord = {
   id: string;
@@ -151,17 +160,20 @@ export function resolveProgramR2AssetPayload(input: {
   const studyPlan = normalizeProgramAssetPayload(input.assets.study_plan_pdf);
   const brochure = normalizeProgramAssetPayload(input.assets.brochure_pdf);
   const heroImage = normalizeProgramAssetPayload(input.assets.hero_image);
+  const thumbnailImage = normalizeProgramAssetPayload(input.assets.thumbnail_image);
 
   return {
     planPdfUrl: studyPlan?.previewUrl ?? input.planPdfUrl,
     brochurePdfUrl: brochure?.previewUrl ?? input.brochurePdfUrl,
-    heroImageUrl: heroImage?.previewUrl ?? null,
+    heroImageUrl: heroImage?.previewUrl ?? thumbnailImage?.previewUrl ?? null,
+    thumbnailImageUrl: thumbnailImage?.previewUrl ?? heroImage?.previewUrl ?? null,
     planDownloadUrl: studyPlan?.downloadUrl ?? input.planPdfUrl,
     brochureDownloadUrl: brochure?.downloadUrl ?? input.brochurePdfUrl,
     r2Assets: {
       studyPlan,
       brochure,
       heroImage,
+      thumbnailImage,
     },
   };
 }
@@ -189,18 +201,18 @@ export async function createFileAsset(input: {
 }) {
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     INSERT INTO "recalc_admin"."file_asset"
-      ("r2_key", "bucket", "file_name", "mime_type", "size_bytes", "uploaded_by_user_id", "status")
+      ("object_key", "bucket", "file_name", "mime_type", "size_bytes", "owner_user_id", "visibility")
     VALUES
-      (${input.r2Key}, ${input.bucket ?? null}, ${input.fileName}, ${input.mimeType}, ${input.sizeBytes ?? null}, ${input.uploadedByUserId ?? null}::uuid, ${input.status ?? "uploaded"})
+      (${input.r2Key}, ${input.bucket ?? "r2"}, ${input.fileName}, ${input.mimeType}, ${input.sizeBytes ?? null}, ${input.uploadedByUserId ?? null}::uuid, ${input.status === "public" ? "public" : "private"})
     RETURNING
       "id",
-      "r2_key" AS "r2Key",
+      "object_key" AS "r2Key",
       "bucket",
       "file_name" AS "fileName",
       "mime_type" AS "mimeType",
       "size_bytes" AS "sizeBytes",
-      "etag",
-      "status",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
       "created_at" AS "createdAt",
       "updated_at" AS "updatedAt"
   `;
@@ -210,19 +222,17 @@ export async function createFileAsset(input: {
 export async function markFileAssetUploaded(fileId: string, etag?: string | null) {
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     UPDATE "recalc_admin"."file_asset"
-    SET "status" = 'uploaded',
-        "etag" = COALESCE(${etag ?? null}, "etag"),
-        "updated_at" = now()
+    SET "updated_at" = now()
     WHERE "id" = ${fileId}::uuid
     RETURNING
       "id",
-      "r2_key" AS "r2Key",
+      "object_key" AS "r2Key",
       "bucket",
       "file_name" AS "fileName",
       "mime_type" AS "mimeType",
       "size_bytes" AS "sizeBytes",
-      "etag",
-      "status",
+      ${etag ?? null}::text AS "etag",
+      'uploaded'::text AS "status",
       "created_at" AS "createdAt",
       "updated_at" AS "updatedAt"
   `;
@@ -233,13 +243,13 @@ export async function getFileAssetById(fileId: string) {
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     SELECT
       "id",
-      "r2_key" AS "r2Key",
+      "object_key" AS "r2Key",
       "bucket",
       "file_name" AS "fileName",
       "mime_type" AS "mimeType",
       "size_bytes" AS "sizeBytes",
-      "etag",
-      "status",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
       "created_at" AS "createdAt",
       "updated_at" AS "updatedAt"
     FROM "recalc_admin"."file_asset"
@@ -258,13 +268,13 @@ export async function listFileAssets(options?: {
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     SELECT
       "id",
-      "r2_key" AS "r2Key",
+      "object_key" AS "r2Key",
       "bucket",
       "file_name" AS "fileName",
       "mime_type" AS "mimeType",
       "size_bytes" AS "sizeBytes",
-      "etag",
-      "status",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
       "created_at" AS "createdAt",
       "updated_at" AS "updatedAt"
     FROM "recalc_admin"."file_asset"
@@ -326,13 +336,13 @@ export async function assignFileAssetUsage(
         "sort_order" AS "sortOrder",
         "is_primary" AS "isPrimary",
         (SELECT "id" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "id",
-        (SELECT "r2_key" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "r2Key",
+        (SELECT "object_key" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "r2Key",
         (SELECT "bucket" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "bucket",
         (SELECT "file_name" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "fileName",
         (SELECT "mime_type" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "mimeType",
         (SELECT "size_bytes" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "sizeBytes",
-        (SELECT "etag" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "etag",
-        (SELECT "status" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "status",
+        NULL::text AS "etag",
+        'uploaded'::text AS "status",
         (SELECT "created_at" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "createdAt",
         (SELECT "updated_at" FROM "recalc_admin"."file_asset" WHERE "id" = ${fileId}::uuid) AS "updatedAt"
     `;
@@ -357,13 +367,13 @@ export async function getFileAssetForUsage(input: {
       u."sort_order" AS "sortOrder",
       u."is_primary" AS "isPrimary",
       f."id",
-      f."r2_key" AS "r2Key",
+      f."object_key" AS "r2Key",
       f."bucket",
       f."file_name" AS "fileName",
       f."mime_type" AS "mimeType",
       f."size_bytes" AS "sizeBytes",
-      f."etag",
-      f."status",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
       f."created_at" AS "createdAt",
       f."updated_at" AS "updatedAt"
     FROM "recalc_admin"."file_asset_usage" u
@@ -398,13 +408,13 @@ export async function listFileAssetAssignmentsForTargets(
       u."sort_order" AS "sortOrder",
       u."is_primary" AS "isPrimary",
       f."id",
-      f."r2_key" AS "r2Key",
+      f."object_key" AS "r2Key",
       f."bucket",
       f."file_name" AS "fileName",
       f."mime_type" AS "mimeType",
       f."size_bytes" AS "sizeBytes",
-      f."etag",
-      f."status",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
       f."created_at" AS "createdAt",
       f."updated_at" AS "updatedAt"
     FROM "recalc_admin"."file_asset_usage" u
@@ -425,4 +435,49 @@ export async function listFileAssetAssignmentsForTargets(
   }
 
   return byTarget;
+}
+
+export async function listFileAssetUsagesByTargetType(
+  targetType: string,
+  options?: {
+    targetId?: string;
+    slotPrefix?: string;
+    limit?: number;
+  },
+) {
+  const normalizedTargetType = normalizeSnakeish(targetType);
+  const normalizedSlotPrefix = options?.slotPrefix
+    ? `${normalizeSnakeish(options.slotPrefix)}%`
+    : null;
+  const limit = Math.min(Math.max(options?.limit ?? 200, 1), 500);
+
+  const rows = await prisma.$queryRaw<RawFileAssetUsageRow[]>`
+    SELECT
+      u."id" AS "usageId",
+      u."file_id" AS "fileId",
+      u."target_type" AS "targetType",
+      u."target_id" AS "targetId",
+      u."slot",
+      u."sort_order" AS "sortOrder",
+      u."is_primary" AS "isPrimary",
+      f."id",
+      f."object_key" AS "r2Key",
+      f."bucket",
+      f."file_name" AS "fileName",
+      f."mime_type" AS "mimeType",
+      f."size_bytes" AS "sizeBytes",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
+      f."created_at" AS "createdAt",
+      f."updated_at" AS "updatedAt"
+    FROM "recalc_admin"."file_asset_usage" u
+    INNER JOIN "recalc_admin"."file_asset" f ON f."id" = u."file_id"
+    WHERE u."target_type" = ${normalizedTargetType}
+      AND (${options?.targetId ?? null}::text IS NULL OR u."target_id" = ${options?.targetId ?? null})
+      AND (${normalizedSlotPrefix}::text IS NULL OR u."slot" LIKE ${normalizedSlotPrefix})
+    ORDER BY u."sort_order" ASC, u."created_at" DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map(mapUsage);
 }

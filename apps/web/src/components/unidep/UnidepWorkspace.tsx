@@ -43,6 +43,7 @@ type OfertaProgram = {
   brochurePdfUrl: string | null;
   planPdfUrl: string | null;
   heroImageUrl: string | null;
+  thumbnailImageUrl: string | null;
   planDownloadUrl: string | null;
   brochureDownloadUrl: string | null;
 };
@@ -76,6 +77,7 @@ type PlanProgram = {
   planPdfUrl: string | null;
   planDownloadUrl: string | null;
   heroImageUrl: string | null;
+  thumbnailImageUrl: string | null;
   hasPlan: boolean;
 };
 
@@ -301,6 +303,15 @@ function OfertaAcademicaSection() {
     setPreviewUrl(nextPreview);
   }, [currentOfferings, currentProgram]);
 
+  const galleryImages = useMemo(() => {
+    const images = [
+      currentProgram?.thumbnailImageUrl,
+      currentProgram?.heroImageUrl,
+      ...programs.flatMap((program) => [program.thumbnailImageUrl, program.heroImageUrl]),
+    ].filter((url): url is string => Boolean(url));
+    return Array.from(new Set(images)).slice(0, 4);
+  }, [currentProgram?.heroImageUrl, currentProgram?.thumbnailImageUrl, programs]);
+
   return (
     <section className="ui-card ui-card-pad min-w-0">
       <h2 className="text-lg font-semibold">Oferta académica</h2>
@@ -379,14 +390,21 @@ function OfertaAcademicaSection() {
         <div className="mt-6 grid gap-4">
           <div className="grid gap-[var(--ui-card-gap)] xl:grid-cols-[minmax(280px,0.78fr)_minmax(0,1.22fr)]">
             <div className="grid content-start gap-3 rounded-3xl border border-white/10 bg-slate-950/35 p-[calc(var(--ui-card-pad)*0.9)]">
-              {currentProgram.heroImageUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentProgram.heroImageUrl}
-                    alt={currentProgram.name}
-                    className="h-36 w-full object-cover"
-                  />
+              {galleryImages.length ? (
+                <div className="grid h-40 grid-cols-2 grid-rows-2 gap-2 overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-2">
+                  {galleryImages.map((url, index) => (
+                    <div
+                      key={url}
+                      className={index === 0 ? "row-span-2 overflow-hidden rounded-xl" : "overflow-hidden rounded-xl"}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`${currentProgram.name} ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
                 </div>
               ) : null}
               <div>
@@ -769,11 +787,19 @@ function PlanesSection() {
               key={row.id}
               className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
             >
-              {row.heroImageUrl ? (
-                <div className="h-28 border-b border-white/10 bg-black/20">
+              {row.planPdfUrl ? (
+                <div className="h-40 overflow-hidden border-b border-white/10 bg-white">
+                  <iframe
+                    src={row.planPdfUrl}
+                    title={`Preview plan: ${row.name}`}
+                    className="h-full w-full"
+                  />
+                </div>
+              ) : (row.thumbnailImageUrl ?? row.heroImageUrl) ? (
+                <div className="h-40 border-b border-white/10 bg-black/20">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={row.heroImageUrl}
+                    src={row.thumbnailImageUrl ?? row.heroImageUrl ?? ""}
                     alt={row.name}
                     className="h-full w-full object-cover"
                   />
@@ -833,6 +859,10 @@ function formatFileSize(value: number | null) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function isPdfPreview(fileUrl: string | null | undefined, mimeType?: string | null) {
+  return mimeType === "application/pdf" || String(fileUrl ?? "").toLowerCase().includes(".pdf");
+}
+
 function FormatosSection() {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<EnrollmentFormat[]>([]);
@@ -881,12 +911,22 @@ function FormatosSection() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => {
             const fileSize = formatFileSize(row.fileSizeBytes);
+            const showPdfPreview = isPdfPreview(row.fileUrl, row.fileMimeType);
             return (
               <div
                 key={row.id}
-                className="grid min-w-0 gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4"
+                className="grid min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
               >
-                <div className="min-w-0">
+                {showPdfPreview ? (
+                  <div className="h-44 border-b border-white/10 bg-white">
+                    <iframe
+                      src={row.fileUrl}
+                      title={`Preview formato: ${row.title}`}
+                      className="h-full w-full"
+                    />
+                  </div>
+                ) : null}
+                <div className="grid min-w-0 gap-3 p-4">
                   <div className="break-words font-semibold text-slate-100">
                     {row.title}
                   </div>
@@ -899,16 +939,22 @@ function FormatosSection() {
                     {[row.fileName, fileSize].filter(Boolean).join(" · ") ||
                       "Link de descarga"}
                   </div>
-                </div>
-                <div>
-                  <a
-                    href={row.fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
-                  >
-                    Abrir / Descargar
-                  </a>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={row.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ui-button-secondary min-h-[32px] rounded-full px-3 py-1 text-xs"
+                    >
+                      Abrir preview
+                    </a>
+                    <a
+                      href={row.fileUrl}
+                      className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
+                    >
+                      Descargar
+                    </a>
+                  </div>
                 </div>
               </div>
             );

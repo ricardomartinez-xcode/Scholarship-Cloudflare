@@ -72,6 +72,7 @@ export async function updateProgramUnidepAction(formData: FormData) {
       ["study_plan_pdf", String(formData.get("r2StudyPlanFileId") ?? "").trim()],
       ["brochure_pdf", String(formData.get("r2BrochureFileId") ?? "").trim()],
       ["hero_image", String(formData.get("r2HeroImageFileId") ?? "").trim()],
+      ["thumbnail_image", String(formData.get("r2ThumbnailImageFileId") ?? "").trim()],
     ] as const;
 
     for (const [slot, fileId] of assetSlots) {

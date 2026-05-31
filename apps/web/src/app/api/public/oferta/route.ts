@@ -63,12 +63,14 @@ type OfertaPayload = {
     brochurePdfUrl: string | null;
     planPdfUrl: string | null;
     heroImageUrl: string | null;
+    thumbnailImageUrl: string | null;
     planDownloadUrl: string | null;
     brochureDownloadUrl: string | null;
     r2Assets: {
       studyPlan: PublicFileAssetPayload | null;
       brochure: PublicFileAssetPayload | null;
       heroImage: PublicFileAssetPayload | null;
+      thumbnailImage: PublicFileAssetPayload | null;
     };
   }>;
   offerings: Array<{
@@ -300,6 +302,7 @@ async function loadOfertaPayload(
       brochurePdfUrl: r2Payload.brochurePdfUrl,
       planPdfUrl: r2Payload.planPdfUrl,
       heroImageUrl: r2Payload.heroImageUrl,
+      thumbnailImageUrl: r2Payload.thumbnailImageUrl,
       planDownloadUrl: r2Payload.planDownloadUrl,
       brochureDownloadUrl: r2Payload.brochureDownloadUrl,
       r2Assets: r2Payload.r2Assets,

@@ -60,13 +60,13 @@ export async function getFileAssetByShareToken(token: string) {
   const rows = await prisma.$queryRaw<ShareFileAssetRow[]>`
     SELECT
       fa."id",
-      fa."r2_key" AS "r2Key",
+      fa."object_key" AS "r2Key",
       fa."bucket",
       fa."file_name" AS "fileName",
       fa."mime_type" AS "mimeType",
       fa."size_bytes" AS "sizeBytes",
-      fa."etag",
-      fa."status",
+      NULL::text AS "etag",
+      'uploaded'::text AS "status",
       fa."created_at" AS "createdAt",
       fa."updated_at" AS "updatedAt"
     FROM "recalc_admin"."file_share_link" sl

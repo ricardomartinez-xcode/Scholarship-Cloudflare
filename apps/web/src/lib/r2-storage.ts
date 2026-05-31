@@ -8,6 +8,8 @@ export const PREVIEWABLE_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
+  "video/mp4",
+  "video/webm",
 ]);
 
 export const ALLOWED_FILE_MIME_TYPES = new Set([

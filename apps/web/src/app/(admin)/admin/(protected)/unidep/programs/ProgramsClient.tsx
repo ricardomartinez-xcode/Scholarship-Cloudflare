@@ -218,6 +218,7 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
                           <AssetBadge label="Plan" r2Asset={program.r2Assets?.study_plan_pdf} existingUrl={program.planPdfUrl} />
                           <AssetBadge label="Brochure" r2Asset={program.r2Assets?.brochure_pdf} existingUrl={program.brochurePdfUrl} />
                           <AssetBadge label="Imagen" r2Asset={program.r2Assets?.hero_image} />
+                          <AssetBadge label="Miniatura" r2Asset={program.r2Assets?.thumbnail_image} />
                         </div>
                       </td>
                       <td className="p-3">
@@ -261,10 +262,11 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
             </div>
             <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
               <div><div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Assets R2 del programa</div><p className="mt-1 text-xs text-slate-400">Selecciona archivos ya cargados en R2. Vacío limpia la relación, no borra el archivo.</p></div>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <AssetSelect label="Plan PDF" name="r2StudyPlanFileId" assets={pdfAssets} defaultValue={editing.r2Assets?.study_plan_pdf?.fileId} />
                 <AssetSelect label="Brochure PDF" name="r2BrochureFileId" assets={pdfAssets} defaultValue={editing.r2Assets?.brochure_pdf?.fileId} />
                 <AssetSelect label="Imagen principal" name="r2HeroImageFileId" assets={imageAssets} defaultValue={editing.r2Assets?.hero_image?.fileId} />
+                <AssetSelect label="Miniatura catálogo" name="r2ThumbnailImageFileId" assets={imageAssets} defaultValue={editing.r2Assets?.thumbnail_image?.fileId} />
               </div>
             </div>
             {error ? <div className="rounded-[18px] border border-[#8a2d2d]/20 bg-[#fde7e7] px-4 py-2 text-sm font-semibold text-[#8a2d2d]">{error}</div> : null}

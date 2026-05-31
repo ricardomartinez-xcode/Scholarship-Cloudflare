@@ -3,7 +3,13 @@ import { NextResponse } from "next/server";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
 import { createFileAsset } from "@/lib/file-assets";
-import { createR2ObjectKey, getR2BucketName, getSignedR2PutUrl } from "@/lib/r2-storage";
+import {
+  createR2ObjectKey,
+  getMaxUploadBytes,
+  getR2BucketName,
+  getSignedR2PutUrl,
+  isAllowedFileMimeType,
+} from "@/lib/r2-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +28,11 @@ function parsePayload(payload: PresignPayload) {
 
   if (!fileName) return { ok: false as const, error: "Nombre de archivo requerido." };
   if (!mimeType) return { ok: false as const, error: "MIME type requerido." };
-  if (!mimeType.startsWith("application/pdf") && !mimeType.startsWith("image/")) {
-    return { ok: false as const, error: "Solo se permiten PDFs e imagenes." };
+  if (!isAllowedFileMimeType(mimeType)) {
+    return { ok: false as const, error: "Tipo de archivo no permitido." };
+  }
+  if (sizeBytes === null || sizeBytes > getMaxUploadBytes()) {
+    return { ok: false as const, error: "Tamaño de archivo inválido." };
   }
 
   return { ok: true as const, fileName, mimeType, sizeBytes };

@@ -20,6 +20,22 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/lib/file-assets", () => ({
+  listFileAssetAssignmentsForTargets: vi.fn().mockResolvedValue(new Map()),
+  resolveProgramR2AssetPayload: vi.fn((input) => ({
+    planPdfUrl: input.assets?.study_plan_pdf?.previewUrl ?? input.planPdfUrl,
+    brochurePdfUrl: input.assets?.brochure_pdf?.previewUrl ?? input.brochurePdfUrl,
+    heroImageUrl: input.assets?.hero_image?.previewUrl ?? null,
+    planDownloadUrl: input.assets?.study_plan_pdf?.downloadUrl ?? input.planPdfUrl,
+    brochureDownloadUrl: input.assets?.brochure_pdf?.downloadUrl ?? input.brochurePdfUrl,
+    r2Assets: {
+      studyPlan: input.assets?.study_plan_pdf ?? null,
+      brochure: input.assets?.brochure_pdf ?? null,
+      heroImage: input.assets?.hero_image ?? null,
+    },
+  })),
+}));
+
 import { GET } from "./route";
 
 describe("GET /api/data/pricing-options", () => {
@@ -285,6 +301,7 @@ describe("GET /api/data/pricing-options", () => {
             name: "Bachillerato UNIDEP",
             businessLine: "prepa",
             planPdfUrl: "https://example.com/prepa.pdf",
+            planDownloadUrl: "https://example.com/prepa.pdf",
           },
         ],
         pricingOptions: [
@@ -307,6 +324,7 @@ describe("GET /api/data/pricing-options", () => {
             name: "Administracion",
             businessLine: "licenciatura",
             planPdfUrl: "https://example.com/lic.pdf",
+            planDownloadUrl: "https://example.com/lic.pdf",
           },
         ],
         pricingOptions: [
@@ -329,6 +347,7 @@ describe("GET /api/data/pricing-options", () => {
             name: "Bachillerato UNIDEP",
             businessLine: "prepa",
             planPdfUrl: "https://example.com/prepa.pdf",
+            planDownloadUrl: "https://example.com/prepa.pdf",
           },
         ],
         pricingOptions: [
@@ -351,6 +370,7 @@ describe("GET /api/data/pricing-options", () => {
             name: "Maestría en Educación",
             businessLine: "posgrado",
             planPdfUrl: "https://example.com/posgrado.pdf",
+            planDownloadUrl: "https://example.com/posgrado.pdf",
           },
         ],
         pricingOptions: [
@@ -369,24 +389,28 @@ describe("GET /api/data/pricing-options", () => {
         name: "Administracion",
         businessLine: "licenciatura",
         planPdfUrl: "https://example.com/lic.pdf",
+        planDownloadUrl: "https://example.com/lic.pdf",
       },
       {
         id: "program_posgrado",
         name: "Maestría en Educación",
         businessLine: "posgrado",
         planPdfUrl: "https://example.com/posgrado.pdf",
+        planDownloadUrl: "https://example.com/posgrado.pdf",
       },
       {
         id: "program_prepa",
         name: "Bachillerato UNIDEP",
         businessLine: "prepa",
         planPdfUrl: "https://example.com/prepa.pdf",
+        planDownloadUrl: "https://example.com/prepa.pdf",
       },
       {
         id: "program_catalog_salud",
         name: "Licenciatura en Enfermería",
         businessLine: "salud",
         planPdfUrl: "https://example.com/salud.pdf",
+        planDownloadUrl: "https://example.com/salud.pdf",
       },
     ]);
     expect(prismaMock.programOffering.findMany).toHaveBeenCalledWith(
