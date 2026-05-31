@@ -2,13 +2,17 @@ import { AdminCapability } from "@prisma/client";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { listFileAssets } from "@/lib/file-assets";
+import { listContentBucketObjects } from "@/lib/r2-content-bucket";
 import FilesClient from "./FilesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminFilesPage() {
   await requireAdminCapabilityUser(AdminCapability.manage_offers);
-  const files = await listFileAssets({ limit: 500 });
+  const [files, contentBucketFiles] = await Promise.all([
+    listFileAssets({ limit: 500 }),
+    listContentBucketObjects(),
+  ]);
 
   return (
     <div className="grid gap-6 p-6">
@@ -18,7 +22,7 @@ export default async function AdminFilesPage() {
           Gestiona assets reutilizables para programas, previews, formatos y capacitación.
         </p>
       </div>
-      <FilesClient files={files} />
+      <FilesClient files={files} contentBucketFiles={contentBucketFiles} />
     </div>
   );
 }

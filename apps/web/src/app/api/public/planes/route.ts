@@ -19,6 +19,10 @@ import {
   listFileAssetAssignmentsForTargets,
   resolveProgramR2AssetPayload,
 } from "@/lib/file-assets";
+import {
+  listContentBucketObjects,
+  type ContentBucketObject,
+} from "@/lib/r2-content-bucket";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +64,51 @@ async function getOfferedProgramIds(params: {
   return new Set(offerings.map((offering) => offering.programId));
 }
 
+const PROGRAM_MATCH_STOPWORDS = new Set([
+  "bachillerato",
+  "estudio",
+  "estudios",
+  "licenciatura",
+  "plan",
+  "planes",
+  "programa",
+  "unidep",
+]);
+
+function normalizePlanMatchText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\.[a-z0-9]+$/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getMatchTokens(value: string) {
+  return normalizePlanMatchText(value)
+    .split(/\s+/g)
+    .filter((token) => token.length > 2 && !PROGRAM_MATCH_STOPWORDS.has(token));
+}
+
+function findBucketPlanForProgram(
+  programName: string,
+  bucketFiles: ContentBucketObject[],
+) {
+  const tokens = getMatchTokens(programName);
+  if (!tokens.length) return null;
+
+  return (
+    bucketFiles.find((file) => {
+      if (file.mimeType !== "application/pdf") return false;
+      const fileText = normalizePlanMatchText(`${file.key} ${file.fileName}`);
+      const matches = tokens.filter((token) => fileText.includes(token)).length;
+      return matches >= Math.max(1, Math.ceil(tokens.length * 0.6));
+    }) ?? null
+  );
+}
+
 async function loadPlanesPayload(params: {
   lineRaw: string;
   query: string;
@@ -75,17 +124,21 @@ async function loadPlanesPayload(params: {
   const visiblePrograms = offeredProgramIds
     ? programs.filter((program) => offeredProgramIds.has(program.id))
     : programs;
-  const r2Assignments = await listFileAssetAssignmentsForTargets(
-    "program",
-    visiblePrograms.map((program) => program.id),
-  );
+  const [r2Assignments, bucketFiles] = await Promise.all([
+    listFileAssetAssignmentsForTargets(
+      "program",
+      visiblePrograms.map((program) => program.id),
+    ),
+    listContentBucketObjects(),
+  ]);
 
   return {
     programs: visiblePrograms.map((program) => {
       const legacyPlanUrl = getUnidepProgramPlanUrl(program);
+      const bucketPlan = findBucketPlanForProgram(program.name, bucketFiles);
       const r2Payload = resolveProgramR2AssetPayload({
         programId: program.id,
-        planPdfUrl: legacyPlanUrl,
+        planPdfUrl: legacyPlanUrl ?? bucketPlan?.previewUrl ?? null,
         brochurePdfUrl: program.brochurePdfUrl ?? null,
         assets: r2Assignments.get(program.id) ?? {},
       });
@@ -94,14 +147,16 @@ async function loadPlanesPayload(params: {
         name: program.name,
         category: program.category,
         businessLine: program.businessLine,
-        planPdfUrl: r2Payload.planPdfUrl,
-        planDownloadUrl: r2Payload.planDownloadUrl,
+        planPdfUrl: r2Payload.planPdfUrl ?? bucketPlan?.previewUrl ?? null,
+        planDownloadUrl:
+          r2Payload.planDownloadUrl ?? bucketPlan?.downloadUrl ?? null,
         heroImageUrl: r2Payload.heroImageUrl,
         thumbnailImageUrl: r2Payload.thumbnailImageUrl,
-        hasPlan: Boolean(r2Payload.planPdfUrl ?? legacyPlanUrl),
+        hasPlan: Boolean(r2Payload.planPdfUrl ?? legacyPlanUrl ?? bucketPlan),
         r2Assets: r2Payload.r2Assets,
       };
     }).filter((program) => program.hasPlan),
+    bucketFiles,
   };
 }
 

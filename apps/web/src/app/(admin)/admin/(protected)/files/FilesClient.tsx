@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets";
+import type { ContentBucketObject } from "@/lib/r2-content-bucket";
 
 type PresignResponse =
   | {
@@ -100,7 +101,59 @@ function FileRows({ files }: { files: FileAssetRecord[] }) {
   });
 }
 
-export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
+function ContentBucketRows({ files }: { files: ContentBucketObject[] }) {
+  if (!files.length) {
+    return (
+      <tr>
+        <td className="p-4 text-slate-400" colSpan={5}>
+          No se pudieron listar archivos del bucket content.
+        </td>
+      </tr>
+    );
+  }
+
+  return files.map((file) => (
+    <tr key={file.key} className="border-t border-white/10">
+      <td className="p-3">
+        <div className="font-semibold text-slate-100">{file.fileName}</div>
+        <div className="mt-1 max-w-[420px] truncate text-xs text-slate-500">{file.key}</div>
+      </td>
+      <td className="p-3 text-slate-300">{file.mimeType}</td>
+      <td className="p-3 text-slate-300">{formatBytes(file.sizeBytes)}</td>
+      <td className="p-3 text-slate-300">
+        {file.lastModified
+          ? new Date(file.lastModified).toLocaleDateString("es-MX")
+          : "—"}
+      </td>
+      <td className="p-3">
+        <div className="flex justify-end gap-2">
+          <a
+            href={file.previewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+          >
+            Preview
+          </a>
+          <a
+            href={file.downloadUrl}
+            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+          >
+            Descargar
+          </a>
+        </div>
+      </td>
+    </tr>
+  ));
+}
+
+export default function FilesClient({
+  files,
+  contentBucketFiles,
+}: {
+  files: FileAssetRecord[];
+  contentBucketFiles: ContentBucketObject[];
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [notice, setNotice] = useState("");
@@ -285,6 +338,31 @@ export default function FilesClient({ files }: { files: FileAssetRecord[] }) {
             </thead>
             <tbody>
               <FileRows files={files} />
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="ui-card overflow-hidden">
+        <div className="border-b border-white/10 px-4 py-3">
+          <div className="text-sm font-semibold text-slate-100">Bucket content: planes-de-estudio</div>
+          <div className="mt-1 text-xs text-slate-400">
+            Lectura directa desde R2 público/Data Catalog para validar archivos antes de relacionarlos.
+          </div>
+        </div>
+        <div className="ui-scrollbar overflow-auto">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
+            <thead className="bg-slate-950/80 text-slate-300">
+              <tr>
+                <th className="p-3 text-left font-semibold">Archivo</th>
+                <th className="p-3 text-left font-semibold">Tipo</th>
+                <th className="p-3 text-left font-semibold">Tamaño</th>
+                <th className="p-3 text-left font-semibold">Modificado</th>
+                <th className="p-3 text-right font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ContentBucketRows files={contentBucketFiles} />
             </tbody>
           </table>
         </div>

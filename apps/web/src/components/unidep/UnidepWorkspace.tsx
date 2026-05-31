@@ -81,6 +81,16 @@ type PlanProgram = {
   hasPlan: boolean;
 };
 
+type ContentBucketFile = {
+  key: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  lastModified: string | null;
+  previewUrl: string;
+  downloadUrl: string;
+};
+
 type EnrollmentFormat = {
   id: string;
   title: string;
@@ -721,6 +731,7 @@ function PlanesSection() {
   const [line, setLine] = useState("licenciatura");
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<PlanProgram[]>([]);
+  const [bucketFiles, setBucketFiles] = useState<ContentBucketFile[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -734,9 +745,13 @@ function PlanesSection() {
         const res = await fetch(`/api/public/planes?${params.toString()}`, {
           cache: "no-store",
         });
-        const data = (await res.json()) as { programs?: PlanProgram[] };
+        const data = (await res.json()) as {
+          programs?: PlanProgram[];
+          bucketFiles?: ContentBucketFile[];
+        };
         if (!mounted) return;
         setRows(data.programs ?? []);
+        setBucketFiles(data.bucketFiles ?? []);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -781,73 +796,156 @@ function PlanesSection() {
       {loading ? (
         <div className="mt-4 text-sm text-slate-300">Cargando programas...</div>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
-            >
-              {row.planPdfUrl ? (
-                <div className="h-40 overflow-hidden border-b border-white/10 bg-white">
-                  <iframe
-                    src={row.planPdfUrl}
-                    title={`Preview plan: ${row.name}`}
-                    className="h-full w-full"
-                  />
-                </div>
-              ) : (row.thumbnailImageUrl ?? row.heroImageUrl) ? (
-                <div className="h-40 border-b border-white/10 bg-black/20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={row.thumbnailImageUrl ?? row.heroImageUrl ?? ""}
-                    alt={row.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ) : null}
-              <div className="p-4">
-                <div className="font-semibold text-slate-100">{row.name}</div>
-                {row.category && (
-                  <div className="mt-0.5 text-xs text-slate-400">{row.category}</div>
-                )}
-                <div className="mt-3">
-                  <span
-                    className={
-                      row.hasPlan
-                        ? "rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200"
-                        : "rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-500"
-                    }
-                  >
-                    {row.hasPlan ? "Plan disponible" : "Plan no disponible"}
-                  </span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {row.planPdfUrl ? (
-                    <a
-                      href={row.planPdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="ui-button-secondary min-h-[32px] rounded-full px-3 py-1 text-xs"
+        <>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {rows.map((row) => (
+              <div
+                key={row.id}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
+              >
+                {row.planPdfUrl ? (
+                  <div className="h-40 overflow-hidden border-b border-white/10 bg-white">
+                    <iframe
+                      src={row.planPdfUrl}
+                      title={`Preview plan: ${row.name}`}
+                      className="h-full w-full"
+                    />
+                  </div>
+                ) : (row.thumbnailImageUrl ?? row.heroImageUrl) ? (
+                  <div className="h-40 border-b border-white/10 bg-black/20">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={row.thumbnailImageUrl ?? row.heroImageUrl ?? ""}
+                      alt={row.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+                <div className="p-4">
+                  <div className="font-semibold text-slate-100">{row.name}</div>
+                  {row.category && (
+                    <div className="mt-0.5 text-xs text-slate-400">{row.category}</div>
+                  )}
+                  <div className="mt-3">
+                    <span
+                      className={
+                        row.hasPlan
+                          ? "rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200"
+                          : "rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-500"
+                      }
                     >
-                      Abrir preview
-                    </a>
-                  ) : null}
-                  {row.planDownloadUrl ? (
-                    <a
-                      href={row.planDownloadUrl}
-                      className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
-                    >
-                      Descargar
-                    </a>
-                  ) : null}
+                      {row.hasPlan ? "Plan disponible" : "Plan no disponible"}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {row.planPdfUrl ? (
+                      <a
+                        href={row.planPdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ui-button-secondary min-h-[32px] rounded-full px-3 py-1 text-xs"
+                      >
+                        Abrir preview
+                      </a>
+                    ) : null}
+                    {row.planDownloadUrl ? (
+                      <a
+                        href={row.planDownloadUrl}
+                        className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
+                      >
+                        Descargar
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               </div>
+            ))}
+            {!rows.length ? (
+              <div className="col-span-full text-sm text-slate-300">Sin resultados.</div>
+            ) : null}
+          </div>
+
+          <div className="mt-8">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                  Bucket content
+                </div>
+                <h3 className="mt-1 text-base font-semibold text-slate-100">
+                  Archivos disponibles en planes-de-estudio
+                </h3>
+              </div>
+              <div className="text-xs text-slate-400">
+                {bucketFiles.length} archivo(s)
+              </div>
             </div>
-          ))}
-          {!rows.length ? (
-            <div className="col-span-full text-sm text-slate-300">Sin resultados.</div>
-          ) : null}
-        </div>
+
+            {bucketFiles.length ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {bucketFiles.map((file) => {
+                  const showPdf = isPdfPreview(file.previewUrl, file.mimeType);
+                  const showImage = file.mimeType.startsWith("image/");
+                  const fileSize = formatFileSize(file.sizeBytes);
+                  return (
+                    <div
+                      key={file.key}
+                      className="grid min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
+                    >
+                      {showPdf ? (
+                        <div className="h-36 overflow-hidden border-b border-white/10 bg-white">
+                          <iframe
+                            src={file.previewUrl}
+                            title={`Preview bucket: ${file.fileName}`}
+                            className="h-full w-full"
+                          />
+                        </div>
+                      ) : showImage ? (
+                        <div className="h-36 overflow-hidden border-b border-white/10 bg-black/20">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={file.previewUrl}
+                            alt={file.fileName}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : null}
+                      <div className="grid min-w-0 gap-3 p-4">
+                        <div>
+                          <div className="break-words font-semibold text-slate-100">
+                            {file.fileName}
+                          </div>
+                          <div className="mt-1 truncate text-xs text-slate-500">
+                            {[file.mimeType, fileSize].filter(Boolean).join(" · ")}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={file.previewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="ui-button-secondary min-h-[32px] rounded-full px-3 py-1 text-xs"
+                          >
+                            Abrir preview
+                          </a>
+                          <a
+                            href={file.downloadUrl}
+                            className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
+                          >
+                            Descargar
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                Sin archivos listables del bucket content en este ambiente.
+              </div>
+            )}
+          </div>
+        </>
       )}
     </section>
   );

@@ -33,6 +33,10 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/lib/r2-content-bucket", () => ({
+  listContentBucketObjects: vi.fn().mockResolvedValue([]),
+}));
+
 import { GET } from "./route";
 
 describe("GET /api/public/planes", () => {
