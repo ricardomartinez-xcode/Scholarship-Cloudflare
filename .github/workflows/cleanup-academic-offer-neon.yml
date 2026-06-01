@@ -3,6 +3,11 @@ name: Cleanup academic offer data in Neon
 on:
   workflow_dispatch:
     inputs:
+      placeholder:
+        description: "Optional JSON overrides for ChatGPT/tooling, e.g. {\"dry_run\":\"false\",\"confirm\":\"DELETE_STALE_ACADEMIC_OFFER\"}"
+        required: false
+        default: "{}"
+        type: string
       dry_run:
         description: "Run without deleting records"
         required: true
@@ -36,10 +41,11 @@ jobs:
     timeout-minutes: 10
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.POSTGRES_PRISMA_URL || secrets.POSTGRES_URL }}
-      DRY_RUN: ${{ inputs.dry_run }}
-      CONFIRM_DELETE: ${{ inputs.confirm }}
-      CLEANUP_DAY_START: ${{ inputs.cleanup_day_start }}
-      CLEANUP_DAY_END: ${{ inputs.cleanup_day_end }}
+      INPUT_PLACEHOLDER: ${{ inputs.placeholder }}
+      INPUT_DRY_RUN: ${{ inputs.dry_run }}
+      INPUT_CONFIRM_DELETE: ${{ inputs.confirm }}
+      INPUT_CLEANUP_DAY_START: ${{ inputs.cleanup_day_start }}
+      INPUT_CLEANUP_DAY_END: ${{ inputs.cleanup_day_end }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,6 +61,51 @@ jobs:
 
       - name: Generate Prisma client
         run: npm run db:generate
+
+      - name: Resolve cleanup inputs
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          let placeholder = {};
+          const raw = process.env.INPUT_PLACEHOLDER || "{}";
+
+          try {
+            placeholder = raw.trim() ? JSON.parse(raw) : {};
+          } catch (error) {
+            throw new Error(`Invalid placeholder JSON: ${error.message}`);
+          }
+
+          const values = {
+            DRY_RUN: String(placeholder.dry_run ?? process.env.INPUT_DRY_RUN ?? "true"),
+            CONFIRM_DELETE: String(placeholder.confirm ?? process.env.INPUT_CONFIRM_DELETE ?? ""),
+            CLEANUP_DAY_START: String(
+              placeholder.cleanup_day_start ??
+                process.env.INPUT_CLEANUP_DAY_START ??
+                "2026-05-31T00:00:00-06:00",
+            ),
+            CLEANUP_DAY_END: String(
+              placeholder.cleanup_day_end ??
+                process.env.INPUT_CLEANUP_DAY_END ??
+                "2026-06-01T00:00:00-06:00",
+            ),
+          };
+
+          for (const [key, value] of Object.entries(values)) {
+            fs.appendFileSync(process.env.GITHUB_ENV, `${key}=${value.replace(/\n/g, " ")}\n`);
+          }
+
+          console.log(
+            JSON.stringify(
+              {
+                ...values,
+                CONFIRM_DELETE: values.CONFIRM_DELETE ? "***" : "",
+              },
+              null,
+              2,
+            ),
+          );
+          NODE
 
       - name: Validate Neon connection secret
         run: |
