@@ -1,0 +1,36 @@
+/* Contactos / Prospectos: reemplaza los botones de Acción por iconos compactos. */
+
+.ui-table.ui-table--compact.min-w-\[980px\] thead th:last-child {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  text-align: center;
+}
+
+.ui-table.ui-table--compact.min-w-\[980px\] tbody td:last-child {
+  text-align: center;
+}
+
+.ui-table.ui-table--compact.min-w-\[980px\] tbody td:last-child > button {
+  display: inline-flex;
+  width: 2.25rem;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 9999px;
+  font-size: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ui-table.ui-table--compact.min-w-\[980px\] tbody td:last-child > button::before {
+  content: "✎";
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.ui-table.ui-table--compact.min-w-\[980px\] tbody td:last-child > button[class*="emerald"]::before {
+  content: "✓";
+  font-size: 1rem;
+}
