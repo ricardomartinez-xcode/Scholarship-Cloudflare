@@ -8,9 +8,9 @@
       messageInput:
         "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
       sendButton:
-        "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], button[aria-label='Enviar'], button[aria-label='Send'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
+        "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], button[aria-label='Enviar'], button[aria-label='Send'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
       attachButton:
-        "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus'], span[data-icon='plus-rounded']",
+        "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus-i'], span[data-icon='plus'], span[data-icon='plus-rounded']",
       mediaCaptionInput:
         "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6']",
       conversationReady:
@@ -112,6 +112,7 @@
 
     const previewSpecificSelectors = [
       "span[data-icon='wds-ic-send-filled']",
+      "span[data-icon='send-i']",
       "span[data-icon='send-filled']",
       "div[role='button'][aria-label='Enviar']",
       "div[role='button'][aria-label='Send']",
@@ -238,7 +239,7 @@
   function findAttachmentMenuOptions() {
     const candidates = Array.from(
       document.querySelectorAll(
-        "[role='menuitem'], [data-animate-dropdown-item='true'], li [role='button'], li button",
+        "[role='menu'] [role='menuitem'], [role='menuitem'], [data-animate-dropdown-item='true'], div[role='application'] li[role='button'], li[role='button'], li [role='button'], li button",
       ),
     )
       .filter((node) => isVisible(node))

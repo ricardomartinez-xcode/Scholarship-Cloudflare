@@ -4,9 +4,9 @@ const DEFAULT_SELECTOR_PACK = {
     messageInput:
       "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
     sendButton:
-      "button[aria-label='Enviar'], button[aria-label='Send'], span[data-icon='send']",
+      "button[aria-label='Enviar'], button[aria-label='Send'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
     attachButton:
-      "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus'], span[data-icon='plus-rounded']",
+      "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus-i'], span[data-icon='plus'], span[data-icon='plus-rounded']",
     fileInput:
       "input[type='file'][accept*='image'], input[type='file'][accept*='video'], input[type='file']",
     mediaCaptionInput:
