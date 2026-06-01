@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const APP_BASE_URL = "https://recalc.relead.com.mx";
   const PANEL_CONFIG_REFRESH_MS = 20 * 1000;
+  const DATA_REFRESH_MS = 60 * 1000;
   const EXTENSION_SESSION_TOKEN_HEADER = "x-extension-session-token";
   const EXTENSION_SESSION_TOKEN_KEY = "recalc.extensionSessionToken";
   const ACTIVE_TAB_KEY = "recalc.extensionActiveTab";
@@ -37,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     authLogout: document.getElementById("auth-logout"),
     sessionEmail: document.getElementById("session-email"),
     syncTime: document.getElementById("sync-time"),
+    runtimeMode: document.getElementById("runtime-mode"),
     tipoSelect: document.getElementById("tipo-select"),
     nivelSelect: document.getElementById("nivel-select"),
     modalidadSelect: document.getElementById("modalidad-select"),
@@ -71,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resultFinalTotalLine: document.getElementById("result-final-total-line"),
     resultFinalTotal: document.getElementById("result-final-total"),
     resultMeta: document.getElementById("result-meta"),
+    quoteSource: document.getElementById("quote-source"),
     quoteMessagePreview: document.getElementById("quote-message-preview"),
     quoteTemplateStatus: document.getElementById("quote-template-status"),
     tabButtons: Array.from(document.querySelectorAll("[data-tab-target]")),
@@ -463,6 +466,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     state.extensionBootstrap = data;
+    if (refs.runtimeMode) {
+      const quoteMode = String(data.quoteMode || "canonical").toLowerCase();
+      refs.runtimeMode.textContent = quoteMode === "canonical" ? "Backend canónico" : quoteMode;
+    }
     return data;
   }
 
@@ -515,12 +522,6 @@ document.addEventListener("DOMContentLoaded", () => {
     else populate(refs.materiasSelect, [], "No aplica", "");
   }
 
-  function hasMatchingQuoteRule(enrollmentType, businessLine, modality, plan) {
-    return state.pricingOptions.some((option) =>
-      optionMatches(option, enrollmentType, businessLine, modality) && Number(option.plan) === Number(plan),
-    );
-  }
-
   function describeQuoteSelection(businessLine, modality, plan) {
     return [
       labelBusinessLine(businessLine),
@@ -551,6 +552,19 @@ document.addEventListener("DOMContentLoaded", () => {
     state.lastSyncAt = Date.now();
     refs.syncTime.textContent = new Date(state.lastSyncAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
     renderSelectors();
+  }
+
+  async function syncLiveRuntime({ silent = false } = {}) {
+    try {
+      await loadBootstrap();
+      await loadExtensionBootstrap();
+      await loadBenefits();
+      await loadFees();
+      return true;
+    } catch (error) {
+      if (!silent) throw error;
+      return false;
+    }
   }
 
   async function loadBenefits() {
@@ -679,14 +693,6 @@ document.addEventListener("DOMContentLoaded", () => {
       resetQuote("Selecciona las materias inscritas y vuelve a calcular.", { preserveError: true });
       return;
     }
-    if (!hasMatchingQuoteRule(refs.tipoSelect.value, businessLine, modality, plan)) {
-      showError(
-        refs.quoteError,
-        `No hay regla activa para ${describeQuoteSelection(businessLine, modality, plan)}. Cambia línea, modalidad o plan de estudios.`,
-      );
-      resetQuote("Ajusta la combinación y vuelve a calcular.", { preserveError: true });
-      return;
-    }
     refs.resultEmpty.textContent = "Consultando cotización...";
     refs.resultEmpty.classList.remove("hidden");
     refs.resultPanel.classList.add("hidden");
@@ -751,12 +757,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (refs.resultFinalTotal) refs.resultFinalTotal.textContent = money(finalTotal);
       }
       refs.resultMeta.textContent = [
+        "Backend Scholarship en vivo",
         describeQuoteSelection(businessLine, modality, plan),
         refs.plantelSelect.value || (canonModality(modality) === "online" ? "Online" : ""),
         data.tier ? `Tier ${data.tier}` : "",
         data.additionalBenefitDuration ? `Beneficio: ${data.additionalBenefitDuration}` : "",
         data.firstPaymentDuration ? `Primer pago: ${data.firstPaymentDuration}` : "",
       ].filter(Boolean).join(" · ") || "Resultado sincronizado con el backend oficial.";
+      if (refs.quoteSource) {
+        refs.quoteSource.textContent = data.modeUsed === "canonical"
+          ? "Backend canónico"
+          : "Backend en vivo";
+      }
       state.lastQuote = {
         enrollmentType: refs.tipoSelect.value,
         businessLine: canonBusinessLine(businessLine),
@@ -832,10 +844,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setView("loading");
     setStatus("success", "Sincronizando", "syncing");
     try {
-      await loadBootstrap();
-      await loadExtensionBootstrap();
-      await loadBenefits();
-      await loadFees();
+      await syncLiveRuntime();
       setStatus("success", "Conectado", "connected");
       setView("app");
     } catch {
@@ -884,10 +893,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.email = session.email;
     refs.sessionEmail.textContent = session.email;
     try {
-      await loadBootstrap();
-      await loadExtensionBootstrap();
-      await loadBenefits();
-      await loadFees();
+      await syncLiveRuntime();
       refs.syncTime.textContent = state.lastSyncAt
         ? new Date(state.lastSyncAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
         : "Pendiente";
@@ -1074,10 +1080,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.refreshData.disabled = true;
     refs.refreshData.textContent = "Sincronizando...";
     try {
-      await loadBootstrap();
-      await loadExtensionBootstrap();
-      await loadBenefits();
-      await loadFees();
+      await syncLiveRuntime();
       await loadPanelConfig();
       setStatus("success", "Conectado", "connected");
     } catch {
@@ -1139,12 +1142,21 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
       void loadPanelConfig();
+      if (!refs.appView?.classList.contains("hidden")) {
+        void syncLiveRuntime({ silent: true });
+      }
     }
   });
 
   window.setInterval(() => {
     void loadPanelConfig();
   }, PANEL_CONFIG_REFRESH_MS);
+
+  window.setInterval(() => {
+    if (document.hidden) return;
+    if (refs.appView?.classList.contains("hidden")) return;
+    void syncLiveRuntime({ silent: true });
+  }, DATA_REFRESH_MS);
 
   activateTab(getStoredActiveTab() || "quote-panel");
   void bootstrap();

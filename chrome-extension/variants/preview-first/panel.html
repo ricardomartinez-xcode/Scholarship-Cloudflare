@@ -23,6 +23,7 @@
           <span class="eyebrow">Sesión activa</span>
           <strong id="session-email">Sin correo</strong>
           <span class="sync-badge">Última sync <strong id="sync-time">Pendiente</strong></span>
+          <span class="sync-badge sync-badge--live">Cotización <strong id="runtime-mode">Backend canónico</strong></span>
         </div>
       </div>
       <div class="hero-actions">
@@ -122,7 +123,7 @@
           </section>
 
           <aside class="card quote-card-aside">
-            <div class="section-head"><div><span class="eyebrow">Resultado</span><h2>Cotización</h2></div></div>
+            <div class="section-head"><div><span class="eyebrow">Resultado</span><h2>Cotización</h2></div><span id="quote-source" class="pill">Backend en vivo</span></div>
             <div id="quote-error" class="feedback feedback-error hidden"></div>
             <div id="result-empty" class="empty-state">Completa los campos para ver el resultado.</div>
             <div id="result-panel" class="hidden result-stack">
@@ -144,7 +145,7 @@
                   <span id="quote-template-status" class="pill">Sin preparar</span>
                 </div>
                 <label class="field"><span>Texto que se enviará</span><textarea id="quote-message-preview" rows="8" placeholder="Calcula una cotización para generar el mensaje."></textarea></label>
-                <p class="helper-text">Revísalo o edítalo antes de pulsar <strong>Mandar cotización</strong>. El texto solo se insertará una vez.</p>
+                <p class="helper-text">El cálculo se consulta en Scholarship en vivo; revisa o edita el texto antes de pulsar <strong>Mandar cotización</strong>.</p>
               </div>
             </div>
           </aside>
@@ -155,7 +156,7 @@
         <section class="campaign-stack">
           <section class="card runner-card runner-card--compact">
             <div class="section-head"><div><span class="eyebrow">Runner</span><h2>Ejecución actual</h2></div><button id="campaign-stop-runner" class="btn btn-ghost btn-compact" type="button">Forzar pausa</button></div>
-            <div id="runner-status-card" class="runner-inline runner-inline--compact"><div><strong id="runner-status-title">Sin ejecución activa</strong><p id="runner-status-copy" class="muted">Crea una campaña y ejecútala desde esta pestaña.</p></div><span id="campaign-api-pill" class="pill">Esperando sesión</span></div>
+            <div id="runner-status-card" class="runner-inline runner-inline--compact"><div><strong id="runner-status-title">Sin ejecución activa</strong><p id="runner-status-copy" class="muted">Crea una campaña y ejecútala desde esta pestaña.</p></div><span id="campaign-api-pill" class="pill">SelecPack seguro</span></div>
             <div class="stats-grid stats-grid--runner stats-grid--compact">
               <div class="stat-card stat-card--compact"><span class="meta-label">Campañas</span><strong id="summary-campaigns">0</strong></div>
               <div class="stat-card stat-card--compact"><span class="meta-label">Contactos</span><strong id="summary-recipients">0</strong></div>

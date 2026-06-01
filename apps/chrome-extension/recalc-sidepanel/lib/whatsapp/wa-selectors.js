@@ -64,16 +64,46 @@
       .toLowerCase();
   }
 
-  function matchAnyText(node, needles) {
-    const haystack = [
-      node?.getAttribute?.("aria-label"),
-      node?.getAttribute?.("title"),
-      node?.textContent,
-      node?.innerText,
-    ]
+  function resolveClickable(target) {
+    if (!(target instanceof Element)) return null;
+    return (
+      target.closest?.("button, [role='button'], [role='menuitem'], label, [tabindex]") ||
+      target
+    );
+  }
+
+  function accessibleText(node) {
+    if (!(node instanceof Element)) return "";
+    const parts = [
+      node.getAttribute?.("aria-label"),
+      node.getAttribute?.("title"),
+      node.getAttribute?.("data-icon"),
+      node.textContent,
+      node.innerText,
+    ];
+
+    try {
+      node.querySelectorAll?.("[aria-label], [title], [data-icon], title")?.forEach((child) => {
+        parts.push(
+          child.getAttribute?.("aria-label"),
+          child.getAttribute?.("title"),
+          child.getAttribute?.("data-icon"),
+          child.textContent,
+          child.innerText,
+        );
+      });
+    } catch {
+      // Some DOM shims used by tests do not implement full selector parsing.
+    }
+
+    return parts
       .map((value) => String(value || "").trim().toLowerCase())
       .filter(Boolean)
       .join(" ");
+  }
+
+  function matchAnyText(node, needles) {
+    const haystack = accessibleText(node);
 
     return needles.some((needle) => haystack.includes(String(needle).trim().toLowerCase()));
   }
@@ -135,7 +165,8 @@
   }
 
   function findAttachButton(pack) {
-    return firstVisible(getSelector("attachButton", pack));
+    const target = firstVisible(getSelector("attachButton", pack));
+    return resolveClickable(target);
   }
 
   function findConversationReady(pack) {
@@ -244,7 +275,7 @@
     )
       .filter((node) => isVisible(node))
       .map((node) =>
-        node.closest?.("[role='menuitem'], button, [role='button'], li") ||
+        resolveClickable(node.closest?.("[role='menuitem'], button, [role='button'], li") || node) ||
         (node instanceof Element ? node : null),
       )
       .filter(Boolean);
@@ -264,6 +295,7 @@
     firstVisible,
     textContent,
     matchAnyText,
+    resolveClickable,
     findMessageInput,
     findSendButton,
     findPreviewSendButton,

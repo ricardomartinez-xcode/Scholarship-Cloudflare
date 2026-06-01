@@ -759,7 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
       throw new Error(data?.error || "No fue posible cargar el bootstrap de la extension.");
     }
     state.bootstrap = data;
-    setApiPill("success", "Conectado con Scholarship");
+    setApiPill("success", "SelecPack activo");
     return data;
   }
 

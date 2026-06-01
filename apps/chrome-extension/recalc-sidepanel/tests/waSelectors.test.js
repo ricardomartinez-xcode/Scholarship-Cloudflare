@@ -69,3 +69,94 @@ test("prefers richer media input when WhatsApp exposes one", () => {
 
   assert.equal(selected, inputNodes[1]);
 });
+
+test("resolves Premium Sender style attach icons to the clickable button", () => {
+  class Element {
+    constructor(name) {
+      this.name = name;
+      this.disabled = false;
+    }
+
+    getBoundingClientRect() {
+      return { width: 10, height: 10 };
+    }
+
+    closest(selector) {
+      return selector.includes("button") ? this.parentButton || null : null;
+    }
+  }
+
+  const button = new Element("button");
+  const icon = new Element("icon");
+  icon.parentButton = button;
+
+  const context = {
+    Element,
+    HTMLInputElement: class HTMLInputElement extends Element {},
+    document: {
+      querySelector() {
+        return null;
+      },
+      querySelectorAll(selector) {
+        return selector.includes("data-icon='plus") ? [icon] : [];
+      },
+    },
+    getComputedStyle() {
+      return { display: "block", visibility: "visible" };
+    },
+  };
+  context.window = context;
+  vm.createContext(context);
+  vm.runInContext(selectorsSource, context, { filename: "wa-selectors.js" });
+
+  assert.equal(context.RecalcWaSelectors.findAttachButton(), button);
+});
+
+test("matches attachment options by descendant labels when the option text is icon-only", () => {
+  class Element {
+    constructor({ label = "", text = "", visible = true, children = [] } = {}) {
+      this.label = label;
+      this.textContent = text;
+      this.innerText = text;
+      this.visible = visible;
+      this.children = children;
+    }
+
+    getAttribute(name) {
+      return name === "aria-label" || name === "title" ? this.label : null;
+    }
+
+    getBoundingClientRect() {
+      return this.visible ? { width: 10, height: 10 } : { width: 0, height: 0 };
+    }
+
+    querySelectorAll(selector) {
+      return selector.includes("aria-label") || selector.includes("title")
+        ? this.children
+        : [];
+    }
+  }
+
+  const mediaLabel = new Element({ label: "Photos & videos" });
+  const mediaOption = new Element({ children: [mediaLabel] });
+  const context = {
+    Element,
+    HTMLInputElement: class HTMLInputElement extends Element {},
+    document: {
+      querySelector() {
+        return null;
+      },
+      querySelectorAll(selector) {
+        return selector.includes("[role='menuitem']") ? [mediaOption] : [];
+      },
+    },
+    getComputedStyle() {
+      return { display: "block", visibility: "visible" };
+    },
+  };
+  context.window = context;
+  vm.createContext(context);
+  vm.runInContext(selectorsSource, context, { filename: "wa-selectors.js" });
+
+  assert.equal(context.RecalcWaSelectors.findAttachmentOption("media"), mediaOption);
+});

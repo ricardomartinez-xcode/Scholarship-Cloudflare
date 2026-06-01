@@ -1214,6 +1214,67 @@ textarea {
   height: 34px;
   max-width: 170px;
 }
+
+/* ReCalc extension release 6.1.0 live backend and SelecPack polish */
+.sync-badge--live {
+  border-color: rgba(108, 181, 20, 0.48);
+  background: rgba(108, 181, 20, 0.2);
+}
+
+#quote-source {
+  border-color: rgba(108, 181, 20, 0.28);
+  background: var(--success-soft);
+  color: #315b16;
+}
+
+.quote-card-main,
+.quote-card-aside,
+.campaign-card,
+.report-detail-card {
+  overflow: hidden;
+}
+
+.quote-card-aside .section-head,
+.runner-card .section-head,
+.report-toolbar .section-head {
+  align-items: flex-start;
+}
+
+.quote-card-aside .template-box textarea {
+  min-height: 132px;
+}
+
+.campaign-card .compact-section {
+  background: linear-gradient(180deg, #ffffff 0%, var(--surface-muted) 100%);
+}
+
+.runner-inline--compact #campaign-api-pill {
+  border-color: rgba(17, 78, 109, 0.24);
+  background: #eef7fb;
+  color: var(--brand-deep);
+}
+
+@media (min-width: 980px) {
+  .quote-card-aside {
+    position: sticky;
+    top: 58px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-session__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-session__meta strong,
+  .sync-badge {
+    width: 100%;
+  }
+
+  #quote-source {
+    width: 100%;
+  }
+}
 .result-callout {
   border: 1px solid rgba(108, 181, 20, 0.28);
   border-radius: var(--radius-xl);
