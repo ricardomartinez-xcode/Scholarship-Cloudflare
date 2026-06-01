@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { realtimeTopics } from "@/lib/realtime-topics";
+import { subscribeToPrivateBroadcast } from "@/lib/supabase/client";
 
 type Identity = {
   userId: string;
@@ -17,6 +20,14 @@ type ThreadSummary = {
   lastMessagePreview: string | null;
   lastMessageSender: Identity | null;
   participants: Identity[];
+};
+
+type MessageSummary = {
+  id: string;
+  threadId: string;
+  content: string;
+  createdAt: string;
+  sender: Identity;
 };
 
 type InboxThreadsPayload = {
@@ -77,6 +88,14 @@ async function fetchInboxThreads() {
   return (await response.json()) as InboxThreadsPayload;
 }
 
+function sortThreadsByActivity(threads: ThreadSummary[]) {
+  return [...threads].sort((left, right) => {
+    const leftTime = left.lastMessageAt ?? left.updatedAt;
+    const rightTime = right.lastMessageAt ?? right.updatedAt;
+    return new Date(rightTime).getTime() - new Date(leftTime).getTime();
+  });
+}
+
 export default function InboxDock() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"notifications" | "quick-reply">(
@@ -92,11 +111,30 @@ export default function InboxDock() {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">(
     "idle",
   );
+  const handledMessageIdsRef = useRef<Set<string>>(new Set());
 
   const applyThreadsPayload = useCallback((payload: InboxThreadsPayload) => {
     setThreads(payload.threads ?? []);
     setViewer(payload.viewer ?? null);
     setStatus("ready");
+  }, []);
+
+  const updateThreadPreview = useCallback((message: MessageSummary) => {
+    setThreads((current) =>
+      sortThreadsByActivity(
+        current.map((thread) =>
+          thread.id === message.threadId
+            ? {
+                ...thread,
+                updatedAt: message.createdAt,
+                lastMessageAt: message.createdAt,
+                lastMessagePreview: message.content,
+                lastMessageSender: message.sender,
+              }
+            : thread,
+        ),
+      ),
+    );
   }, []);
 
   useEffect(() => {
@@ -114,7 +152,7 @@ export default function InboxDock() {
     }
 
     loadThreads();
-    const timer = window.setInterval(loadThreads, 60000);
+    const timer = window.setInterval(loadThreads, 300000);
 
     return () => {
       active = false;
@@ -155,14 +193,7 @@ export default function InboxDock() {
     [threads, viewer?.userId],
   );
   const recentThreads = useMemo(
-    () =>
-      [...threads]
-        .sort((left, right) => {
-          const leftTime = left.lastMessageAt ?? left.updatedAt;
-          const rightTime = right.lastMessageAt ?? right.updatedAt;
-          return new Date(rightTime).getTime() - new Date(leftTime).getTime();
-        })
-        .slice(0, 5),
+    () => sortThreadsByActivity(threads).slice(0, 5),
     [threads],
   );
   const selectedThread =
@@ -180,10 +211,53 @@ export default function InboxDock() {
     }
   }, [recentThreads, selectedThreadId]);
 
+  useEffect(() => {
+    if (!recentThreads.length) return;
+
+    const unsubscribers = recentThreads.map((thread) =>
+      subscribeToPrivateBroadcast<MessageSummary>({
+        topic: realtimeTopics.inboxThreadMessages(thread.id),
+        event: "new_message",
+        onMessage: (message) => {
+          if (handledMessageIdsRef.current.has(message.id)) return;
+          handledMessageIdsRef.current.add(message.id);
+          if (handledMessageIdsRef.current.size > 250) {
+            handledMessageIdsRef.current = new Set(
+              Array.from(handledMessageIdsRef.current).slice(-150),
+            );
+          }
+          updateThreadPreview(message);
+        },
+      }),
+    );
+
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe?.());
+    };
+  }, [recentThreads, updateThreadPreview]);
+
   async function sendQuickReply() {
     const content = replyText.trim();
     if (!selectedThread || !content || replyStatus === "sending") return;
+    const createdAt = new Date().toISOString();
+    const optimisticMessage: MessageSummary = {
+      id: `optimistic-${crypto.randomUUID()}`,
+      threadId: selectedThread.id,
+      content,
+      createdAt,
+      sender:
+        viewer ??
+        selectedThread.lastMessageSender ??
+        selectedThread.participants[0] ?? {
+          userId: "local",
+          displayName: "Usuario",
+          email: "",
+        },
+    };
+
     setReplyStatus("sending");
+    setReplyText("");
+    updateThreadPreview(optimisticMessage);
     try {
       const response = await fetch(`/api/unidep/inbox/threads/${selectedThread.id}/messages`, {
         method: "POST",
@@ -191,13 +265,21 @@ export default function InboxDock() {
         body: JSON.stringify({ content }),
       });
       if (!response.ok) throw new Error("quick_reply_failed");
-      setReplyText("");
+      const payload = (await response.json()) as { message?: MessageSummary };
+      if (payload.message) {
+        handledMessageIdsRef.current.add(payload.message.id);
+        updateThreadPreview(payload.message);
+      }
       setReplyStatus("sent");
-      const payload = await fetchInboxThreads();
-      applyThreadsPayload(payload);
       window.setTimeout(() => setReplyStatus("idle"), 1800);
     } catch {
+      setReplyText(content);
       setReplyStatus("error");
+      try {
+        applyThreadsPayload(await fetchInboxThreads());
+      } catch {
+        setStatus("error");
+      }
     }
   }
 
@@ -230,6 +312,8 @@ export default function InboxDock() {
             <button
               type="button"
               role="tab"
+              id="inbox-dock-notifications-tab"
+              aria-controls="inbox-dock-notifications-panel"
               aria-selected={activeTab === "notifications"}
               className="ui-inbox-dock__tab"
               onClick={() => setActiveTab("notifications")}
@@ -239,6 +323,8 @@ export default function InboxDock() {
             <button
               type="button"
               role="tab"
+              id="inbox-dock-quick-reply-tab"
+              aria-controls="inbox-dock-quick-reply-panel"
               aria-selected={activeTab === "quick-reply"}
               className="ui-inbox-dock__tab"
               onClick={() => setActiveTab("quick-reply")}
@@ -248,7 +334,12 @@ export default function InboxDock() {
           </div>
 
           {activeTab === "notifications" ? (
-            <div className="ui-inbox-dock__threads" role="tabpanel">
+            <div
+              id="inbox-dock-notifications-panel"
+              className="ui-inbox-dock__threads"
+              role="tabpanel"
+              aria-labelledby="inbox-dock-notifications-tab"
+            >
               {notifications.length ? (
                 notifications.map((thread) => {
                   const title = notificationTitle(thread, viewer);
@@ -283,7 +374,12 @@ export default function InboxDock() {
               )}
             </div>
           ) : (
-            <div className="ui-inbox-dock__quick-reply" role="tabpanel">
+            <div
+              id="inbox-dock-quick-reply-panel"
+              className="ui-inbox-dock__quick-reply"
+              role="tabpanel"
+              aria-labelledby="inbox-dock-quick-reply-tab"
+            >
               {recentThreads.length ? (
                 <>
                   <div className="ui-inbox-dock__thread-list">
@@ -323,16 +419,30 @@ export default function InboxDock() {
                       setReplyText(event.target.value);
                       if (replyStatus !== "sending") setReplyStatus("idle");
                     }}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        (!event.shiftKey || event.ctrlKey || event.metaKey) &&
+                        !event.nativeEvent.isComposing
+                      ) {
+                        event.preventDefault();
+                        void sendQuickReply();
+                      }
+                    }}
                     placeholder="Escribe una respuesta rápida..."
                     aria-label="Respuesta rápida"
+                    aria-keyshortcuts="Enter Control+Enter Meta+Enter Shift+Enter"
                   />
                   {replyStatus === "error" ? (
-                    <div className="ui-inbox-dock__feedback">
+                    <div className="ui-inbox-dock__feedback" role="status">
                       No fue posible enviar. Intenta desde el inbox completo.
                     </div>
                   ) : null}
                   {replyStatus === "sent" ? (
-                    <div className="ui-inbox-dock__feedback ui-inbox-dock__feedback--ok">
+                    <div
+                      className="ui-inbox-dock__feedback ui-inbox-dock__feedback--ok"
+                      role="status"
+                    >
                       Respuesta enviada.
                     </div>
                   ) : null}

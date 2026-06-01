@@ -538,6 +538,7 @@ export default function InboxWorkspace({
             onChange={(event) => setSearchTerm(event.target.value)}
             className="ui-chat-search"
             placeholder="Buscar por nombre, correo o mensaje"
+            aria-label="Buscar conversaciones de Inbox"
             data-workspace-shortcut="search"
             aria-keyshortcuts="Control+K Meta+K /"
           />
@@ -761,6 +762,7 @@ export default function InboxWorkspace({
             }}
             disabled={!activeThread || activeThread.status !== "active"}
             className="ui-chat-composer__field"
+            aria-label="Mensaje interno"
             aria-keyshortcuts="Enter Control+Enter Meta+Enter Shift+Enter"
             placeholder={
               activeThread

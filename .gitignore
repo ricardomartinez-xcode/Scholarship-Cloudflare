@@ -58,6 +58,7 @@ neon-cleanup-backups/
 .claude/
 .cursor/
 .vscode/
+.superpowers/
 .mcp.json
 _ul
 

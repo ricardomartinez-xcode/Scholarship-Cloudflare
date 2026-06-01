@@ -19,6 +19,7 @@ export function ChatAvatar({
     <div className={cx("ui-chat-avatar", `ui-chat-avatar--${tone}`)}>
       <span>{label}</span>
       <span
+        aria-hidden="true"
         className={cx(
           "ui-chat-avatar__presence",
           online ? "ui-chat-avatar__presence--online" : "ui-chat-avatar__presence--offline",
@@ -52,7 +53,7 @@ export function ChatEmptyState({ title, copy, action }: ChatEmptyStateProps) {
   return (
     <div className="ui-chat-empty">
       <div className="ui-chat-empty__title">{title}</div>
-      <p className="ui-chat-empty__copy">{copy}</p>
+      {copy ? <p className="ui-chat-empty__copy">{copy}</p> : null}
       {action ? <div className="ui-chat-empty__action">{action}</div> : null}
     </div>
   );

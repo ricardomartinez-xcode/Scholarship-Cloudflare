@@ -534,6 +534,7 @@ export default function RolplayWorkspace() {
             value={selectedOrganizationId ?? ""}
             onChange={(event) => selectOrganization(event.target.value)}
             className="ui-chat-field mt-4"
+            aria-label="Organización de capacitación"
           >
             <option value="">Selecciona organización</option>
             {organizations.map((organization) => (
@@ -550,6 +551,7 @@ export default function RolplayWorkspace() {
             value={selectedRoomId}
             onChange={(event) => setSelectedRoomId(event.target.value)}
             className="ui-chat-field mt-3"
+            aria-label="Sala de rolplay"
           >
             <option value="">Selecciona sala</option>
             {rooms.map((room) => (
@@ -564,6 +566,7 @@ export default function RolplayWorkspace() {
             onChange={(event) => setChatSearch(event.target.value)}
             className="ui-chat-search"
             placeholder="Buscar prácticas o salas"
+            aria-label="Buscar prácticas o salas"
             data-workspace-shortcut="search"
             aria-keyshortcuts="Control+K Meta+K /"
           />
@@ -773,6 +776,7 @@ export default function RolplayWorkspace() {
             }}
             disabled={!activeChat || activeChat.status !== "open"}
             className="ui-chat-composer__field"
+            aria-label="Mensaje de práctica"
             aria-keyshortcuts="Enter Control+Enter Meta+Enter Shift+Enter"
             placeholder={
               activeChat
