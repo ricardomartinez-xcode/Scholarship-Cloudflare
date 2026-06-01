@@ -11,7 +11,7 @@ import { writeBusinessEventSafe } from "@/lib/business-events";
 import {
   applyPreparedAcademicOfferImport,
   type PreparedAcademicOfferImportPayload,
-} from "@/lib/importers/academic-offer";
+} from "@/lib/importers/academic-offer-replace";
 import { validateAdminImportPublicationConfirmation } from "@/lib/importers/admin-import-publication";
 import { captureException, logStructured } from "@/lib/observability";
 import {
@@ -120,6 +120,7 @@ export async function POST(
         cycle: summary.cycle,
         campusesProcessed: summary.campusesProcessed,
         offerings: summary.offerings,
+        replacementMode: true,
       },
     });
 
@@ -149,6 +150,7 @@ export async function POST(
       actorEmail: admin?.email ?? null,
       metadata: { message, sessionId },
     }, "Academic offer import apply failed");
+
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_FAILED,
       userId: admin?.id ?? null,
@@ -160,6 +162,7 @@ export async function POST(
         message,
       },
     });
+
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -1,0 +1,67 @@
+name: Cleanup academic offer data in Neon
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run without deleting records"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      confirm:
+        description: "Required for destructive run: DELETE_STALE_ACADEMIC_OFFER"
+        required: false
+        default: ""
+        type: string
+      cleanup_day_start:
+        description: "Mexico City day start for import lookup"
+        required: true
+        default: "2026-05-31T00:00:00-06:00"
+        type: string
+      cleanup_day_end:
+        description: "Mexico City day end for import lookup"
+        required: true
+        default: "2026-06-01T00:00:00-06:00"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.POSTGRES_PRISMA_URL || secrets.POSTGRES_URL }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      CONFIRM_DELETE: ${{ inputs.confirm }}
+      CLEANUP_DAY_START: ${{ inputs.cleanup_day_start }}
+      CLEANUP_DAY_END: ${{ inputs.cleanup_day_end }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Validate Neon connection secret
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL, POSTGRES_PRISMA_URL or POSTGRES_URL secret is required."
+            exit 1
+          fi
+
+      - name: Cleanup academic offer cycles
+        run: node scripts/cleanup-academic-offer-cycles.js
