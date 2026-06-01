@@ -138,7 +138,7 @@ body :is([class*="bg-cyan"], [class*="bg-sky"]) {
 .ui-cta-secondary:hover,
 .ui-button:hover,
 .ui-shell-icon-button:hover,
-body button:not(:disabled):not([data-variant="primary"]):hover {
+body button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail):hover {
   border-color: #9fcfdf !important;
   background: #eef8fc !important;
   color: var(--recalc-accent) !important;
@@ -157,7 +157,7 @@ body .bg-\[\#0f4c6b\] {
 .ui-cta-secondary,
 .ui-button,
 .ui-shell-icon-button,
-body button:not(:disabled):not([data-variant="primary"]) {
+body button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail) {
   border-color: #cfe1ec !important;
   background: #ffffff !important;
   color: var(--recalc-ink) !important;

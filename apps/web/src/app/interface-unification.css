@@ -235,7 +235,7 @@ button[data-variant="primary"]:hover {
 .ui-cta-secondary,
 .ui-button,
 .ui-shell-icon-button,
-body button:not(:disabled):not([data-variant="primary"]) {
+body button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail) {
   border-color: var(--recalc-border) !important;
   background: #ffffff !important;
   color: var(--recalc-ink) !important;
@@ -244,7 +244,7 @@ body button:not(:disabled):not([data-variant="primary"]) {
 .ui-cta-secondary:hover,
 .ui-button:hover,
 .ui-shell-icon-button:hover,
-body button:not(:disabled):not([data-variant="primary"]):hover {
+body button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail):hover {
   border-color: rgb(15 76 107 / 0.38) !important;
   background: rgb(15 76 107 / 0.08) !important;
   color: var(--recalc-accent) !important;

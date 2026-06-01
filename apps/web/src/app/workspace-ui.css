@@ -180,7 +180,7 @@
 
 .ui-page-frame .ui-cta-secondary,
 .ui-page-frame .ui-shell-icon-button,
-.ui-page-frame button:not(:disabled):not([data-variant="primary"]) {
+.ui-page-frame button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail) {
   border-color: var(--workspace-border) !important;
   color: var(--workspace-text) !important;
 }

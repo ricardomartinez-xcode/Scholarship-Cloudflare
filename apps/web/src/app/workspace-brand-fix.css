@@ -198,7 +198,7 @@
 .ui-page-frame .ui-cta-secondary,
 .ui-page-frame .ui-button,
 .ui-page-frame .ui-shell-icon-button,
-.ui-page-frame button:not(:disabled):not([data-variant="primary"]) {
+.ui-page-frame button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail) {
   border-color: var(--workspace-border) !important;
   background: #ffffff !important;
   color: var(--workspace-text) !important;
@@ -208,7 +208,7 @@
 .ui-page-frame .ui-cta-secondary:hover,
 .ui-page-frame .ui-button:hover,
 .ui-page-frame .ui-shell-icon-button:hover,
-.ui-page-frame button:not(:disabled):not([data-variant="primary"]):hover {
+.ui-page-frame button:not(:disabled):not([data-variant="primary"]):not(.ui-floating-calculator__rail):not(.ui-inbox-dock__rail):hover {
   border-color: rgb(15 76 107 / 0.38) !important;
   background: var(--workspace-accent-soft) !important;
   color: var(--workspace-accent) !important;

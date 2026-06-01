@@ -70,4 +70,25 @@ describe("workflow regressions", () => {
     expect(source).toContain("pathname.startsWith(\"/auth\")");
     expect(source).toContain("return null");
   });
+
+  it("does not let global button contrast guards recolor floating dock rails", () => {
+    const files = [
+      "apps/web/src/app/workspace-ui.css",
+      "apps/web/src/app/workspace-brand-fix.css",
+      "apps/web/src/app/interface-unification.css",
+      "apps/web/src/app/interface-light-blue-white.css",
+    ];
+
+    for (const file of files) {
+      const guardedButtonLines = read(file)
+        .split("\n")
+        .filter((line) => line.includes('button:not(:disabled):not([data-variant="primary"])'));
+
+      expect(guardedButtonLines.length, file).toBeGreaterThan(0);
+      for (const line of guardedButtonLines) {
+        expect(line, `${file}: ${line}`).toContain(":not(.ui-floating-calculator__rail)");
+        expect(line, `${file}: ${line}`).toContain(":not(.ui-inbox-dock__rail)");
+      }
+    }
+  });
 });
