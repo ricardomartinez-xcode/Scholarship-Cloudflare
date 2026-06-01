@@ -16,6 +16,110 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const MODULE_OPTIONS = Object.values(AdminConfigModule);
 const STATUS_OPTIONS = Object.values(AdminImportSessionStatus);
 
+const IMPORT_STEPS = [
+  {
+    label: "1. Origen",
+    title: "Prepara o ubica el archivo",
+    description: "Sube un archivo local en el importador del módulo, o sincroniza primero assets existentes desde R2.",
+  },
+  {
+    label: "2. Destino",
+    title: "Elige qué catálogo cambia",
+    description: "Cada destino abre directamente su importador real con la pestaña correcta lista para validar.",
+  },
+  {
+    label: "3. Control",
+    title: "Valida, aplica y audita",
+    description: "Mantén preview, aplicación, rollback e historial en el flujo existente de cada módulo.",
+  },
+];
+
+const IMPORT_TARGETS = [
+  {
+    label: "Precio lista",
+    description: "Carga XLSX o CSV para precios canónicos de calculadora.",
+    href: "/admin/prices?panel=imports",
+    format: "XLSX / CSV",
+    action: "Importar precios",
+  },
+  {
+    label: "Beneficios adicionales",
+    description: "Importa porcentajes extra o primer pago sin tocar beca por promedio.",
+    href: "/admin/benefits?panel=imports",
+    format: "CSV",
+    action: "Importar beneficios",
+  },
+  {
+    label: "% de beca por promedio",
+    description: "Actualiza reglas base por promedio, línea, modalidad, plan y alcance.",
+    href: "/admin/benefits?panel=base",
+    format: "CSV",
+    action: "Importar becas base",
+  },
+  {
+    label: "Oferta académica",
+    description: "Administra programas académicos, datos base y assets R2 de planes o brochures.",
+    href: "/admin/unidep/programs",
+    format: "Catálogo / R2",
+    action: "Administrar oferta académica",
+  },
+  {
+    label: "Oferta por planteles",
+    description: "Valida oferta activa por campus, programa, ciclo, modalidad y horarios.",
+    href: "/admin/oferta?panel=imports",
+    format: "XLSX / CSV",
+    action: "Importar oferta",
+  },
+  {
+    label: "Planteles",
+    description: "Actualiza dirección, teléfono y WhatsApp de campus existentes.",
+    href: "/admin/unidep/campuses#importacion",
+    format: "CSV / XLSX",
+    action: "Importar planteles",
+  },
+  {
+    label: "Trámites + precio por materia",
+    description: "Carga costos base, disponibilidad por plantel o precios por número de materias.",
+    href: "/admin/unidep/fees?tab=seed&seedMode=unified",
+    format: "CSV",
+    action: "Importar costos",
+  },
+];
+
+function ImportStepCard({ step }: { step: (typeof IMPORT_STEPS)[number] }) {
+  return (
+    <article className="rounded-[22px] border border-[#c8d6e2] bg-[#f7fafc] p-4">
+      <div className="text-[0.66rem] font-extrabold uppercase tracking-[0.18em] text-[#0f4c6b]">
+        {step.label}
+      </div>
+      <h2 className="mt-2 text-base font-black tracking-[-0.03em] text-[#102838]">{step.title}</h2>
+      <p className="mt-2 text-sm leading-6 text-[#536a7c]">{step.description}</p>
+    </article>
+  );
+}
+
+function ImportTargetCard({ target }: { target: (typeof IMPORT_TARGETS)[number] }) {
+  return (
+    <article className="grid gap-4 rounded-[22px] border border-[#c8d6e2] bg-white p-4 shadow-[0_10px_30px_rgb(16_32_42/0.04)]">
+      <div>
+        <div className="text-[0.66rem] font-extrabold uppercase tracking-[0.18em] text-[#536a7c]">
+          {target.format}
+        </div>
+        <h3 className="mt-2 text-lg font-black tracking-[-0.035em] text-[#102838]">
+          {target.label}
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-[#536a7c]">{target.description}</p>
+      </div>
+      <Link
+        href={target.href}
+        className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white transition hover:bg-[#0b3d56]"
+      >
+        {target.action}
+      </Link>
+    </article>
+  );
+}
+
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -203,10 +307,10 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
               Importaciones
             </div>
             <h1 className="mt-2 max-w-4xl text-3xl font-black leading-tight tracking-[-0.055em] text-[#102838] md:text-4xl">
-              Sesiones de importación, previews, aplicaciones y rollback.
+              Centro de importación.
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[#536a7c]">
-              Historial centralizado para auditar archivos cargados desde el admin, revisar quién ejecutó cada cambio y abrir el detalle operativo de cada sesión.
+              Punto único para decidir qué documento vas a cargar, abrir el importador correcto y conservar la auditoría de previews, aplicaciones y rollback en la misma vista.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -224,6 +328,52 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
             </Link>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {IMPORT_STEPS.map((step) => (
+          <ImportStepCard key={step.label} step={step} />
+        ))}
+      </section>
+
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-5 shadow-[0_16px_50px_rgb(16_32_42/0.06)]">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+              Importar documento
+            </div>
+            <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">
+              Elige el destino y valida ahí mismo
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">
+              Ya no necesitas buscar la sección correcta. Estos accesos abren el módulo con su panel de importación listo para seleccionar archivo, previsualizar y aplicar.
+            </p>
+          </div>
+          <Link
+            href="/admin/files"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-4 text-sm font-extrabold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
+          >
+            Revisar archivos R2
+          </Link>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {IMPORT_TARGETS.map((target) => (
+            <ImportTargetCard key={target.href} target={target} />
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-[#f7fafc] p-5">
+        <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+          R2 como origen
+        </div>
+        <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">
+          Si el archivo ya está en el bucket, primero sincroniza o relaciónalo
+        </h2>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-[#536a7c]">
+          Archivos R2 administra assets y materiales. Para que un importador los use, el archivo debe estar registrado o descargarse desde R2 y después cargarse en el destino operativo. Para capacitación, selecciona `Material de capacitación` y un uso de material desde Archivos R2.
+        </p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

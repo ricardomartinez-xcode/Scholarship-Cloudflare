@@ -328,6 +328,11 @@ export default function PricesClient({
   );
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("panel") === "imports") setActivePanel("imports");
+  }, []);
+
+  useEffect(() => {
     if (!saveState?.ok) return;
     const timer = window.setTimeout(() => {
       setOpen(false);

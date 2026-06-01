@@ -438,6 +438,12 @@ export default function BenefitsClient({
   );
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const panel = params.get("panel");
+    if (panel === "imports" || panel === "base") setActivePanel(panel);
+  }, []);
+
+  useEffect(() => {
     if (!saveState?.ok) return;
     const timer = window.setTimeout(() => {
       setOpen(false);

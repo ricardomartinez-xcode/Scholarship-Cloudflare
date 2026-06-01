@@ -88,7 +88,7 @@ export default function CampusesClient({ campuses }: { campuses: Campus[] }) {
   return (
     <div className="grid gap-8">
       {/* CSV Import */}
-    <div className="ui-card ui-card-pad">
+    <div id="importacion" className="ui-card ui-card-pad scroll-mt-24">
         <h3 className="font-semibold">Importar planteles desde archivo CSV o XLSX</h3>
         <p className="mt-1 text-sm text-slate-300">
           El orden de columnas debe ser: <code className="rounded bg-black/30 px-1">Plantel</code>,{" "}

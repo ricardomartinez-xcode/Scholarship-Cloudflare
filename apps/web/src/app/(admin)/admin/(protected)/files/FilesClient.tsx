@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { DashboardIcon, type DashboardIconName } from "@/components/layout/DashboardIcons";
@@ -349,6 +350,24 @@ export default function FilesClient({
         {error ? <StatusMessage kind="error">{error}</StatusMessage> : null}
         {statusMessage ? <StatusMessage kind="success">{statusMessage}</StatusMessage> : null}
         {errorMessage ? <StatusMessage kind="error">{errorMessage}</StatusMessage> : null}
+      </div>
+
+      <div className="ui-card grid gap-3 p-4 sm:p-5">
+        <div>
+          <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Siguiente paso</div>
+          <h2 className="mt-1 text-lg font-semibold text-slate-100">Usar R2 dentro de importaciones</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
+            R2 guarda y expone archivos, pero la importación de datos ocurre en el módulo destino. Si el archivo ya existe en el bucket, sincronízalo a assets o descárgalo, luego vuelve al centro de importación para abrir el importador correcto.
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/admin/importaciones"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-blue-900/40 bg-blue-950/30 px-4 text-sm font-semibold text-emerald-100 transition hover:bg-blue-950/40"
+          >
+            Ir al centro de importación
+          </Link>
+        </div>
       </div>
 
       <div className="ui-card overflow-hidden">

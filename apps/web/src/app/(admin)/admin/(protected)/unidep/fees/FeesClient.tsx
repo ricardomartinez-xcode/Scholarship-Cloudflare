@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useMemo, useState, useTransition } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -334,6 +334,15 @@ export default function FeesClient({
   const [materiaEditor, setMateriaEditor] = useState<MateriaDraft | null>(null);
   const [materiaFeedback, setMateriaFeedback] = useState<FeedbackState>(null);
   const [materiaPending, startMateriaTransition] = useTransition();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "seed") setTab("seed");
+    const nextSeedMode = params.get("seedMode");
+    if (nextSeedMode === "unified" || nextSeedMode === "materias") {
+      setSeedMode(nextSeedMode);
+    }
+  }, []);
 
   const feeStats = {
     total: fees.length,

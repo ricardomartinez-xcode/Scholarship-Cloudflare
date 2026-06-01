@@ -10,7 +10,7 @@ export default function ImportacionesLayout({ children }: { children: ReactNode 
           href="/admin/importaciones"
           className="rounded-2xl border border-white/10 px-4 py-2 font-semibold text-slate-200 transition hover:bg-white/10"
         >
-          Historial
+          Centro
         </Link>
         <Link
           href="/admin/importaciones/plantillas"

@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import AdminRowActions from "@/components/admin/AdminRowActions";
@@ -206,6 +206,11 @@ export default function OfferImportClient({
   const [manualLoading, setManualLoading] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualFeedback, setManualFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("panel") === "imports") setActivePanel("imports");
+  }, []);
 
   const filteredPreviewRows = useMemo(() => {
     const q = previewQuery.trim().toLowerCase();
