@@ -212,6 +212,11 @@ export default function OfferImportClient({
     if (params.get("panel") === "imports") setActivePanel("imports");
   }, []);
 
+  useEffect(() => {
+    setPreviewRows(initialPreviewRows);
+    setPreviewPage(0);
+  }, [initialPreviewRows]);
+
   const filteredPreviewRows = useMemo(() => {
     const q = previewQuery.trim().toLowerCase();
     if (!q) return previewRows;

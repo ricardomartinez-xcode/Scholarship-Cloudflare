@@ -7,11 +7,13 @@ import { subscribeToPrivateBroadcast } from "@/lib/supabase/client";
 type UseRealtimeMessagesOptions = {
   fetchUrl: string | null;
   topic: string | null;
+  refreshIntervalMs?: number;
 };
 
 export function useRealtimeMessages<TMessage>({
   fetchUrl,
   topic,
+  refreshIntervalMs,
 }: UseRealtimeMessagesOptions) {
   const [messages, setMessages] = useState<TMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +22,7 @@ export function useRealtimeMessages<TMessage>({
   useEffect(() => {
     let cancelled = false;
 
-    async function loadMessages() {
+    async function loadMessages(options: { silent?: boolean } = {}) {
       if (!fetchUrl) {
         setMessages([]);
         setError(null);
@@ -28,9 +30,11 @@ export function useRealtimeMessages<TMessage>({
         return;
       }
 
-      setMessages([]);
+      if (!options.silent) {
+        setMessages([]);
+        setIsLoading(true);
+      }
       setError(null);
-      setIsLoading(true);
 
       try {
         const response = await fetch(fetchUrl, { cache: "no-store" });
@@ -62,11 +66,22 @@ export function useRealtimeMessages<TMessage>({
     }
 
     void loadMessages();
+    const intervalId =
+      fetchUrl && refreshIntervalMs
+        ? window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+              void loadMessages({ silent: true });
+            }
+          }, refreshIntervalMs)
+        : null;
 
     return () => {
       cancelled = true;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
     };
-  }, [fetchUrl]);
+  }, [fetchUrl, refreshIntervalMs]);
 
   useEffect(() => {
     if (!topic) {

@@ -217,6 +217,7 @@ export default function InboxWorkspace({
       topic: selectedThreadId
         ? realtimeTopics.inboxThreadMessages(selectedThreadId)
         : null,
+      refreshIntervalMs: 7000,
     });
 
   const presence = useRealtimePresence({
@@ -250,6 +251,14 @@ export default function InboxWorkspace({
       );
     });
   }, [deferredSearchTerm, threads, viewer]);
+
+  const activeThreadTitle = activeThread ? threadTitle(activeThread, viewer) : "";
+  const activeThreadContext =
+    activeThread?.participants.find((participant) => participant.userId !== viewer?.userId)
+      ?.email ??
+    activeThread?.organizationName ??
+    activeThread?.lastMessagePreview ??
+    "";
 
   const eligibleUserOptions = useMemo(
     () =>
@@ -747,6 +756,13 @@ export default function InboxWorkspace({
         </div>
 
         <div className="ui-chat-composer">
+          {activeThread ? (
+            <div className="ui-chat-composer__context" aria-live="polite">
+              <span>Respondiendo en</span>
+              <strong>{activeThreadTitle}</strong>
+              {activeThreadContext ? <small>{activeThreadContext}</small> : null}
+            </div>
+          ) : null}
           <textarea
             value={messageInput}
             onChange={(event) => setMessageInput(event.target.value)}

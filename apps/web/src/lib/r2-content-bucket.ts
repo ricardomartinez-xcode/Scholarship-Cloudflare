@@ -2,6 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 
 const DEFAULT_CONTENT_BUCKET = "planes-de-estudio";
 const DEFAULT_CONTENT_ENDPOINT = "https://38485f8c296aaf6f6d7aee9f82036880.r2.cloudflarestorage.com";
+const DEFAULT_CONTENT_PUBLIC_BASE_URL = "https://pub-db4b2beb1a924af69c20acb8dbda2d91.r2.dev";
 
 export type ContentBucketObject = {
   key: string;
@@ -28,23 +29,42 @@ function trimSlashes(value: string) {
 }
 
 function getConfig(): R2ContentConfig {
-  const bucket = process.env.R2_CONTENT_BUCKET ?? DEFAULT_CONTENT_BUCKET;
-  const endpoint = process.env.R2_CONTENT_ENDPOINT ?? process.env.R2_ENDPOINT ?? DEFAULT_CONTENT_ENDPOINT;
+  const accountEndpoint = process.env.Account_ID
+    ? `https://${process.env.Account_ID}.r2.cloudflarestorage.com`
+    : null;
+  const bucket =
+    process.env.R2_CONTENT_BUCKET ??
+    process.env.R2_BUCKET ??
+    process.env.CLOUDFLARE_R2_BUCKET ??
+    DEFAULT_CONTENT_BUCKET;
+  const endpoint =
+    process.env.R2_CONTENT_ENDPOINT ??
+    process.env.R2_ENDPOINT ??
+    process.env.S3_API ??
+    accountEndpoint ??
+    DEFAULT_CONTENT_ENDPOINT;
   const publicBaseUrl =
     process.env.R2_CONTENT_PUBLIC_BASE_URL ??
     process.env.NEXT_PUBLIC_R2_CONTENT_BASE_URL ??
-    "";
+    process.env.Public_Development_URL ??
+    DEFAULT_CONTENT_PUBLIC_BASE_URL;
 
   return {
     bucket,
     endpoint: endpoint.replace(/\/+$/g, ""),
     publicBaseUrl: trimSlashes(publicBaseUrl),
     prefix: trimSlashes(process.env.R2_CONTENT_PREFIX ?? ""),
-    accessKeyId: process.env.R2_CONTENT_ACCESS_KEY_ID ?? process.env.R2_ACCESS_KEY_ID ?? process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ?? null,
+    accessKeyId:
+      process.env.R2_CONTENT_ACCESS_KEY_ID ??
+      process.env.R2_ACCESS_KEY_ID ??
+      process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ??
+      process.env.Access_Key_ID ??
+      null,
     secretAccessKey:
       process.env.R2_CONTENT_SECRET_ACCESS_KEY ??
       process.env.R2_SECRET_ACCESS_KEY ??
       process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ??
+      process.env.Secret_Access_Key ??
       null,
     region: process.env.R2_CONTENT_REGION ?? process.env.R2_REGION ?? "auto",
   };
@@ -54,6 +74,10 @@ function encodePathSegment(value: string) {
   return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
     `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
+}
+
+function compareAwsQueryKey([left]: [string, string], [right]: [string, string]) {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function encodePath(value: string) {
@@ -163,7 +187,7 @@ function signListObjectsUrl(config: R2ContentConfig, continuationToken?: string)
   const endpoint = new URL(config.endpoint);
   const canonicalUri = `/${encodeURIComponent(config.bucket)}`;
   const canonicalQuery = Object.entries(query)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(compareAwsQueryKey)
     .map(([key, value]) => `${encodeQueryValue(key)}=${encodeQueryValue(value)}`)
     .join("&");
   const canonicalHeaders = `host:${endpoint.hostname}\n`;
@@ -224,7 +248,7 @@ export function getSignedContentBucketGetUrl(options: {
   };
   const canonicalUri = `/${encodePathSegment(config.bucket)}/${encodePath(key)}`;
   const canonicalQuery = Object.entries(query)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(compareAwsQueryKey)
     .map(([queryKey, value]) => `${encodeQueryValue(queryKey)}=${encodeQueryValue(value)}`)
     .join("&");
   const canonicalHeaders = `host:${endpoint.hostname}\n`;

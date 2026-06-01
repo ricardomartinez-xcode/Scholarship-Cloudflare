@@ -371,7 +371,7 @@ export default function AppChrome({
                         </Dialog.Trigger>
                         <Dialog.Portal>
                           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-                          <Dialog.Content className="ui-shell-drawer fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[372px] flex-col overflow-hidden border-r p-3 shadow-2xl outline-none">
+                          <Dialog.Content className="ui-shell-drawer fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[320px] flex-col overflow-hidden border-r p-3 shadow-2xl outline-none">
                             <Dialog.Title className="sr-only">Navegación UNIDEP</Dialog.Title>
                             <Dialog.Description className="sr-only">
                               Menú principal de navegación del espacio UNIDEP.

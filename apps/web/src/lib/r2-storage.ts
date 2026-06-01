@@ -52,13 +52,21 @@ type CompatSignedUrlOptions = {
 };
 
 function getR2Config(): R2Config {
-  const bucket = process.env.R2_BUCKET ?? process.env.CLOUDFLARE_R2_BUCKET;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID ?? process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+  const bucket = process.env.R2_BUCKET ?? process.env.CLOUDFLARE_R2_BUCKET ?? process.env.R2_CONTENT_BUCKET;
+  const accessKeyId =
+    process.env.R2_ACCESS_KEY_ID ??
+    process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ??
+    process.env.R2_CONTENT_ACCESS_KEY_ID ??
+    process.env.Access_Key_ID;
   const secretAccessKey =
-    process.env.R2_SECRET_ACCESS_KEY ?? process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
-  const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
+    process.env.R2_SECRET_ACCESS_KEY ??
+    process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ??
+    process.env.R2_CONTENT_SECRET_ACCESS_KEY ??
+    process.env.Secret_Access_Key;
+  const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID ?? process.env.Account_ID;
   const endpoint =
     process.env.R2_ENDPOINT ??
+    process.env.S3_API ??
     (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : null);
 
   if (!bucket || !accessKeyId || !secretAccessKey || !endpoint) {
@@ -120,6 +128,10 @@ function contentDisposition(disposition: "inline" | "attachment", fileName: stri
   return `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
+function compareAwsQueryKey([left]: [string, string], [right]: [string, string]) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function fileNameFromDisposition(disposition: string | undefined, fallback: string) {
   if (!disposition) return fallback;
   const match = disposition.match(/filename="?([^";]+)"?/i);
@@ -152,7 +164,7 @@ function presignUrl(input: {
   };
 
   const canonicalQuery = Object.entries(query)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(compareAwsQueryKey)
     .map(([key, value]) => `${encodeQueryValue(key)}=${encodeQueryValue(value)}`)
     .join("&");
 

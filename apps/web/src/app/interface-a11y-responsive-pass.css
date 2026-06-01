@@ -74,6 +74,11 @@ body :is([role="dialog"], .ui-shell-drawer, .ui-modal, .ui-popover) {
   max-height: calc(100dvh - 1rem);
 }
 
+body .ui-shell-drawer {
+  width: min(82vw, 320px) !important;
+  max-width: min(82vw, 320px) !important;
+}
+
 body :is([role="dialog"], .ui-modal, .ui-popover) {
   overflow: auto;
 }

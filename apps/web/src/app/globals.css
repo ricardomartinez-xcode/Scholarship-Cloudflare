@@ -194,44 +194,44 @@
   --ui-hero-gradient: var(--brand-base-50);
   --ui-radius-lg: 8px;
   --ui-radius-md: 7px;
-  --ui-shell-gap: clamp(10px, 0.95vw, 16px);
-  --ui-shell-pad-x: clamp(12px, 1.5vw, 22px);
-  --ui-shell-pad-y: clamp(14px, 1.4vw, 20px);
-  --ui-card-pad: clamp(13px, 1.05vw, 16px);
-  --ui-card-gap: clamp(10px, 0.8vw, 12px);
-  --ui-control-height: 40px;
-  --ui-label-size: 13px;
-  --ui-title-size: 16px;
+  --ui-shell-gap: clamp(8px, 0.8vw, 12px);
+  --ui-shell-pad-x: clamp(10px, 1.1vw, 18px);
+  --ui-shell-pad-y: clamp(10px, 1vw, 16px);
+  --ui-card-pad: clamp(10px, 0.85vw, 14px);
+  --ui-card-gap: clamp(8px, 0.7vw, 10px);
+  --ui-control-height: 36px;
+  --ui-label-size: 12px;
+  --ui-title-size: 15px;
   --ui-shadow: 0 16px 34px rgba(18, 51, 72, 0.08);
   --ui-dur: 160ms;
   --ui-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ui-shell-max-width: 1920px;
   --ui-shell-public-width: 1620px;
   --ui-shell-narrow-width: 1320px;
-  --ui-shell-sidebar-narrow: 236px;
-  --ui-shell-sidebar-wide: 284px;
-  --ui-shell-sidebar-wide-xl: 312px;
-  --ui-shell-sidebar-collapsed: 92px;
-  --ui-shell-sidebar-expanded: 320px;
-  --ui-shell-topbar-height: 76px;
-  --ui-table-cell-x: 14px;
-  --ui-table-cell-y: 12px;
+  --ui-shell-sidebar-narrow: 208px;
+  --ui-shell-sidebar-wide: 244px;
+  --ui-shell-sidebar-wide-xl: 264px;
+  --ui-shell-sidebar-collapsed: 72px;
+  --ui-shell-sidebar-expanded: 264px;
+  --ui-shell-topbar-height: 62px;
+  --ui-table-cell-x: 10px;
+  --ui-table-cell-y: 9px;
 }
 
 @media (min-width: 1024px) {
   .ui-density-compact-desktop {
-    --ui-shell-gap: 14px;
-    --ui-shell-pad-x: clamp(14px, 1.25vw, 24px);
-    --ui-shell-pad-y: 18px;
-    --ui-card-pad: 16px;
-    --ui-card-gap: 12px;
-    --ui-control-height: 38px;
-    --ui-title-size: 16px;
-    --ui-label-size: 13px;
+    --ui-shell-gap: 10px;
+    --ui-shell-pad-x: clamp(12px, 1vw, 20px);
+    --ui-shell-pad-y: 14px;
+    --ui-card-pad: 14px;
+    --ui-card-gap: 10px;
+    --ui-control-height: 36px;
+    --ui-title-size: 15px;
+    --ui-label-size: 12px;
     --ui-radius-lg: 8px;
     --ui-radius-md: 7px;
-    --ui-table-cell-x: 12px;
-    --ui-table-cell-y: 10px;
+    --ui-table-cell-x: 10px;
+    --ui-table-cell-y: 8px;
   }
 }
 
@@ -245,6 +245,10 @@ html,
 body {
   max-width: 100%;
   overflow-x: clip;
+}
+
+html {
+  font-size: 14px;
 }
 
 body {
@@ -860,6 +864,38 @@ select option {
   border-top: 1px solid rgba(17, 78, 109, 0.08);
   background: rgba(242, 247, 251, 0.86);
   backdrop-filter: blur(10px);
+}
+
+.ui-chat-composer__context {
+  grid-column: 1 / -1;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  color: #4f677a;
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.ui-chat-composer__context strong {
+  min-width: 0;
+  max-width: min(100%, 28rem);
+  overflow: hidden;
+  color: #123347;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-chat-composer__context small {
+  min-width: 0;
+  max-width: min(100%, 24rem);
+  overflow: hidden;
+  color: #5e7589;
+  font-size: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ui-chat-composer__field {
@@ -5006,6 +5042,35 @@ a[role="button"] {
 .ui-inbox-dock__primary,
 .ui-inbox-dock__send {
   color: #FFFFFF;
+}
+
+html body button,
+html body [role="button"],
+html body .ui-button-primary,
+html body .ui-button-secondary,
+html body .ui-cta-primary,
+html body .ui-cta-secondary,
+html body .ui-admin-action,
+html body .ui-chat-button,
+html body .ui-inbox-dock__send {
+  font-weight: 650;
+}
+
+html body input,
+html body textarea,
+html body select,
+html body table,
+html body th,
+html body td,
+html body .ui-control,
+html body .ui-select-content,
+html body .ui-select-item,
+html body .ui-chat-composer,
+html body .ui-chat-composer__field,
+html body .ui-inbox-dock__panel,
+html body .ui-floating-calculator__panel,
+html body .ui-admin-surface {
+  color: #0F3C55;
 }
 
 .ui-button-secondary,
