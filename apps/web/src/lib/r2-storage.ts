@@ -14,6 +14,7 @@ export const PREVIEWABLE_MIME_TYPES = new Set([
 
 export const ALLOWED_FILE_MIME_TYPES = new Set([
   ...PREVIEWABLE_MIME_TYPES,
+  "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",

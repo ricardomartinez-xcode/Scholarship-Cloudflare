@@ -12,7 +12,8 @@ export type FileAssetSlot =
   | "training_video"
   | "training_pdf"
   | "training_image"
-  | "training_file";
+  | "training_file"
+  | "format_document";
 
 export type FileAssetRecord = {
   id: string;
@@ -69,6 +70,8 @@ export type ProgramAssetInput = PublicFileAssetPayload | {
 };
 
 export type ProgramAssetSlots = Partial<Record<FileAssetSlot, ProgramAssetInput | null>>;
+
+export type EnrollmentFormatAssetInput = ProgramAssetInput;
 
 type RawFileAssetRow = {
   id: string;
@@ -206,6 +209,38 @@ export function resolveProgramR2AssetPayload(input: {
       heroImage,
       thumbnailImage,
     },
+  };
+}
+
+export function resolveEnrollmentFormatR2AssetPayload(input: {
+  fileName: string | null;
+  fileUrl: string;
+  fileMimeType: string | null;
+  fileSizeBytes: number | null;
+  sourceType: string;
+  asset: EnrollmentFormatAssetInput | null | undefined;
+}) {
+  const document = normalizeProgramAssetPayload(input.asset);
+  if (!document) {
+    return {
+      fileName: input.fileName,
+      fileUrl: input.fileUrl,
+      fileDownloadUrl: input.fileUrl,
+      fileMimeType: input.fileMimeType,
+      fileSizeBytes: input.fileSizeBytes,
+      sourceType: input.sourceType,
+      r2Asset: null,
+    };
+  }
+
+  return {
+    fileName: document.fileName,
+    fileUrl: document.previewUrl,
+    fileDownloadUrl: document.downloadUrl,
+    fileMimeType: document.mimeType,
+    fileSizeBytes: document.sizeBytes,
+    sourceType: "r2",
+    r2Asset: document,
   };
 }
 

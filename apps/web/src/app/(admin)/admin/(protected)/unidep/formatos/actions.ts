@@ -1,7 +1,6 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { revalidatePath } from "next/cache";
@@ -14,18 +13,35 @@ import {
   upsertEnrollmentFormat,
 } from "@/lib/enrollment-formats";
 import {
+  assignFileAssetUsage,
+  clearFileAssetUsage,
+  createFileAsset,
+  getFileAssetById,
+  markFileAssetUploaded,
+  toPublicFileAssetPayload,
+  type FileAssetRecord,
+} from "@/lib/file-assets";
+import {
   PUBLIC_ROUTE_CACHE_TAGS,
   revalidatePublicRouteTags,
 } from "@/lib/public-route-cache";
+import {
+  createR2ObjectKey,
+  getR2BucketName,
+  getSignedR2PutUrl,
+} from "@/lib/r2-storage";
 
 const FORMATS_WRITE_CAPABILITY = AdminCapability.manage_offers;
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
+const FORMAT_ASSET_TARGET_TYPE = "enrollment_format";
+const FORMAT_ASSET_SLOT = "format_document";
+
 type FormatFilePayload = {
   fileName: string | null;
   fileUrl: string;
   fileMimeType: string | null;
   fileSizeBytes: number | null;
-  sourceType: "upload" | "link";
+  sourceType: "upload" | "link" | "r2";
 };
 
 const ALLOWED_FORMATS = [
@@ -52,13 +68,6 @@ function validateUrl(raw: string | null) {
   return value;
 }
 
-function getPublicUploadsDirectory() {
-  const cwd = process.cwd();
-  return cwd.endsWith(path.join("apps", "web"))
-    ? path.join(cwd, "public", "uploads", "formatos")
-    : path.join(cwd, "apps", "web", "public", "uploads", "formatos");
-}
-
 function getAllowedFileInfo(file: File) {
   const originalName = file.name || "formato";
   const extension = path.extname(originalName).toLowerCase();
@@ -72,7 +81,22 @@ function getAllowedFileInfo(file: File) {
   return { originalName, extension, mimeType: file.type || "application/octet-stream" };
 }
 
-async function persistUpload(file: File): Promise<FormatFilePayload | null> {
+function formatPayloadFromAsset(file: FileAssetRecord): FormatFilePayload {
+  const payload = toPublicFileAssetPayload(file);
+  if (!payload) {
+    throw new Error("No fue posible preparar el archivo R2.");
+  }
+
+  return {
+    fileName: payload.fileName,
+    fileUrl: payload.previewUrl,
+    fileMimeType: payload.mimeType,
+    fileSizeBytes: payload.sizeBytes,
+    sourceType: "r2",
+  };
+}
+
+async function persistUpload(file: File, uploadedByUserId: string): Promise<FileAssetRecord | null> {
   if (file.size <= 0) return null;
   if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new Error("El archivo no puede pesar más de 15 MB.");
@@ -83,25 +107,44 @@ async function persistUpload(file: File): Promise<FormatFilePayload | null> {
     throw new Error("Solo se permiten archivos PDF, DOC o DOCX.");
   }
 
-  const uploadDir = getPublicUploadsDirectory();
-  await mkdir(uploadDir, { recursive: true });
-
-  const safeName = `${Date.now()}-${randomUUID()}${info.extension}`;
-  const absolutePath = path.join(uploadDir, safeName);
   const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(absolutePath, bytes);
-
-  return {
+  const key = createR2ObjectKey(info.originalName);
+  const asset = await createFileAsset({
+    r2Key: key,
+    bucket: getR2BucketName(),
     fileName: info.originalName,
-    fileUrl: `/uploads/formatos/${safeName}`,
-    fileMimeType: info.mimeType,
-    fileSizeBytes: file.size,
-    sourceType: "upload",
-  };
+    mimeType: info.mimeType,
+    sizeBytes: file.size,
+    uploadedByUserId,
+    status: "pending",
+  });
+  const uploadResponse = await fetch(
+    getSignedR2PutUrl({
+      key,
+      contentType: info.mimeType,
+    }),
+    {
+      method: "PUT",
+      headers: { "Content-Type": info.mimeType },
+      body: bytes,
+    },
+  );
+
+  if (!uploadResponse.ok) {
+    throw new Error(`R2 rechazó la carga del formato (${uploadResponse.status}).`);
+  }
+
+  const uploaded = await markFileAssetUploaded(asset.id, uploadResponse.headers.get("etag"));
+  if (!uploaded) {
+    throw new Error("El formato subió a R2, pero no se pudo confirmar.");
+  }
+
+  return uploaded;
 }
 
 function revalidateFormats() {
   revalidatePath("/admin/unidep/formatos");
+  revalidatePath("/admin/files");
   revalidatePath("/api/public/formatos");
   revalidatePath("/unidep/formatos");
   revalidatePublicRouteTags([PUBLIC_ROUTE_CACHE_TAGS.formatos]);
@@ -109,7 +152,7 @@ function revalidateFormats() {
 
 export async function upsertEnrollmentFormatAction(formData: FormData) {
   try {
-    await requireAdminCapabilityUser(FORMATS_WRITE_CAPABILITY);
+    const admin = await requireAdminCapabilityUser(FORMATS_WRITE_CAPABILITY);
 
     const id = String(formData.get("id") ?? "").trim() || randomUUID();
     const current = formData.get("id") ? await getEnrollmentFormat(id) : null;
@@ -118,30 +161,31 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
     const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10);
     const isActive = formData.get("isActive") === "on";
     const linkUrlRaw = String(formData.get("fileUrl") ?? "").trim() || null;
+    const fileAssetId = String(formData.get("fileAssetId") ?? "").trim();
     const file = formData.get("file");
 
     if (!title) throw new Error("El título es requerido.");
 
-    const upload =
-      file instanceof File && file.size > 0 ? await persistUpload(file) : null;
+    const uploadedAsset =
+      file instanceof File && file.size > 0 ? await persistUpload(file, admin.id) : null;
+    const selectedAsset = !uploadedAsset && fileAssetId ? await getFileAssetById(fileAssetId) : null;
+    if (fileAssetId && !selectedAsset) {
+      throw new Error("El archivo R2 seleccionado no existe o no está disponible.");
+    }
+
+    const r2Asset = uploadedAsset ?? selectedAsset;
     const linkUrl = validateUrl(linkUrlRaw);
 
-    if (!upload && linkUrlRaw && !linkUrl) {
+    if (!r2Asset && linkUrlRaw && !linkUrl) {
       throw new Error("El link debe ser una URL http/https válida.");
     }
 
-    if (!current && !upload && !linkUrl) {
-      throw new Error("Sube un archivo o captura un link de descarga.");
+    if (!current && !r2Asset && !linkUrl) {
+      throw new Error("Sube un archivo, selecciona un asset R2 o captura un link de descarga.");
     }
 
-    const nextFile: FormatFilePayload | null = upload
-      ? {
-          fileName: upload.fileName,
-          fileUrl: upload.fileUrl,
-          fileMimeType: upload.fileMimeType,
-          fileSizeBytes: upload.fileSizeBytes,
-          sourceType: "upload" as const,
-        }
+    const nextFile: FormatFilePayload | null = r2Asset
+      ? formatPayloadFromAsset(r2Asset)
       : linkUrl
         ? {
             fileName: null,
@@ -161,7 +205,7 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
           : null;
 
     if (!nextFile) {
-      throw new Error("Sube un archivo o captura un link de descarga.");
+      throw new Error("Sube un archivo, selecciona un asset R2 o captura un link de descarga.");
     }
 
     await upsertEnrollmentFormat({
@@ -177,6 +221,21 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
       sourceType: nextFile.sourceType,
     });
 
+    if (r2Asset) {
+      await assignFileAssetUsage(r2Asset.id, {
+        targetType: FORMAT_ASSET_TARGET_TYPE,
+        targetId: id,
+        slot: FORMAT_ASSET_SLOT,
+        isPrimary: true,
+      });
+    } else if (linkUrl) {
+      await clearFileAssetUsage({
+        targetType: FORMAT_ASSET_TARGET_TYPE,
+        targetId: id,
+        slot: FORMAT_ASSET_SLOT,
+      });
+    }
+
     revalidateFormats();
   } catch (error) {
     throw new Error(
@@ -190,6 +249,11 @@ export async function deleteEnrollmentFormatAction(formData: FormData) {
     await requireAdminCapabilityUser(FORMATS_WRITE_CAPABILITY);
     const id = String(formData.get("id") ?? "").trim();
     if (!id) throw new Error("ID requerido.");
+    await clearFileAssetUsage({
+      targetType: FORMAT_ASSET_TARGET_TYPE,
+      targetId: id,
+      slot: FORMAT_ASSET_SLOT,
+    });
     await deleteEnrollmentFormat(id);
     revalidateFormats();
   } catch {

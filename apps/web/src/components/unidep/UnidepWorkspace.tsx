@@ -97,6 +97,7 @@ type EnrollmentFormat = {
   description: string | null;
   fileName: string | null;
   fileUrl: string;
+  fileDownloadUrl?: string;
   fileMimeType: string | null;
   fileSizeBytes: number | null;
   sourceType: string;
@@ -961,6 +962,33 @@ function isPdfPreview(fileUrl: string | null | undefined, mimeType?: string | nu
   return mimeType === "application/pdf" || String(fileUrl ?? "").toLowerCase().includes(".pdf");
 }
 
+function FormatDocumentPreview({ row }: { row: EnrollmentFormat }) {
+  if (isPdfPreview(row.fileUrl, row.fileMimeType)) {
+    return (
+      <div className="h-44 border-b border-white/10 bg-white">
+        <iframe
+          src={row.fileUrl}
+          title={`Preview formato: ${row.title}`}
+          className="h-full w-full"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid h-44 place-items-center border-b border-white/10 bg-slate-950/50 p-4 text-center text-sm text-slate-400">
+      <div>
+        <div className="font-semibold text-slate-200">
+          {row.fileName || "Documento de formato"}
+        </div>
+        <div className="mt-1 text-xs">
+          Abre el documento para revisar su contenido.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FormatosSection() {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<EnrollmentFormat[]>([]);
@@ -1009,22 +1037,22 @@ function FormatosSection() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => {
             const fileSize = formatFileSize(row.fileSizeBytes);
-            const showPdfPreview = isPdfPreview(row.fileUrl, row.fileMimeType);
+            const downloadUrl = row.fileDownloadUrl || row.fileUrl;
             return (
               <div
                 key={row.id}
                 className="grid min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30"
               >
-                {showPdfPreview ? (
-                  <div className="h-44 border-b border-white/10 bg-white">
-                    <iframe
-                      src={row.fileUrl}
-                      title={`Preview formato: ${row.title}`}
-                      className="h-full w-full"
-                    />
-                  </div>
-                ) : null}
+                <FormatDocumentPreview row={row} />
                 <div className="grid min-w-0 gap-3 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-200">
+                      {row.sourceType === "r2" ? "R2" : "Link"}
+                    </span>
+                    {row.fileMimeType ? (
+                      <span className="text-xs text-slate-500">{row.fileMimeType}</span>
+                    ) : null}
+                  </div>
                   <div className="break-words font-semibold text-slate-100">
                     {row.title}
                   </div>
@@ -1047,7 +1075,7 @@ function FormatosSection() {
                       Abrir preview
                     </a>
                     <a
-                      href={row.fileUrl}
+                      href={downloadUrl}
                       className="ui-button-info min-h-[32px] rounded-full px-3 py-1 text-xs"
                     >
                       Descargar

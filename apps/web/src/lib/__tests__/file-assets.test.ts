@@ -4,6 +4,7 @@ import {
   buildFileAssetLinks,
   fileAssetToContentBucketObject,
   normalizeFileAssetUsageKey,
+  resolveEnrollmentFormatR2AssetPayload,
   resolveProgramR2AssetPayload,
 } from "@/lib/file-assets";
 
@@ -80,5 +81,29 @@ describe("file asset helpers", () => {
     expect(payload.r2Assets.studyPlan?.fileName).toBe("plan.pdf");
     expect(payload.r2Assets.brochure).toBeNull();
     expect(payload.r2Assets.heroImage?.downloadUrl).toBe("/api/files/image-file/download");
+  });
+
+  it("prefiere assets R2 sobre URLs legacy para formatos", () => {
+    const payload = resolveEnrollmentFormatR2AssetPayload({
+      fileName: "Formato legacy.pdf",
+      fileUrl: "https://legacy.example/formato.pdf",
+      fileMimeType: "application/pdf",
+      fileSizeBytes: 321,
+      sourceType: "upload",
+      asset: {
+        fileId: "format-file",
+        fileName: "Formato R2.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1234,
+      },
+    });
+
+    expect(payload.fileName).toBe("Formato R2.pdf");
+    expect(payload.fileUrl).toBe("/api/files/format-file/auth-view");
+    expect(payload.fileDownloadUrl).toBe("/api/files/format-file/download");
+    expect(payload.fileMimeType).toBe("application/pdf");
+    expect(payload.fileSizeBytes).toBe(1234);
+    expect(payload.sourceType).toBe("r2");
+    expect(payload.r2Asset?.fileName).toBe("Formato R2.pdf");
   });
 });

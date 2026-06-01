@@ -22,6 +22,7 @@ const targetTypeOptions = [
   { value: "", label: "Sin relación" },
   { value: "program", label: "Programa académico" },
   { value: "training_material", label: "Material de capacitación" },
+  { value: "enrollment_format", label: "Formato de inscripción" },
   { value: "academic_offer", label: "Oferta por planteles" },
   { value: "campus", label: "Plantel / campus" },
   { value: "global", label: "Global" },
@@ -38,6 +39,7 @@ const slotOptions = [
   { value: "training_pdf", label: "PDF capacitación" },
   { value: "training_image", label: "Imagen capacitación" },
   { value: "training_file", label: "Archivo capacitación" },
+  { value: "format_document", label: "Documento de formato" },
 ];
 
 function formatBytes(value: number | null) {
@@ -271,7 +273,7 @@ export default function FilesClient({
             <div className="text-xs uppercase tracking-[0.28em] text-slate-400">R2</div>
             <h2 className="mt-1 text-lg font-semibold">Assets y materiales</h2>
             <p className="mt-1 max-w-2xl text-sm text-slate-300">
-              Carga PDFs, imágenes, videos y documentos. Puedes dejarlos libres o relacionarlos con programas y materiales.
+              Carga PDFs, imágenes, videos y documentos. Puedes dejarlos libres o relacionarlos con programas, formatos y materiales.
             </p>
           </div>
 
@@ -312,6 +314,8 @@ export default function FilesClient({
               placeholder={
                 targetType === "training_material"
                   ? "Opcional: se usa el ID del archivo"
+                  : targetType === "enrollment_format"
+                    ? "ID del formato en Admin > UNIDEP > Formatos"
                   : "Ej. ID del programa o plantel"
               }
             />
@@ -343,6 +347,7 @@ export default function FilesClient({
         </div>
         <p className="text-xs leading-5 text-slate-400">
           Para materiales de capacitación basta elegir “Material de capacitación” y un uso; el ID puede quedar vacío.
+          Para formatos, usa el ID del formato o selecciónalo directamente desde Admin &gt; UNIDEP &gt; Formatos.
           Para planes por licenciatura, la asignación recomendada sigue en Programas UNIDEP.
         </p>
 
