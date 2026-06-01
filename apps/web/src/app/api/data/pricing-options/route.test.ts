@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getSessionUserMock, prismaMock } = vi.hoisted(() => ({
+const {
+  getSessionUserMock,
+  listContentBucketObjectsMock,
+  listFileAssetsMock,
+  prismaMock,
+} = vi.hoisted(() => ({
   getSessionUserMock: vi.fn(),
+  listContentBucketObjectsMock: vi.fn(),
+  listFileAssetsMock: vi.fn(),
   prismaMock: {
     scholarshipRule: { findMany: vi.fn() },
     adminPriceOverride: { findMany: vi.fn() },
@@ -21,7 +28,17 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/file-assets", () => ({
+  fileAssetToContentBucketObject: vi.fn((file) => ({
+    key: file.r2Key,
+    fileName: file.fileName,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    lastModified: file.updatedAt?.toISOString?.() ?? null,
+    previewUrl: `/api/files/${file.id}/auth-view`,
+    downloadUrl: `/api/files/${file.id}/download`,
+  })),
   listFileAssetAssignmentsForTargets: vi.fn().mockResolvedValue(new Map()),
+  listFileAssets: listFileAssetsMock,
   resolveProgramR2AssetPayload: vi.fn((input) => ({
     planPdfUrl: input.assets?.study_plan_pdf?.previewUrl ?? input.planPdfUrl,
     brochurePdfUrl: input.assets?.brochure_pdf?.previewUrl ?? input.brochurePdfUrl,
@@ -34,6 +51,24 @@ vi.mock("@/lib/file-assets", () => ({
       heroImage: input.assets?.hero_image ?? null,
     },
   })),
+}));
+
+vi.mock("@/lib/r2-content-bucket", () => ({
+  listContentBucketObjects: listContentBucketObjectsMock,
+  findContentBucketPlanForProgram: vi.fn((programName: string, files: Array<{
+    key: string;
+    fileName: string;
+    mimeType: string;
+  }>) =>
+    files.find((file) => {
+      const source = `${file.key} ${file.fileName}`.toLowerCase();
+      return file.mimeType === "application/pdf" && programName
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((token) => token.length > 3)
+        .some((token) => source.includes(token.normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
+    }) ?? null,
+  ),
 }));
 
 import { GET } from "./route";
@@ -93,6 +128,8 @@ describe("GET /api/data/pricing-options", () => {
     ]);
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
     prismaMock.returnSubjectPrice.findMany.mockResolvedValue([]);
+    listContentBucketObjectsMock.mockResolvedValue([]);
+    listFileAssetsMock.mockResolvedValue([]);
     prismaMock.program.findMany.mockResolvedValue([
       {
         id: "program_catalog_salud",
@@ -510,6 +547,30 @@ describe("GET /api/data/pricing-options", () => {
         ],
       }),
     ]);
+  });
+
+  it("prefers a synced R2 file asset over a legacy Drive URL when no explicit usage is assigned", async () => {
+    listFileAssetsMock.mockResolvedValue([
+      {
+        id: "file_posgrado_plan",
+        r2Key: "Maestría/Maestria en Educacion.pdf",
+        fileName: "Maestria en Educacion.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 123,
+        updatedAt: new Date("2026-06-01T00:00:00.000Z"),
+      },
+    ]);
+
+    const response = await GET();
+    const data = (await response.json()) as {
+      studyPrograms: Array<{ id: string; planPdfUrl: string; planDownloadUrl: string | null }>;
+    };
+
+    const program = data.studyPrograms.find((item) => item.id === "program_posgrado");
+
+    expect(response.status).toBe(200);
+    expect(program?.planPdfUrl).toBe("/api/files/file_posgrado_plan/auth-view");
+    expect(program?.planDownloadUrl).toBe("/api/files/file_posgrado_plan/download");
   });
 
 });

@@ -40,4 +40,34 @@ describe("workflow regressions", () => {
     expect(appChrome).toContain("max-w-[320px]");
     expect(adminChrome).toContain("width: min(82vw, 320px)");
   });
+
+  it("requires the UI-only module selector after payment plan by cycle", () => {
+    const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
+
+    expect(source).toContain("MODULE_OPTIONS_BY_CYCLE");
+    expect(source).toContain("C2: [\"M1\", \"M2\", \"M3\"]");
+    expect(source).toContain("C1: [\"M1\", \"M2\"]");
+    expect(source).toContain("C3: [\"M1\", \"M2\"]");
+    expect(source).toContain("setSelectedStartModule");
+    expect(source).toContain("Módulo de inicio");
+    expect(source).toContain("missing: [\"modulo\"]");
+  });
+
+  it("makes the plan preview primary and removes redundant download CTAs", () => {
+    const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
+
+    expect(source).toContain("ui-plan-preview-layout");
+    expect(source).toContain("ui-plan-preview-frame");
+    expect(source).toContain("ui-plan-preview-summary");
+    expect(source).not.toContain("Descargar plan");
+    expect(source).not.toContain("selectedPlanDownloadUrl");
+  });
+
+  it("does not render the public marketing header on auth pages", () => {
+    const source = read("apps/web/src/components/public/PublicHeader.tsx");
+
+    expect(source).toContain("usePathname");
+    expect(source).toContain("pathname.startsWith(\"/auth\")");
+    expect(source).toContain("return null");
+  });
 });

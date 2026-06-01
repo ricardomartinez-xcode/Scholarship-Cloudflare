@@ -4,12 +4,16 @@ const {
   getSessionUserMock,
   getPublishedConfigSnapshotMock,
   getAcademicOfferVisibleCyclesMock,
+  listContentBucketObjectsMock,
+  listFileAssetsMock,
   logPublicRouteTimingMock,
   prismaMock,
 } = vi.hoisted(() => ({
   getSessionUserMock: vi.fn(),
   getPublishedConfigSnapshotMock: vi.fn(),
   getAcademicOfferVisibleCyclesMock: vi.fn(),
+  listContentBucketObjectsMock: vi.fn(),
+  listFileAssetsMock: vi.fn(),
   logPublicRouteTimingMock: vi.fn(),
   prismaMock: {
     campus: {
@@ -53,6 +57,52 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/lib/file-assets", () => ({
+  fileAssetToContentBucketObject: vi.fn((file) => ({
+    key: file.r2Key,
+    fileName: file.fileName,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    lastModified: file.updatedAt?.toISOString?.() ?? null,
+    previewUrl: `/api/files/${file.id}/auth-view`,
+    downloadUrl: `/api/files/${file.id}/download`,
+  })),
+  listFileAssetAssignmentsForTargets: vi.fn().mockResolvedValue(new Map()),
+  listFileAssets: listFileAssetsMock,
+  resolveProgramR2AssetPayload: vi.fn((input) => ({
+    planPdfUrl: input.assets?.study_plan_pdf?.previewUrl ?? input.planPdfUrl,
+    brochurePdfUrl: input.assets?.brochure_pdf?.previewUrl ?? input.brochurePdfUrl,
+    heroImageUrl: input.assets?.hero_image?.previewUrl ?? null,
+    thumbnailImageUrl: input.assets?.thumbnail_image?.previewUrl ?? null,
+    planDownloadUrl: input.assets?.study_plan_pdf?.downloadUrl ?? input.planPdfUrl,
+    brochureDownloadUrl: input.assets?.brochure_pdf?.downloadUrl ?? input.brochurePdfUrl,
+    r2Assets: {
+      studyPlan: input.assets?.study_plan_pdf ?? null,
+      brochure: input.assets?.brochure_pdf ?? null,
+      heroImage: input.assets?.hero_image ?? null,
+      thumbnailImage: input.assets?.thumbnail_image ?? null,
+    },
+  })),
+}));
+
+vi.mock("@/lib/r2-content-bucket", () => ({
+  listContentBucketObjects: listContentBucketObjectsMock,
+  findContentBucketPlanForProgram: vi.fn((programName: string, files: Array<{
+    key: string;
+    fileName: string;
+    mimeType: string;
+  }>) =>
+    files.find((file) => {
+      const source = `${file.key} ${file.fileName}`.toLowerCase();
+      return file.mimeType === "application/pdf" && programName
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((token) => token.length > 3)
+        .some((token) => source.includes(token.normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
+    }) ?? null,
+  ),
+}));
+
 import { GET } from "./route";
 
 describe("GET /api/public/oferta", () => {
@@ -64,6 +114,8 @@ describe("GET /api/public/oferta", () => {
       email: "asesor@example.com",
     });
     getAcademicOfferVisibleCyclesMock.mockResolvedValue(["C1"]);
+    listContentBucketObjectsMock.mockResolvedValue([]);
+    listFileAssetsMock.mockResolvedValue([]);
     getPublishedConfigSnapshotMock.mockResolvedValue({
       snapshot: {
         visibleCycles: ["C1"],
@@ -156,5 +208,38 @@ describe("GET /api/public/oferta", () => {
         planLink: "https://example.com/current.pdf",
       }),
     ]);
+  });
+
+  it("uses the matching R2 content bucket PDF before the legacy program URL", async () => {
+    listContentBucketObjectsMock.mockResolvedValue([
+      {
+        key: "Licenciatura/Administracion actualizada.pdf",
+        fileName: "Administracion actualizada.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 123,
+        lastModified: null,
+        previewUrl: "https://r2.example/Licenciatura/Administracion%20actualizada.pdf",
+        downloadUrl: "https://r2.example/Licenciatura/Administracion%20actualizada.pdf?download=1",
+      },
+    ]);
+
+    const response = await GET(new Request("http://localhost/api/public/oferta?cycle=C1"));
+    const data = (await response.json()) as {
+      programs: Array<{ name: string; planPdfUrl: string | null; planDownloadUrl: string | null }>;
+      offerings: Array<{ program: { name: string }; planLink: string | null; planDownloadLink: string | null }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(data.programs[0]).toMatchObject({
+      name: "Administracion actualizada",
+      planPdfUrl: "https://r2.example/Licenciatura/Administracion%20actualizada.pdf",
+      planDownloadUrl:
+        "https://r2.example/Licenciatura/Administracion%20actualizada.pdf?download=1",
+    });
+    expect(data.offerings[0]).toMatchObject({
+      planLink: "https://r2.example/Licenciatura/Administracion%20actualizada.pdf",
+      planDownloadLink:
+        "https://r2.example/Licenciatura/Administracion%20actualizada.pdf?download=1",
+    });
   });
 });

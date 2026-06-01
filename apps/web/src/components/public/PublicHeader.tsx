@@ -1,8 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { RecalcIconLogo, UnidepLogo } from "@/components/ui/BrandLogos";
 
 export default function PublicHeader() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/auth")) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-[#D7E4ED] bg-white/95 text-[#0F3C55] shadow-[0_10px_28px_rgba(18,51,72,0.08)] backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-[var(--ui-shell-pad-x)] py-4 sm:py-5">

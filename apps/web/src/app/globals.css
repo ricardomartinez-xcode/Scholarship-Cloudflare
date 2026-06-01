@@ -4795,6 +4795,61 @@ a[role="button"] {
   pointer-events: none;
 }
 
+.ui-plan-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.38fr) minmax(260px, 0.62fr);
+  gap: var(--ui-card-gap);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.ui-plan-preview-frame {
+  min-height: clamp(280px, 34vw, 440px);
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+}
+
+.ui-plan-preview-empty {
+  display: flex;
+  min-height: inherit;
+  flex-direction: column;
+  justify-content: center;
+  padding: calc(var(--ui-card-pad) * 0.9);
+  background: #F7FBFD;
+}
+
+.ui-plan-preview-summary {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+  padding: calc(var(--ui-card-pad) * 0.9);
+  color: var(--ui-text-primary);
+}
+
+.ui-plan-preview-summary-card {
+  min-width: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: #F7FBFD;
+  padding: 12px;
+}
+
+@media (max-width: 1279px) {
+  .ui-plan-preview-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ui-plan-preview-frame {
+    min-height: 320px;
+  }
+}
+
 .ui-floating-calculator {
   position: absolute;
   right: 16px;

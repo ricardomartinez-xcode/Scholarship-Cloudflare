@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildFileAssetLinks,
+  fileAssetToContentBucketObject,
   normalizeFileAssetUsageKey,
   resolveProgramR2AssetPayload,
 } from "@/lib/file-assets";
@@ -25,6 +26,27 @@ describe("file asset helpers", () => {
     expect(buildFileAssetLinks("11111111-1111-1111-1111-111111111111")).toEqual({
       previewUrl: "/api/files/11111111-1111-1111-1111-111111111111/auth-view",
       downloadUrl: "/api/files/11111111-1111-1111-1111-111111111111/download",
+    });
+  });
+
+  it("convierte un file_asset sincronizado en fallback de lectura tipo bucket", () => {
+    expect(
+      fileAssetToContentBucketObject({
+        id: "file-1",
+        r2Key: "Maestría/Administracion financiera.pdf",
+        fileName: "Administracion financiera.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1234,
+        updatedAt: new Date("2026-06-01T00:00:00.000Z"),
+      }),
+    ).toEqual({
+      key: "Maestría/Administracion financiera.pdf",
+      fileName: "Administracion financiera.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 1234,
+      lastModified: "2026-06-01T00:00:00.000Z",
+      previewUrl: "/api/files/file-1/auth-view",
+      downloadUrl: "/api/files/file-1/download",
     });
   });
 

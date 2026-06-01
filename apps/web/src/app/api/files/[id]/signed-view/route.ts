@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getAdminUser } from "@/lib/admin-session";
+import { getFileAssetRedirectUrl } from "@/lib/file-asset-redirect";
 import { getFileAssetById } from "@/lib/file-assets";
-import { createR2SignedUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const admin = await getAdminUser();
   if (!admin) return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
 
@@ -15,13 +15,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const asset = await getFileAssetById(id);
   if (!asset) return NextResponse.json({ ok: false, error: "Archivo no encontrado." }, { status: 404 });
 
-  const signedUrl = createR2SignedUrl({
-    method: "GET",
-    key: asset.r2Key,
-    expiresSeconds: 600,
-    responseContentDisposition: `inline; filename="${asset.fileName.replace(/"/g, "")}"`,
-    contentType: asset.mimeType,
-  });
+  const signedUrl = getFileAssetRedirectUrl(asset, "inline");
+  const redirectUrl = signedUrl.startsWith("/") ? new URL(signedUrl, request.url) : signedUrl;
 
-  return NextResponse.redirect(signedUrl);
+  return NextResponse.redirect(redirectUrl);
 }

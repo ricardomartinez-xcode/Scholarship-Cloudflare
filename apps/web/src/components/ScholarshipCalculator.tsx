@@ -34,6 +34,13 @@ import type { AcademicOfferCycle } from "@/config/academicOffer";
 const QUOTE_DEBOUNCE_MS = 300;
 
 type TipoInscripcion = "nuevo_ingreso" | "regreso" | "reingreso";
+type StartModule = "M1" | "M2" | "M3";
+
+const MODULE_OPTIONS_BY_CYCLE: Record<AcademicOfferCycle, StartModule[]> = {
+  C1: ["M1", "M2"],
+  C2: ["M1", "M2", "M3"],
+  C3: ["M1", "M2"],
+};
 
 type PricingOption = {
   enrollmentType: TipoInscripcion;
@@ -115,6 +122,7 @@ const QUOTE_MISSING_FIELD_LABELS: Record<string, string> = {
   businessLine: "línea de negocio",
   modality: "modalidad",
   plan: "plan de pago",
+  modulo: "módulo de inicio",
   campus: "plantel",
   average: "promedio",
   subjectCount: "materias",
@@ -125,6 +133,7 @@ const QUOTE_MISSING_FIELD_MAP: Record<string, NonNullable<CalculationErr["missin
   businessLine: "nivel",
   modality: "modalidad",
   plan: "plan",
+  modulo: "modulo",
   campus: "plantel",
   average: "promedio",
   subjectCount: "materias",
@@ -532,6 +541,7 @@ export default function ScholarshipCalculator({
   const [modalidad, setModalidad] = useState("");
   const [studyProgramId, setStudyProgramId] = useState("");
   const [plan, setPlan] = useState<number | null>(null);
+  const [selectedStartModule, setSelectedStartModule] = useState<StartModule | "">("");
   const [plantel, setPlantel] = useState("");
   const [materias, setMaterias] = useState<number | null>(null);
   const [promedio, setPromedio] = useState("");
@@ -573,8 +583,8 @@ export default function ScholarshipCalculator({
   const modalidadLabelId = useId();
   const studyProgramLabelId = useId();
   const planLabelId = useId();
+  const startModuleLabelId = useId();
   const plantelLabelId = useId();
-  // moduloLabelId removed
   const materiasLabelId = useId();
   const promedioLabelId = useId();
   const cargoTypeLabelId = useId();
@@ -588,6 +598,7 @@ export default function ScholarshipCalculator({
       setModalidad(toUiModality(scenario.input.modality));
       setStudyProgramId(scenario.input.selectedProgramId ?? "");
       setPlan(scenario.input.plan);
+      setSelectedStartModule("");
       setPlantel(scenario.input.campus ?? "");
       setMaterias(scenario.input.subjectCount ?? null);
       setPromedio(String(scenario.input.average));
@@ -745,6 +756,7 @@ export default function ScholarshipCalculator({
     setModalidad("");
     setStudyProgramId("");
     setPlan(null);
+    setSelectedStartModule("");
     setPlantel("");
     setMaterias(null);
     setPromedio("");
@@ -755,6 +767,7 @@ export default function ScholarshipCalculator({
     setModalidad("");
     setStudyProgramId("");
     setPlan(null);
+    setSelectedStartModule("");
     setPlantel("");
     setMaterias(null);
   }, [nivel]);
@@ -763,6 +776,7 @@ export default function ScholarshipCalculator({
     if (applyingScenarioRef.current) return;
     setStudyProgramId("");
     setPlan(null);
+    setSelectedStartModule("");
     setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
   }, [modalidad]);
@@ -770,18 +784,21 @@ export default function ScholarshipCalculator({
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlan(null);
+    setSelectedStartModule("");
     setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
   }, [studyProgramId, modalidad]);
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
+    setSelectedStartModule("");
     setMaterias(null);
   }, [plan]);
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlan(null);
+    setSelectedStartModule("");
     setMaterias(null);
   }, [plantel]);
 
@@ -864,10 +881,11 @@ export default function ScholarshipCalculator({
     studyPrograms.find((program) => program.id === studyProgramId) ?? null;
   const selectedPlanPreviewUrl =
     selectedOfferProgram?.planLink ?? selectedStudyProgram?.planPdfUrl ?? null;
-  const selectedPlanDownloadUrl =
-    selectedOfferProgram?.planDownloadLink ??
-    selectedStudyProgram?.planDownloadUrl ??
-    selectedPlanPreviewUrl;
+  const selectedPlanModalityLabel =
+    selectedOfferProgram?.modality ??
+    (modalidad ? humanizeLabel(modalidad) : "Selecciona un programa");
+  const selectedPlanScheduleLabel =
+    selectedOfferProgram?.schedule ?? (modalidad === "online" ? "Online" : "No disponible");
 
   useEffect(() => {
     if (!useCanonicalQuote) {
@@ -889,6 +907,18 @@ export default function ScholarshipCalculator({
 
     if (!hasStarted) {
       setQuoteResult(null);
+      setQuoteLoading(false);
+      return;
+    }
+
+    if (plan && !selectedStartModule) {
+      setQuoteResult({
+        ok: false,
+        error: "missing_fields",
+        hint: "Selecciona el módulo de inicio.",
+        missing: ["modulo"],
+        source: "ui",
+      });
       setQuoteLoading(false);
       return;
     }
@@ -950,6 +980,7 @@ export default function ScholarshipCalculator({
     benefitLookupKey,
     modalidad,
     plan,
+    selectedStartModule,
     plantel,
     promedio,
     materias,
@@ -1151,6 +1182,14 @@ export default function ScholarshipCalculator({
   const nivelOptions = niveles.map((n) => ({ value: n, label: humanizeLabel(n) }));
   const modalidadOptions = modalidades.map((m) => ({ value: m, label: humanizeLabel(m) }));
   const planOptions = planes.map((p) => ({ value: String(p), label: `Plan ${p}` }));
+  const startModuleOptions = useMemo(
+    () =>
+      (selectedOfferCycle
+        ? MODULE_OPTIONS_BY_CYCLE[selectedOfferCycle]
+        : MODULE_OPTIONS_BY_CYCLE.C1
+      ).map((module) => ({ value: module, label: module })),
+    [selectedOfferCycle],
+  );
   const plantelOptions = planteles.map((campus) => ({
     value: campus.value,
     label: campus.label,
@@ -1172,6 +1211,13 @@ export default function ScholarshipCalculator({
         { value: "kardex", label: "Kardex", cost: 0 },
         { value: "revalidacion", label: "Revalidación", cost: 0 },
       ];
+
+  useEffect(() => {
+    if (!selectedStartModule) return;
+    if (startModuleOptions.some((option) => option.value === selectedStartModule)) return;
+    setSelectedStartModule("");
+  }, [selectedStartModule, startModuleOptions]);
+
   const porcentajeBenefit = benefitBundle?.benefit ?? null;
   const firstPaymentBenefit = benefitBundle?.firstPaymentBenefit ?? null;
   const beneficioPercent =
@@ -2004,6 +2050,19 @@ export default function ScholarshipCalculator({
                 onChange={(v) => setPlan(v ? Number(v) : null)}
               />
             </label>
+
+            <label className="grid min-w-0 gap-2 ui-label">
+              <span id={startModuleLabelId}>Módulo de inicio</span>
+              <SmartSelect
+                labelId={startModuleLabelId}
+                value={selectedStartModule}
+                placeholder={plan ? "Selecciona módulo" : "Selecciona plan primero"}
+                disabled={!plan}
+                error={Boolean(calcErr?.missing?.includes("modulo"))}
+                options={startModuleOptions}
+                onChange={(v) => setSelectedStartModule(v as StartModule)}
+              />
+            </label>
           </div>
 
           <div className="ui-subcard">
@@ -2025,76 +2084,65 @@ export default function ScholarshipCalculator({
                   Sin programa seleccionado.
                 </div>
               ) : (
-              <div className="mt-4 grid min-w-0 gap-[var(--ui-card-gap)] xl:grid-cols-[minmax(0,1.24fr)_minmax(248px,0.76fr)]">
-                <div className="grid min-w-0 gap-3 rounded-2xl border ui-border bg-slate-950/40 p-[calc(var(--ui-card-pad)*0.9)] text-sm text-slate-200">
-                  <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                    Oferta por planteles
-                  </div>
-                  <div className="min-w-0 break-words text-base font-semibold text-slate-100">
-                    {offerProgramsLoading
-                      ? "Cargando oferta..."
-                      : selectedStudyProgram?.name ?? "Sin plan seleccionado"}
-                  </div>
-                  {offerProgramsError ? (
-                    <div className="text-xs text-red-200">{offerProgramsError}</div>
-                  ) : null}
-                </div>
-                <div className="grid min-w-0 gap-3 rounded-2xl border ui-border bg-slate-950/40 p-[calc(var(--ui-card-pad)*0.9)] text-sm text-slate-200">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                    <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
-                      <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                        Modalidad ofertada
+              <div className="mt-4 ui-plan-preview-layout">
+                <div className="ui-plan-preview-frame">
+                  {selectedPlanPreviewUrl ? (
+                    <iframe
+                      src={selectedPlanPreviewUrl}
+                      title={`Preview plan: ${selectedStudyProgram?.name ?? "programa"}`}
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <div className="ui-plan-preview-empty">
+                      <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--ui-text-secondary)]">
+                        Preview del plan
                       </div>
-                      <div className="mt-2 min-w-0 break-words text-base font-semibold text-slate-100">
-                        {selectedOfferProgram?.modality ?? "Selecciona un programa"}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
-                      <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                        Horario
-                      </div>
-                      <div className="mt-2 min-w-0 break-words text-base font-semibold text-slate-100">
-                        {selectedOfferProgram?.schedule ?? "No disponible"}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    {selectedPlanPreviewUrl ? (
-                      <div className="grid gap-3">
-                        <div className="flex flex-wrap gap-2">
-                          <a
-                            href={selectedPlanPreviewUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="ui-button-secondary inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
-                          >
-                            Preview plan
-                          </a>
-                          <a
-                            href={selectedPlanDownloadUrl ?? selectedPlanPreviewUrl}
-                            className="ui-button-info inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
-                          >
-                            Descargar plan
-                          </a>
-                        </div>
-                        <div className="h-44 overflow-hidden rounded-2xl border border-white/10 bg-white">
-                          <iframe
-                            src={selectedPlanPreviewUrl}
-                            title={`Preview plan: ${selectedStudyProgram?.name ?? "programa"}`}
-                            className="h-full w-full"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="inline-flex cursor-not-allowed rounded-xl border border-white/10 bg-white/5 px-3 py-2 ui-label text-slate-400"
-                      >
+                      <div className="mt-2 text-base font-semibold text-[color:var(--ui-text-primary)]">
                         Plan no disponible
-                      </button>
-                    )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="ui-plan-preview-summary">
+                  <div className="ui-plan-preview-summary-card">
+                    <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--ui-text-secondary)]">
+                      Plan seleccionado
+                    </div>
+                    <div className="mt-2 min-w-0 break-words text-base font-semibold text-[color:var(--ui-text-primary)]">
+                      {offerProgramsLoading
+                        ? "Cargando oferta..."
+                        : selectedStudyProgram?.name ?? "Sin plan seleccionado"}
+                    </div>
+                    {offerProgramsError ? (
+                      <div className="mt-2 text-xs text-[#9f1d1d]">{offerProgramsError}</div>
+                    ) : null}
                   </div>
+                  <div className="ui-plan-preview-summary-card">
+                    <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--ui-text-secondary)]">
+                      Modalidad ofertada
+                    </div>
+                    <div className="mt-2 min-w-0 break-words text-base font-semibold text-[color:var(--ui-text-primary)]">
+                      {selectedPlanModalityLabel}
+                    </div>
+                  </div>
+                  <div className="ui-plan-preview-summary-card">
+                    <div className="text-xs uppercase tracking-[0.22em] text-[color:var(--ui-text-secondary)]">
+                      Horario
+                    </div>
+                    <div className="mt-2 min-w-0 break-words text-base font-semibold text-[color:var(--ui-text-primary)]">
+                      {selectedPlanScheduleLabel}
+                    </div>
+                  </div>
+                  {selectedPlanPreviewUrl ? (
+                    <a
+                      href={selectedPlanPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ui-button-secondary inline-flex min-h-9 rounded-xl px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(31,108,140,0.3)]"
+                    >
+                      Abrir preview
+                    </a>
+                  ) : null}
                 </div>
                 <div className="sr-only" aria-live="polite">
                   Plan seleccionado: {offerSelectedProgramId || studyProgramId || "ninguno"}
@@ -2466,12 +2514,6 @@ export default function ScholarshipCalculator({
                       className="ui-button-secondary min-h-8 rounded-full px-3 py-1 text-xs"
                     >
                       Abrir preview
-                    </a>
-                    <a
-                      href={selectedPlanDownloadUrl ?? selectedPlanPreviewUrl}
-                      className="ui-button-info min-h-8 rounded-full px-3 py-1 text-xs"
-                    >
-                      Descargar
                     </a>
                   </div>
                 </div>

@@ -24,10 +24,16 @@ import {
   normalizeUnidepProgramBusinessLine,
 } from "@/lib/unidep-program-catalog";
 import {
+  fileAssetToContentBucketObject,
   listFileAssetAssignmentsForTargets,
+  listFileAssets,
   resolveProgramR2AssetPayload,
   type PublicFileAssetPayload,
 } from "@/lib/file-assets";
+import {
+  findContentBucketPlanForProgram,
+  listContentBucketObjects,
+} from "@/lib/r2-content-bucket";
 
 export const dynamic = "force-dynamic";
 
@@ -199,10 +205,18 @@ async function loadOfertaPayload(
 
   const catalog = await getUnidepProgramCatalog();
   const programMap = new Map(catalog.map((program) => [program.id, program]));
-  const r2Assignments = await listFileAssetAssignmentsForTargets(
-    "program",
-    catalog.map((program) => program.id),
-  );
+  const [r2Assignments, bucketFiles, syncedPdfAssets] = await Promise.all([
+    listFileAssetAssignmentsForTargets(
+      "program",
+      catalog.map((program) => program.id),
+    ),
+    listContentBucketObjects(),
+    listFileAssets({ mimeType: "application/pdf", limit: 1000 }),
+  ]);
+  const fallbackPlanFiles = [
+    ...syncedPdfAssets.map(fileAssetToContentBucketObject),
+    ...bucketFiles,
+  ];
   const lineEnum = normalizeUnidepProgramBusinessLine(lineRaw);
   const normalizedLineRaw = normalizeKey(lineRaw);
 
@@ -288,12 +302,18 @@ async function loadOfertaPayload(
     const program = programMap.get(offering.programId);
     if (!program) continue;
     seen.add(offering.programId);
+    const legacyPlanUrl = getUnidepProgramPlanUrl(program);
+    const bucketPlan = findContentBucketPlanForProgram(program.name, fallbackPlanFiles);
     const r2Payload = resolveProgramR2AssetPayload({
       programId: program.id,
-      planPdfUrl: getUnidepProgramPlanUrl(program),
+      planPdfUrl: bucketPlan?.previewUrl ?? legacyPlanUrl,
       brochurePdfUrl: program.brochurePdfUrl ?? null,
       assets: r2Assignments.get(program.id) ?? {},
     });
+    const planDownloadUrl =
+      r2Payload.r2Assets.studyPlan?.downloadUrl ??
+      bucketPlan?.downloadUrl ??
+      r2Payload.planDownloadUrl;
     programs.push({
       programId: program.id,
       name: program.name,
@@ -303,7 +323,7 @@ async function loadOfertaPayload(
       planPdfUrl: r2Payload.planPdfUrl,
       heroImageUrl: r2Payload.heroImageUrl,
       thumbnailImageUrl: r2Payload.thumbnailImageUrl,
-      planDownloadUrl: r2Payload.planDownloadUrl,
+      planDownloadUrl,
       brochureDownloadUrl: r2Payload.brochureDownloadUrl,
       r2Assets: r2Payload.r2Assets,
     });
@@ -315,18 +335,24 @@ async function loadOfertaPayload(
     .map((offering) => {
       const program = programMap.get(offering.programId);
       if (!program) return null;
+      const legacyPlanUrl = getUnidepProgramPlanUrl(program);
+      const bucketPlan = findContentBucketPlanForProgram(program.name, fallbackPlanFiles);
       const r2Payload = resolveProgramR2AssetPayload({
         programId: program.id,
-        planPdfUrl: getUnidepProgramPlanUrl(program),
+        planPdfUrl: bucketPlan?.previewUrl ?? legacyPlanUrl,
         brochurePdfUrl: program.brochurePdfUrl ?? null,
         assets: r2Assignments.get(program.id) ?? {},
       });
+      const planDownloadUrl =
+        r2Payload.r2Assets.studyPlan?.downloadUrl ??
+        bucketPlan?.downloadUrl ??
+        r2Payload.planDownloadUrl;
       return {
         id: offering.id,
         modality: getModalityLabel(offering),
         schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
         planLink: r2Payload.planPdfUrl,
-        planDownloadLink: r2Payload.planDownloadUrl,
+        planDownloadLink: planDownloadUrl,
         pricingPlans: offering.pricingPlans ?? [],
         campus: buildCampusPayload(offering.campus),
         program: { id: program.id, name: program.name },

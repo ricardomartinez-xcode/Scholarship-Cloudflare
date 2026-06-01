@@ -14,6 +14,20 @@ export type ContentBucketObject = {
   downloadUrl: string;
 };
 
+const PROGRAM_MATCH_STOPWORDS = new Set([
+  "bachillerato",
+  "estudio",
+  "estudios",
+  "licenciatura",
+  "maestria",
+  "maestría",
+  "plan",
+  "planes",
+  "posgrado",
+  "programa",
+  "unidep",
+]);
+
 type R2ContentConfig = {
   bucket: string;
   endpoint: string;
@@ -99,7 +113,12 @@ export function buildContentBucketPublicUrl(key: string) {
   return `/api/content-bucket/${encodePath(normalizedKey)}`;
 }
 
-function buildContentBucketDownloadUrl(key: string) {
+export function buildContentBucketProxyUrl(key: string, options?: { download?: boolean }) {
+  const normalizedKey = trimSlashes(key);
+  return `/api/content-bucket/${encodePath(normalizedKey)}${options?.download ? "?download=1" : ""}`;
+}
+
+export function buildContentBucketDownloadUrl(key: string) {
   const config = getConfig();
   const normalizedKey = trimSlashes(key);
   if (config.publicBaseUrl) {
@@ -120,6 +139,42 @@ function inferMimeType(key: string) {
   if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   if (ext === "pptx") return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
   return "application/octet-stream";
+}
+
+function normalizePlanMatchText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\.[a-z0-9]+$/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getMatchTokens(value: string) {
+  return normalizePlanMatchText(value)
+    .split(/\s+/g)
+    .filter((token) => token.length > 2 && !PROGRAM_MATCH_STOPWORDS.has(token));
+}
+
+export function findContentBucketPlanForProgram(
+  programName: string,
+  bucketFiles: ContentBucketObject[],
+) {
+  const tokens = getMatchTokens(programName);
+  if (!tokens.length) return null;
+
+  return (
+    bucketFiles.find((file) => {
+      if (file.mimeType !== "application/pdf") return false;
+      const fileText = normalizePlanMatchText(`${file.key} ${file.fileName}`);
+      const matches = tokens.filter((token) => fileText.includes(token)).length;
+      const requiredMatches =
+        tokens.length <= 2 ? tokens.length : Math.ceil(tokens.length * 0.75);
+      return matches >= Math.max(1, requiredMatches);
+    }) ?? null
+  );
 }
 
 function toContentObject(input: {

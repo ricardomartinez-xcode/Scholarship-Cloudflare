@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import type { ContentBucketObject } from "@/lib/r2-content-bucket";
 
 export type FileAssetSlot =
   | "study_plan_pdf"
@@ -149,6 +150,22 @@ export function buildFileAssetLinks(fileId: string) {
   return {
     previewUrl: `/api/files/${encodeURIComponent(fileId)}/auth-view`,
     downloadUrl: `/api/files/${encodeURIComponent(fileId)}/download`,
+  };
+}
+
+export function fileAssetToContentBucketObject(
+  file: Pick<
+    FileAssetRecord,
+    "id" | "r2Key" | "fileName" | "mimeType" | "sizeBytes" | "updatedAt"
+  >,
+): ContentBucketObject {
+  return {
+    key: file.r2Key,
+    fileName: file.fileName,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    lastModified: file.updatedAt.toISOString(),
+    ...buildFileAssetLinks(file.id),
   };
 }
 

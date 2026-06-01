@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import { getFileAssetRedirectUrl } from "@/lib/file-asset-redirect";
 import { getFileAssetById } from "@/lib/file-assets";
-import { getSignedR2GetUrl } from "@/lib/r2-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ function statusCodeForSessionState(status: "unauthenticated" | "forbidden" | "in
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const session = await getSessionUser();
@@ -31,14 +31,10 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Archivo no encontrado." }, { status: 404 });
   }
 
-  const signedUrl = getSignedR2GetUrl({
-    key: file.r2Key,
-    fileName: file.fileName,
-    contentType: file.mimeType,
-    disposition: "inline",
-  });
+  const signedUrl = getFileAssetRedirectUrl(file, "inline");
+  const redirectUrl = signedUrl.startsWith("/") ? new URL(signedUrl, request.url) : signedUrl;
 
-  return NextResponse.redirect(signedUrl, {
+  return NextResponse.redirect(redirectUrl, {
     status: 302,
     headers: { "Cache-Control": "private, no-store" },
   });

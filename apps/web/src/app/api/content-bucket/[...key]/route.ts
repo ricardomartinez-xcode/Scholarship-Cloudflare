@@ -28,6 +28,11 @@ function inferMimeType(key: string) {
   return "application/octet-stream";
 }
 
+function contentDisposition(disposition: "inline" | "attachment", fileName: string) {
+  const safeName = fileName.replace(/[\\"]/g, "_");
+  return `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ key: string[] }> },
@@ -66,9 +71,21 @@ export async function GET(
   } catch {
     const fallbackUrl = buildContentBucketPublicUrl(key);
     if (fallbackUrl.startsWith("http")) {
-      return NextResponse.redirect(fallbackUrl, {
-        status: 302,
-        headers: { "Cache-Control": "private, no-store" },
+      const upstream = await fetch(fallbackUrl, { cache: "no-store" });
+      if (!upstream.ok || !upstream.body) {
+        return NextResponse.json(
+          { ok: false, error: "No fue posible leer el archivo del bucket." },
+          { status: upstream.status || 502 },
+        );
+      }
+
+      return new NextResponse(upstream.body, {
+        status: upstream.status,
+        headers: {
+          "Cache-Control": "private, no-store",
+          "Content-Disposition": contentDisposition(disposition, fileName),
+          "Content-Type": contentType,
+        },
       });
     }
     return NextResponse.json(

@@ -16,10 +16,13 @@ import {
 import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 import {
+  fileAssetToContentBucketObject,
   listFileAssetAssignmentsForTargets,
+  listFileAssets,
   resolveProgramR2AssetPayload,
 } from "@/lib/file-assets";
 import {
+  findContentBucketPlanForProgram,
   listContentBucketObjects,
   type ContentBucketObject,
 } from "@/lib/r2-content-bucket";
@@ -64,49 +67,11 @@ async function getOfferedProgramIds(params: {
   return new Set(offerings.map((offering) => offering.programId));
 }
 
-const PROGRAM_MATCH_STOPWORDS = new Set([
-  "bachillerato",
-  "estudio",
-  "estudios",
-  "licenciatura",
-  "plan",
-  "planes",
-  "programa",
-  "unidep",
-]);
-
-function normalizePlanMatchText(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\.[a-z0-9]+$/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function getMatchTokens(value: string) {
-  return normalizePlanMatchText(value)
-    .split(/\s+/g)
-    .filter((token) => token.length > 2 && !PROGRAM_MATCH_STOPWORDS.has(token));
-}
-
 function findBucketPlanForProgram(
   programName: string,
   bucketFiles: ContentBucketObject[],
 ) {
-  const tokens = getMatchTokens(programName);
-  if (!tokens.length) return null;
-
-  return (
-    bucketFiles.find((file) => {
-      if (file.mimeType !== "application/pdf") return false;
-      const fileText = normalizePlanMatchText(`${file.key} ${file.fileName}`);
-      const matches = tokens.filter((token) => fileText.includes(token)).length;
-      return matches >= Math.max(1, Math.ceil(tokens.length * 0.6));
-    }) ?? null
-  );
+  return findContentBucketPlanForProgram(programName, bucketFiles);
 }
 
 async function loadPlanesPayload(params: {
@@ -124,32 +89,40 @@ async function loadPlanesPayload(params: {
   const visiblePrograms = offeredProgramIds
     ? programs.filter((program) => offeredProgramIds.has(program.id))
     : programs;
-  const [r2Assignments, bucketFiles] = await Promise.all([
+  const [r2Assignments, bucketFiles, syncedPdfAssets] = await Promise.all([
     listFileAssetAssignmentsForTargets(
       "program",
       visiblePrograms.map((program) => program.id),
     ),
     listContentBucketObjects(),
+    listFileAssets({ mimeType: "application/pdf", limit: 1000 }),
   ]);
+  const fallbackPlanFiles = [
+    ...syncedPdfAssets.map(fileAssetToContentBucketObject),
+    ...bucketFiles,
+  ];
 
   return {
     programs: visiblePrograms.map((program) => {
       const legacyPlanUrl = getUnidepProgramPlanUrl(program);
-      const bucketPlan = findBucketPlanForProgram(program.name, bucketFiles);
+      const bucketPlan = findBucketPlanForProgram(program.name, fallbackPlanFiles);
       const r2Payload = resolveProgramR2AssetPayload({
         programId: program.id,
-        planPdfUrl: legacyPlanUrl ?? bucketPlan?.previewUrl ?? null,
+        planPdfUrl: bucketPlan?.previewUrl ?? legacyPlanUrl ?? null,
         brochurePdfUrl: program.brochurePdfUrl ?? null,
         assets: r2Assignments.get(program.id) ?? {},
       });
+      const planDownloadUrl =
+        r2Payload.r2Assets.studyPlan?.downloadUrl ??
+        bucketPlan?.downloadUrl ??
+        r2Payload.planDownloadUrl;
       return {
         id: program.id,
         name: program.name,
         category: program.category,
         businessLine: program.businessLine,
         planPdfUrl: r2Payload.planPdfUrl ?? bucketPlan?.previewUrl ?? null,
-        planDownloadUrl:
-          r2Payload.planDownloadUrl ?? bucketPlan?.downloadUrl ?? null,
+        planDownloadUrl,
         heroImageUrl: r2Payload.heroImageUrl,
         thumbnailImageUrl: r2Payload.thumbnailImageUrl,
         hasPlan: Boolean(r2Payload.planPdfUrl ?? legacyPlanUrl ?? bucketPlan),

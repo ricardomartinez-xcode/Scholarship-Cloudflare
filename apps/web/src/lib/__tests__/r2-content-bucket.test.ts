@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  buildContentBucketProxyUrl,
   buildContentBucketPublicUrl,
+  findContentBucketPlanForProgram,
   getSignedContentBucketGetUrl,
   listContentBucketObjects,
 } from "@/lib/r2-content-bucket";
@@ -65,6 +67,53 @@ describe("R2 content bucket helpers", () => {
       "https://example-account.r2.cloudflarestorage.com/planes-de-estudio/Ingenieria/plan.pdf?",
     );
     expect(signedUrl).toContain("X-Amz-Signature=");
+  });
+
+  it("builds same-origin proxy URLs for inline and download previews", () => {
+    expect(buildContentBucketProxyUrl("Maestría/Administracion financiera.pdf")).toBe(
+      "/api/content-bucket/Maestr%C3%ADa/Administracion%20financiera.pdf",
+    );
+    expect(
+      buildContentBucketProxyUrl("Maestría/Administracion financiera.pdf", {
+        download: true,
+      }),
+    ).toBe(
+      "/api/content-bucket/Maestr%C3%ADa/Administracion%20financiera.pdf?download=1",
+    );
+  });
+
+  it("matches program names to PDFs in the content bucket without requiring explicit usage rows", () => {
+    const match = findContentBucketPlanForProgram("Maestría en Administración Financiera", [
+      {
+        key: "Maestría/Administracion de Negocios y Mercadotecnia.pdf",
+        fileName: "Administracion de Negocios y Mercadotecnia.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 999,
+        lastModified: null,
+        previewUrl: "https://bucket/Maestria/Administracion%20de%20Negocios.pdf",
+        downloadUrl: "https://bucket/Maestria/Administracion%20de%20Negocios.pdf?download=1",
+      },
+      {
+        key: "Maestría/Administracion financiera.pdf",
+        fileName: "Administracion financiera.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 123,
+        lastModified: null,
+        previewUrl: "https://bucket/Maestria/Administracion%20financiera.pdf",
+        downloadUrl: "https://bucket/Maestria/Administracion%20financiera.pdf?download=1",
+      },
+      {
+        key: "Maestría/Derecho Fiscal.pdf",
+        fileName: "Derecho Fiscal.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 456,
+        lastModified: null,
+        previewUrl: "https://bucket/Maestria/Derecho%20Fiscal.pdf",
+        downloadUrl: "https://bucket/Maestria/Derecho%20Fiscal.pdf?download=1",
+      },
+    ]);
+
+    expect(match?.key).toBe("Maestría/Administracion financiera.pdf");
   });
 
   it("signs ListObjectsV2 with AWS byte-order query sorting before falling back to manifests", async () => {
