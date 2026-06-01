@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DashboardIcon, type DashboardIconName } from "@/components/layout/DashboardIcons";
 import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets";
 import type { ContentBucketObject } from "@/lib/r2-content-bucket";
+import { syncContentBucketFilesAction } from "./actions";
 
 type PresignResponse =
   | {
@@ -171,9 +172,13 @@ function ContentBucketRows({ files }: { files: ContentBucketObject[] }) {
 export default function FilesClient({
   files,
   contentBucketFiles,
+  statusMessage,
+  errorMessage,
 }: {
   files: FileAssetRecord[];
   contentBucketFiles: ContentBucketObject[];
+  statusMessage?: string;
+  errorMessage?: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -342,6 +347,8 @@ export default function FilesClient({
 
         {notice ? <StatusMessage kind="success">{notice}</StatusMessage> : null}
         {error ? <StatusMessage kind="error">{error}</StatusMessage> : null}
+        {statusMessage ? <StatusMessage kind="success">{statusMessage}</StatusMessage> : null}
+        {errorMessage ? <StatusMessage kind="error">{errorMessage}</StatusMessage> : null}
       </div>
 
       <div className="ui-card overflow-hidden">
@@ -365,11 +372,21 @@ export default function FilesClient({
       </div>
 
       <div className="ui-card overflow-hidden">
-        <div className="border-b border-white/10 px-4 py-3">
-          <div className="text-sm font-semibold text-slate-100">Bucket content: planes-de-estudio</div>
-          <div className="mt-1 text-xs text-slate-400">
-            Lectura directa desde R2 público/Data Catalog para validar archivos antes de relacionarlos.
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-100">Bucket content: planes-de-estudio</div>
+            <div className="mt-1 text-xs text-slate-400">
+              Lectura directa desde R2 público/Data Catalog para validar archivos antes de relacionarlos.
+            </div>
           </div>
+          <form action={syncContentBucketFilesAction}>
+            <button
+              type="submit"
+              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
+            >
+              Sincronizar a assets
+            </button>
+          </form>
         </div>
         <div className="ui-scrollbar overflow-auto">
           <table className="w-full min-w-[860px] border-collapse text-sm">

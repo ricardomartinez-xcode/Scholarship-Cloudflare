@@ -46,6 +46,20 @@ export type PublicFileAssetPayload = {
   downloadUrl: string;
 };
 
+export type ListedR2Object = {
+  key: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+};
+
+export type SyncFileAssetsResult = {
+  scanned: number;
+  created: number;
+  updated: number;
+  assets: FileAssetRecord[];
+};
+
 export type ProgramAssetInput = PublicFileAssetPayload | {
   fileId: string;
   fileName: string;
@@ -284,6 +298,68 @@ export async function listFileAssets(options?: {
     LIMIT ${limit}
   `;
   return rows.map(mapFileAsset);
+}
+
+export async function syncListedR2ObjectsToFileAssets(input: {
+  bucket: string;
+  files: ListedR2Object[];
+  ownerUserId?: string | null;
+}): Promise<SyncFileAssetsResult> {
+  const filesByKey = new Map<string, ListedR2Object>();
+  for (const file of input.files) {
+    const key = file.key.trim();
+    if (!key || key.endsWith("/")) continue;
+    filesByKey.set(key, { ...file, key });
+  }
+
+  const files = Array.from(filesByKey.values());
+  if (!files.length) {
+    return { scanned: 0, created: 0, updated: 0, assets: [] };
+  }
+
+  const existingRows = await prisma.$queryRaw<Array<{ r2Key: string }>>`
+    SELECT "object_key" AS "r2Key"
+    FROM "recalc_admin"."file_asset"
+    WHERE "object_key" IN (${Prisma.join(files.map((file) => file.key))})
+  `;
+  const existingKeys = new Set(existingRows.map((row) => row.r2Key));
+  const assets: FileAssetRecord[] = [];
+
+  for (const file of files) {
+    const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
+      INSERT INTO "recalc_admin"."file_asset"
+        ("object_key", "bucket", "file_name", "mime_type", "size_bytes", "owner_user_id", "visibility")
+      VALUES
+        (${file.key}, ${input.bucket}, ${file.fileName}, ${file.mimeType}, ${file.sizeBytes ?? 0}, ${input.ownerUserId ?? null}::uuid, 'private')
+      ON CONFLICT ("object_key") DO UPDATE
+      SET
+        "bucket" = EXCLUDED."bucket",
+        "file_name" = EXCLUDED."file_name",
+        "mime_type" = EXCLUDED."mime_type",
+        "size_bytes" = EXCLUDED."size_bytes",
+        "updated_at" = now()
+      RETURNING
+        "id",
+        "object_key" AS "r2Key",
+        "bucket",
+        "file_name" AS "fileName",
+        "mime_type" AS "mimeType",
+        "size_bytes" AS "sizeBytes",
+        NULL::text AS "etag",
+        'uploaded'::text AS "status",
+        "created_at" AS "createdAt",
+        "updated_at" AS "updatedAt"
+    `;
+    if (rows[0]) assets.push(mapFileAsset(rows[0]));
+  }
+
+  const updated = files.filter((file) => existingKeys.has(file.key)).length;
+  return {
+    scanned: files.length,
+    created: files.length - updated,
+    updated,
+    assets,
+  };
 }
 
 export async function clearFileAssetUsage(input: {

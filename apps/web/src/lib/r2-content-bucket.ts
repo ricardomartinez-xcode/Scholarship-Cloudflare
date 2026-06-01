@@ -117,6 +117,10 @@ function toContentObject(input: {
   };
 }
 
+export function getContentBucketName() {
+  return getConfig().bucket;
+}
+
 function hmac(key: Buffer | string, value: string) {
   return createHmac("sha256", key).update(value).digest();
 }
