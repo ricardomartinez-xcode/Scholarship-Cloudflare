@@ -98,11 +98,11 @@ export const ADMIN_IMPORT_TEMPLATES = [
   },
   {
     id: "academic-offer",
-    label: "Oferta por plantel",
-    description: "Plantilla CSV compatible con el importador de oferta por plantel.",
+    label: "Oferta por planteles",
+    description: "Plantilla CSV compatible con el importador de oferta por planteles.",
     moduleLabel: "Oferta académica",
     format: "csv",
-    fileName: "plantilla-oferta-por-plantel.csv",
+    fileName: "plantilla-oferta-por-planteles.csv",
     headers: [
       "ciclo",
       "plantel",

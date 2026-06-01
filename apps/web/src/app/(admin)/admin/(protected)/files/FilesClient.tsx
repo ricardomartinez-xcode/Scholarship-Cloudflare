@@ -21,7 +21,7 @@ const targetTypeOptions = [
   { value: "", label: "Sin relación" },
   { value: "program", label: "Programa académico" },
   { value: "training_material", label: "Material de capacitación" },
-  { value: "academic_offer", label: "Oferta por plantel" },
+  { value: "academic_offer", label: "Oferta por planteles" },
   { value: "campus", label: "Plantel / campus" },
   { value: "global", label: "Global" },
 ];

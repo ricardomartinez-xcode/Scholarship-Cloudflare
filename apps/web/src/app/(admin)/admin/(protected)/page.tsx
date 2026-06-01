@@ -55,7 +55,7 @@ const SUMMARY_SECTIONS: SummarySection[] = [
     ],
   },
   {
-    title: "Oferta por plantel",
+    title: "Oferta académica",
     description: "Catálogos, beneficios, precios, simulador y programas.",
     cards: [
       {
@@ -73,7 +73,7 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         capability: AdminCapability.manage_prices,
       },
       {
-        title: "Oferta por plantel",
+        title: "Oferta por planteles",
         description: "Carga, previsualización y publicación de oferta por ciclo.",
         href: "/admin/oferta",
         eyebrow: "Importación",

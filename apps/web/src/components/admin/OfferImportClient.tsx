@@ -329,7 +329,7 @@ export default function OfferImportClient({
       const result = await upsertAcademicOfferAction(new FormData(event.currentTarget));
       if (!result.ok) throw new Error(result.error ?? "No fue posible guardar la oferta.");
       setManualDraft(null);
-      setManualFeedback("Oferta por plantel guardada correctamente.");
+      setManualFeedback("Oferta por planteles guardada correctamente.");
       router.refresh();
     } catch (err) {
       setManualError(err instanceof Error ? err.message : "No fue posible guardar la oferta.");
@@ -351,7 +351,7 @@ export default function OfferImportClient({
       formData.set("id", row.id);
       const result = await deleteAcademicOfferAction(formData);
       if (!result.ok) throw new Error(result.error ?? "No fue posible eliminar la oferta.");
-      setManualFeedback("Oferta por plantel eliminada correctamente.");
+      setManualFeedback("Oferta por planteles eliminada correctamente.");
       router.refresh();
     } catch (err) {
       setManualError(err instanceof Error ? err.message : "No fue posible eliminar la oferta.");
@@ -464,7 +464,7 @@ export default function OfferImportClient({
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
         <div>
-          <h1 className="mt-1 text-lg font-semibold">Oferta por plantel</h1>
+          <h1 className="mt-1 text-lg font-semibold">Oferta por planteles</h1>
           <p className="mt-1 text-sm text-slate-300">
             Oferta activa de la calculadora. Usa <strong className="text-slate-100">Editar</strong> para crear o actualizar
             una oferta por plantel, o importa cambios masivos por XLSX/CSV.
@@ -481,7 +481,7 @@ export default function OfferImportClient({
 
       <div className="mt-5">
         <AdminSegmentedTabs
-          ariaLabel="Vistas de oferta por plantel"
+          ariaLabel="Vistas de oferta por planteles"
           activeId={activePanel}
           onChange={(panel) => setActivePanel(panel as OfferPanel)}
           items={[
@@ -681,7 +681,7 @@ export default function OfferImportClient({
           <section className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Importar oferta por plantel</div>
+                <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Importar oferta por planteles</div>
                 <p className="mt-1 text-sm text-slate-300">
                   Importa archivos XLSX o CSV. La sesión primero valida y previsualiza; después puedes aplicar al draft y publicar cuando el diff esté aprobado.
                 </p>

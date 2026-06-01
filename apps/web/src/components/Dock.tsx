@@ -108,7 +108,7 @@ const IconPin = ({ className }: DockIconProps) => (
 
 const dockItems = [
   { key: "becas", label: "Becas", Icon: IconCap },
-  { key: "oferta", label: "Oferta por plantel", Icon: IconBook },
+  { key: "oferta", label: "Oferta por planteles", Icon: IconBook },
   { key: "costos", label: "Costos académicos", Icon: IconCard },
   { key: "planes", label: "Planes de estudio", Icon: IconClipboard },
   { key: "directorio", label: "Directorio", Icon: IconUsers },

@@ -96,8 +96,8 @@ function rearrangeWorkspaceNavGroups(groups: DashboardNavGroup[]) {
             child.key === "oferta-academica"
               ? {
                   ...child,
-                  label: "Oferta por plantel",
-                  shortLabel: "Plantel",
+                  label: "Oferta por planteles",
+                  shortLabel: "Planteles",
                 }
               : child,
           ),
