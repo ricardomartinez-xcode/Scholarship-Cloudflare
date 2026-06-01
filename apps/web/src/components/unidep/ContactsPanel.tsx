@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 
 import SmartSelect from "@/components/SmartSelect";
 import {
+  PROSPECT_TRACKING_SHEETS,
+  type ProspectTrackingSheetKey,
+} from "@/lib/prospect-tracking-sheets";
+import {
   readWebCampaignSelection,
   writeWebCampaignSelection,
   type WebCampaignSelectableContact,
@@ -126,52 +130,6 @@ const EMPTY_DRAFT: DraftState = {
 };
 
 const CONTACTS_PAGE_SIZE = 20;
-const PROSPECT_TRACKING_SPREADSHEET_ID = "1Rkeaf6HBbdkaCM54HY0wtmNKNx-ka5sWO8RcIu5ApfY";
-const PROSPECT_TRACKING_SPREADSHEET_URL = `https://docs.google.com/spreadsheets/d/${PROSPECT_TRACKING_SPREADSHEET_ID}/edit`;
-const PROSPECT_TRACKING_SHEETS = [
-  {
-    key: "seguimiento",
-    label: "Seguimiento",
-    sheetName: "Seguimiento",
-    gid: "1630061474",
-    rowsLabel: "4,199 registros iniciales",
-    description:
-      "Bitacora de toques, tipificacion, clasificacion, motivo, resolucion y estado por canal.",
-    columns: ["Toque", "Clasificacion", "Motivo", "Resolucion", "WhatsApp", "Correo", "Llamada"],
-  },
-  {
-    key: "campanas",
-    label: "Campañas",
-    sheetName: "Campañas",
-    gid: "1854268015",
-    rowsLabel: "50 campanas base",
-    description:
-      "Resumen operativo por campana: canal, batch, estado, enviados, fallidos y fechas.",
-    columns: ["Campana", "Canal", "Estado", "Batch", "Enviados", "Fallidos", "Runner"],
-  },
-  {
-    key: "contactos",
-    label: "Contactos",
-    sheetName: "Contactos",
-    gid: "1142934270",
-    rowsLabel: "3,800 contactos unicos",
-    description:
-      "Directorio deduplicado con datos de contacto, plantel, plan, expediente y origen.",
-    columns: ["Nombre", "Telefono", "Correo", "Plantel", "Plan", "Expediente", "Fuente"],
-  },
-  {
-    key: "metadatos",
-    label: "Metadatos",
-    sheetName: "Metadatos",
-    gid: "746858452",
-    rowsLabel: "Catalogos y reglas",
-    description:
-      "Diccionario de campos, origenes, valores recomendados y reglas para mantener consistencia.",
-    columns: ["Campo", "Hoja", "Tipo", "Valores", "Uso", "Notas"],
-  },
-] as const;
-
-type ProspectTrackingSheetKey = (typeof PROSPECT_TRACKING_SHEETS)[number]["key"];
 
 function formatDateTime(value: string | null) {
   if (!value) return "—";
@@ -195,7 +153,7 @@ function normalizeVisibleErrorMessage(message: string) {
     lowered.includes("requested url /sheets/v4/spreadsheets") ||
     lowered.includes("google sheets")
   ) {
-    return "No fue posible crear o actualizar la hoja de contactos en Google Sheets.";
+    return "No fue posible crear o actualizar la hoja de seguimiento en Google Sheets.";
   }
 
   if (lowered.includes("contacts.readonly")) {
@@ -291,7 +249,9 @@ export default function ContactsPanel() {
       PROSPECT_TRACKING_SHEETS[0],
     [trackingSheetKey],
   );
-  const selectedTrackingSheetUrl = `${PROSPECT_TRACKING_SPREADSHEET_URL}#gid=${selectedTrackingSheet.gid}`;
+  const selectedTrackingSheetUrl = appContactsSpreadsheetUrl
+    ? `${appContactsSpreadsheetUrl}#gid=${selectedTrackingSheet.gid}`
+    : null;
   const trackingSheetOptions = useMemo(
     () =>
       PROSPECT_TRACKING_SHEETS.map((sheet) => ({
@@ -729,7 +689,7 @@ export default function ContactsPanel() {
         throw new Error(syncData.error || "No fue posible sincronizar contactos.");
       }
 
-      setMessage("Sincronizacion hibrida activa con Google Sheets.");
+      setMessage("Sincronizacion activa con tu hoja de seguimiento en Google Sheets.");
       await loadContacts({ silent: true });
     } catch (syncError) {
       setError(
@@ -917,19 +877,25 @@ export default function ContactsPanel() {
               contactos, tipificación y metadatos.
             </p>
           </div>
-          <a
-            href={PROSPECT_TRACKING_SPREADSHEET_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="ui-cta-primary"
-          >
-            Abrir documento
-          </a>
+          {appContactsSpreadsheetUrl ? (
+            <a
+              href={appContactsSpreadsheetUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="ui-cta-primary"
+            >
+              Abrir documento
+            </a>
+          ) : (
+            <button type="button" disabled className="ui-cta-primary opacity-60">
+              Activa Sheets
+            </button>
+          )}
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)]">
           <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
-            Entrada de Sheets
+            Hoja de seguimiento
             <SmartSelect
               value={trackingSheetKey}
               placeholder="Selecciona hoja"
@@ -952,14 +918,20 @@ export default function ContactsPanel() {
                   {selectedTrackingSheet.description}
                 </p>
               </div>
-              <a
-                href={selectedTrackingSheetUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="ui-button-secondary"
-              >
-                Abrir hoja
-              </a>
+              {selectedTrackingSheetUrl ? (
+                <a
+                  href={selectedTrackingSheetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ui-button-secondary"
+                >
+                  Abrir hoja
+                </a>
+              ) : (
+                <button type="button" disabled className="ui-button-secondary opacity-60">
+                  Activa Sheets
+                </button>
+              )}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {selectedTrackingSheet.columns.map((column) => (
@@ -1000,16 +972,16 @@ export default function ContactsPanel() {
 
         {appContactsSpreadsheetUrl ? (
           <div className="rounded-2xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-3)] px-4 py-3 text-sm text-[color:var(--ui-text-secondary)]">
-            La sincronización actual de la app sigue usando{" "}
+            La sincronizacion crea y actualiza{" "}
             <a
               href={appContactsSpreadsheetUrl}
               target="_blank"
               rel="noreferrer"
               className="font-semibold text-[color:var(--ui-text-primary)] underline underline-offset-4"
             >
-              la hoja conectada a Google
+              tu hoja conectada a Google
             </a>
-            . Este bloque abre el documento operativo de seguimiento.
+            . Cada usuario ve y edita solo el archivo creado con su cuenta conectada.
           </div>
         ) : null}
       </section>

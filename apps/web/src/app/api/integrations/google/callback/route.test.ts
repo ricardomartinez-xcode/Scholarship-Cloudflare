@@ -2,11 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getSessionUserMock,
+  forceSyncUserContactsForUserMock,
   parseGoogleCallbackStateMock,
+  updateAgendaSyncPreferenceMock,
   upsertGoogleConnectionFromCodeMock,
 } = vi.hoisted(() => ({
   getSessionUserMock: vi.fn(),
+  forceSyncUserContactsForUserMock: vi.fn(),
   parseGoogleCallbackStateMock: vi.fn(),
+  updateAgendaSyncPreferenceMock: vi.fn(),
   upsertGoogleConnectionFromCodeMock: vi.fn(),
 }));
 
@@ -16,7 +20,12 @@ vi.mock("@/lib/authz", () => ({
 
 vi.mock("@/lib/google-integration", () => ({
   parseGoogleCallbackState: parseGoogleCallbackStateMock,
+  updateAgendaSyncPreference: updateAgendaSyncPreferenceMock,
   upsertGoogleConnectionFromCode: upsertGoogleConnectionFromCodeMock,
+}));
+
+vi.mock("@/lib/user-contacts", () => ({
+  forceSyncUserContactsForUser: forceSyncUserContactsForUserMock,
 }));
 
 import { GET } from "./route";
@@ -40,6 +49,8 @@ describe("GET /api/integrations/google/callback", () => {
       expired: false,
     });
     upsertGoogleConnectionFromCodeMock.mockResolvedValue({ ok: true });
+    updateAgendaSyncPreferenceMock.mockResolvedValue({ ok: true });
+    forceSyncUserContactsForUserMock.mockResolvedValue({ ok: true });
   });
 
   it("acepta callback sin cookie cuando el state viene firmado y vigente", async () => {
@@ -51,6 +62,11 @@ describe("GET /api/integrations/google/callback", () => {
       userId: "user-1",
       code: "code",
     });
+    expect(updateAgendaSyncPreferenceMock).toHaveBeenCalledWith({
+      userId: "user-1",
+      syncSheetsEnabled: true,
+    });
+    expect(forceSyncUserContactsForUserMock).toHaveBeenCalledWith("user-1");
     expect(response.headers.get("location")).toContain(
       "/unidep/contactos?googleSync=connected&googleSyncIntent=contacts_sync",
     );
@@ -71,6 +87,7 @@ describe("GET /api/integrations/google/callback", () => {
     const response = await GET(buildRequest());
 
     expect(upsertGoogleConnectionFromCodeMock).not.toHaveBeenCalled();
+    expect(forceSyncUserContactsForUserMock).not.toHaveBeenCalled();
     expect(response.headers.get("location")).toContain(
       "/unidep/contactos?googleSync=session-expired&googleSyncIntent=contacts_sync",
     );

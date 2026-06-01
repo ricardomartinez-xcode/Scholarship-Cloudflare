@@ -9,6 +9,19 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { writeBusinessEventSafe } from "@/lib/business-events";
+import {
+  GOOGLE_CONTACTS_SHEET_NAME as PROSPECT_CONTACTS_SHEET_NAME,
+  PROSPECT_TRACKING_HEADER_STYLE,
+  PROSPECT_TRACKING_SHEETS,
+  PROSPECT_TRACKING_SPREADSHEET_TITLE,
+  PROSPECT_TRACKING_WORKBOOK_SHEET_NAMES,
+  buildProspectTrackingSheets,
+  type ProspectCampaignSyncRow,
+  type ProspectContactSyncRow,
+  type ProspectGeneratedSheet,
+  type ProspectSheetValue,
+  type ProspectTrackingSheetName,
+} from "@/lib/prospect-tracking-sheets";
 
 const GOOGLE_AUTH_BASE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -26,7 +39,6 @@ const GOOGLE_DEFAULT_SCOPES = [
   "email",
   "profile",
 ];
-export const GOOGLE_CONTACTS_SHEET_NAME = "Contactos";
 const GOOGLE_STATE_TTL_MS = 15 * 60 * 1000;
 
 const GOOGLE_TASKS_SCOPES = ["https://www.googleapis.com/auth/tasks"];
@@ -72,23 +84,9 @@ type GoogleConnectionRecord = Awaited<
   ReturnType<typeof prisma.userGoogleConnection.findUnique>
 >;
 
-export type GoogleContactsSyncRow = {
-  id: string;
-  contactName: string;
-  phone: string;
-  normalizedPhone: string;
-  email: string | null;
-  tags: string[];
-  personalData: string | null;
-  notes: string | null;
-  lastWhatsappMessageAt: string | null;
-  lastWhatsappMessageText: string | null;
-  campaignMessageCount: number;
-  assignedQuoteSessionPublicId: string | null;
-  assignedScenarioId: string | null;
-  source: string;
-  updatedAt: string;
-};
+export const GOOGLE_CONTACTS_SHEET_NAME = PROSPECT_CONTACTS_SHEET_NAME;
+
+export type GoogleContactsSyncRow = ProspectContactSyncRow;
 
 export type GoogleTasklistSummary = {
   id: string;
@@ -1343,6 +1341,8 @@ async function ensureGoogleSpreadsheetTarget(params: {
   userId: string;
   connection: NonNullable<GoogleConnectionRecord>;
   preference: Awaited<ReturnType<typeof prisma.agendaSyncPreference.findUnique>>;
+  title?: string;
+  initialSheets?: Array<{ title: string; sheetId?: number | null }>;
 }) {
   const currentSpreadsheetId = params.preference?.spreadsheetId?.trim();
   if (currentSpreadsheetId) {
@@ -1358,20 +1358,21 @@ async function ensureGoogleSpreadsheetTarget(params: {
       method: "POST",
       body: JSON.stringify({
         properties: {
-          title: "ReCalc Workspace",
+          title: params.title ?? "ReCalc Workspace",
         },
-        sheets: [
-          {
-            properties: {
-              title: params.preference?.worksheetName?.trim() || "Agenda",
-            },
+        sheets: (
+          params.initialSheets?.length
+            ? params.initialSheets
+            : [
+                { title: params.preference?.worksheetName?.trim() || "Agenda" },
+                { title: GOOGLE_CONTACTS_SHEET_NAME },
+              ]
+        ).map((sheet) => ({
+          properties: {
+            title: sheet.title,
+            ...(Number.isInteger(sheet.sheetId) ? { sheetId: sheet.sheetId } : {}),
           },
-          {
-            properties: {
-              title: GOOGLE_CONTACTS_SHEET_NAME,
-            },
-          },
-        ],
+        })),
       }),
     },
     params.connection,
@@ -1404,25 +1405,56 @@ async function ensureGoogleSpreadsheetTarget(params: {
   };
 }
 
-async function ensureGoogleWorksheet(params: {
+type GoogleWorksheetProperty = {
+  sheetId: number;
+  title: string;
+};
+
+async function getGoogleWorksheetProperties(params: {
   connection: NonNullable<GoogleConnectionRecord>;
   spreadsheetId: string;
-  sheetName: string;
 }) {
   const response = await googleApiFetch(
-    `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}?fields=sheets.properties.title`,
+    `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}?fields=sheets.properties(sheetId,title)`,
     { method: "GET" },
     params.connection,
   );
   const result = (await response.json()) as {
-    sheets?: Array<{ properties?: { title?: string | null } }>;
+    sheets?: Array<{ properties?: { sheetId?: number | null; title?: string | null } }>;
   };
 
-  const exists = (result.sheets ?? []).some(
-    (sheet) => String(sheet.properties?.title ?? "").trim() === params.sheetName,
+  return (result.sheets ?? [])
+    .map((sheet) => ({
+      sheetId: Number(sheet.properties?.sheetId),
+      title: String(sheet.properties?.title ?? "").trim(),
+    }))
+    .filter((sheet): sheet is GoogleWorksheetProperty =>
+      Number.isInteger(sheet.sheetId) && Boolean(sheet.title),
+    );
+}
+
+async function ensureGoogleWorksheet(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheetName: string;
+  sheetId?: number | null;
+}) {
+  const sheets = await getGoogleWorksheetProperties({
+    connection: params.connection,
+    spreadsheetId: params.spreadsheetId,
+  });
+
+  const existing = sheets.find(
+    (sheet) => sheet.title === params.sheetName,
   );
 
-  if (exists) return;
+  if (existing) return existing;
+
+  const requestedSheetId =
+    Number.isInteger(params.sheetId) &&
+    !sheets.some((sheet) => sheet.sheetId === params.sheetId)
+      ? params.sheetId
+      : undefined;
 
   await googleApiFetch(
     `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}:batchUpdate`,
@@ -1434,6 +1466,7 @@ async function ensureGoogleWorksheet(params: {
             addSheet: {
               properties: {
                 title: params.sheetName,
+                ...(requestedSheetId === undefined ? {} : { sheetId: requestedSheetId }),
               },
             },
           },
@@ -1442,17 +1475,29 @@ async function ensureGoogleWorksheet(params: {
     },
     params.connection,
   );
+
+  const updatedSheets = await getGoogleWorksheetProperties({
+    connection: params.connection,
+    spreadsheetId: params.spreadsheetId,
+  });
+  return (
+    updatedSheets.find((sheet) => sheet.title === params.sheetName) ?? {
+      sheetId: requestedSheetId ?? -1,
+      title: params.sheetName,
+    }
+  );
 }
 
 async function replaceGoogleSheetValues(params: {
   connection: NonNullable<GoogleConnectionRecord>;
   spreadsheetId: string;
   sheetName: string;
-  values: string[][];
+  values: ProspectSheetValue[][];
 }) {
+  const sheetName = `'${params.sheetName.replace(/'/g, "''")}'`;
   await googleApiFetch(
     `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}/values/${encodeURIComponent(
-      `${params.sheetName}!A:Z`,
+      `${sheetName}!A:Z`,
     )}:clear`,
     {
       method: "POST",
@@ -1463,13 +1508,179 @@ async function replaceGoogleSheetValues(params: {
 
   await googleApiFetch(
     `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}/values/${encodeURIComponent(
-      `${params.sheetName}!A1`,
+      `${sheetName}!A1`,
     )}?valueInputOption=USER_ENTERED`,
     {
       method: "PUT",
       body: JSON.stringify({
         values: params.values,
       }),
+    },
+    params.connection,
+  );
+}
+
+function prospectSheetId(sheetName: ProspectTrackingSheetName) {
+  const definition = PROSPECT_TRACKING_SHEETS.find((sheet) => sheet.sheetName === sheetName);
+  const sheetId = Number(definition?.gid);
+  return Number.isInteger(sheetId) ? sheetId : null;
+}
+
+function buildProspectInitialSheets() {
+  return PROSPECT_TRACKING_WORKBOOK_SHEET_NAMES.map((sheetName) => ({
+    title: sheetName,
+    sheetId: prospectSheetId(sheetName),
+  }));
+}
+
+function googleColorFromHex(hex: string) {
+  const normalized = hex.replace(/^#/, "");
+  const value = Number.parseInt(normalized, 16);
+  if (!Number.isFinite(value)) {
+    return { red: 0, green: 0, blue: 0 };
+  }
+
+  return {
+    red: ((value >> 16) & 255) / 255,
+    green: ((value >> 8) & 255) / 255,
+    blue: (value & 255) / 255,
+  };
+}
+
+async function ensureProspectWorksheets(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheets: ProspectGeneratedSheet[];
+}) {
+  const properties = new Map<string, GoogleWorksheetProperty>();
+
+  for (const sheet of params.sheets) {
+    const property = await ensureGoogleWorksheet({
+      connection: params.connection,
+      spreadsheetId: params.spreadsheetId,
+      sheetName: sheet.name,
+      sheetId: prospectSheetId(sheet.name),
+    });
+    properties.set(sheet.name, property);
+  }
+
+  return properties;
+}
+
+async function applyProspectSheetLayout(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheets: ProspectGeneratedSheet[];
+  propertiesByTitle: Map<string, GoogleWorksheetProperty>;
+}) {
+  const headerBackgroundColor = googleColorFromHex(
+    PROSPECT_TRACKING_HEADER_STYLE.backgroundColor,
+  );
+  const headerForegroundColor = googleColorFromHex(
+    PROSPECT_TRACKING_HEADER_STYLE.foregroundColor,
+  );
+  const requests: Array<Record<string, unknown>> = [];
+
+  for (const sheet of params.sheets) {
+    const property = params.propertiesByTitle.get(sheet.name);
+    if (!property || property.sheetId < 0) continue;
+
+    requests.push({
+      updateSheetProperties: {
+        properties: {
+          sheetId: property.sheetId,
+          gridProperties: {
+            frozenRowCount: sheet.frozenRowCount,
+          },
+        },
+        fields: "gridProperties.frozenRowCount",
+      },
+    });
+
+    sheet.columnWidths.forEach((pixelSize, index) => {
+      requests.push({
+        updateDimensionProperties: {
+          range: {
+            sheetId: property.sheetId,
+            dimension: "COLUMNS",
+            startIndex: index,
+            endIndex: index + 1,
+          },
+          properties: { pixelSize },
+          fields: "pixelSize",
+        },
+      });
+    });
+
+    requests.push({
+      repeatCell: {
+        range: {
+          sheetId: property.sheetId,
+          startRowIndex: 0,
+          endRowIndex: Math.max(sheet.values.length, 1),
+          startColumnIndex: 0,
+          endColumnIndex: sheet.columnCount,
+        },
+        cell: {
+          userEnteredFormat: {
+            wrapStrategy: "WRAP",
+            verticalAlignment: "TOP",
+          },
+        },
+        fields: "userEnteredFormat.wrapStrategy,userEnteredFormat.verticalAlignment",
+      },
+    });
+
+    sheet.headerRowIndexes.forEach((rowIndex) => {
+      requests.push({
+        repeatCell: {
+          range: {
+            sheetId: property.sheetId,
+            startRowIndex: rowIndex,
+            endRowIndex: rowIndex + 1,
+            startColumnIndex: 0,
+            endColumnIndex: sheet.columnCount,
+          },
+          cell: {
+            userEnteredFormat: {
+              backgroundColor: headerBackgroundColor,
+              horizontalAlignment: "CENTER",
+              textFormat: {
+                foregroundColor: headerForegroundColor,
+                bold: PROSPECT_TRACKING_HEADER_STYLE.bold,
+              },
+            },
+          },
+          fields:
+            "userEnteredFormat.backgroundColor,userEnteredFormat.horizontalAlignment,userEnteredFormat.textFormat",
+        },
+      });
+    });
+
+    if (sheet.name !== "Metadatos") {
+      requests.push({
+        setBasicFilter: {
+          filter: {
+            range: {
+              sheetId: property.sheetId,
+              startRowIndex: 0,
+              endRowIndex: Math.max(sheet.values.length, 1),
+              startColumnIndex: 0,
+              endColumnIndex: sheet.columnCount,
+            },
+          },
+        },
+      });
+    }
+  }
+
+  if (!requests.length) return;
+
+  await googleApiFetch(
+    `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}:batchUpdate`,
+    {
+      method: "POST",
+      body: JSON.stringify({ requests }),
     },
     params.connection,
   );
@@ -1880,9 +2091,37 @@ export async function syncContactsSnapshotToGoogle(params: {
   userId: string;
   contacts: GoogleContactsSyncRow[];
 }) {
-  const [connection, preference] = await Promise.all([
+  const [connection, preference, user, campaigns] = await Promise.all([
     prisma.userGoogleConnection.findUnique({ where: { userId: params.userId } }),
     prisma.agendaSyncPreference.findUnique({ where: { userId: params.userId } }),
+    prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { email: true },
+    }),
+    prisma.extensionCampaign.findMany({
+      where: { ownerUserId: params.userId },
+      orderBy: [{ updatedAt: "desc" }],
+      select: {
+        id: true,
+        campaignName: true,
+        channel: true,
+        status: true,
+        scheduleAt: true,
+        batchSize: true,
+        messageDelayMs: true,
+        messageTemplate: true,
+        notes: true,
+        updatedAt: true,
+        recipients: {
+          select: {
+            contactValue: true,
+            contactName: true,
+            status: true,
+            updatedAt: true,
+          },
+        },
+      },
+    }),
   ]);
 
   if (!connection || connection.status !== "connected") {
@@ -1900,57 +2139,56 @@ export async function syncContactsSnapshotToGoogle(params: {
       userId: params.userId,
       connection,
       preference,
+      title: PROSPECT_TRACKING_SPREADSHEET_TITLE,
+      initialSheets: buildProspectInitialSheets(),
     });
 
-    const sheetName = GOOGLE_CONTACTS_SHEET_NAME;
-    await ensureGoogleWorksheet({
-      connection,
-      spreadsheetId,
-      sheetName,
+    const prospectSheets = buildProspectTrackingSheets({
+      contacts: params.contacts,
+      campaigns: campaigns.map(
+        (campaign): ProspectCampaignSyncRow => ({
+          id: campaign.id,
+          campaignName: campaign.campaignName,
+          channel: campaign.channel,
+          status: campaign.status,
+          scheduleAt: campaign.scheduleAt?.toISOString() ?? null,
+          batchSize: campaign.batchSize,
+          messageDelayMs: campaign.messageDelayMs,
+          messageTemplate: campaign.messageTemplate,
+          notes: campaign.notes,
+          updatedAt: campaign.updatedAt.toISOString(),
+          recipients: campaign.recipients.map((recipient) => ({
+            contactValue: recipient.contactValue,
+            contactName: recipient.contactName,
+            status: recipient.status,
+            updatedAt: recipient.updatedAt.toISOString(),
+          })),
+        }),
+      ),
+      ownerEmail: user?.email ?? null,
+      generatedAt: syncedAt.toISOString(),
     });
 
-    const values = params.contacts.map((contact) => [
-      contact.id,
-      contact.contactName,
-      contact.phone,
-      contact.normalizedPhone,
-      contact.email ?? "",
-      contact.tags.join(", "),
-      contact.personalData ?? "",
-      contact.notes ?? "",
-      contact.lastWhatsappMessageAt ?? "",
-      contact.lastWhatsappMessageText ?? "",
-      String(contact.campaignMessageCount),
-      contact.assignedQuoteSessionPublicId ?? "",
-      contact.assignedScenarioId ?? "",
-      contact.source,
-      contact.updatedAt,
-    ]);
-
-    await replaceGoogleSheetValues({
+    const propertiesByTitle = await ensureProspectWorksheets({
       connection,
       spreadsheetId,
-      sheetName,
-      values: [
-        [
-          "id",
-          "nombre",
-          "telefono",
-          "telefono_normalizado",
-          "correo",
-          "etiquetas",
-          "datos_personales",
-          "notas",
-          "ultimo_whatsapp_enviado_at",
-          "ultimo_whatsapp_mensaje",
-          "conteo_mensajes_campana",
-          "cotizacion_vinculada",
-          "escenario_vinculado",
-          "origen",
-          "actualizado_en",
-        ],
-        ...values,
-      ],
+      sheets: prospectSheets,
+    });
+
+    for (const sheet of prospectSheets) {
+      await replaceGoogleSheetValues({
+        connection,
+        spreadsheetId,
+        sheetName: sheet.name,
+        values: sheet.values,
+      });
+    }
+
+    await applyProspectSheetLayout({
+      connection,
+      spreadsheetId,
+      sheets: prospectSheets,
+      propertiesByTitle,
     });
 
     await prisma.userGoogleConnection.update({
@@ -1961,7 +2199,7 @@ export async function syncContactsSnapshotToGoogle(params: {
     return {
       ok: true as const,
       spreadsheetId,
-      sheetName,
+      sheetName: GOOGLE_CONTACTS_SHEET_NAME,
       syncedAt,
     };
   } catch (error) {

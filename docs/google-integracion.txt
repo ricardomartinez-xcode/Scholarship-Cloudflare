@@ -7,7 +7,7 @@ La app usa Neon como fuente de verdad. Google se conecta como destino operativo:
 
 - Google Calendar: crea o actualiza eventos.
 - Google Tasks: crea o actualiza tareas.
-- Google Sheets: agrega filas con el estado de la agenda.
+- Google Sheets: crea/actualiza el workbook operativo por usuario y agrega filas con el estado de la agenda cuando aplica.
 
 Archivos de codigo relevantes
 -----------------------------
@@ -125,8 +125,9 @@ Google Tasks
 - Si no defines uno, la app usa "@default".
 
 Google Sheets
-- spreadsheetId obligatorio
-- worksheetName opcional, default: "Agenda"
+- Si no existe spreadsheetId, la app crea un archivo en el Drive del usuario conectado.
+- Para prospectos crea las hojas: Campañas, Seguimiento, Contactos y Metadatos.
+- worksheetName opcional, default: "Agenda" para sincronizacion de agenda.
 
 Como se lanza la sincronizacion
 -------------------------------
@@ -137,6 +138,12 @@ Ese endpoint:
 - lee la agenda desde Neon,
 - consulta la conexion Google del usuario,
 - y sincroniza hacia Calendar, Tasks y/o Sheets segun la preferencia guardada.
+
+Notas de privacidad para Sheets
+-------------------------------
+- El archivo de seguimiento se crea con el OAuth del usuario conectado y queda en su Drive.
+- No se usa una hoja publica compartida como destino operativo.
+- Neon sigue siendo la fuente principal; Sheets es una copia operativa por usuario.
 
 Que NO hace esta integracion
 ----------------------------

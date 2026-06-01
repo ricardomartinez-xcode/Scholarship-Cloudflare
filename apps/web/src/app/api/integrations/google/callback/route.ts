@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/authz";
 import {
   parseGoogleCallbackState,
+  updateAgendaSyncPreference,
   upsertGoogleConnectionFromCode,
 } from "@/lib/google-integration";
+import { forceSyncUserContactsForUser } from "@/lib/user-contacts";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,17 @@ export async function GET(request: Request) {
       userId,
       code,
     });
+    if (
+      parsedState.intent === "contacts_sync" ||
+      parsedState.service === "contacts" ||
+      parsedState.service === "sheets"
+    ) {
+      await updateAgendaSyncPreference({
+        userId,
+        syncSheetsEnabled: true,
+      });
+      await forceSyncUserContactsForUser(userId);
+    }
   } catch {
     return NextResponse.redirect(
       new URL(

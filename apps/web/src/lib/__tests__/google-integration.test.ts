@@ -78,4 +78,23 @@ describe("google integration helpers", () => {
     expect(states.find((service) => service.key === "calendar")?.connected).toBe(true);
     expect(states.find((service) => service.key === "tasks")?.connected).toBe(false);
   });
+
+  it("solicita Sheets al conectar contactos para crear la hoja del usuario", () => {
+    process.env.GOOGLE_CLIENT_ID = "client-id";
+    process.env.GOOGLE_OAUTH_REDIRECT_URI = "https://example.com/api/integrations/google/callback";
+    process.env.GOOGLE_INTEGRATION_SECRET = "state-secret";
+
+    const url = new URL(
+      buildGoogleConnectUrl({
+        userId: "user-1",
+        nextPath: "/unidep/contactos",
+        service: "contacts",
+        intent: "contacts_sync",
+      }),
+    );
+    const scope = url.searchParams.get("scope") ?? "";
+
+    expect(scope).toContain("https://www.googleapis.com/auth/spreadsheets");
+    expect(scope).toContain("https://www.googleapis.com/auth/contacts.readonly");
+  });
 });

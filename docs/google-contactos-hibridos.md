@@ -5,13 +5,15 @@
 ReCalc usa un modelo híbrido:
 
 - `Neon` conserva el índice operativo mínimo de contactos.
-- `Google Sheets` guarda la libreta editable por usuario.
+- `Google Sheets` guarda una libreta editable por usuario en el Drive de la cuenta Google conectada.
 
 Cuando la sincronización está activa:
 
 1. los contactos siguen funcionando en la web y en la extensión;
-2. el sistema escribe una copia estructurada en una hoja llamada `Contactos`;
-3. si el usuario aún no tiene `spreadsheetId`, ReCalc crea el archivo automáticamente.
+2. el sistema escribe una copia estructurada en un workbook con `Campañas`, `Seguimiento`, `Contactos` y `Metadatos`;
+3. si el usuario aún no tiene `spreadsheetId`, ReCalc crea el archivo automáticamente con el OAuth de ese usuario.
+
+No se usa una hoja pública compartida para operación diaria. Cada usuario ve solo el archivo creado en su propia cuenta conectada; Neon sigue siendo la fuente de verdad y Sheets es la copia operativa editable/exportable.
 
 ## Requisitos previos
 
@@ -144,10 +146,12 @@ Una vez desplegadas las variables:
 
 Si `syncSheetsEnabled` está activo y el usuario no tiene hoja configurada:
 
-1. ReCalc crea un spreadsheet nuevo;
-2. conserva `Agenda` como hoja operativa para agenda;
-3. crea una hoja adicional llamada `Contactos`;
-4. escribe ahí toda la base de contactos del usuario.
+1. ReCalc crea un spreadsheet nuevo llamado `Seguimiento de prospectos ReLead`;
+2. crea las hojas `Campañas`, `Seguimiento`, `Contactos` y `Metadatos`;
+3. replica campañas, seguimiento sintetizado y contactos del usuario;
+4. conserva el `spreadsheetId` en `recalc_admin.agenda_sync_preference`.
+
+Si después el usuario activa sincronización de agenda, la hoja `Agenda` se agrega al mismo archivo.
 
 ## Cómo verificar que quedó bien
 
@@ -157,7 +161,9 @@ En `Contactos` debes ver:
 
 - estado `Sheets activo`;
 - sin error de sincronización;
-- contactos reflejados también en la hoja `Contactos`.
+- contactos reflejados en `Contactos`;
+- campañas reflejadas en `Campañas`;
+- bitácora de prospectos disponible en `Seguimiento`.
 
 ### En base
 
