@@ -19,7 +19,10 @@ import {
   applyPreparedBenefitsImport,
   type PreparedBenefitsImportPayload,
 } from "@/lib/importers/benefits-csv";
-import { validateAdminImportPublicationConfirmation } from "@/lib/importers/admin-import-publication";
+import {
+  redirectAdminImportPublicationIfNeeded,
+  validateAdminImportPublicationConfirmation,
+} from "@/lib/importers/admin-import-publication";
 import {
   assertImportSessionCanApply,
   getAdminImportSession,
@@ -34,24 +37,43 @@ export async function POST(
   context: { params: Promise<{ sessionId: string }> },
 ) {
   const requestId = buildAdminRequestId("admin_benefits_import_apply");
+  let sessionIdForRedirect: string | null = null;
 
   try {
+    const { sessionId } = await context.params;
+    sessionIdForRedirect = sessionId;
+
     const operationsAuth = await requireAdminApiCapability(
       requestId,
       AdminCapability.view_admin_operations,
     );
-    if (!operationsAuth.ok) return operationsAuth.response;
+    if (!operationsAuth.ok) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "No tienes permisos administrativos activos para publicar esta importación.",
+      });
+      if (redirectResponse) return redirectResponse;
+      return operationsAuth.response;
+    }
 
     const auth = await requireAdminApiCapability(
       requestId,
       AdminCapability.manage_benefits,
     );
-    if (!auth.ok) return auth.response;
+    if (!auth.ok) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "No tienes permisos para publicar importaciones de beneficios.",
+      });
+      if (redirectResponse) return redirectResponse;
+      return auth.response;
+    }
 
-    const { sessionId } = await context.params;
     const session = await getAdminImportSession({ sessionId });
 
     if (!session || session.module !== AdminConfigModule.BENEFITS) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "No se encontró la sesión de importación de beneficios.",
+      });
+      if (redirectResponse) return redirectResponse;
       return adminApiError({
         requestId,
         status: 404,
@@ -62,6 +84,8 @@ export async function POST(
     }
 
     if (session.status === AdminImportSessionStatus.applied && session.result) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId);
+      if (redirectResponse) return redirectResponse;
       return adminApiSuccess(requestId, {
         sessionId,
         applied: true,
@@ -71,6 +95,10 @@ export async function POST(
 
     const confirmation = await validateAdminImportPublicationConfirmation(request);
     if (!confirmation.ok) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: confirmation.message,
+      });
+      if (redirectResponse) return redirectResponse;
       return adminApiError({
         requestId,
         status: 400,
@@ -83,19 +111,28 @@ export async function POST(
     try {
       assertImportSessionCanApply(session);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "La sesión de importación no se puede aplicar.";
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: errorMessage,
+      });
+      if (redirectResponse) return redirectResponse;
       return adminApiError({
         requestId,
         status: 400,
         errorCode: "SESSION_NOT_APPLICABLE",
-        error:
-          error instanceof Error
-            ? error.message
-            : "La sesión de importación no se puede aplicar.",
+        error: errorMessage,
         recoverable: true,
       });
     }
 
     if (!session.payload) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "La sesión no tiene payload preparado para aplicar.",
+      });
+      if (redirectResponse) return redirectResponse;
       return adminApiError({
         requestId,
         status: 400,
@@ -134,12 +171,25 @@ export async function POST(
     revalidatePath("/");
     revalidatePath("/unidep");
 
+    const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId);
+    if (redirectResponse) return redirectResponse;
+
     return adminApiSuccess(
       requestId,
       { sessionId, applied: true, ...summary },
       { message: "Importación de beneficios aplicada." },
     );
   } catch (error) {
+    if (sessionIdForRedirect) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionIdForRedirect, {
+        publicationError:
+          error instanceof Error
+            ? error.message
+            : "No fue posible aplicar la sesión de importación de beneficios.",
+      });
+      if (redirectResponse) return redirectResponse;
+    }
+
     logAdminApiFailure({
       requestId,
       module: "admin-benefits-import",

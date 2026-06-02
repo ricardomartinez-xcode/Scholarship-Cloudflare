@@ -12,7 +12,10 @@ import {
   applyPreparedAcademicOfferImport,
   type PreparedAcademicOfferImportPayload,
 } from "@/lib/importers/academic-offer-replace";
-import { validateAdminImportPublicationConfirmation } from "@/lib/importers/admin-import-publication";
+import {
+  redirectAdminImportPublicationIfNeeded,
+  validateAdminImportPublicationConfirmation,
+} from "@/lib/importers/admin-import-publication";
 import { captureException, logStructured } from "@/lib/observability";
 import {
   assertImportSessionCanApply,
@@ -31,19 +34,30 @@ export async function POST(
   let sessionId: string | null = null;
 
   try {
+    ({ sessionId } = await context.params);
+
     const admin = await getAdminUser();
     if (!admin) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "No tienes una sesión administrativa activa para publicar esta importación.",
+      });
+      if (redirectResponse) return redirectResponse;
       return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
     }
 
-    ({ sessionId } = await context.params);
     const session = await getAdminImportSession({ sessionId });
 
     if (!session || session.module !== AdminConfigModule.OFFER) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "No se encontró la sesión de importación de oferta académica.",
+      });
+      if (redirectResponse) return redirectResponse;
       return NextResponse.json({ ok: false, error: "Sesión no encontrada." }, { status: 404 });
     }
 
     if (session.status === AdminImportSessionStatus.applied && session.result) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId);
+      if (redirectResponse) return redirectResponse;
       return NextResponse.json({
         ...(session.result as Record<string, unknown>),
         sessionId,
@@ -53,6 +67,10 @@ export async function POST(
 
     const confirmation = await validateAdminImportPublicationConfirmation(request);
     if (!confirmation.ok) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: confirmation.message,
+      });
+      if (redirectResponse) return redirectResponse;
       return NextResponse.json(
         { ok: false, error: confirmation.message },
         { status: 400 },
@@ -62,19 +80,28 @@ export async function POST(
     try {
       assertImportSessionCanApply(session);
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "La sesión de importación no se puede aplicar.";
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: message,
+      });
+      if (redirectResponse) return redirectResponse;
       return NextResponse.json(
         {
           ok: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "La sesión de importación no se puede aplicar.",
+          error: message,
         },
         { status: 400 },
       );
     }
 
     if (!session.payload) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "La sesión no tiene payload preparado para aplicar.",
+      });
+      if (redirectResponse) return redirectResponse;
       return NextResponse.json(
         { ok: false, error: "La sesión no tiene payload preparado para aplicar." },
         { status: 400 },
@@ -124,6 +151,9 @@ export async function POST(
       },
     });
 
+    const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId);
+    if (redirectResponse) return redirectResponse;
+
     return NextResponse.json({ ...summary, sessionId, applied: true });
   } catch (error: unknown) {
     const message =
@@ -162,6 +192,13 @@ export async function POST(
         message,
       },
     });
+
+    if (sessionId) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: message,
+      });
+      if (redirectResponse) return redirectResponse;
+    }
 
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

@@ -23,6 +23,7 @@ import { rollbackImportSessionAction } from "./actions";
 export const dynamic = "force-dynamic";
 
 type PageParams = Promise<{ sessionId: string }>;
+type PageSearchParams = Promise<Record<string, string | string[] | undefined> | undefined>;
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -170,12 +171,29 @@ function PublicationPanel({
   );
 }
 
-export default async function ImportSessionDetailPage({ params }: { params: PageParams }) {
+function readSearchParam(
+  value: string | string[] | undefined,
+): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+export default async function ImportSessionDetailPage({
+  params,
+  searchParams,
+}: {
+  params: PageParams;
+  searchParams?: PageSearchParams;
+}) {
   await requireAdminCapabilityUser(AdminCapability.view_admin_operations);
 
-  const { sessionId } = await params;
+  const [{ sessionId }, query] = await Promise.all([
+    params,
+    searchParams ?? Promise.resolve(undefined),
+  ]);
   const session = await getAdminImportSession({ sessionId });
   if (!session) notFound();
+  const publicationError = readSearchParam(query?.publicationError);
 
   const moduleMeta = getAdminConfigModuleMeta(session.module);
   const canRollback = canRollbackAdminImportSession(session);
@@ -209,6 +227,12 @@ export default async function ImportSessionDetailPage({ params }: { params: Page
           </span>
         </div>
       </section>
+
+      {publicationError ? (
+        <section className="rounded-3xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-100">
+          {publicationError}
+        </section>
+      ) : null}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetaItem label="Módulo" value={moduleMeta.label} />

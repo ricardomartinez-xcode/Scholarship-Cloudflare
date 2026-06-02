@@ -5,8 +5,11 @@ import {
 import { describe, expect, it } from "vitest";
 
 import {
+  buildAdminImportSessionDetailUrl,
   getAdminImportApplyTarget,
   getAdminImportPublicationState,
+  redirectAdminImportPublicationIfNeeded,
+  shouldRedirectAdminImportPublication,
   validateAdminImportPublicationConfirmation,
 } from "../admin-import-publication";
 
@@ -148,6 +151,83 @@ describe("admin import publication", () => {
 
       expect(state.stage).toBe("blocked");
       expect(state.actionLabel).toBeNull();
+    });
+  });
+
+  describe("browser publication redirects", () => {
+    it("detecta submits nativos del navegador para volver al detalle de sesión", () => {
+      const request = new Request(
+        "https://recalc.local/api/admin/import-academic-offer/session-offer/apply",
+        {
+          method: "POST",
+          headers: { Accept: "text/html,application/xhtml+xml" },
+        },
+      );
+
+      expect(shouldRedirectAdminImportPublication(request)).toBe(true);
+      expect(
+        buildAdminImportSessionDetailUrl(request, "session-offer").toString(),
+      ).toBe("https://recalc.local/admin/importaciones/session-offer");
+    });
+
+    it("conserva respuesta JSON para clientes API", () => {
+      const request = new Request(
+        "https://recalc.local/api/admin/import-academic-offer/session-offer/apply",
+        {
+          method: "POST",
+          headers: { Accept: "application/json" },
+        },
+      );
+
+      expect(shouldRedirectAdminImportPublication(request)).toBe(false);
+    });
+
+    it("incluye error de publicación en la URL de regreso cuando aplica", () => {
+      const request = new Request(
+        "https://recalc.local/api/admin/import-academic-offer/session-offer/apply",
+        {
+          method: "POST",
+          headers: { Accept: "text/html" },
+        },
+      );
+
+      expect(
+        buildAdminImportSessionDetailUrl(request, "session-offer", {
+          publicationError: "Confirma PUBLICAR.",
+        }).toString(),
+      ).toBe(
+        "https://recalc.local/admin/importaciones/session-offer?publicationError=Confirma+PUBLICAR.",
+      );
+    });
+
+    it("devuelve redirect 303 para submits HTML sin romper clientes JSON", () => {
+      const htmlRequest = new Request(
+        "https://recalc.local/api/admin/import-academic-offer/session-offer/apply",
+        {
+          method: "POST",
+          headers: { Accept: "text/html" },
+        },
+      );
+      const jsonRequest = new Request(
+        "https://recalc.local/api/admin/import-academic-offer/session-offer/apply",
+        {
+          method: "POST",
+          headers: { Accept: "application/json" },
+        },
+      );
+
+      const redirect = redirectAdminImportPublicationIfNeeded(
+        htmlRequest,
+        "session-offer",
+      );
+
+      expect(redirect?.status).toBe(303);
+      expect(redirect?.headers.get("location")).toBe(
+        "https://recalc.local/admin/importaciones/session-offer",
+      );
+      expect(
+        redirectAdminImportPublicationIfNeeded(jsonRequest, "session-offer"),
+      ).toBeNull();
     });
   });
 });

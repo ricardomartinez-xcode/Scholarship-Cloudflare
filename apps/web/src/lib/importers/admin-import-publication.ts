@@ -2,6 +2,7 @@ import {
   AdminConfigModule,
   AdminImportSessionStatus,
 } from "@prisma/client";
+import { NextResponse } from "next/server";
 
 export type AdminImportPublicationStage =
   | "draft"
@@ -96,6 +97,39 @@ export async function validateAdminImportPublicationConfirmation(
   }
 
   return { ok: true };
+}
+
+export function shouldRedirectAdminImportPublication(request: Request) {
+  const accept = request.headers.get("accept")?.toLowerCase() ?? "";
+  return accept.includes("text/html") && !accept.includes("application/json");
+}
+
+export function buildAdminImportSessionDetailUrl(
+  request: Request,
+  sessionId: string,
+  options?: {
+    publicationError?: string;
+  },
+) {
+  const url = new URL(`/admin/importaciones/${encodeURIComponent(sessionId)}`, request.url);
+  if (options?.publicationError) {
+    url.searchParams.set("publicationError", options.publicationError);
+  }
+  return url;
+}
+
+export function redirectAdminImportPublicationIfNeeded(
+  request: Request,
+  sessionId: string,
+  options?: {
+    publicationError?: string;
+  },
+) {
+  if (!shouldRedirectAdminImportPublication(request)) return null;
+  return NextResponse.redirect(
+    buildAdminImportSessionDetailUrl(request, sessionId, options),
+    { status: 303 },
+  );
 }
 
 export function getAdminImportApplyTarget(session: {
