@@ -26,18 +26,21 @@ describe("buildQuotePricingOptions", () => {
         businessLine: "licenciatura",
         modality: "online",
         plan: 11,
+        module: "Longitudinal",
       },
       {
         enrollmentType: "regreso",
         businessLine: "licenciatura",
         modality: "online",
         plan: 11,
+        module: "Longitudinal",
       },
       {
         enrollmentType: "reingreso",
         businessLine: "licenciatura",
         modality: "online",
         plan: 11,
+        module: "Longitudinal",
       },
     ]);
   });
@@ -78,18 +81,21 @@ describe("buildQuotePricingOptions", () => {
           businessLine: "prepa",
           modality: "presencial",
           plan: 6,
+          module: "Longitudinal",
         },
         {
           enrollmentType: "nuevo_ingreso",
           businessLine: "posgrado",
           modality: "online",
           plan: 4,
+          module: "Longitudinal",
         },
         {
           enrollmentType: "nuevo_ingreso",
           businessLine: "licenciatura",
           modality: "mixta",
           plan: 11,
+          module: "Longitudinal",
         },
       ]),
     );
@@ -141,6 +147,7 @@ describe("buildQuotePricingOptions", () => {
       businessLine: "salud",
       modality: "presencial",
       plan: 9,
+      module: "Longitudinal",
       programKey: "psicologia",
     });
     expect(
@@ -152,6 +159,52 @@ describe("buildQuotePricingOptions", () => {
           !option.programKey,
       ),
     ).toBe(false);
+  });
+
+  it("keeps module-specific override options distinct", () => {
+    const options = buildQuotePricingOptions([], [
+      {
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          modulo: "M1",
+        },
+      },
+      {
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          modulo: "M2",
+        },
+      },
+    ]);
+
+    expect(
+      options.filter(
+        (option) =>
+          option.enrollmentType === "nuevo_ingreso" &&
+          option.businessLine === "licenciatura" &&
+          option.modality === "presencial" &&
+          option.plan === 9,
+      ),
+    ).toEqual([
+      {
+        enrollmentType: "nuevo_ingreso",
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        module: "M1",
+      },
+      {
+        enrollmentType: "nuevo_ingreso",
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        module: "M2",
+      },
+    ]);
   });
 
 

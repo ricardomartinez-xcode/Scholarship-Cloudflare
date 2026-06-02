@@ -251,6 +251,7 @@ function buildSimulationMetadata(
     program: programName,
     average: normalizeNumber(payload.input.average),
     subjectCount: payload.input.subjectCount,
+    module: payload.input.module,
     extraChargeAmount: normalizeNumber(payload.input.extraChargeAmount),
     chargeType: payload.input.chargeType,
     totalMxn: normalizeNumber(payload.result.totalMxn),

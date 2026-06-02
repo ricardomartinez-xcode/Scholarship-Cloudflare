@@ -14,6 +14,7 @@ import { buildCampusAliases, resolveCampus } from "@/lib/campus-resolver";
 import {
   BASE_PRICE_OVERRIDE_SCOPE,
   findPublishedBasePriceOverride,
+  findPublishedSubjectPriceOverride,
 } from "@/lib/base-price-overrides";
 import {
   basePriceFromRules,
@@ -37,6 +38,7 @@ export type ScholarshipQuoteInput = {
   campus?: string | null;
   average: number;
   subjectCount?: number | null;
+  module?: string | null;
   extraChargeAmount?: number;
   selectedProgramId?: string | null;
   selectedProgramName?: string | null;
@@ -253,20 +255,6 @@ export async function resolveScholarshipQuote(
     };
   }
 
-  if (
-    input.enrollmentType === "regreso" &&
-    input.businessLine === "licenciatura" &&
-    (!input.subjectCount || input.subjectCount <= 0)
-  ) {
-    return {
-      ok: false,
-      error: "Falta seleccionar materias.",
-      hint: "Selecciona cuántas materias se van a inscribir.",
-      missing: ["subjectCount"],
-      source: "canonical",
-    };
-  }
-
   const campus = input.campus ? await resolveCampus(input.campus) : null;
   const runtimeTier =
     input.modality === "online"
@@ -383,22 +371,6 @@ export async function resolveScholarshipQuote(
       ? (toNumber(matchedRule.scholarshipPercent) ?? 0)
       : 0;
 
-  const returnSubjectPrice =
-    input.enrollmentType === "regreso" &&
-    input.businessLine === "licenciatura" &&
-    input.subjectCount &&
-    campus
-      ? await prisma.returnSubjectPrice.findFirst({
-          where: {
-            campusId: campus.id,
-            modality: input.modality === "online" ? "online" : "presencial",
-            subjectCount: input.subjectCount,
-            sourceVersion,
-          },
-          orderBy: { updatedAt: "desc" },
-        })
-      : null;
-
   const basePriceOverride = findPublishedBasePriceOverride(overrides, {
     businessLine: input.businessLine,
     modality: input.modality,
@@ -408,6 +380,22 @@ export async function resolveScholarshipQuote(
     campusAliases,
     programId: input.selectedProgramId ?? null,
     programName: input.selectedProgramName ?? null,
+    module: input.module ?? null,
+    programAliases: [
+      input.selectedProgramId ?? null,
+      input.selectedProgramName ?? null,
+    ],
+  });
+  const subjectPriceOverride = findPublishedSubjectPriceOverride(overrides, {
+    businessLine: input.businessLine,
+    modality: input.modality,
+    plan: input.plan,
+    tier: runtimeTier,
+    campus: input.campus ?? campus?.name ?? null,
+    campusAliases,
+    programId: input.selectedProgramId ?? null,
+    programName: input.selectedProgramName ?? null,
+    module: input.module ?? null,
     programAliases: [
       input.selectedProgramId ?? null,
       input.selectedProgramName ?? null,
@@ -420,7 +408,13 @@ export async function resolveScholarshipQuote(
     plan: input.plan,
   });
 
-  const returnSubjectPriceMxn = toNumber(returnSubjectPrice?.priceMxn);
+  const returnSubjectPriceMxn =
+    input.enrollmentType === "regreso" &&
+    input.businessLine === "licenciatura" &&
+    input.subjectCount &&
+    subjectPriceOverride !== null
+      ? subjectPriceOverride * input.subjectCount
+      : null;
   const basePriceMxn =
     returnSubjectPriceMxn ??
     basePriceOverride ??
@@ -441,6 +435,7 @@ export async function resolveScholarshipQuote(
         businessLine: input.businessLine,
         modality: input.modality,
         plan: input.plan,
+        module: input.module ?? null,
         campus: input.campus ?? null,
         tier: runtimeTier,
         selectedProgramId: input.selectedProgramId ?? null,

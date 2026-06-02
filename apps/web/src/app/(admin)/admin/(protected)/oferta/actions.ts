@@ -7,6 +7,7 @@ import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { normalizeBusinessLine } from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
+import { academicModuleOrDefault } from "@/lib/academic-modules";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_ROUTE_CACHE_TAGS,
@@ -53,6 +54,9 @@ export async function upsertAcademicOfferAction(
     const lineRaw = String(formData.get("lineOfBusiness") ?? "").trim();
     const lineOfBusiness = normalizeBusinessLine(lineRaw) ?? null;
     const pricingPlans = normalizeAcademicPricingPlans(formData.get("pricingPlans"));
+    const track = academicModuleOrDefault(formData.get("module"));
+    const subjectsByModule =
+      String(formData.get("subjectsByModule") ?? "").trim() || null;
     const escolarizado =
       delivery === ProgramOfferingDelivery.ONLINE ? false : formBoolean(formData, "escolarizado");
     const ejecutivo =
@@ -85,6 +89,8 @@ export async function upsertAcademicOfferAction(
       ejecutivoSchedule,
       lineOfBusiness,
       pricingPlans,
+      track,
+      subjectsByModule,
       isActive,
       archivedAt: isActive ? null : new Date(),
       archivedReason: isActive ? null : "manual_admin",
@@ -98,10 +104,11 @@ export async function upsertAcademicOfferAction(
     } else {
       await prisma.programOffering.upsert({
         where: {
-          campusId_programId_cycle: {
+          campusId_programId_cycle_track: {
             campusId,
             programId,
             cycle,
+            track,
           },
         },
         update: data,

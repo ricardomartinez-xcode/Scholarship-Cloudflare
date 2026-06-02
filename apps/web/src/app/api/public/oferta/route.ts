@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getAcademicOfferVisibleCycles } from "@/lib/academic-offer-config";
+import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 import { getSessionUser } from "@/lib/authz";
 import {
   normalizeAcademicOfferCycle,
@@ -15,6 +16,7 @@ import {
   PUBLIC_ROUTE_CACHE_REVALIDATE_SECONDS,
   PUBLIC_ROUTE_CACHE_TAGS,
 } from "@/lib/public-route-cache";
+import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
 import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
@@ -86,6 +88,8 @@ type OfertaPayload = {
     planLink: string | null;
     planDownloadLink: string | null;
     pricingPlans: number[];
+    module: AcademicModule;
+    subjectsByModule: string | null;
     campus: {
       id: string;
       code: string;
@@ -260,6 +264,7 @@ async function loadOfertaPayload(
       ejecutivoSchedule: true,
       lineOfBusiness: true,
       pricingPlans: true,
+      track: true,
       campus: {
         select: {
           id: true,
@@ -291,6 +296,9 @@ async function loadOfertaPayload(
       matchesUnidepProgramLine(program, lineRaw)
     );
   });
+  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+    filteredOfferings.map((offering) => offering.id),
+  );
 
   const seen = new Set<string>();
   const campusMap = new Map<string, OfertaCampusPayload>();
@@ -354,6 +362,8 @@ async function loadOfertaPayload(
         planLink: r2Payload.planPdfUrl,
         planDownloadLink: planDownloadUrl,
         pricingPlans: offering.pricingPlans ?? [],
+        module: academicModuleOrDefault(offering.track),
+        subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
         campus: buildCampusPayload(offering.campus),
         program: { id: program.id, name: program.name },
       };

@@ -66,6 +66,8 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     "Horario Escolarizado",
     "Horario Ejecutivo",
     "Planes",
+    "Modulo",
+    "Materias por Modulo",
   ]);
 
   for (const row of records) {
@@ -74,6 +76,13 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     if (isInactive(row)) continue;
 
     const plans = pick(row, ["planes", "plan", "cuatrimestres", "cuatrimestre", "duracion"]);
+    const academicModule = pick(row, ["modulo", "módulo", "module"]) || "Longitudinal";
+    const subjectsByModule = pick(row, [
+      "materias_por_modulo",
+      "materias por modulo",
+      "materias por módulo",
+      "notas",
+    ]);
     if (isOnline(row)) {
       if (isPostgraduate(row)) onlineSheet.addRow(["", program, "", plans]);
       else onlineSheet.addRow([program, "", plans, ""]);
@@ -107,6 +116,8 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
       pick(row, ["horario ejecutivo", "hor ejecutivo"]) ||
         (ejecutivo ? commonSchedule : ""),
       plans,
+      academicModule,
+      subjectsByModule,
     ]);
   }
 

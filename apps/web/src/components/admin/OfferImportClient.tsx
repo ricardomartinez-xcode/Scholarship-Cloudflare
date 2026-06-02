@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminRowActions from "@/components/admin/AdminRowActions";
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import { formatAcademicPricingPlans } from "@/lib/academic-offer-plans";
+import { ACADEMIC_MODULES, type AcademicModule } from "@/lib/academic-modules";
 import {
   ACADEMIC_OFFER_CYCLES,
   type AcademicOfferCycle,
@@ -65,6 +66,8 @@ type OfferPreviewRow = {
   line: string | null;
   modality: string;
   pricingPlans: number[];
+  module: AcademicModule;
+  subjectsByModule: string | null;
   delivery: "CAMPUS" | "ONLINE";
   escolarizado: boolean;
   ejecutivo: boolean;
@@ -99,6 +102,8 @@ type ManualOfferDraft = {
   ejecutivoSchedule: string;
   lineOfBusiness: string;
   pricingPlans: string;
+  module: AcademicModule;
+  subjectsByModule: string;
   isActive: boolean;
 };
 
@@ -134,6 +139,8 @@ function buildManualDraft(params: {
       ejecutivoSchedule: row.ejecutivoSchedule ?? "",
       lineOfBusiness: row.line ?? "",
       pricingPlans: formatAcademicPricingPlans(row.pricingPlans),
+      module: row.module,
+      subjectsByModule: row.subjectsByModule ?? "",
       isActive: row.isActive,
     };
   }
@@ -154,6 +161,8 @@ function buildManualDraft(params: {
     ejecutivoSchedule: "",
     lineOfBusiness: defaultProgram?.businessLine ?? "",
     pricingPlans: "",
+    module: "Longitudinal",
+    subjectsByModule: "",
     isActive: true,
   };
 }
@@ -221,7 +230,16 @@ export default function OfferImportClient({
     const q = previewQuery.trim().toLowerCase();
     if (!q) return previewRows;
     return previewRows.filter((row) =>
-      [row.campusName, row.campusCode, row.programName, row.line, row.modality, row.cycle]
+      [
+        row.campusName,
+        row.campusCode,
+        row.programName,
+        row.line,
+        row.modality,
+        row.module,
+        row.subjectsByModule,
+        row.cycle,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -381,15 +399,17 @@ export default function OfferImportClient({
     <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full">
       <table className="ui-table !w-full !min-w-full table-fixed">
         <colgroup>
-          <col className="w-[14%]" />
-          <col className="w-[8%]" />
-          <col className="w-[22%]" />
-          <col className="w-[10%]" />
           <col className="w-[12%]" />
-          <col className="w-[9%]" />
           <col className="w-[7%]" />
-          <col className="w-[8%]" />
+          <col className="w-[18%]" />
+          <col className="w-[9%]" />
           <col className="w-[10%]" />
+          <col className="w-[8%]" />
+          <col className="w-[9%]" />
+          <col className="w-[12%]" />
+          <col className="w-[6%]" />
+          <col className="w-[6%]" />
+          <col className="w-[7%]" />
         </colgroup>
         <thead>
           <tr>
@@ -399,6 +419,8 @@ export default function OfferImportClient({
             <th className="ui-cell-nowrap text-left">Línea</th>
             <th className="ui-cell-nowrap text-left">Modalidad</th>
             <th className="ui-cell-nowrap text-left">Planes</th>
+            <th className="ui-cell-nowrap text-left">Módulo</th>
+            <th className="ui-cell-nowrap text-left">Materias por módulo</th>
             <th className="ui-cell-nowrap text-left">PDF</th>
             <th className="ui-cell-nowrap text-left">Estado</th>
             <th className="ui-cell-nowrap text-right">Acciones</th>
@@ -419,6 +441,8 @@ export default function OfferImportClient({
                 <td className="ui-cell-nowrap text-slate-300">
                   {row.pricingPlans.length ? formatAcademicPricingPlans(row.pricingPlans) : "Legacy"}
                 </td>
+                <td className="ui-cell-nowrap text-slate-300">{row.module}</td>
+                <td className="text-xs text-slate-300">{row.subjectsByModule ?? "—"}</td>
                 <td className="ui-cell-nowrap text-slate-300">
                   {row.hasPlanPdf || row.hasBrochurePdf ? "Sí" : "No"}
                 </td>
@@ -460,7 +484,7 @@ export default function OfferImportClient({
             ))
           ) : (
             <tr>
-              <td className="text-slate-400" colSpan={9}>
+                <td className="text-slate-400" colSpan={11}>
                 No hay ofertas con los filtros seleccionados.
               </td>
             </tr>
@@ -624,7 +648,7 @@ export default function OfferImportClient({
                 </select>
               </label>
 
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="grid gap-4 lg:grid-cols-4">
                 <label className="grid gap-2 text-sm">
                   Línea
                   <select name="lineOfBusiness" value={manualDraft.lineOfBusiness} onChange={(event) => setManualDraft((current) => current ? { ...current, lineOfBusiness: event.target.value } : current)} className="ui-control">
@@ -635,6 +659,12 @@ export default function OfferImportClient({
                 <label className="grid gap-2 text-sm">
                   Planes permitidos
                   <input name="pricingPlans" value={manualDraft.pricingPlans} onChange={(event) => setManualDraft((current) => current ? { ...current, pricingPlans: event.target.value } : current)} className="ui-control" placeholder="Ej. 9, 11" />
+                </label>
+                <label className="grid gap-2 text-sm">
+                  Módulo
+                  <select name="module" value={manualDraft.module} onChange={(event) => setManualDraft((current) => current ? { ...current, module: event.target.value as AcademicModule } : current)} className="ui-control">
+                    {ACADEMIC_MODULES.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
                 </label>
                 <label className="grid gap-2 text-sm">
                   Delivery
@@ -654,6 +684,11 @@ export default function OfferImportClient({
                   </select>
                 </label>
               </div>
+
+              <label className="grid gap-2 text-sm">
+                Materias por módulo
+                <input name="subjectsByModule" value={manualDraft.subjectsByModule} onChange={(event) => setManualDraft((current) => current ? { ...current, subjectsByModule: event.target.value } : current)} className="ui-control" placeholder="Ej. M1: 3 materias; M2: 4 materias" />
+              </label>
 
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="grid gap-2 text-sm">

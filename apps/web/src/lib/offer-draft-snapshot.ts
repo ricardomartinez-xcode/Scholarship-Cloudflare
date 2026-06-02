@@ -23,6 +23,7 @@ export type OfferDraftSnapshotLike = {
     ejecutivoSchedule: string | null;
     lineOfBusiness: string | null;
     pricingPlans?: number[];
+    subjectsByModule?: string | null;
     isActive: boolean;
     archivedReason: string | null;
     updatedBy: string | null;
@@ -45,7 +46,13 @@ function normalizeOfferCycleList(value: unknown) {
 }
 
 export function normalizeOfferDraftSnapshot<T extends OfferDraftSnapshotLike>(snapshot: T) {
-  const offerings = Array.isArray(snapshot.offerings) ? snapshot.offerings : [];
+  const offerings = Array.isArray(snapshot.offerings)
+    ? snapshot.offerings.map((offering) => ({
+        ...offering,
+        track: offering.track?.trim() ? offering.track : "Longitudinal",
+        subjectsByModule: offering.subjectsByModule ?? null,
+      }))
+    : [];
   const derivedCycles = sortOfferCycles(
     offerings
       .map((offering) => normalizeAcademicOfferCycle(offering.cycle))

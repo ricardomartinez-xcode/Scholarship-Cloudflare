@@ -14,6 +14,8 @@ import {
 } from "@/lib/importers/configured-aliases";
 import { normalizeBusinessLineWithAliases } from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
+import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
+import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
 import {
   EXCEL_SHEETS_OMIT,
   type AcademicOfferCycle,
@@ -29,6 +31,8 @@ type ParsedRow = {
   ejecutivoSchedule: string | null;
   delivery: "CAMPUS" | "ONLINE";
   pricingPlans: number[] | null;
+  module: AcademicModule;
+  subjectsByModule: string | null;
 };
 
 type CampusParseResult = {
@@ -56,6 +60,8 @@ type PlantelesColumnMap = {
   horEscolarizado: number;
   horEjecutivo: number;
   planes: number | null;
+  modulo: number | null;
+  materiasPorModulo: number | null;
 };
 
 type PlantelesEntry = {
@@ -86,6 +92,8 @@ export type ImportAcademicOfferSummary = {
       horEscolarizado: number;
       horEjecutivo: number;
       planes: number | null;
+      modulo: number | null;
+      materiasPorModulo: number | null;
     };
   } | null;
   perCampus: Array<{
@@ -114,6 +122,8 @@ export type AcademicOfferPreviewRow = {
   line: string | null;
   modality: string;
   pricingPlans: number[];
+  module: AcademicModule;
+  subjectsByModule: string | null;
   isActive: boolean;
   hasPlanPdf: boolean;
   hasBrochurePdf: boolean;
@@ -296,6 +306,8 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
   let horEscolarizadoCol = 5;
   let horEjecutivoCol = 6;
   let planesCol: number | null = null;
+  let moduloCol: number | null = null;
+  let materiasPorModuloCol: number | null = null;
 
   // Only scan if first row looks like a header row (not data)
   const firstCellText = normalizeKey(cleanText(hRow.getCell(1).value));
@@ -342,6 +354,15 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
         h.includes("duración")
       ) {
         planesCol = c;
+      } else if (
+        h.includes("materiaspor") ||
+        (h.includes("materia") && (h.includes("modulo") || h.includes("módulo"))) ||
+        h === "notas" ||
+        h === "nota"
+      ) {
+        materiasPorModuloCol = c;
+      } else if (h.includes("modulo") || h.includes("módulo")) {
+        moduloCol = c;
       }
     }
   }
@@ -354,6 +375,8 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
     horEscolarizado: horEscolarizadoCol,
     horEjecutivo: horEjecutivoCol,
     planes: planesCol,
+    modulo: moduloCol,
+    materiasPorModulo: materiasPorModuloCol,
   };
 }
 
@@ -401,6 +424,8 @@ function parseOnlineSheet(
         ejecutivoSchedule: null,
         delivery: "ONLINE",
         pricingPlans: entry.pricingPlans,
+        module: "Longitudinal",
+        subjectsByModule: null,
       });
     }
   }
@@ -440,6 +465,11 @@ function parsePlantelesSheet(
     const pricingPlans = cols.planes
       ? normalizeAcademicPricingPlans(row.getCell(cols.planes).value)
       : null;
+    const academicModule = academicModuleOrDefault(
+      cols.modulo ? row.getCell(cols.modulo).value : null,
+    );
+    const subjectsByModule =
+      cols.materiasPorModulo ? cleanText(row.getCell(cols.materiasPorModulo).value) || null : null;
     const next: ParsedRow = {
       programName,
       programNormalized,
@@ -450,12 +480,15 @@ function parsePlantelesSheet(
       ejecutivoSchedule: cleanText(row.getCell(cols.horEjecutivo).value) || null,
       delivery: "CAMPUS",
       pricingPlans,
+      module: academicModule,
+      subjectsByModule,
     };
 
     const campusEntry = byCampus.get(campusKey) ?? { originalName: campusName, rows: new Map<string, ParsedRow>() };
-    const prev = campusEntry.rows.get(programNormalized);
+    const rowKey = `${programNormalized}|${academicModule}`;
+    const prev = campusEntry.rows.get(rowKey);
     if (!prev) {
-      campusEntry.rows.set(programNormalized, next);
+      campusEntry.rows.set(rowKey, next);
     } else {
       prev.escolarizado ||= next.escolarizado;
       prev.ejecutivo ||= next.ejecutivo;
@@ -469,6 +502,9 @@ function parsePlantelesSheet(
         prev.pricingPlans = Array.from(
           new Set([...(prev.pricingPlans ?? []), ...next.pricingPlans]),
         ).sort((left, right) => left - right);
+      }
+      if (!prev.subjectsByModule && next.subjectsByModule) {
+        prev.subjectsByModule = next.subjectsByModule;
       }
     }
     byCampus.set(campusKey, campusEntry);
@@ -694,13 +730,13 @@ export async function importAcademicOfferFromExcel(params: {
 
       const existingOfferings = await tx.programOffering.findMany({
         where: { campusId: campusRes.campusId, cycle },
-        select: { programId: true, isActive: true },
+        select: { programId: true, track: true, isActive: true },
       });
       const existingByProgramId = new Map(
-        existingOfferings.map((o) => [o.programId, o.isActive])
+        existingOfferings.map((o) => [`${o.programId}|${academicModuleOrDefault(o.track)}`, o.isActive])
       );
 
-      const excelProgramIds: string[] = [];
+      const excelOfferingKeys: Array<{ programId: string; track: AcademicModule }> = [];
       let offeringsCreated = 0;
       let offeringsUpdated = 0;
       let offeringsReactivated = 0;
@@ -708,14 +744,15 @@ export async function importAcademicOfferFromExcel(params: {
       for (const row of campusRes.rows) {
         const programId = programIdMap.get(row.programNormalized);
         if (!programId) continue;
-        excelProgramIds.push(programId);
+        excelOfferingKeys.push({ programId, track: row.module });
 
-        const prevIsActive = existingByProgramId.get(programId) ?? null;
+        const prevIsActive = existingByProgramId.get(`${programId}|${row.module}`) ?? null;
         const where = {
-          campusId_programId_cycle: {
+          campusId_programId_cycle_track: {
             campusId: campusRes.campusId,
             programId,
             cycle,
+            track: row.module,
           },
         };
 
@@ -727,7 +764,9 @@ export async function importAcademicOfferFromExcel(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            track: row.module,
             ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
+            subjectsByModule: row.subjectsByModule,
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -743,6 +782,8 @@ export async function importAcademicOfferFromExcel(params: {
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
             pricingPlans: row.pricingPlans ?? [],
+            subjectsByModule: row.subjectsByModule,
+            track: row.module,
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -765,7 +806,16 @@ export async function importAcademicOfferFromExcel(params: {
           campusId: campusRes.campusId,
           cycle,
           isActive: true,
-          ...(excelProgramIds.length ? { programId: { notIn: excelProgramIds } } : {}),
+          ...(excelOfferingKeys.length
+            ? {
+                NOT: {
+                  OR: excelOfferingKeys.map((item) => ({
+                    programId: item.programId,
+                    track: item.track,
+                  })),
+                },
+              }
+            : {}),
         },
         data: {
           isActive: false,
@@ -993,7 +1043,9 @@ export async function prepareAcademicOfferImport(params: {
       campusId: { in: Array.from(new Set(parsed.map((campus) => campus.campusId))) },
     },
     select: {
+      id: true,
       campusId: true,
+      track: true,
       isActive: true,
       pricingPlans: true,
       program: {
@@ -1004,14 +1056,25 @@ export async function prepareAcademicOfferImport(params: {
 
   const offeringsByCampus = new Map<
     string,
-    Array<{ nameNormalized: string; isActive: boolean; pricingPlans: number[] }>
+    Array<{
+      nameNormalized: string;
+      module: AcademicModule;
+      isActive: boolean;
+      pricingPlans: number[];
+      subjectsByModule: string | null;
+    }>
   >();
+  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+    existingOfferings.map((offering) => offering.id),
+  );
   for (const offering of existingOfferings) {
     const rows = offeringsByCampus.get(offering.campusId) ?? [];
     rows.push({
       nameNormalized: offering.program.nameNormalized,
+      module: academicModuleOrDefault(offering.track),
       isActive: offering.isActive,
       pricingPlans: offering.pricingPlans ?? [],
+      subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
     });
     offeringsByCampus.set(offering.campusId, rows);
   }
@@ -1020,20 +1083,23 @@ export async function prepareAcademicOfferImport(params: {
   for (const campusRes of parsed) {
     const existingByProgram = new Map(
       (offeringsByCampus.get(campusRes.campusId) ?? []).map((offering) => [
-        offering.nameNormalized,
+        `${offering.nameNormalized}|${offering.module}`,
         offering.isActive,
       ]),
     );
-    const excelProgramKeys = new Set<string>();
+    const excelOfferingKeys = new Set<string>();
     let offeringsCreated = 0;
     let offeringsUpdated = 0;
     let offeringsReactivated = 0;
 
     for (const row of campusRes.rows) {
-      excelProgramKeys.add(row.programNormalized);
-      const previous = existingByProgram.get(row.programNormalized);
+      const rowKey = `${row.programNormalized}|${row.module}`;
+      excelOfferingKeys.add(rowKey);
+      const previous = existingByProgram.get(rowKey);
       const existingOffering = (offeringsByCampus.get(campusRes.campusId) ?? []).find(
-        (offering) => offering.nameNormalized === row.programNormalized,
+        (offering) =>
+          offering.nameNormalized === row.programNormalized &&
+          offering.module === row.module,
       );
       if (previous === undefined) {
         offeringsCreated += 1;
@@ -1046,7 +1112,7 @@ export async function prepareAcademicOfferImport(params: {
       if (previewRows.length < 400) {
         const program = existingProgramByNormalized.get(row.programNormalized);
         previewRows.push({
-          id: `${campusRes.campusId}:${row.programNormalized}`,
+          id: `${campusRes.campusId}:${row.programNormalized}:${row.module}`,
           campusCode: campusRes.campusCode,
           campusName: campusRes.campusNameFromExcel ?? campusRes.campusCode,
           cycle,
@@ -1054,6 +1120,8 @@ export async function prepareAcademicOfferImport(params: {
           line: program?.businessLine ?? inferPreviewBusinessLine(row, aliasRows),
           modality: getPreviewModalityLabel(row),
           pricingPlans: row.pricingPlans ?? existingOffering?.pricingPlans ?? [],
+          module: row.module,
+          subjectsByModule: row.subjectsByModule ?? existingOffering?.subjectsByModule ?? null,
           isActive: true,
           hasPlanPdf: Boolean(program?.planPdfUrl ?? program?.planDriveLink ?? program?.planUrl),
           hasBrochurePdf: Boolean(program?.brochurePdfUrl),
@@ -1062,7 +1130,9 @@ export async function prepareAcademicOfferImport(params: {
     }
 
     const offeringsDeactivated = (offeringsByCampus.get(campusRes.campusId) ?? []).filter(
-      (offering) => offering.isActive && !excelProgramKeys.has(offering.nameNormalized),
+      (offering) =>
+        offering.isActive &&
+        !excelOfferingKeys.has(`${offering.nameNormalized}|${offering.module}`),
     ).length;
 
     summary.offerings.created += offeringsCreated;
@@ -1159,13 +1229,16 @@ export async function applyPreparedAcademicOfferImport(params: {
 
       const existingOfferings = await tx.programOffering.findMany({
         where: { campusId: campusRes.campusId, cycle: params.payload.cycle },
-        select: { programId: true, isActive: true },
+        select: { programId: true, track: true, isActive: true },
       });
       const existingByProgramId = new Map(
-        existingOfferings.map((offering) => [offering.programId, offering.isActive]),
+        existingOfferings.map((offering) => [
+          `${offering.programId}|${academicModuleOrDefault(offering.track)}`,
+          offering.isActive,
+        ]),
       );
 
-      const excelProgramIds: string[] = [];
+      const excelOfferingKeys: Array<{ programId: string; track: AcademicModule }> = [];
       let offeringsCreated = 0;
       let offeringsUpdated = 0;
       let offeringsReactivated = 0;
@@ -1173,15 +1246,16 @@ export async function applyPreparedAcademicOfferImport(params: {
       for (const row of campusRes.rows) {
         const programId = programIdMap.get(row.programNormalized);
         if (!programId) continue;
-        excelProgramIds.push(programId);
+        excelOfferingKeys.push({ programId, track: row.module });
 
-        const previous = existingByProgramId.get(programId) ?? null;
+        const previous = existingByProgramId.get(`${programId}|${row.module}`) ?? null;
         await tx.programOffering.upsert({
           where: {
-            campusId_programId_cycle: {
+            campusId_programId_cycle_track: {
               campusId: campusRes.campusId,
               programId,
               cycle: params.payload.cycle,
+              track: row.module,
             },
           },
           update: {
@@ -1190,7 +1264,9 @@ export async function applyPreparedAcademicOfferImport(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            track: row.module,
             ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
+            subjectsByModule: row.subjectsByModule,
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -1206,6 +1282,8 @@ export async function applyPreparedAcademicOfferImport(params: {
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
             pricingPlans: row.pricingPlans ?? [],
+            subjectsByModule: row.subjectsByModule,
+            track: row.module,
             isActive: true,
             archivedAt: null,
             archivedReason: null,
@@ -1227,7 +1305,16 @@ export async function applyPreparedAcademicOfferImport(params: {
           campusId: campusRes.campusId,
           cycle: params.payload.cycle,
           isActive: true,
-          ...(excelProgramIds.length ? { programId: { notIn: excelProgramIds } } : {}),
+          ...(excelOfferingKeys.length
+            ? {
+                NOT: {
+                  OR: excelOfferingKeys.map((item) => ({
+                    programId: item.programId,
+                    track: item.track,
+                  })),
+                },
+              }
+            : {}),
         },
         data: {
           isActive: false,

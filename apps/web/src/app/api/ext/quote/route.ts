@@ -20,6 +20,7 @@ type QuotePayload = {
   campus?: string | null;
   average?: number | string;
   subjectCount?: number | string | null;
+  module?: string | null;
   extraCharge?: number | string | { amount?: number | string } | null;
   clientSurface?: string;
 };
@@ -81,6 +82,10 @@ export async function POST(request: Request) {
   const plan = toOptionalNumber(payload.plan);
   const average = toOptionalNumber(payload.average);
   const subjectCount = toOptionalNumber(payload.subjectCount);
+  const academicModule =
+    typeof payload.module === "string" && payload.module.trim()
+      ? payload.module.trim()
+      : null;
   const extraChargeAmount = toOptionalNumber(payload.extraCharge) ?? 0;
   const clientSurface =
     String(payload.clientSurface ?? "chrome_side_panel").trim() || "chrome_side_panel";
@@ -115,10 +120,6 @@ export async function POST(request: Request) {
     invalid.push("subjectCount");
   }
   if (extraChargeAmount < 0) invalid.push("extraCharge");
-  if (enrollmentType === "regreso" && subjectCount === null) {
-    invalid.push("subjectCount");
-  }
-
   if (invalid.length) {
     return NextResponse.json(
       {
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
     campus: payload.campus ?? null,
     average,
     subjectCount,
+    module: academicModule,
     extraChargeAmount,
     clientSurface,
   } as {
@@ -149,6 +151,7 @@ export async function POST(request: Request) {
     campus: string | null;
     average: NonNullable<typeof average>;
     subjectCount: number | null;
+    module: string | null;
     extraChargeAmount: number;
     clientSurface: string;
   };

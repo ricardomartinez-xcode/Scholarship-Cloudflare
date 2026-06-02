@@ -56,6 +56,7 @@ function parseSavePayload(payload: unknown): QuoteHistorySavePayload | null {
   const average = toOptionalNumber(inputRecord.average);
   const extraChargeAmount = toOptionalNumber(inputRecord.extraChargeAmount) ?? 0;
   const subjectCount = toOptionalNumber(inputRecord.subjectCount);
+  const academicModule = String(inputRecord.module ?? "").trim() || null;
 
   const basePriceMxn = toOptionalNumber(resultRecord.basePriceMxn);
   const scholarshipPercent = toOptionalNumber(resultRecord.scholarshipPercent);
@@ -98,6 +99,7 @@ function parseSavePayload(payload: unknown): QuoteHistorySavePayload | null {
       campus: String(inputRecord.campus ?? "").trim() || null,
       average,
       subjectCount,
+      module: academicModule,
       extraChargeAmount,
       chargeType: String(inputRecord.chargeType ?? "").trim() || null,
       selectedProgramId: String(inputRecord.selectedProgramId ?? "").trim() || null,

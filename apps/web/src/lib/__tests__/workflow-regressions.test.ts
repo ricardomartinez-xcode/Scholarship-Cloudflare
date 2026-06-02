@@ -45,9 +45,10 @@ describe("workflow regressions", () => {
     const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
 
     expect(source).toContain("MODULE_OPTIONS_BY_CYCLE");
-    expect(source).toContain("C2: [\"M1\", \"M2\", \"M3\"]");
-    expect(source).toContain("C1: [\"M1\", \"M2\"]");
-    expect(source).toContain("C3: [\"M1\", \"M2\"]");
+    expect(source).toContain("ACADEMIC_MODULES");
+    expect(read("apps/web/src/lib/academic-modules.ts")).toContain(
+      "[\"M1\", \"M2\", \"M3\", \"Longitudinal\"]",
+    );
     expect(source).toContain("setSelectedStartModule");
     expect(source).toContain("Módulo de inicio");
     expect(source).toContain("missing: [\"modulo\"]");

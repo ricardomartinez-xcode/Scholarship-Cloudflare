@@ -35,8 +35,10 @@ describe("price list workbook format", () => {
         nivelKey: "preparatoria",
         modalidadKey: "presencial",
         plan: "9",
+        module: "Longitudinal",
         tier: "T2",
         newPrice: 1890,
+        subjectPrice: null,
         isActive: true,
         notes: "Bachillerato",
       },
@@ -48,8 +50,10 @@ describe("price list workbook format", () => {
         nivelKey: "preparatoria",
         modalidadKey: "mixta",
         plan: "9",
+        module: "Longitudinal",
         tier: "T2",
         newPrice: 1890,
+        subjectPrice: null,
         isActive: true,
         notes: "Bachillerato",
       },
@@ -61,8 +65,10 @@ describe("price list workbook format", () => {
         nivelKey: "preparatoria",
         modalidadKey: "presencial",
         plan: "6",
+        module: "Longitudinal",
         tier: "T3",
         newPrice: 3087,
+        subjectPrice: null,
         isActive: true,
         notes: "Bachillerato",
       },
@@ -74,8 +80,10 @@ describe("price list workbook format", () => {
         nivelKey: "preparatoria",
         modalidadKey: "mixta",
         plan: "6",
+        module: "Longitudinal",
         tier: "T3",
         newPrice: 3087,
+        subjectPrice: null,
         isActive: true,
         notes: "Bachillerato",
       },
@@ -96,16 +104,53 @@ describe("price list workbook format", () => {
     });
 
     expect(priceListRowsToCsv(rows)).toContain(
-      "linea,alcance,region,plantel,programa,tier,new_price,modalidad_key,plan,is_active,notes",
+      "linea,alcance,region,plantel,programa,tier,new_price,subject_price_mxn,modalidad_key,plan,module,is_active,notes",
     );
     expect(rows[0]).toMatchObject({
       plantel: "Chihuahua",
       nivelKey: "licenciatura",
       modalidadKey: "mixta",
       plan: "11",
+      module: "Longitudinal",
       tier: "T2",
       newPrice: 4700,
+      subjectPrice: null,
     });
+  });
+
+  it("keeps module and per-subject price from flexible workbooks", () => {
+    const rows = normalizePriceListWorkbookRows({
+      sheets: [
+        {
+          name: "Carga flexible",
+          rows: [
+            [
+              "Línea de negocio",
+              "Modalidad",
+              "Plan",
+              "Módulo",
+              "Plantel",
+              "Tier",
+              "Precio Lista",
+              "Precio por materia",
+            ],
+            ["Licenciatura", "Presencial", 9, "M2", "Hermosillo", "T3", 5200, 1300],
+          ],
+        },
+      ],
+    });
+
+    expect(rows[0]).toMatchObject({
+      plantel: "Hermosillo",
+      nivelKey: "licenciatura",
+      modalidadKey: "presencial",
+      plan: "9",
+      module: "M2",
+      tier: "T3",
+      newPrice: 5200,
+      subjectPrice: 1300,
+    });
+    expect(priceListRowsToCsv(rows)).toContain("5200,1300,presencial,9,M2,true");
   });
 
   it("normalizes online sheets without carrying online as a tier value", () => {
@@ -130,8 +175,10 @@ describe("price list workbook format", () => {
         nivelKey: "licenciatura",
         modalidadKey: "online",
         plan: "9",
+        module: "Longitudinal",
         tier: null,
         newPrice: 3900,
+        subjectPrice: null,
         isActive: true,
         notes: "Licenciatura Online",
       },
@@ -176,8 +223,10 @@ describe("price list workbook format", () => {
       nivelKey: "salud",
       modalidadKey: "presencial",
       plan: "9",
+      module: "Longitudinal",
       tier: "T3",
       newPrice: 4970,
+      subjectPrice: null,
     });
   });
 

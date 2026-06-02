@@ -7,9 +7,9 @@ import { getAdminImportTemplate } from "@/lib/importers/admin-import-templates";
 describe("academicOfferCsvToXlsxBuffer", () => {
   it("maps the offer-by-campus CSV template to plantel rows with schedules", async () => {
     const csv = [
-      "ciclo,plantel,programa,linea,modalidad,plan,horario,horario_escolarizado,horario_ejecutivo,activo",
-      "C1,Los Cabos,Derecho,licenciatura,mixta,9,,L-V 08:00-13:00,Sáb 09:00-14:00,true",
-      "C1,Hermosillo,Psicologia,licenciatura,presencial,9,L-V 08:00-13:00,,,false",
+      "ciclo,plantel,programa,linea,modalidad,plan,modulo,horario,horario_escolarizado,horario_ejecutivo,activo,materias_por_modulo",
+      "C1,Los Cabos,Derecho,licenciatura,mixta,9,M2,,L-V 08:00-13:00,Sáb 09:00-14:00,true,4 materias",
+      "C1,Hermosillo,Psicologia,licenciatura,presencial,9,,L-V 08:00-13:00,,,false,",
     ].join("\n");
 
     const buffer = await academicOfferCsvToXlsxBuffer(Buffer.from(csv, "utf8"));
@@ -32,6 +32,8 @@ describe("academicOfferCsvToXlsxBuffer", () => {
       "L-V 08:00-13:00",
       "Sáb 09:00-14:00",
       "9",
+      "M2",
+      "4 materias",
     ]);
   });
 
@@ -45,11 +47,12 @@ describe("academicOfferCsvToXlsxBuffer", () => {
       "linea",
       "modalidad",
       "plan",
+      "modulo",
       "horario",
       "horario_escolarizado",
       "horario_ejecutivo",
       "activo",
-      "notas",
+      "materias_por_modulo",
     ]);
   });
 });

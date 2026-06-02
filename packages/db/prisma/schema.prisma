@@ -591,7 +591,7 @@ model ProgramOffering {
   campusId             String                  @db.Uuid
   programId            String                  @db.Uuid
   cycle                String
-  track                String?
+  track                String?                 @default("Longitudinal")
   delivery             ProgramOfferingDelivery @default(CAMPUS)
   escolarizado         Boolean                 @default(false)
   ejecutivo            Boolean                 @default(false)
@@ -599,6 +599,7 @@ model ProgramOffering {
   ejecutivoSchedule    String?
   lineOfBusiness       String?
   pricingPlans         Int[]                   @default([])
+  subjectsByModule     String?                 @map("subjects_by_module")
   isActive             Boolean                 @default(true)
   archivedAt           DateTime?
   archivedReason       String?
@@ -609,7 +610,7 @@ model ProgramOffering {
   campus  Campus  @relation(fields: [campusId], references: [id], onDelete: Cascade)
   program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
-  @@unique([campusId, programId, cycle])
+  @@unique([campusId, programId, cycle, track])
   @@index([campusId, cycle])
   @@index([cycle, isActive])
   @@map("program_offering")

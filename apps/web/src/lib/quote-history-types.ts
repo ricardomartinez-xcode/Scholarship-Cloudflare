@@ -8,6 +8,7 @@ export type QuoteHistoryInputSnapshot = {
   campus: string | null;
   average: number;
   subjectCount: number | null;
+  module: string | null;
   extraChargeAmount: number;
   chargeType: string | null;
   selectedProgramId: string | null;
@@ -94,6 +95,7 @@ export function buildQuoteHistoryFingerprint(payload: QuoteHistoryInputSnapshot)
     campus: payload.campus ?? null,
     average: Number(payload.average.toFixed(2)),
     subjectCount: payload.subjectCount ?? null,
+    module: payload.module ?? null,
     extraChargeAmount: Number(payload.extraChargeAmount.toFixed(2)),
     chargeType: payload.chargeType ?? null,
     selectedProgramId: payload.selectedProgramId ?? null,

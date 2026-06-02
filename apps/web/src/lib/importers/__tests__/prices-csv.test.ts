@@ -154,6 +154,47 @@ describe("preparePricesCsvImport", () => {
     });
   });
 
+  it("keys canonical imports by module and subject price", async () => {
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([
+      {
+        id: "override-m2",
+        targetKeys: {
+          plantel: "Hermosillo",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          modulo: "M2",
+          tier: "T3",
+          subject_price_mxn: 1200,
+        },
+        newPrice: 5200,
+        isActive: true,
+        notes: null,
+      },
+    ]);
+
+    const csv = [
+      "linea,plantel,tier,precio,precio_por_materia,modalidad_key,plan,modulo",
+      "licenciatura,Hermosillo,T3,5300,1250,presencial,9,M2",
+    ].join("\n");
+    const file = new File([csv], "precios-modulos.csv", { type: "text/csv" });
+
+    const result = await preparePricesCsvImport({ file });
+
+    expect(result.payload.rows[0]).toMatchObject({
+      action: "update",
+      existingId: "override-m2",
+      plantel: "Hermosillo",
+      nivelKey: "licenciatura",
+      modalidadKey: "presencial",
+      plan: "9",
+      module: "M2",
+      tier: "T3",
+      newPrice: 5300,
+      subjectPrice: 1250,
+    });
+  });
+
 
   it("persists non-legacy programa as a program-specific price scope", async () => {
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);

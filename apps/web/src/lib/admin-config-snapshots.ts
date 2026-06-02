@@ -31,6 +31,7 @@ import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { getAdminConfigModulePaths } from "@/lib/admin-config-modules";
 import { normalizeOfferDraftSnapshot } from "@/lib/offer-draft-snapshot";
 import { prisma } from "@/lib/prisma";
+import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
 import {
   getPublicRouteTagsForModule,
   revalidatePublicRouteTags,
@@ -213,6 +214,7 @@ export type OfferProgramOfferingSnapshot = {
   ejecutivoSchedule: string | null;
   lineOfBusiness: string | null;
   pricingPlans?: number[];
+  subjectsByModule?: string | null;
   isActive: boolean;
   archivedReason: string | null;
   updatedBy: string | null;
@@ -814,6 +816,9 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
   const programMap = new Map<string, OfferProgramSnapshot>();
   const cycleSet = new Set<AcademicOfferCycle>();
   const visibleCycles = await getAcademicOfferVisibleCycles();
+  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+    offerings.map((offering) => offering.id),
+  );
 
   for (const offering of offerings) {
     if (ACADEMIC_OFFER_CYCLES.includes(offering.cycle as AcademicOfferCycle)) {
@@ -864,7 +869,7 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
       campusId: offering.campusId,
       programId: offering.programId,
       cycle: offering.cycle,
-      track: offering.track,
+      track: offering.track ?? "Longitudinal",
       delivery: offering.delivery,
       escolarizado: offering.escolarizado,
       ejecutivo: offering.ejecutivo,
@@ -872,6 +877,7 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
       ejecutivoSchedule: offering.ejecutivoSchedule,
       lineOfBusiness: offering.lineOfBusiness,
       pricingPlans: offering.pricingPlans ?? [],
+      subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
       isActive: offering.isActive,
       archivedReason: offering.archivedReason,
       updatedBy: offering.updatedBy,
@@ -934,7 +940,7 @@ async function restoreOfferSnapshot(snapshot: OfferDraftSnapshot) {
         campusId: offering.campusId,
         programId: offering.programId,
         cycle: offering.cycle,
-        track: offering.track,
+        track: offering.track ?? "Longitudinal",
         delivery: offering.delivery,
         escolarizado: offering.escolarizado,
         ejecutivo: offering.ejecutivo,
@@ -942,6 +948,7 @@ async function restoreOfferSnapshot(snapshot: OfferDraftSnapshot) {
         ejecutivoSchedule: offering.ejecutivoSchedule,
         lineOfBusiness: offering.lineOfBusiness,
         pricingPlans: offering.pricingPlans ?? [],
+        subjectsByModule: offering.subjectsByModule ?? null,
         isActive: offering.isActive,
         archivedReason: offering.archivedReason,
         updatedBy: offering.updatedBy,

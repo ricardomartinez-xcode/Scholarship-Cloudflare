@@ -14,6 +14,7 @@ import {
   normalizeAdminPriceScopePreset,
 } from "@/lib/admin-price-scope";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
+import { academicModuleOrDefault } from "@/lib/academic-modules";
 import { captureException, logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 
@@ -66,6 +67,13 @@ function inferBasePriceMxn(params: {
     return params.monto;
   }
   return Math.round((params.monto / (1 - params.porcentaje / 100)) * 100) / 100;
+}
+
+function parseOptionalMoney(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? numeric : Number.NaN;
 }
 
 export async function getBecaRules(): Promise<BecaRule[]> {
@@ -123,11 +131,13 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     const nivel_key = String(formData.get("nivel_key") ?? "").trim();
     const modalidad_key = String(formData.get("modalidad_key") ?? "").trim();
     const plan = String(formData.get("plan") ?? "").trim();
+    const academicModule = academicModuleOrDefault(formData.get("module"));
     const tier = String(formData.get("tier") ?? "").trim();
     const region = String(formData.get("region") ?? "").trim();
     const plantel = String(formData.get("plantel") ?? "").trim();
     const priceScopePreset = normalizeAdminPriceScopePreset(formData.get("priceScopePreset"));
     const newPrice = String(formData.get("newPrice") ?? "").trim();
+    const subjectPrice = parseOptionalMoney(formData.get("subjectPrice"));
     const existingId = String(formData.get("existingId") ?? "").trim();
 
     if (!newPrice || Number.isNaN(Number(newPrice))) {
@@ -135,6 +145,9 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     }
     if (Number(newPrice) < 0) {
       return { ok: false, error: "El precio no puede ser negativo." };
+    }
+    if (Number.isNaN(subjectPrice) || (subjectPrice !== null && subjectPrice < 0)) {
+      return { ok: false, error: "El precio por materia debe ser numérico y no negativo." };
     }
     if (!nivel_key || !modalidad_key || !plan) {
       return { ok: false, error: "Faltan claves de precio a editar." };
@@ -151,11 +164,17 @@ export async function upsertMontoOverrideAction(formData: FormData) {
       }
     }
 
-    const targetKeys: Record<string, string> = { nivel_key, modalidad_key, plan };
+    const targetKeys: Record<string, string | number> = {
+      nivel_key,
+      modalidad_key,
+      plan,
+      modulo: academicModule,
+    };
     if (programa_key) targetKeys.programa_key = programa_key;
     if (region) targetKeys.region = region;
     if (plantel) targetKeys.plantel = plantel;
     if (tier) targetKeys.tier = tier;
+    if (subjectPrice !== null) targetKeys.subject_price_mxn = subjectPrice;
     const before = existingId
       ? await prisma.adminPriceOverride.findUnique({
           where: { id: existingId },
@@ -185,7 +204,7 @@ export async function upsertMontoOverrideAction(formData: FormData) {
     if (existingId) {
       saved = await prisma.adminPriceOverride.update({
         where: { id: existingId },
-        data: { newPrice, isActive: true, updatedBy: admin.email },
+        data: { targetKeys, newPrice, isActive: true, updatedBy: admin.email },
         select: {
           id: true,
           scope: true,

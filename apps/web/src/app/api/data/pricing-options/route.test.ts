@@ -13,7 +13,6 @@ const {
     scholarshipRule: { findMany: vi.fn() },
     adminPriceOverride: { findMany: vi.fn() },
     campus: { findMany: vi.fn() },
-    returnSubjectPrice: { findMany: vi.fn() },
     programOffering: { findMany: vi.fn() },
     program: { findMany: vi.fn() },
   },
@@ -127,7 +126,6 @@ describe("GET /api/data/pricing-options", () => {
       },
     ]);
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
-    prismaMock.returnSubjectPrice.findMany.mockResolvedValue([]);
     listContentBucketObjectsMock.mockResolvedValue([]);
     listFileAssetsMock.mockResolvedValue([]);
     prismaMock.program.findMany.mockResolvedValue([
@@ -346,6 +344,7 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "prepa",
             modality: "presencial",
             plan: 6,
+            module: "Longitudinal",
             programId: "program_prepa",
           },
         ],
@@ -369,6 +368,7 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "licenciatura",
             modality: "presencial",
             plan: 9,
+            module: "Longitudinal",
             programId: "program_lic",
           },
         ],
@@ -392,6 +392,7 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "prepa",
             modality: "presencial",
             plan: 6,
+            module: "Longitudinal",
             programId: "program_prepa",
           },
         ],
@@ -415,6 +416,7 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "posgrado",
             modality: "online",
             plan: 11,
+            module: "Longitudinal",
             programId: "program_posgrado",
           },
         ],
@@ -462,7 +464,6 @@ describe("GET /api/data/pricing-options", () => {
   it("exposes configured offering plans even before a canonical price exists", async () => {
     prismaMock.scholarshipRule.findMany.mockResolvedValue([]);
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
-    prismaMock.returnSubjectPrice.findMany.mockResolvedValue([]);
     prismaMock.program.findMany.mockResolvedValue([
       {
         id: "program_psicologia",
@@ -541,6 +542,7 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "salud",
             modality: "presencial",
             plan: 9,
+            module: "Longitudinal",
             programId: "program_psicologia",
             programKey: "program_psicologia",
           },

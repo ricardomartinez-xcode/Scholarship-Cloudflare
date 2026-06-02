@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BASE_PRICE_OVERRIDE_SCOPE,
   findPublishedBasePriceOverride,
+  findPublishedSubjectPriceOverride,
 } from "@/lib/base-price-overrides";
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
 
@@ -427,6 +428,57 @@ describe("findPublishedBasePriceOverride", () => {
         campus: "ONLINE",
       }),
     ).toBe(4100);
+  });
+
+  it("prefers module-specific list and subject prices over generic prices", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "longitudinal-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          plantel: "Hermosillo",
+          tier: "T3",
+          modulo: "Longitudinal",
+          subject_price_mxn: 1100,
+        },
+        newPrice: 5000,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "m2-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          plantel: "Hermosillo",
+          tier: "T3",
+          modulo: "M2",
+          subject_price_mxn: 1250,
+        },
+        newPrice: 5300,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    const params = {
+      businessLine: "licenciatura",
+      modality: "presencial",
+      plan: 9,
+      tier: "T3",
+      campus: "Hermosillo",
+      module: "M2",
+    };
+
+    expect(findPublishedBasePriceOverride(overrides, params)).toBe(5300);
+    expect(findPublishedSubjectPriceOverride(overrides, params)).toBe(1250);
   });
 
 

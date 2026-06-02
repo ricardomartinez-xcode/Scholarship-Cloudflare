@@ -28,6 +28,7 @@ type QuotePayload = {
   campus?: string | null;
   average?: number | string;
   subjectCount?: number | string | null;
+  module?: string | null;
   extraCharge?: number | string | { amount?: number | string } | null;
   selectedProgramId?: string | null;
   selectedProgramName?: string | null;
@@ -64,6 +65,7 @@ async function recordQuoteGeneratedEvent(params: {
     campus: string | null;
     average: number;
     subjectCount: number | null;
+    module: string | null;
     extraChargeAmount: number;
     selectedProgramId: string | null;
     selectedProgramName: string | null;
@@ -90,6 +92,7 @@ async function recordQuoteGeneratedEvent(params: {
       campus: params.input.campus,
       average: params.input.average,
       subjectCount: params.input.subjectCount,
+      module: params.input.module,
       extraChargeAmount: params.input.extraChargeAmount,
       selectedProgramId: params.input.selectedProgramId,
       selectedProgramName: params.input.selectedProgramName,
@@ -99,6 +102,7 @@ async function recordQuoteGeneratedEvent(params: {
       resolvedProgramId: params.input.resolvedOffering?.programId ?? null,
       resolvedCampusId: params.input.resolvedOffering?.campusId ?? null,
       resolvedCampusTier: params.input.resolvedOffering?.campusTier ?? null,
+      resolvedModule: params.input.resolvedOffering?.module ?? null,
       clientSurface: params.input.clientSurface,
       source: params.result.source,
       tier: params.result.tier,
@@ -157,6 +161,10 @@ export async function POST(request: Request) {
     const plan = toOptionalNumber(payload.plan);
     const average = toOptionalNumber(payload.average);
     const subjectCount = toOptionalNumber(payload.subjectCount);
+    const academicModule =
+      typeof payload.module === "string" && payload.module.trim()
+        ? payload.module.trim()
+        : null;
     const extraChargeAmount = toOptionalNumber(payload.extraCharge) ?? 0;
     const selectedProgramId =
       typeof payload.selectedProgramId === "string" && payload.selectedProgramId.trim()
@@ -208,10 +216,6 @@ export async function POST(request: Request) {
       invalid.push("subjectCount");
     }
     if (extraChargeAmount < 0) invalid.push("extraCharge");
-    if (enrollmentType === "regreso" && subjectCount === null) {
-      invalid.push("subjectCount");
-    }
-
     if (invalid.length) {
       logStructured("warn", "Rejected quote payload", {
         module: "quote-api",
@@ -243,6 +247,7 @@ export async function POST(request: Request) {
       campus: payload.campus ?? null,
       average,
       subjectCount,
+      module: academicModule,
       extraChargeAmount,
       selectedProgramId,
       selectedProgramName,
@@ -258,6 +263,7 @@ export async function POST(request: Request) {
       campus: string | null;
       average: NonNullable<typeof average>;
       subjectCount: number | null;
+      module: string | null;
       extraChargeAmount: number;
       selectedProgramId: string | null;
       selectedProgramName: string | null;
@@ -274,6 +280,7 @@ export async function POST(request: Request) {
       businessLine: rawRequestInput.businessLine,
       modality: rawRequestInput.modality,
       plan: rawRequestInput.plan,
+      module: rawRequestInput.module,
       cycle: rawRequestInput.offerCycle,
     });
 
@@ -293,6 +300,7 @@ export async function POST(request: Request) {
           businessLine: rawRequestInput.businessLine,
           modality: rawRequestInput.modality,
           plan: rawRequestInput.plan,
+          module: rawRequestInput.module,
           warnings: offeringResolution.warnings,
         },
       });
@@ -335,6 +343,7 @@ export async function POST(request: Request) {
             selectedProgramId: offeringResolution.context.programId,
             selectedProgramName: offeringResolution.context.programName,
             offeringId: offeringResolution.context.offeringId,
+            module: offeringResolution.context.module,
             resolvedOffering: offeringResolution.context,
           }
         : {}),
@@ -351,6 +360,7 @@ export async function POST(request: Request) {
         businessLine: requestInput.businessLine,
         modality: requestInput.modality,
         plan: requestInput.plan,
+        module: requestInput.module,
         campus: requestInput.campus,
         selectedProgramId: requestInput.selectedProgramId,
         selectedProgramName: requestInput.selectedProgramName,

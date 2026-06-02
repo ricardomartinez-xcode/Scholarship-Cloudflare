@@ -8,6 +8,7 @@ import {
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
 import { buildQuotePricingOptions, type QuotePricingOption } from "@/lib/pricing-options";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
+import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
   ENROLLMENT_TYPES,
@@ -43,6 +44,7 @@ function buildPricingKey(option: {
   businessLine: string;
   modality: string;
   plan: number;
+  module?: string | null;
   programId?: string | null;
   programKey?: string | null;
 }) {
@@ -50,6 +52,7 @@ function buildPricingKey(option: {
     option.businessLine,
     option.modality,
     option.plan,
+    option.module ?? "Longitudinal",
     option.programId ?? "",
     option.programKey ?? "",
   ].join("|");
@@ -59,9 +62,35 @@ function buildPriceOnlyKey(option: {
   businessLine: string;
   modality: string;
   plan: number;
+  module?: string | null;
   programKey?: string | null;
 }) {
-  return `${option.businessLine}|${option.modality}|${option.plan}|${option.programKey ?? ""}`;
+  return `${option.businessLine}|${option.modality}|${option.plan}|${option.module ?? "Longitudinal"}|${option.programKey ?? ""}`;
+}
+
+function targetRecord(targetKeys: unknown) {
+  return targetKeys && typeof targetKeys === "object"
+    ? (targetKeys as Record<string, unknown>)
+    : {};
+}
+
+function hasSubjectPriceTarget(targetKeys: unknown) {
+  const keys = targetRecord(targetKeys);
+  const value =
+    keys.subject_price_mxn ??
+    keys.precio_por_materia ??
+    keys.precioPorMateria ??
+    keys.price_per_subject ??
+    keys.subjectPriceMxn;
+  if (value === null || value === undefined || value === "") return false;
+  const numeric = Number(String(value).replace(/[$\s,]/g, ""));
+  return Number.isFinite(numeric) && numeric >= 0;
+}
+
+function buildSubjectCountOptions(priceOverrides: Array<{ targetKeys: unknown }>) {
+  return priceOverrides.some((override) => hasSubjectPriceTarget(override.targetKeys))
+    ? [1, 2, 3, 4, 5, 6, 7]
+    : [];
 }
 
 function normalizeProgramMatchKey(value: unknown) {
@@ -172,6 +201,7 @@ function buildStudyProgram(
 function buildConfiguredOfferingPricingOptions(
   offerings: Array<{
     pricingPlans: number[];
+    track: string | null;
     delivery: string;
     escolarizado: boolean;
     ejecutivo: boolean;
@@ -216,6 +246,7 @@ function buildConfiguredOfferingPricingOptions(
             businessLine: studyProgram.businessLine,
             modality,
             plan,
+            module: academicModuleOrDefault(offering.track),
             programKey: studyProgram.id,
             source: "offering",
           };
@@ -225,6 +256,7 @@ function buildConfiguredOfferingPricingOptions(
               option.businessLine,
               option.modality,
               option.plan,
+              option.module,
               option.programKey ?? "",
             ].join("|"),
             option,
@@ -253,7 +285,6 @@ export async function GET() {
     rules,
     priceOverrides,
     campuses,
-    subjectPrices,
     activeOfferings,
     catalogPrograms,
     bucketFiles,
@@ -299,12 +330,6 @@ export async function GET() {
       orderBy: [{ name: "asc" }],
       select: { id: true, code: true, metaKey: true, name: true, slug: true, tier: true },
     }),
-    prisma.returnSubjectPrice.findMany({
-      where: { sourceVersion: "canonical" },
-      distinct: ["subjectCount"],
-      orderBy: [{ subjectCount: "asc" }],
-      select: { subjectCount: true },
-    }),
     prisma.programOffering.findMany({
       where: {
         isActive: true,
@@ -314,6 +339,7 @@ export async function GET() {
         id: true,
         campusId: true,
         pricingPlans: true,
+        track: true,
         delivery: true,
         escolarizado: true,
         ejecutivo: true,
@@ -431,6 +457,7 @@ export async function GET() {
                   businessLine: option.businessLine,
                   modality: option.modality,
                   plan: option.plan,
+                  module: option.module,
                   tier: runtimeTier,
                   campus: campus.name,
                   campusAliases: [
@@ -485,6 +512,7 @@ export async function GET() {
           businessLine: string;
           modality: string;
           plan: number;
+          module: AcademicModule;
           programId: string;
           programKey?: string | null;
         }
@@ -516,6 +544,7 @@ export async function GET() {
               option.businessLine !== studyProgram.businessLine ||
               option.modality !== modality ||
               (configuredPlans.length > 0 && !configuredPlans.includes(option.plan)) ||
+              option.module !== academicModuleOrDefault(offering.track) ||
               !programMatchesPricingOption(studyProgram, option)
             ) {
               continue;
@@ -526,6 +555,7 @@ export async function GET() {
                 businessLine: option.businessLine,
                 modality: option.modality,
                 plan: option.plan,
+                module: option.module,
                 programId: studyProgram.id,
                 ...(option.programKey ? { programKey: option.programKey } : {}),
               },
@@ -552,6 +582,7 @@ export async function GET() {
             left.businessLine.localeCompare(right.businessLine, "es") ||
             left.modality.localeCompare(right.modality, "es") ||
             left.plan - right.plan ||
+            left.module.localeCompare(right.module, "es") ||
             left.programId.localeCompare(right.programId, "es"),
         ),
       };
@@ -593,6 +624,6 @@ export async function GET() {
     combinations: pricingOptions,
     studyPrograms,
     campuses: responseCampuses,
-    subjectCounts: subjectPrices.map((row) => row.subjectCount),
+    subjectCounts: buildSubjectCountOptions(priceOverrides),
   });
 }

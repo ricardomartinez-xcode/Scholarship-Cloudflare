@@ -12,6 +12,7 @@ import {
   normalizeCanonicalModalityWithAliases,
   normalizeTierWithAliases,
 } from "@/lib/pricing-normalize";
+import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 import {
   adminPriceScopeDefinition,
   adminPriceScopeRequiresField,
@@ -35,8 +36,10 @@ export type PriceImportPreviewRow = {
   nivelKey: string;
   modalidadKey: string;
   plan: string;
+  module: AcademicModule;
   tier: string | null;
   newPrice: number;
+  subjectPrice: number | null;
   isActive: boolean;
   notes: string | null;
 };
@@ -81,8 +84,10 @@ type ParsedPriceRow = {
   nivelKey: string;
   modalidadKey: string;
   plan: string;
+  module: AcademicModule;
   tier: string | null;
   newPrice: number;
+  subjectPrice: number | null;
   isActive: boolean;
   notes: string | null;
 };
@@ -104,13 +109,15 @@ const HEADER_ALIASES = {
   ],
   modalidadKey: ["modalidadkey", "modalidad", "modalidad_key"],
   plan: ["plan"],
+  module: ["modulo", "módulo", "module"],
   tier: ["tier"],
   newPrice: ["newprice", "precio", "preciolista", "precio_lista", "monto", "new_price"],
+  subjectPrice: ["preciopormateria", "precio_por_materia", "precio por materia", "subjectprice", "subject_price_mxn", "pricepersubject"],
   isActive: ["isactive", "activo", "active"],
   notes: ["notes", "nota", "notas"],
 } as const;
 
-const REQUIRED_HEADER_EXAMPLE = "linea, modalidad, plan, precio, alcance, programa, plantel, tier";
+const REQUIRED_HEADER_EXAMPLE = "linea, modalidad, plan, modulo, precio, precio_por_materia, alcance, programa, plantel, tier";
 
 const LEGACY_PROGRAMA_KEYS = new Set([
   "canonical",
@@ -251,6 +258,7 @@ function buildPriceScopeKey(input: {
   nivelKey: string;
   modalidadKey: string;
   plan: string;
+  module: AcademicModule;
   tier: string | null;
 }) {
   return [
@@ -259,6 +267,7 @@ function buildPriceScopeKey(input: {
     input.nivelKey.trim().toLowerCase(),
     input.modalidadKey.trim().toLowerCase(),
     input.plan.trim().toLowerCase(),
+    input.module.trim().toLowerCase(),
     (input.tier ?? "").trim().toLowerCase(),
   ].join("|");
 }
@@ -266,6 +275,7 @@ function buildPriceScopeKey(input: {
 function hasPriceValueChanged(
   existing: {
     newPrice: number;
+    subjectPrice: number | null;
     isActive: boolean;
     notes: string | null;
   },
@@ -273,6 +283,7 @@ function hasPriceValueChanged(
 ) {
   return (
     existing.newPrice !== row.newPrice ||
+    existing.subjectPrice !== row.subjectPrice ||
     existing.isActive !== row.isActive ||
     (existing.notes ?? "") !== (row.notes ?? "")
   );
@@ -295,6 +306,7 @@ async function buildExistingPriceOverridesByScopeKey() {
     Array<{
       id: string;
       newPrice: number;
+      subjectPrice: number | null;
       isActive: boolean;
       notes: string | null;
     }>
@@ -310,11 +322,20 @@ async function buildExistingPriceOverridesByScopeKey() {
       nivelKey: String(target.nivel_key ?? ""),
       modalidadKey: String(target.modalidad_key ?? ""),
       plan: String(target.plan ?? ""),
+      module: academicModuleOrDefault(target.modulo ?? target.module ?? target.academicModule),
       tier: target.tier ? String(target.tier) : null,
     });
     const entry = {
       id: row.id,
       newPrice: Number(row.newPrice),
+      subjectPrice: parseMoney(
+        String(
+          target.subject_price_mxn ??
+            target.precio_por_materia ??
+            target.precioPorMateria ??
+            "",
+        ),
+      ),
       isActive: row.isActive,
       notes: row.notes,
     };
@@ -351,8 +372,10 @@ export async function preparePricesCsvImport(
   const idxNivel = findColumnIndex(headerMap, HEADER_ALIASES.nivelKey);
   const idxModalidad = findColumnIndex(headerMap, HEADER_ALIASES.modalidadKey);
   const idxPlan = findColumnIndex(headerMap, HEADER_ALIASES.plan);
+  const idxModule = findColumnIndex(headerMap, HEADER_ALIASES.module);
   const idxTier = findColumnIndex(headerMap, HEADER_ALIASES.tier);
   const idxNewPrice = findColumnIndex(headerMap, HEADER_ALIASES.newPrice);
+  const idxSubjectPrice = findColumnIndex(headerMap, HEADER_ALIASES.subjectPrice);
   const idxIsActive = findColumnIndex(headerMap, HEADER_ALIASES.isActive);
   const idxNotes = findColumnIndex(headerMap, HEADER_ALIASES.notes);
 
@@ -390,6 +413,7 @@ export async function preparePricesCsvImport(
     const nivelKey = normalizeNivelKey(readCell(row, idxNivel), aliasRows);
     const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad), aliasRows);
     const plan = normalizePlan(readCell(row, idxPlan));
+    const academicModule = academicModuleOrDefault(readCell(row, idxModule));
     const tier = normalizeTierKey(readCell(row, idxTier), aliasRows);
     const explicitScopePreset = normalizeAdminPriceScopePreset(readCell(row, idxScopePreset));
     const scopePreset = explicitScopePreset ?? inferAdminPriceScopePreset({
@@ -438,6 +462,12 @@ export async function preparePricesCsvImport(
       errors.push(`Fila ${rowNumber}: precio debe ser numérico y no negativo.`);
       continue;
     }
+    const subjectPriceRaw = readCell(row, idxSubjectPrice);
+    const subjectPrice = subjectPriceRaw ? parseMoney(subjectPriceRaw) : null;
+    if (subjectPriceRaw && subjectPrice === null) {
+      errors.push(`Fila ${rowNumber}: precio_por_materia debe ser numérico y no negativo.`);
+      continue;
+    }
 
     const isActive = parseBoolean(readCell(row, idxIsActive), true);
     const notes = readCell(row, idxNotes) || null;
@@ -447,6 +477,7 @@ export async function preparePricesCsvImport(
       nivelKey,
       modalidadKey,
       plan,
+      module: academicModule,
       tier,
     });
     if (seenKeys.has(key)) {
@@ -456,20 +487,22 @@ export async function preparePricesCsvImport(
     seenKeys.add(key);
 
     parsedRows.push({
-  rowNumber,
-  region,
-  plantel,
-  programaKey,
-  scopePreset,
-  scopeLabel: formatAdminPriceScopePreset(scopePreset),
-  nivelKey,
-  modalidadKey,
-  plan,
-  tier,
-  newPrice,
-  isActive,
-  notes,
-});
+      rowNumber,
+      region,
+      plantel,
+      programaKey,
+      scopePreset,
+      scopeLabel: formatAdminPriceScopePreset(scopePreset),
+      nivelKey,
+      modalidadKey,
+      plan,
+      module: academicModule,
+      tier,
+      newPrice,
+      subjectPrice,
+      isActive,
+      notes,
+    });
   }
 
   if (errors.length > 0) {
@@ -495,6 +528,7 @@ export async function preparePricesCsvImport(
       nivelKey: parsedRow.nivelKey,
       modalidadKey: parsedRow.modalidadKey,
       plan: parsedRow.plan,
+      module: parsedRow.module,
       tier: parsedRow.tier,
     });
     const matches = existingByScope.get(key) ?? [];
@@ -552,12 +586,16 @@ export async function applyPreparedPricesImport(params: {
         continue;
       }
 
-      const targetKeys: Record<string, string> = {
+      const targetKeys: Record<string, string | number> = {
         ...(row.programaKey ? { programa_key: row.programaKey } : {}),
         nivel_key: row.nivelKey,
         modalidad_key: row.modalidadKey,
         plan: row.plan,
+        modulo: row.module,
       };
+      if (row.subjectPrice !== null) {
+        targetKeys.subject_price_mxn = row.subjectPrice;
+      }
       if (row.tier) {
         targetKeys.tier = row.tier;
       }
@@ -578,6 +616,7 @@ export async function applyPreparedPricesImport(params: {
           await tx.adminPriceOverride.update({
             where: { id: existingId },
             data: {
+              targetKeys: targetKeys as Prisma.InputJsonValue,
               newPrice: row.newPrice,
               isActive: row.isActive,
               notes: row.notes,

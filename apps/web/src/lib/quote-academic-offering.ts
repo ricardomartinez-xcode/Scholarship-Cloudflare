@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
 import {
   normalizeBusinessLine,
   normalizeCanonicalModality,
@@ -7,10 +8,13 @@ import {
 } from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
 import { academicPlanIsAllowed, normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
+import { academicModuleMatches, academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 
 type OfferingRow = {
   id: string;
   cycle: string;
+  track: string | null;
+  subjectsByModule?: string | null;
   lineOfBusiness: string | null;
   pricingPlans: number[];
   delivery: "CAMPUS" | "ONLINE";
@@ -46,6 +50,8 @@ export type QuoteAcademicOfferingContext = {
   campusName: string;
   campusTier: string | null;
   pricingPlans: number[];
+  module: AcademicModule;
+  subjectsByModule: string | null;
 };
 
 export type QuoteAcademicOfferingResolution =
@@ -85,6 +91,7 @@ function offeringSelect() {
   return {
     id: true,
     cycle: true,
+    track: true,
     lineOfBusiness: true,
     pricingPlans: true,
     delivery: true,
@@ -178,6 +185,8 @@ function buildContext(
     campusName: offering.campus.name,
     campusTier: offering.campus.tier,
     pricingPlans: normalizeAcademicPricingPlans(offering.pricingPlans),
+    module: academicModuleOrDefault(offering.track),
+    subjectsByModule: offering.subjectsByModule ?? null,
   };
 }
 
@@ -189,6 +198,7 @@ function offeringMatchesRequest(
     selectedProgramId?: string | null;
     campus?: string | null;
     plan?: number | string | null;
+    module?: string | null;
   },
 ) {
   const warnings: string[] = [];
@@ -230,6 +240,9 @@ function offeringMatchesRequest(
   if (!academicPlanIsAllowed(offering.pricingPlans, input.plan)) {
     warnings.push("plan_not_available_for_offering");
   }
+  if (!academicModuleMatches(offering.track, input.module, { emptyMatchesAll: true })) {
+    warnings.push("module_not_available_for_offering");
+  }
 
   return {
     matches: warnings.length === 0,
@@ -245,6 +258,7 @@ export async function resolveQuoteAcademicOffering(input: {
   businessLine?: string | null;
   modality?: string | null;
   plan?: number | string | null;
+  module?: string | null;
   cycle?: string | null;
 }): Promise<QuoteAcademicOfferingResolution> {
   const warnings: string[] = [];
@@ -280,7 +294,12 @@ export async function resolveQuoteAcademicOffering(input: {
       };
     }
 
-    const match = offeringMatchesRequest(offering, input);
+    const subjectsByOfferingId = await listProgramOfferingSubjectsById([offering.id]);
+    const offeringWithSubjects = {
+      ...offering,
+      subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
+    };
+    const match = offeringMatchesRequest(offeringWithSubjects, input);
     if (match.warnings.length) warnings.push(...match.warnings);
 
     if (!match.context) {
@@ -338,18 +357,27 @@ export async function resolveQuoteAcademicOffering(input: {
     select: offeringSelect(),
   });
 
+  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+    offeringCandidates.map((offering) => offering.id),
+  );
+  const offeringCandidatesWithSubjects = offeringCandidates.map((offering) => ({
+    ...offering,
+    subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
+  }));
+
   const matchingOffering =
-    offeringCandidates.find((offering) => {
+    offeringCandidatesWithSubjects.find((offering) => {
       const context = buildContext(offering, requestedModality);
       if (!context) return false;
       if (requestedBusinessLine && context.businessLine !== requestedBusinessLine) return false;
       if (requestedModality && context.modality !== requestedModality) return false;
       if (!academicPlanIsAllowed(offering.pricingPlans, input.plan)) return false;
+      if (!academicModuleMatches(offering.track, input.module, { emptyMatchesAll: true })) return false;
       return true;
     }) ?? null;
 
   if (!matchingOffering) {
-    const hasPlanRestrictedCandidate = offeringCandidates.some((offering) => {
+    const hasPlanRestrictedCandidate = offeringCandidatesWithSubjects.some((offering) => {
       const context = buildContext(offering, requestedModality);
       if (!context) return false;
       if (requestedBusinessLine && context.businessLine !== requestedBusinessLine) return false;
@@ -357,7 +385,22 @@ export async function resolveQuoteAcademicOffering(input: {
       return !academicPlanIsAllowed(offering.pricingPlans, input.plan);
     });
 
-    warnings.push(hasPlanRestrictedCandidate ? "plan_not_available_for_offering" : "offering_not_resolved");
+    const hasModuleRestrictedCandidate = offeringCandidatesWithSubjects.some((offering) => {
+      const context = buildContext(offering, requestedModality);
+      if (!context) return false;
+      if (requestedBusinessLine && context.businessLine !== requestedBusinessLine) return false;
+      if (requestedModality && context.modality !== requestedModality) return false;
+      if (!academicPlanIsAllowed(offering.pricingPlans, input.plan)) return false;
+      return !academicModuleMatches(offering.track, input.module, { emptyMatchesAll: true });
+    });
+
+    warnings.push(
+      hasPlanRestrictedCandidate
+        ? "plan_not_available_for_offering"
+        : hasModuleRestrictedCandidate
+          ? "module_not_available_for_offering"
+          : "offering_not_resolved",
+    );
     return { ok: true, context: null, warnings };
   }
 

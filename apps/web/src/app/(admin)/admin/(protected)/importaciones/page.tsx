@@ -78,8 +78,8 @@ const IMPORT_TARGETS = [
     action: "Importar planteles",
   },
   {
-    label: "Trámites + precio por materia",
-    description: "Carga costos base, disponibilidad por plantel o precios por número de materias.",
+    label: "Trámites + plantel",
+    description: "Carga costos base y disponibilidad por plantel. Los precios por materia se importan desde Precios.",
     href: "/admin/unidep/fees?tab=seed&seedMode=unified",
     format: "CSV",
     action: "Importar costos",

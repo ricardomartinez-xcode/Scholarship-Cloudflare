@@ -4,7 +4,6 @@ import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 import FeesClient from "./FeesClient";
 import MigrateClient from "../MigrateClient";
-import { getMateriasAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +35,6 @@ async function loadFeesPageData() {
           overrideCostMxn: true,
         },
       }),
-      getMateriasAction(),
     ]);
   } catch {
     return null;
@@ -50,22 +48,22 @@ export default async function UnidepFeesPage() {
     return <NeedsMigration title="Costos Académicos UNIDEP" />;
   }
 
-  const [fees, campuses, campusFees, materias] = data;
+  const [fees, campuses, campusFees] = data;
 
   return (
     <div className="grid gap-6 p-6">
       <div>
         <h1 className="text-xl font-semibold">Costos Académicos UNIDEP</h1>
         <p className="mt-1 text-sm text-[#4B6475]">
-          Consulta y ajusta cambios individuales en trámites, disponibilidad por plantel y
-          precio por materia. Usa Importación para cargas masivas en CSV.
+          Consulta y ajusta cambios individuales en trámites y disponibilidad por plantel.
+          Los precios por materia se administran desde Precios lista canónicos.
         </p>
       </div>
       <FeesClient
         fees={fees}
         campuses={campuses}
         campusFees={campusFees}
-        materias={materias}
+        materias={[]}
       />
     </div>
   );

@@ -7,6 +7,8 @@ import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { canPublishConfigWithAdmin } from "@/lib/admin-publish-auth";
 import { getConfigPublicationState } from "@/lib/admin-config-snapshots";
 import { getAcademicOfferVisibleCycles } from "@/lib/academic-offer-config";
+import { academicModuleOrDefault } from "@/lib/academic-modules";
+import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
 import { prisma } from "@/lib/prisma";
 import OfferImportClient from "@/components/admin/OfferImportClient";
 import {
@@ -52,6 +54,7 @@ export default async function OfertaPage() {
         ejecutivoSchedule: true,
         lineOfBusiness: true,
         pricingPlans: true,
+        track: true,
         campusId: true,
         programId: true,
         campus: { select: { code: true, name: true } },
@@ -85,6 +88,9 @@ export default async function OfertaPage() {
       },
     }),
   ]);
+  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+    previewRows.map((row) => row.id),
+  );
 
   return (
     <div className="grid gap-6">
@@ -139,6 +145,8 @@ export default async function OfertaPage() {
           line: row.lineOfBusiness ?? row.program.businessLine ?? null,
           modality: getModalityLabel(row),
           pricingPlans: row.pricingPlans ?? [],
+          module: academicModuleOrDefault(row.track),
+          subjectsByModule: subjectsByOfferingId.get(row.id) ?? null,
           delivery: row.delivery,
           escolarizado: row.escolarizado,
           ejecutivo: row.ejecutivo,

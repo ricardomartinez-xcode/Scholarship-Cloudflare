@@ -20,6 +20,7 @@ import {
   inferAdminPriceScopePreset,
   type AdminPriceScopePreset,
 } from "@/lib/admin-price-scope";
+import { ACADEMIC_MODULES, type AcademicModule } from "@/lib/academic-modules";
 
 type BecaRule = {
   id: string;
@@ -51,8 +52,10 @@ type PriceRow = {
   nivel_key: string;
   modalidad_key: string;
   plan: string;
+  module: AcademicModule;
   tier: string | null;
   basePriceMxn: number | null;
+  subjectPriceMxn: number | null;
   sourceOverrideId: string | null;
   source: "canonical" | "derived" | "missing";
 };
@@ -70,8 +73,10 @@ type PriceImportPreviewRow = {
   nivelKey: string;
   modalidadKey: string;
   plan: string;
+  module: AcademicModule;
   tier: string | null;
   newPrice: number;
+  subjectPrice: number | null;
   isActive: boolean;
   notes: string | null;
 };
@@ -107,6 +112,13 @@ function normalizeScopeValue(value: unknown) {
   return normalized || null;
 }
 
+function normalizeModuleValue(value: unknown): AcademicModule {
+  const normalized = String(value ?? "").trim();
+  return ACADEMIC_MODULES.includes(normalized as AcademicModule)
+    ? (normalized as AcademicModule)
+    : "Longitudinal";
+}
+
 function targetKeysRecord(targetKeys: unknown) {
   return targetKeys && typeof targetKeys === "object"
     ? (targetKeys as Record<string, unknown>)
@@ -120,6 +132,7 @@ function priceScopeKey(scope: {
   nivel_key: unknown;
   modalidad_key: unknown;
   plan: unknown;
+  module?: unknown;
   tier?: unknown;
 }) {
   return [
@@ -129,6 +142,7 @@ function priceScopeKey(scope: {
     String(scope.nivel_key ?? "").trim(),
     String(scope.modalidad_key ?? "").trim(),
     String(scope.plan ?? "").trim(),
+    normalizeModuleValue(scope.module),
     normalizeTierKey(scope.tier) ?? "",
   ].join("|");
 }
@@ -141,6 +155,7 @@ function priceScopeKeyFromRecord(keys: Record<string, unknown>) {
     nivel_key: keys.nivel_key,
     modalidad_key: keys.modalidad_key,
     plan: keys.plan,
+    module: keys.modulo ?? keys.module ?? keys.academicModule ?? "Longitudinal",
     tier: keys.tier,
   });
 }
@@ -150,6 +165,7 @@ function priceCombinationKey(scope: {
   nivel_key: unknown;
   modalidad_key: unknown;
   plan: unknown;
+  module?: unknown;
   tier?: unknown;
 }) {
   return [
@@ -157,6 +173,7 @@ function priceCombinationKey(scope: {
     String(scope.nivel_key ?? "").trim(),
     String(scope.modalidad_key ?? "").trim(),
     String(scope.plan ?? "").trim(),
+    normalizeModuleValue(scope.module),
     normalizeTierKey(scope.tier) ?? "",
   ].join("|");
 }
@@ -183,8 +200,16 @@ function priceRowFromOverride(override: MontoOverride): PriceRow | null {
     nivel_key: nivel,
     modalidad_key: modalidad,
     plan,
+    module: normalizeModuleValue(keys.modulo ?? keys.module ?? keys.academicModule),
     tier: normalizeTierKey(keys.tier),
     basePriceMxn: toPriceNumber(override.newPrice),
+    subjectPriceMxn: toPriceNumber(
+      keys.subject_price_mxn ??
+        keys.precio_por_materia ??
+        keys.precioPorMateria ??
+        keys.price_per_subject ??
+        keys.subjectPriceMxn,
+    ),
     sourceOverrideId: override.id,
     source: "canonical",
   };
@@ -237,6 +262,7 @@ function comparePriceRows(left: PriceRow, right: PriceRow) {
       compareAdminPricingScope(left, right),
       left.modalidad_key.localeCompare(right.modalidad_key),
       left.plan.localeCompare(right.plan, undefined, { numeric: true }),
+      left.module.localeCompare(right.module, "es-MX"),
     ].find((result) => result !== 0) ?? 0
   );
 }
@@ -270,6 +296,7 @@ export default function PricesClient({
         nivel_key: rule.nivel_key,
         modalidad_key: rule.modalidad_key,
         plan: rule.plan,
+        module: "Longitudinal",
         tier,
       });
       if (canonicalCombinations.has(combinationKey)) continue;
@@ -278,6 +305,7 @@ export default function PricesClient({
         nivel_key: rule.nivel_key,
         modalidad_key: rule.modalidad_key,
         plan: rule.plan,
+        module: "Longitudinal",
         tier,
       });
       const current = rows.get(key);
@@ -290,8 +318,10 @@ export default function PricesClient({
           nivel_key: rule.nivel_key,
           modalidad_key: rule.modalidad_key,
           plan: rule.plan,
+          module: "Longitudinal",
           tier,
           basePriceMxn: rule.basePriceMxn,
+          subjectPriceMxn: null,
           sourceOverrideId: null,
           source: rule.basePriceMxn === null ? "missing" : "derived",
         });
@@ -308,6 +338,7 @@ export default function PricesClient({
   const [editingRule, setEditingRule] = useState<PriceRow | null>(null);
   const [editingOverride, setEditingOverride] = useState<MontoOverride | null>(null);
   const [newPrice, setNewPrice] = useState("");
+  const [subjectPrice, setSubjectPrice] = useState("");
   const [newPriceScopePreset, setNewPriceScopePreset] =
     useState<AdminPriceScopePreset>("program_campus_tier");
 
@@ -361,6 +392,7 @@ export default function PricesClient({
     setEditingOverride(override);
     setNewPriceScopePreset(priceScopePresetForRow(rule));
     setNewPrice(rule.basePriceMxn === null ? "" : String(rule.basePriceMxn));
+    setSubjectPrice(rule.subjectPriceMxn === null ? "" : String(rule.subjectPriceMxn));
     setOpen(true);
   }
 
@@ -375,13 +407,16 @@ export default function PricesClient({
       nivel_key: "",
       modalidad_key: "presencial",
       plan: "",
+      module: "Longitudinal",
       tier: null,
       basePriceMxn: null,
+      subjectPriceMxn: null,
       sourceOverrideId: null,
       source: "canonical",
     });
     setEditingOverride(null);
     setNewPrice("");
+    setSubjectPrice("");
     setOpen(true);
   }
 
@@ -576,14 +611,14 @@ export default function PricesClient({
           <div>
             <div className="font-semibold text-slate-100">Orden canónico visible</div>
             <div className="mt-1 font-mono text-[11px]">
-              Línea de negocio | Alcance | Region | Plantel | Programa | Tier | Precio lista | Modalidad | Plan
+              Línea de negocio | Alcance | Region | Plantel | Programa | Tier | Precio lista | Precio por materia | Modalidad | Plan | Módulo
             </div>
           </div>
           <div className="grid gap-1">
             <div>
               <div className="font-semibold text-slate-100">Encabezados CSV aceptados</div>
               <div className="mt-1 font-mono text-[11px]">
-                linea, alcance, region, plantel, programa, tier, precio, modalidad, plan
+                linea, alcance, region, plantel, programa, tier, precio, precio_por_materia, modalidad, plan, modulo
               </div>
             </div>
             <div className="text-[11px] leading-5 text-slate-400">
@@ -633,7 +668,7 @@ export default function PricesClient({
             ) : null}
             {importPreviewRows.length ? (
               <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar max-h-[360px]">
-                <table className="ui-table ui-table--compact w-full min-w-[1040px]">
+                <table className="ui-table ui-table--compact w-full min-w-[1160px]">
                   <thead>
                     <tr>
                       <th className="ui-cell-nowrap text-left">Fila</th>
@@ -644,14 +679,16 @@ export default function PricesClient({
                       <th className="ui-cell-nowrap text-left">Plantel</th>
                       <th className="ui-cell-nowrap text-left">Programa</th>
                       <th className="ui-cell-nowrap text-left">Tier</th>
+                      <th className="ui-cell-nowrap text-left">Módulo</th>
                       <th className="ui-cell-nowrap text-right">Precio lista</th>
+                      <th className="ui-cell-nowrap text-right">Precio materia</th>
                       <th className="text-left">Detalle</th>
                       <th className="ui-cell-nowrap text-left">Activo</th>
                     </tr>
                   </thead>
                   <tbody>
                     {importPreviewRows.slice(0, 40).map((row) => (
-                      <tr key={`${row.rowNumber}-${row.plantel ?? "general"}-${row.plan}`}>
+                      <tr key={`${row.rowNumber}-${row.plantel ?? "general"}-${row.plan}-${row.module}`}>
                         <td className="ui-cell-nowrap text-slate-200">{row.rowNumber}</td>
                         <td className="ui-cell-nowrap text-slate-200">{row.action}</td>
                         <td className="ui-cell-nowrap text-slate-200">
@@ -670,8 +707,14 @@ export default function PricesClient({
                         <td className="ui-cell-nowrap text-slate-200">
                           {formatAdminPricingTier(row)}
                         </td>
+                        <td className="ui-cell-nowrap text-slate-200">
+                          {row.module}
+                        </td>
                         <td className="ui-cell-nowrap text-right font-mono text-slate-100">
                           {fmt(row.newPrice)}
+                        </td>
+                        <td className="ui-cell-nowrap text-right font-mono text-slate-100">
+                          {fmt(row.subjectPrice)}
                         </td>
                         <td className="text-slate-200">
                           {row.modalidadKey} · plan {row.plan}
@@ -718,16 +761,18 @@ export default function PricesClient({
       <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full">
         <table className="ui-table !w-full !min-w-full table-fixed">
           <colgroup>
-            <col className="w-[11%]" />
-            <col className="w-[8%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
-            <col className="w-[9%]" />
-            <col className="w-[7%]" />
             <col className="w-[10%]" />
             <col className="w-[8%]" />
-            <col className="w-[6%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
             <col className="w-[9%]" />
+            <col className="w-[7%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[6%]" />
+            <col className="w-[7%]" />
+            <col className="w-[8%]" />
             <col className="w-[10%]" />
           </colgroup>
           <thead>
@@ -738,7 +783,9 @@ export default function PricesClient({
               <th className="ui-cell-nowrap text-left">Programa</th>
               <th className="ui-cell-nowrap text-left">Alcance</th>
               <th className="ui-cell-nowrap text-left">Tier</th>
+              <th className="ui-cell-nowrap text-left">Módulo</th>
               <th className="ui-cell-nowrap text-right">Precio lista</th>
+              <th className="ui-cell-nowrap text-right">Precio materia</th>
               <th className="ui-cell-nowrap text-left">Modalidad</th>
               <th className="ui-cell-nowrap text-left">Plan</th>
               <th className="ui-cell-nowrap text-left">Fuente</th>
@@ -766,8 +813,12 @@ export default function PricesClient({
                     <td className="ui-cell-nowrap text-xs text-slate-300">
                       {formatAdminPricingTier(rule)}
                     </td>
+                    <td className="ui-cell-nowrap text-slate-200">{rule.module}</td>
                     <td className="ui-cell-nowrap text-right font-mono text-slate-100">
                       {fmt(rule.basePriceMxn)}
+                    </td>
+                    <td className="ui-cell-nowrap text-right font-mono text-slate-100">
+                      {fmt(rule.subjectPriceMxn)}
                     </td>
                     <td className="ui-cell-nowrap text-slate-200">{rule.modalidad_key}</td>
                     <td className="ui-cell-nowrap text-xs text-slate-300">
@@ -816,7 +867,7 @@ export default function PricesClient({
               })
             ) : (
               <tr>
-                <td className="text-slate-400" colSpan={10}>
+                <td className="text-slate-400" colSpan={13}>
                   No hay precios con los filtros seleccionados.
                 </td>
               </tr>
@@ -950,6 +1001,21 @@ export default function PricesClient({
                       required
                     />
                   </label>
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Módulo
+                    <select
+                      name="module"
+                      defaultValue={editingRule.module}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      required
+                    >
+                      {ACADEMIC_MODULES.map((module) => (
+                        <option key={module} value={module}>
+                          {module}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   {showProgramInput ? (
                     <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                       Programa
@@ -1011,6 +1077,7 @@ export default function PricesClient({
                     value={editingRule?.modalidad_key ?? ""}
                   />
                   <input type="hidden" name="plan" value={editingRule?.plan ?? ""} />
+                  <input type="hidden" name="module" value={editingRule?.module ?? "Longitudinal"} />
                   <input type="hidden" name="tier" value={editingRule?.tier ?? ""} />
                 </>
               )}
@@ -1028,6 +1095,22 @@ export default function PricesClient({
                   placeholder="0.00"
                   required
                 />
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                Precio por materia (MXN, opcional)
+                <input
+                  name="subjectPrice"
+                  type="number"
+                  step="0.01"
+                  value={subjectPrice}
+                  onChange={(e) => setSubjectPrice(e.target.value)}
+                  className="ui-control"
+                  placeholder="Sin precio por materia"
+                />
+                <span className="text-xs text-slate-400">
+                  Se usa en Regresos cuando se indique el número de materias inscritas.
+                </span>
               </label>
 
               <div className="sticky bottom-0 z-10 -mx-1 bg-slate-950/95 px-1 pt-3">

@@ -1,4 +1,5 @@
 import { normalizeHeader } from "@/lib/importers/csv-utils";
+import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 
 type PriceListCell = string | number | boolean | Date | null | undefined;
 
@@ -19,8 +20,10 @@ export type NormalizedPriceListRow = {
   nivelKey: string;
   modalidadKey: string;
   plan: string;
+  module: AcademicModule;
   tier: string | null;
   newPrice: number;
+  subjectPrice: number | null;
   isActive: boolean;
   notes: string | null;
 };
@@ -176,6 +179,15 @@ export function normalizePriceListWorkbookRows(
         "modalidadkey",
       ]);
       const idxPlan = findColumn(headers, ["plan"]);
+      const idxModule = findColumn(headers, ["modulo", "módulo", "module"]);
+      const idxSubjectPrice = findColumn(headers, [
+        "preciopormateria",
+        "precio_por_materia",
+        "precio por materia",
+        "subjectprice",
+        "subject_price_mxn",
+        "pricepersubject",
+      ]);
       const priceColumns = headerRow
         .map((header, index) => ({ header: String(header ?? ""), index }))
         .filter(({ header }) => isPriceHeader(header));
@@ -196,6 +208,8 @@ export function normalizePriceListWorkbookRows(
         const modalidadKeys = defaults?.modalidadKeys ?? [
           normalizeModalidad(readCell(row, idxModalidad)),
         ];
+        const academicModule = academicModuleOrDefault(readCell(row, idxModule));
+        const subjectPrice = parseMoney(row[idxSubjectPrice]);
 
         for (const priceColumn of priceColumns) {
           const newPrice = parseMoney(row[priceColumn.index]);
@@ -214,8 +228,10 @@ export function normalizePriceListWorkbookRows(
               nivelKey,
               modalidadKey,
               plan: String(plan),
+              module: academicModule,
               tier,
               newPrice,
+              subjectPrice,
               isActive: true,
               notes: sheet.name,
             });
@@ -238,8 +254,10 @@ export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
     "programa",
     "tier",
     "new_price",
+    "subject_price_mxn",
     "modalidad_key",
     "plan",
+    "module",
     "is_active",
     "notes",
   ];
@@ -254,8 +272,10 @@ export function priceListRowsToCsv(rows: NormalizedPriceListRow[]) {
         row.programaKey ?? "",
         row.tier ?? "",
         row.newPrice,
+        row.subjectPrice ?? "",
         row.modalidadKey,
         row.plan,
+        row.module,
         row.isActive ? "true" : "false",
         row.notes ?? "",
       ]

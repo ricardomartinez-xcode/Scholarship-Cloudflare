@@ -12,7 +12,6 @@ import {
   normalizeAdminPricingRegion,
 } from "@/lib/admin-pricing-display";
 import {
-  seedMateriasImportAction,
   seedUnifiedFeesCsvAction,
   upsertCampusFeeAction,
   upsertFeeAction,
@@ -49,7 +48,7 @@ type Campus = {
 };
 
 type Tab = "fees" | "availability" | "materias" | "seed";
-type SeedMode = "unified" | "materias";
+type SeedMode = "unified";
 type SeedFormat = "csv";
 type FeedbackState = { tone: "success" | "error"; message: string } | null;
 
@@ -110,7 +109,7 @@ const SECTION_LABELS: Record<FeeSection, string> = {
   DIVERSOS: "Diversos",
 };
 
-const TAB_ORDER = ["fees", "materias", "seed"] as const;
+const TAB_ORDER = ["fees", "seed"] as const;
 
 const TAB_LABELS: Record<Exclude<Tab, "availability">, string> = {
   fees: "Trámites + plantel",
@@ -120,7 +119,6 @@ const TAB_LABELS: Record<Exclude<Tab, "availability">, string> = {
 
 const SEED_MODE_LABELS: Record<SeedMode, string> = {
   unified: "Trámites + plantel",
-  materias: "Precio por materia",
 };
 
 const MODALITY_OPTIONS = ["presencial", "mixta", "online"] as const;
@@ -133,25 +131,15 @@ function formatMoney(value: number | null | undefined) {
 }
 
 function getSeedGuide(mode: SeedMode) {
-  if (mode === "unified") {
-    return {
-      title: "Importa Trámites + Plantel en un solo CSV.",
-      detail:
-        "Una fila crea/actualiza el costo base y su disponibilidad/costo por plantel. Usa los mismos campos visibles en la tabla Trámites + plantel.",
-      sample:
-        "codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel\nEX001,Examen ordinario,EXAMENES,150,Chihuahua,150,true\nTR001,Titulación,TRAMITES,2500,Online,,true",
-      placeholder:
-        "codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel",
-    };
-  }
-
+  void mode;
   return {
-    title: "Importa un CSV para crear o actualizar Precio por materia.",
+    title: "Importa Trámites + Plantel en un solo CSV.",
     detail:
-      "El orden esperado es: Region | Plantel | Tier | Modalidad | # Materias | Costo MXN. Region y Tier son opcionales; Online se trata como excepcion de tier.",
+      "Una fila crea/actualiza el costo base y su disponibilidad/costo por plantel. Usa los mismos campos visibles en la tabla Trámites + plantel.",
     sample:
-      "Region|Plantel|Tier|Modalidad|# Materias|Costo MXN\nGeneral|AGS|T1|presencial|4|2400\nGeneral|ONLINE|Online|online|6|3200",
-    placeholder: "Region|Plantel|Tier|Modalidad|# Materias|Costo MXN",
+      "codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel\nEX001,Examen ordinario,EXAMENES,150,Chihuahua,150,true\nTR001,Titulación,TRAMITES,2500,Online,,true",
+    placeholder:
+      "codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel",
   };
 }
 
@@ -276,10 +264,8 @@ function buildSeedPreview(params: {
     row.some((cell) => String(cell ?? "").trim()),
   );
 
-  const required =
-    params.mode === "unified"
-      ? ["codigo", "concepto", "seccion", "costobase", "plantel"]
-      : ["plantel", "modalidad", "materias", "costomxn"];
+  void params.mode;
+  const required = ["codigo", "concepto", "seccion", "costobase", "plantel"];
   const normalizedHeader = firstRow.map(normalizePreviewHeader);
   const missing = hasHeader
     ? required.filter((header) => !normalizedHeader.includes(header))
@@ -339,8 +325,8 @@ export default function FeesClient({
     const params = new URLSearchParams(window.location.search);
     if (params.get("tab") === "seed") setTab("seed");
     const nextSeedMode = params.get("seedMode");
-    if (nextSeedMode === "unified" || nextSeedMode === "materias") {
-      setSeedMode(nextSeedMode);
+    if (nextSeedMode === "unified") {
+      setSeedMode("unified");
     }
   }, []);
 
@@ -454,11 +440,7 @@ export default function FeesClient({
     formData.set("payload", seedPayload);
 
     startSeedTransition(async () => {
-      const result = (
-        seedMode === "unified"
-          ? await seedUnifiedFeesCsvAction(formData)
-          : await seedMateriasImportAction(formData)
-      ) as SeedActionResult;
+      const result = (await seedUnifiedFeesCsvAction(formData)) as SeedActionResult;
 
       if (result.ok) {
         setSeedResult({
@@ -609,12 +591,11 @@ export default function FeesClient({
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3">
         {[
           { label: "Conceptos", value: feeStats.total, detail: `${feeStats.active} activos` },
           { label: "Secciones", value: feeStats.sections, detail: "Exámenes, trámites y diversos" },
           { label: "Planteles", value: campuses.length, detail: `${activeCampusFees} activaciones` },
-          { label: "Materia", value: materias.length, detail: "Reglas de regreso" },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl border border-[#D7E4ED] bg-white p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-[#657D8F]">
@@ -1531,7 +1512,7 @@ export default function FeesClient({
           <div className="grid gap-3">
             <div className="text-sm font-semibold text-[#123348]">Qué quieres modificar</div>
             <div className="flex flex-wrap gap-2">
-              {(["unified", "materias"] as SeedMode[]).map((mode) => (
+              {(["unified"] as SeedMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
