@@ -108,6 +108,24 @@
   async function findReadyInput(kind, pack) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await openAttachmentMenu(pack);
+
+      if (kind === "media") {
+        const existingMediaInput = await textUtils.waitFor(
+          () => selectors.findAttachmentInput(kind, pack),
+          800,
+          100,
+        );
+        if (existingMediaInput) {
+          log("Input de adjunto listo.", {
+            kind,
+            accept: String(existingMediaInput.accept || ""),
+            attempt: attempt + 1,
+            source: "opened-menu",
+          });
+          return existingMediaInput;
+        }
+      }
+
       await chooseAttachmentOption(kind);
 
       const input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 5000, 200);
