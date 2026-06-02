@@ -18,8 +18,13 @@ import {
 } from "@/components/ui/chat-workspace";
 import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
 import { useRealtimePresence } from "@/hooks/useRealtimePresence";
+import {
+  dispatchInboxMessageCreated,
+  INBOX_MESSAGE_CREATED_EVENT,
+  parseInboxMessageCreatedEvent,
+} from "@/lib/inbox-client-events";
 import { realtimeTopics } from "@/lib/realtime-topics";
-import { subscribeToPrivateBroadcast } from "@/lib/supabase/client";
+import { subscribeToBroadcast } from "@/lib/supabase/client";
 
 type Viewer = {
   userId: string;
@@ -217,6 +222,7 @@ export default function InboxWorkspace({
       topic: selectedThreadId
         ? realtimeTopics.inboxThreadMessages(selectedThreadId)
         : null,
+      privateChannel: false,
       refreshIntervalMs: 7000,
     });
 
@@ -230,6 +236,7 @@ export default function InboxWorkspace({
           displayName: viewer.displayName,
         }
       : null,
+    privateChannel: false,
   });
 
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -373,6 +380,7 @@ export default function InboxWorkspace({
         },
       );
       handledRealtimeMessageIdsRef.current.add(payload.message.id);
+      dispatchInboxMessageCreated(payload.message);
       setMessages((current) => {
         const withoutOptimistic = current.filter(
           (message) => message.id !== optimisticMessage.id,
@@ -456,7 +464,7 @@ export default function InboxWorkspace({
     if (!threads.length) return;
 
     const unsubscribers = threads.map((thread) =>
-      subscribeToPrivateBroadcast<MessageSummary>({
+      subscribeToBroadcast<MessageSummary>({
         topic: realtimeTopics.inboxThreadMessages(thread.id),
         event: "new_message",
         onMessage: (message) => {
@@ -503,6 +511,29 @@ export default function InboxWorkspace({
       unsubscribers.forEach((unsubscribe) => unsubscribe?.());
     };
   }, [refreshThreads, threads]);
+
+  useEffect(() => {
+    function handleInboxMessageCreated(event: Event) {
+      const message = parseInboxMessageCreatedEvent(event);
+      if (!message) return;
+      if (handledRealtimeMessageIdsRef.current.has(message.id)) return;
+
+      handledRealtimeMessageIdsRef.current.add(message.id);
+      if (message.threadId === selectedThreadIdRef.current) {
+        setMessages((current) =>
+          current.some((entry) => entry.id === message.id)
+            ? current
+            : [...current, message],
+        );
+      }
+      updateThreadPreview(message.threadId, message.content, message.createdAt);
+    }
+
+    window.addEventListener(INBOX_MESSAGE_CREATED_EVENT, handleInboxMessageCreated);
+    return () => {
+      window.removeEventListener(INBOX_MESSAGE_CREATED_EVENT, handleInboxMessageCreated);
+    };
+  }, [setMessages, updateThreadPreview]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });

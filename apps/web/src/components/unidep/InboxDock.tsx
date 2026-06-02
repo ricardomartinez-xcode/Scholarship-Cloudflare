@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  dispatchInboxMessageCreated,
+  INBOX_MESSAGE_CREATED_EVENT,
+  parseInboxMessageCreatedEvent,
+} from "@/lib/inbox-client-events";
 import { realtimeTopics } from "@/lib/realtime-topics";
-import { subscribeToPrivateBroadcast } from "@/lib/supabase/client";
+import { subscribeToBroadcast } from "@/lib/supabase/client";
 
 type Identity = {
   userId: string;
@@ -215,7 +220,7 @@ export default function InboxDock() {
     if (!recentThreads.length) return;
 
     const unsubscribers = recentThreads.map((thread) =>
-      subscribeToPrivateBroadcast<MessageSummary>({
+      subscribeToBroadcast<MessageSummary>({
         topic: realtimeTopics.inboxThreadMessages(thread.id),
         event: "new_message",
         onMessage: (message) => {
@@ -235,6 +240,22 @@ export default function InboxDock() {
       unsubscribers.forEach((unsubscribe) => unsubscribe?.());
     };
   }, [recentThreads, updateThreadPreview]);
+
+  useEffect(() => {
+    function handleInboxMessageCreated(event: Event) {
+      const message = parseInboxMessageCreatedEvent(event);
+      if (!message) return;
+      if (handledMessageIdsRef.current.has(message.id)) return;
+
+      handledMessageIdsRef.current.add(message.id);
+      updateThreadPreview(message);
+    }
+
+    window.addEventListener(INBOX_MESSAGE_CREATED_EVENT, handleInboxMessageCreated);
+    return () => {
+      window.removeEventListener(INBOX_MESSAGE_CREATED_EVENT, handleInboxMessageCreated);
+    };
+  }, [updateThreadPreview]);
 
   async function sendQuickReply() {
     const content = replyText.trim();
@@ -269,6 +290,7 @@ export default function InboxDock() {
       if (payload.message) {
         handledMessageIdsRef.current.add(payload.message.id);
         updateThreadPreview(payload.message);
+        dispatchInboxMessageCreated(payload.message);
       }
       setReplyStatus("sent");
       window.setTimeout(() => setReplyStatus("idle"), 1800);
@@ -393,6 +415,7 @@ export default function InboxDock() {
                           className={`ui-inbox-dock__thread ui-inbox-dock__thread-button${
                             selected ? " ui-inbox-dock__thread--active" : ""
                           }`}
+                          aria-pressed={selected}
                           onClick={() => {
                             setSelectedThreadId(thread.id);
                             setReplyStatus("idle");

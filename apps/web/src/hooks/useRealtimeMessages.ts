@@ -2,17 +2,22 @@
 
 import { useEffect, useState } from "react";
 
-import { subscribeToPrivateBroadcast } from "@/lib/supabase/client";
+import {
+  subscribeToBroadcast,
+  subscribeToPrivateBroadcast,
+} from "@/lib/supabase/client";
 
 type UseRealtimeMessagesOptions = {
   fetchUrl: string | null;
   topic: string | null;
+  privateChannel?: boolean;
   refreshIntervalMs?: number;
 };
 
 export function useRealtimeMessages<TMessage>({
   fetchUrl,
   topic,
+  privateChannel = true,
   refreshIntervalMs,
 }: UseRealtimeMessagesOptions) {
   const [messages, setMessages] = useState<TMessage[]>([]);
@@ -88,7 +93,9 @@ export function useRealtimeMessages<TMessage>({
       return;
     }
 
-    const unsubscribe = subscribeToPrivateBroadcast<TMessage>({
+    const subscribe =
+      privateChannel === false ? subscribeToBroadcast : subscribeToPrivateBroadcast;
+    const unsubscribe = subscribe<TMessage>({
       topic,
       event: "new_message",
       onMessage: (message) => {
@@ -112,7 +119,7 @@ export function useRealtimeMessages<TMessage>({
     return () => {
       unsubscribe?.();
     };
-  }, [topic]);
+  }, [privateChannel, topic]);
 
   return {
     messages,

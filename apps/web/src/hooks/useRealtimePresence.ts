@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  subscribeToPresence,
   subscribeToPrivatePresence,
   type PresenceUserState,
 } from "@/lib/supabase/client";
@@ -10,11 +11,13 @@ import {
 type UseRealtimePresenceOptions = {
   topic: string | null;
   currentUser: PresenceUserState | null;
+  privateChannel?: boolean;
 };
 
 export function useRealtimePresence({
   topic,
   currentUser,
+  privateChannel = true,
 }: UseRealtimePresenceOptions) {
   const [onlineUsers, setOnlineUsers] = useState<PresenceUserState[]>([]);
 
@@ -23,7 +26,9 @@ export function useRealtimePresence({
       return;
     }
 
-    const unsubscribe = subscribeToPrivatePresence({
+    const subscribe =
+      privateChannel === false ? subscribeToPresence : subscribeToPrivatePresence;
+    const unsubscribe = subscribe({
       topic,
       currentUser,
       onSync: (users) => {
@@ -34,7 +39,7 @@ export function useRealtimePresence({
     return () => {
       unsubscribe?.();
     };
-  }, [currentUser, topic]);
+  }, [currentUser, privateChannel, topic]);
 
   return {
     onlineUsers: topic && currentUser ? onlineUsers : [],

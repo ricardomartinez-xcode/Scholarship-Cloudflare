@@ -19,12 +19,23 @@ describe("workflow regressions", () => {
 
   it("keeps inbox usable when realtime transport is unavailable and shows reply context", () => {
     const hookSource = read("apps/web/src/hooks/useRealtimeMessages.ts");
+    const presenceHookSource = read("apps/web/src/hooks/useRealtimePresence.ts");
     const inboxSource = read("apps/web/src/components/unidep/InboxWorkspace.tsx");
+    const dockSource = read("apps/web/src/components/unidep/InboxDock.tsx");
+    const serverRealtimeSource = read("apps/web/src/lib/supabase/server-realtime.ts");
 
     expect(hookSource).toContain("refreshIntervalMs");
     expect(hookSource).toContain("window.setInterval");
+    expect(presenceHookSource).toContain("subscribeToPresence");
     expect(inboxSource).toContain("refreshIntervalMs: 7000");
+    expect(inboxSource).toContain("privateChannel: false");
     expect(inboxSource).toContain("Respondiendo en");
+    expect(dockSource).toContain("dispatchInboxMessageCreated");
+    expect(dockSource).toContain("aria-pressed={selected}");
+    expect(serverRealtimeSource).toContain("broadcastTrainingMessage");
+    expect(serverRealtimeSource).toContain("privateChannel: true");
+    expect(serverRealtimeSource).toContain("broadcastInboxMessage");
+    expect(serverRealtimeSource).toContain("privateChannel: false");
   });
 
   it("keeps desktop density and drawer widths compact at 100 percent browser zoom", () => {

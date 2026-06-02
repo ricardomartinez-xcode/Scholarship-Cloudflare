@@ -51,6 +51,23 @@ function serializeInboxIdentity(input: {
   };
 }
 
+async function listInboxEligibleUsersForUser(userId: string) {
+  const users = await prisma.user.findMany({
+    where: {
+      id: { not: userId },
+      isActive: true,
+    },
+    orderBy: [{ displayName: "asc" }, { email: "asc" }],
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+    },
+  });
+
+  return users.map((user) => serializeInboxIdentity(user));
+}
+
 export async function listInboxThreadsForUser(userId: string) {
   const threads = await prisma.inboxThread.findMany({
     where: {
@@ -109,41 +126,7 @@ export async function listInboxThreadsForUser(userId: string) {
     },
   });
 
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
-    orderBy: { organization: { displayName: "asc" } },
-    select: {
-      organizationId: true,
-      organization: {
-        select: {
-          displayName: true,
-          members: {
-            orderBy: { user: { email: "asc" } },
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  displayName: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const eligibleUserMap = new Map<string, InboxParticipantIdentity>();
-  for (const membership of memberships) {
-    for (const member of membership.organization.members) {
-      if (member.user.id === userId) {
-        continue;
-      }
-
-      eligibleUserMap.set(member.user.id, serializeInboxIdentity(member.user));
-    }
-  }
+  const eligibleUsers = await listInboxEligibleUsersForUser(userId);
 
   return {
     threads: threads.map((thread) => ({
@@ -164,7 +147,7 @@ export async function listInboxThreadsForUser(userId: string) {
         serializeInboxIdentity(participant.user),
       ),
     })),
-    eligibleUsers: Array.from(eligibleUserMap.values()).sort((left, right) =>
+    eligibleUsers: eligibleUsers.sort((left, right) =>
       left.displayName.localeCompare(right.displayName),
     ),
   };
@@ -205,6 +188,22 @@ export async function createInboxThreadForUser(input: {
   recipientUserId: string;
   subject?: string | null;
 }) {
+  if (input.actorUserId === input.recipientUserId) {
+    throw new Error("Selecciona un destinatario distinto.");
+  }
+
+  const recipient = await prisma.user.findFirst({
+    where: {
+      id: input.recipientUserId,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (!recipient) {
+    throw new Error("El usuario seleccionado no existe o está inactivo.");
+  }
+
   const sharedOrganizations = await prisma.organizationMember.findMany({
     where: {
       userId: {
@@ -227,13 +226,12 @@ export async function createInboxThreadForUser(input: {
   const sharedOrganizationId =
     Array.from(organizationCounts.entries()).find(([, count]) => count > 1)?.[0] ?? null;
 
-  if (!sharedOrganizationId) {
-    throw new Error("Los participantes deben compartir al menos una organización.");
-  }
-
   const candidateThreads = await prisma.inboxThread.findMany({
     where: {
-      organizationId: sharedOrganizationId,
+      OR: [
+        ...(sharedOrganizationId ? [{ organizationId: sharedOrganizationId }] : []),
+        { organizationId: null },
+      ],
       participants: {
         some: {
           userId: {

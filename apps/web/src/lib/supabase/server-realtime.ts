@@ -66,6 +66,6 @@ export async function broadcastInboxMessage(
     topic: realtimeTopics.inboxThreadMessages(threadId),
     event: "new_message",
     payload,
-    privateChannel: true,
+    privateChannel: false,
   });
 }

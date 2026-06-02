@@ -5430,8 +5430,15 @@ a.ui-button-danger:not(:disabled):hover {
 }
 
 .ui-inbox-dock__thread--active {
-  border-color: rgba(108, 181, 20, 0.48);
+  border-color: #6CB514;
   background: #F3FAEA;
+  box-shadow:
+    inset 3px 0 0 #6CB514,
+    0 0 0 2px rgba(108, 181, 20, 0.18);
+}
+
+.ui-inbox-dock__thread--active .ui-inbox-dock__thread-title {
+  color: #315C0B;
 }
 
 .ui-inbox-dock__avatar {
