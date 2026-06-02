@@ -13,7 +13,8 @@ export type FileAssetSlot =
   | "training_pdf"
   | "training_image"
   | "training_file"
-  | "format_document";
+  | "format_document"
+  | "cta_modal_image";
 
 export type FileAssetRecord = {
   id: string;

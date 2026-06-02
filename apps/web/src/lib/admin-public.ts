@@ -11,6 +11,7 @@ import {
   type SidebarDraftSnapshot,
 } from "@/lib/admin-config-snapshots";
 import { buildVisibilityRule } from "@/lib/admin-placement";
+import { extractCtaActionConfigFromRule } from "@/lib/cta-action-config";
 import { prisma } from "@/lib/prisma";
 import { evaluateVisibilityRule } from "@/services/targetingVisibilityService";
 import type { CtaLocation } from "@/config/adminCatalogs";
@@ -69,6 +70,7 @@ export async function getActivePublicCtas(
         url: cta.url,
         variant: cta.variant,
         placement: cta.location,
+        actionConfig: extractCtaActionConfigFromRule(cta.visibilityRule),
       }));
   }
 
@@ -111,6 +113,7 @@ export async function getActivePublicCtas(
         url: cta.url,
         variant: cta.variant,
         placement: cta.location,
+        actionConfig: extractCtaActionConfigFromRule(cta.visibilityRule),
       }));
   } catch {
     return [];

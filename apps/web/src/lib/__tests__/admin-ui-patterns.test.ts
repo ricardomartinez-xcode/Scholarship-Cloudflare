@@ -36,4 +36,15 @@ describe("admin UI patterns", () => {
     expect(source).toContain("Home");
     expect(source).toContain("End");
   });
+
+  it("mounts the shared Excel-style table enhancer in protected admin pages", () => {
+    const layout = read("apps/web/src/app/(admin)/admin/(protected)/layout.tsx");
+    const enhancer = read("apps/web/src/components/admin/AdminTableExcelEnhancer.tsx");
+
+    expect(layout).toContain("AdminTableExcelEnhancer");
+    expect(enhancer).toContain("Buscar en tabla");
+    expect(enhancer).toContain("Filtrar columna");
+    expect(enhancer).toContain("Columnas");
+    expect(enhancer).toContain("CSV");
+  });
 });

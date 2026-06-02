@@ -5,6 +5,7 @@ import {
   AdminAuditAction,
   AdminConfigModule,
   AdminPublicCtaKind,
+  Prisma,
   Role,
   type AdminPublicCtaLocation,
   type UserCapability,
@@ -14,6 +15,11 @@ import { revalidatePath } from "next/cache";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { buildVisibilityRule, getPlacementForCompatLocation } from "@/lib/admin-placement";
+import {
+  buildCtaActionConfig,
+  mergeCtaActionConfigIntoVisibilityRule,
+  parseCtaActionImageJson,
+} from "@/lib/cta-action-config";
 import { prisma } from "@/lib/prisma";
 import { isCtaLocation } from "@/config/adminCatalogs";
 import { isUserCapability } from "@/lib/user-capabilities";
@@ -147,6 +153,14 @@ export async function upsertPublicCtaAction(formData: FormData) {
       formData.get("excludeCapabilities"),
     );
     const excludeUserIds = parseStringArrayField(formData.get("excludeUserIds"));
+    const ctaActionConfigType = String(formData.get("actionConfigType") ?? "").trim();
+    const ctaActionConfig = buildCtaActionConfig({
+      type: ctaActionConfigType,
+      title: formData.get("actionTitle"),
+      message: formData.get("actionMessage"),
+      tableRaw: formData.get("actionTable"),
+      image: parseCtaActionImageJson(formData.get("actionImage")),
+    });
 
     if (!label) return { ok: false, error: "Label es requerido." };
 
@@ -175,8 +189,23 @@ export async function upsertPublicCtaAction(formData: FormData) {
           error: "URL inválida para kind=action. Usa /ruta, #anchor, https://, mailto: o tel:.",
         };
       }
+      if (ctaActionConfigType === "popup" && !ctaActionConfig) {
+        return {
+          ok: false,
+          error: "El popup necesita mensaje, imagen o tabla configurable.",
+        };
+      }
     }
 
+    const baseVisibilityRule = buildVisibilityRule({
+      organizationId,
+      newUserOnly: onlyNewUsers,
+      requiredCapability,
+      excludeOrganizationIds,
+      excludeRoles,
+      excludeCapabilities,
+      excludeUserIds,
+    });
     const data = {
       label,
       kind,
@@ -194,15 +223,10 @@ export async function upsertPublicCtaAction(formData: FormData) {
       organizationId,
       onlyNewUsers,
       requiredCapability,
-      visibilityRule: buildVisibilityRule({
-        organizationId,
-        newUserOnly: onlyNewUsers,
-        requiredCapability,
-        excludeOrganizationIds,
-        excludeRoles,
-        excludeCapabilities,
-        excludeUserIds,
-      }),
+      visibilityRule: mergeCtaActionConfigIntoVisibilityRule(
+        baseVisibilityRule,
+        kind === AdminPublicCtaKind.action ? ctaActionConfig : null,
+      ) as Prisma.InputJsonValue,
       updatedBy: admin.email,
     };
     const before = id ? await loadCtaAuditPayload(id) : null;

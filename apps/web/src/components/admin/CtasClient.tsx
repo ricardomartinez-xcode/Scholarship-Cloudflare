@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
+import Image from "next/image";
 import type { Role, UserCapability } from "@prisma/client";
 
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
@@ -8,6 +9,8 @@ import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
 import AppSelect from "@/components/ui/AppSelect";
 import CtaLocationPicker from "@/components/admin/CtaLocationPicker";
 import { CTA_LOCATION_META, CTA_LOCATIONS } from "@/config/adminCatalogs";
+import type { CtaActionConfig } from "@/lib/cta-action-config";
+import type { PublicFileAssetPayload } from "@/lib/file-assets";
 
 type CtaKind = "link" | "action";
 type CtaLocation = (typeof CTA_LOCATIONS)[number]["value"];
@@ -28,11 +31,46 @@ type Cta = {
   excludeRoles: Role[];
   excludeCapabilities: UserCapability[];
   excludeUserIds: string[];
+  actionConfig: CtaActionConfig | null;
 };
 
 type OrgOption = { id: string; displayName: string };
 type CapabilityOption = { key: string; label: string };
 type VisualCapabilityOption = { key: string; label: string; help: string };
+type ActionConfigType = "" | "popup";
+
+type FileUploadResponse =
+  | {
+      ok: true;
+      asset: {
+        id: string;
+        fileName: string;
+        mimeType: string;
+        sizeBytes: number | null;
+      };
+      uploadUrl: string;
+      uploadHeaders?: Record<string, string>;
+    }
+  | { ok: false; error: string };
+
+type FileCompleteResponse =
+  | {
+      ok: true;
+      asset: {
+        id: string;
+        fileName: string;
+        mimeType: string;
+        sizeBytes: number | null;
+      };
+    }
+  | { ok: false; error: string };
+
+function buildClientFileAssetLinks(fileId: string) {
+  return {
+    previewUrl: `/api/files/${fileId}/auth-view`,
+    downloadUrl: `/api/files/${fileId}/download`,
+  };
+}
 
 type ActionResult = { ok: boolean; error?: string };
 
@@ -91,6 +129,13 @@ export default function CtasClient({
   const [excludeRoles, setExcludeRoles] = useState<Role[]>([]);
   const [excludeCapabilities, setExcludeCapabilities] = useState<string[]>([]);
   const [excludeUserIdsRaw, setExcludeUserIdsRaw] = useState("");
+  const [actionConfigType, setActionConfigType] = useState<ActionConfigType>("");
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionTable, setActionTable] = useState("");
+  const [actionImage, setActionImage] = useState<PublicFileAssetPayload | null>(null);
+  const [actionImageError, setActionImageError] = useState("");
+  const [uploadingActionImage, setUploadingActionImage] = useState(false);
 
   const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
     upsertPublicCtaAction,
@@ -151,6 +196,66 @@ export default function CtasClient({
     onChange([...currentValues, nextValue]);
   };
 
+  const actionImagePayload = useMemo(
+    () => (actionImage ? JSON.stringify(actionImage) : ""),
+    [actionImage],
+  );
+
+  async function uploadActionImage(file: File | null) {
+    if (!file) return;
+    setActionImageError("");
+    if (!file.type.startsWith("image/")) {
+      setActionImageError("Selecciona una imagen PNG, JPG, WebP o GIF.");
+      return;
+    }
+
+    setUploadingActionImage(true);
+    try {
+      const presignResponse = await fetch("/api/files/presigned-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
+      });
+      const presign = (await presignResponse.json()) as FileUploadResponse;
+      if (!presign.ok) throw new Error(presign.error);
+
+      const putResponse = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: presign.uploadHeaders ?? { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putResponse.ok) throw new Error("No fue posible subir la imagen a R2.");
+
+      const completeResponse = await fetch(`/api/files/${presign.asset.id}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etag: putResponse.headers.get("ETag") }),
+      });
+      const completed = (await completeResponse.json()) as FileCompleteResponse;
+      if (!completed.ok) throw new Error(completed.error);
+
+      const links = buildClientFileAssetLinks(completed.asset.id);
+      setActionImage({
+        fileId: completed.asset.id,
+        fileName: completed.asset.fileName,
+        mimeType: completed.asset.mimeType,
+        sizeBytes: completed.asset.sizeBytes,
+        previewUrl: links.previewUrl,
+        downloadUrl: links.downloadUrl,
+      });
+    } catch (error) {
+      setActionImageError(
+        error instanceof Error ? error.message : "No fue posible subir la imagen.",
+      );
+    } finally {
+      setUploadingActionImage(false);
+    }
+  }
+
   useEffect(() => {
     if (!saveState?.ok) return;
     const timer = window.setTimeout(() => {
@@ -177,6 +282,12 @@ export default function CtasClient({
     setExcludeRoles([]);
     setExcludeCapabilities([]);
     setExcludeUserIdsRaw("");
+    setActionConfigType("");
+    setActionTitle("");
+    setActionMessage("");
+    setActionTable("");
+    setActionImage(null);
+    setActionImageError("");
     setOpen(true);
   }
 
@@ -197,6 +308,19 @@ export default function CtasClient({
     setExcludeRoles(c.excludeRoles ?? []);
     setExcludeCapabilities(c.excludeCapabilities ?? []);
     setExcludeUserIdsRaw((c.excludeUserIds ?? []).join(", "));
+    setActionConfigType(c.actionConfig?.type === "popup" ? "popup" : "");
+    setActionTitle(c.actionConfig?.title ?? "");
+    setActionMessage(c.actionConfig?.message ?? "");
+    setActionTable(
+      c.actionConfig?.table
+        ? [
+            c.actionConfig.table.columns.join(" | "),
+            ...c.actionConfig.table.rows.map((row) => row.join(" | ")),
+          ].join("\n")
+        : "",
+    );
+    setActionImage(c.actionConfig?.image ?? null);
+    setActionImageError("");
     setOpen(true);
   }
 
@@ -252,7 +376,11 @@ export default function CtasClient({
                     </div>
                   </td>
                   <td className="p-3 text-slate-100">
-                    {c.kind === "action" ? "Accion guiada" : "Link / ruta"}
+                    {c.kind === "action"
+                      ? c.actionConfig
+                        ? "Popup configurable"
+                        : "Accion guiada"
+                      : "Link / ruta"}
                   </td>
                   <td className="p-3 text-slate-200">
                     <div className="flex flex-wrap gap-2">
@@ -498,6 +626,122 @@ export default function CtasClient({
                   />
                 </div>
               </div>
+
+              {kind === "action" ? (
+                <div className="grid gap-3 rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] p-4 text-sm text-[#123348]">
+                  <div>
+                    <div className="font-semibold text-[#123348]">
+                      Acción configurable
+                    </div>
+                    <p className="mt-1 text-xs text-[#657D8F]">
+                      Puedes mantener la acción por URL o mostrar una pantalla emergente con contenido editable.
+                    </p>
+                  </div>
+
+                  <label className="grid gap-2">
+                    Tipo de acción
+                    <select
+                      value={actionConfigType}
+                      onChange={(event) =>
+                        setActionConfigType(event.target.value === "popup" ? "popup" : "")
+                      }
+                      className="ui-control"
+                    >
+                      <option value="">Acción por URL / evento existente</option>
+                      <option value="popup">Popup con información configurable</option>
+                    </select>
+                  </label>
+
+                  {actionConfigType === "popup" ? (
+                    <div className="grid gap-3">
+                      <label className="grid gap-2">
+                        Título del popup
+                        <input
+                          value={actionTitle}
+                          onChange={(event) => setActionTitle(event.target.value)}
+                          className="ui-control"
+                          placeholder="Ej. Detalles de la promoción"
+                        />
+                      </label>
+
+                      <label className="grid gap-2">
+                        Mensaje
+                        <textarea
+                          value={actionMessage}
+                          onChange={(event) => setActionMessage(event.target.value)}
+                          className="ui-control min-h-[110px]"
+                          placeholder="Texto breve para mostrar dentro del popup"
+                        />
+                      </label>
+
+                      <div className="grid gap-2">
+                        <div className="font-medium text-[#123348]">Imagen</div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="inline-flex cursor-pointer items-center rounded-full border border-[#B9CCD9] bg-white px-3 py-2 text-xs font-bold text-[#0F3C55]">
+                            {uploadingActionImage ? "Subiendo..." : "Subir imagen R2"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="sr-only"
+                              disabled={uploadingActionImage}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0] ?? null;
+                                void uploadActionImage(file);
+                                event.target.value = "";
+                              }}
+                            />
+                          </label>
+                          {actionImage ? (
+                            <button
+                              type="button"
+                              onClick={() => setActionImage(null)}
+                              className="rounded-full border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700"
+                            >
+                              Quitar imagen
+                            </button>
+                          ) : null}
+                        </div>
+                        {actionImage ? (
+                          <div className="flex items-center gap-3 rounded-xl border border-[#D7E4ED] bg-white p-2">
+                            <Image
+                              src={actionImage.previewUrl}
+                              alt=""
+                              width={64}
+                              height={64}
+                              unoptimized
+                              className="h-16 w-16 rounded-lg object-cover"
+                            />
+                            <div className="min-w-0 text-xs text-[#657D8F]">
+                              <div className="truncate font-semibold text-[#123348]">
+                                {actionImage.fileName}
+                              </div>
+                              <div>{actionImage.mimeType}</div>
+                            </div>
+                          </div>
+                        ) : null}
+                        {actionImageError ? (
+                          <div className="text-xs font-semibold text-red-700">
+                            {actionImageError}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <label className="grid gap-2">
+                        Tabla sencilla
+                        <textarea
+                          value={actionTable}
+                          onChange={(event) => setActionTable(event.target.value)}
+                          className="ui-control min-h-[120px] font-mono text-xs"
+                          placeholder={"Columna 1 | Columna 2\nDato 1 | Dato 2"}
+                        />
+                        <span className="text-xs text-[#657D8F]">
+                          Primera línea: encabezados. Líneas siguientes: filas. Usa |, tab o coma como separador.
+                        </span>
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               </div>
 
               <div className="ui-admin-list-card">
@@ -677,6 +921,15 @@ export default function CtasClient({
 
               <input type="hidden" name="kind" value={kind} />
               <input type="hidden" name="isActive" value={isActive} />
+              <input
+                type="hidden"
+                name="actionConfigType"
+                value={kind === "action" ? actionConfigType : ""}
+              />
+              <input type="hidden" name="actionTitle" value={actionTitle} />
+              <input type="hidden" name="actionMessage" value={actionMessage} />
+              <input type="hidden" name="actionTable" value={actionTable} />
+              <input type="hidden" name="actionImage" value={actionImagePayload} />
               <input type="hidden" name="organizationId" value={organizationId} />
               <input type="hidden" name="onlyNewUsers" value={String(onlyNewUsers)} />
               <input type="hidden" name="requiredCapability" value={requiredCapability} />

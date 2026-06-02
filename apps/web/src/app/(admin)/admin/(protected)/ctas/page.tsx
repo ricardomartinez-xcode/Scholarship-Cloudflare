@@ -6,6 +6,7 @@ import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { canPublishConfigWithAdmin } from "@/lib/admin-publish-auth";
 import { getConfigPublicationState } from "@/lib/admin-config-snapshots";
 import { resolveVisibilityRule } from "@/lib/admin-placement";
+import { extractCtaActionConfigFromRule } from "@/lib/cta-action-config";
 import { prisma } from "@/lib/prisma";
 import CtasClient from "@/components/admin/CtasClient";
 import { ALL_USER_CAPABILITIES, USER_CAPABILITY_META } from "@/lib/user-capabilities";
@@ -78,6 +79,7 @@ export default async function CtasPage() {
             excludeRoles: visibility.excludeRoles ?? [],
             excludeCapabilities: visibility.excludeCapabilities ?? [],
             excludeUserIds: visibility.excludeUserIds ?? [],
+            actionConfig: extractCtaActionConfigFromRule(cta.visibilityRule),
           };
         })}
         organizations={organizations}

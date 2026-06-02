@@ -16,7 +16,7 @@ export default function AdminDataTable({
   maxHeight?: string;
 }) {
   return (
-    <section className={styles.shell}>
+    <section className={styles.shell} data-admin-excel-scope="true">
       {title || typeof count === "number" || description ? (
         <div className={styles.header}>
           <div>

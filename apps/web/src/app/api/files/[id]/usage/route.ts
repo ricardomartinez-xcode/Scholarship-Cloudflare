@@ -20,7 +20,10 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireAdminApiCapability("files-assign-usage", AdminCapability.manage_offers);
+  const auth = await requireAdminApiCapability("files-assign-usage", [
+    AdminCapability.manage_offers,
+    AdminCapability.manage_ctas,
+  ]);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;

@@ -5755,6 +5755,131 @@ html body .ui-admin-table-shell tbody tr {
   background: #ffffff !important;
 }
 
+html body .ui-admin-excel-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--ui-border);
+  background: #f7fbfd;
+  padding: 0.65rem 0.75rem;
+  color: var(--ui-text-primary);
+}
+
+html body .ui-admin-excel-search,
+html body .ui-admin-excel-filter {
+  min-height: 34px;
+  border: 1px solid #b9ccd9;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #102838;
+  font-size: 0.78rem;
+  outline: none;
+}
+
+html body .ui-admin-excel-search {
+  min-width: min(280px, 100%);
+  padding: 0.42rem 0.65rem;
+}
+
+html body .ui-admin-excel-filter {
+  width: 100%;
+  min-width: 116px;
+  padding: 0.35rem 0.5rem;
+}
+
+html body .ui-admin-excel-search::placeholder,
+html body .ui-admin-excel-filter::placeholder {
+  color: #61798b;
+}
+
+html body .ui-admin-excel-search:focus,
+html body .ui-admin-excel-filter:focus {
+  border-color: var(--ui-institutional-blue);
+  box-shadow: 0 0 0 3px rgb(15 76 107 / 0.14);
+}
+
+html body .ui-admin-excel-button,
+html body .ui-admin-excel-columns summary {
+  min-height: 34px;
+  cursor: pointer;
+  border: 1px solid #b9ccd9;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f3c55;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+html body .ui-admin-excel-columns {
+  position: relative;
+}
+
+html body .ui-admin-excel-column-list {
+  position: absolute;
+  z-index: 30;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  display: grid;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(320px, 86vw);
+  max-height: 320px;
+  overflow: auto;
+  gap: 0.25rem;
+  border: 1px solid #b9ccd9;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0.5rem;
+  box-shadow: 0 18px 45px rgb(15 41 61 / 0.18);
+}
+
+html body .ui-admin-excel-column-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 8px;
+  color: #163247;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  padding: 0.35rem 0.45rem;
+}
+
+html body .ui-admin-excel-column-option:hover {
+  background: #eef6fb;
+}
+
+html body .ui-admin-excel-counter {
+  color: var(--ui-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+html body .ui-admin-excel-filter-row th {
+  background: #f7fbfd !important;
+  padding: 0.45rem 0.55rem !important;
+}
+
+html body .ui-admin-excel-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+html body .ui-admin-excel-sortable::after {
+  content: " ↕";
+  color: #647d8e;
+  font-size: 0.78em;
+}
+
+html body .ui-admin-excel-sort-active::after {
+  color: var(--ui-institutional-blue-deep);
+}
+
+html body .ui-admin-excel-hidden-cell {
+  display: none !important;
+}
+
 html body .ui-admin-icon-action {
   display: inline-flex;
   align-items: center;

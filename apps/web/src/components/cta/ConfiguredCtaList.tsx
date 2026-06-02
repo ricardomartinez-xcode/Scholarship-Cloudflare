@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import type { CtaActionConfig } from "@/lib/cta-action-config";
 
 type ConfiguredCta = {
   id: string;
@@ -10,6 +14,7 @@ type ConfiguredCta = {
   url: string | null;
   variant: string | null;
   placement?: string | null;
+  actionConfig?: CtaActionConfig | null;
 };
 
 type CtaAppearance = "card" | "pill" | "zone" | "compact";
@@ -193,6 +198,87 @@ function ItemContent({
   );
 }
 
+function CtaPopupModal({
+  config,
+  onClose,
+}: {
+  config: CtaActionConfig;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label={config.title}
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[88dvh] w-full max-w-2xl overflow-auto rounded-[22px] border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-primary)] p-5 text-[color:var(--ui-text-primary)] shadow-[0_24px_70px_rgba(15,41,61,0.28)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-lg font-extrabold tracking-[-0.02em] text-[color:var(--ui-text-primary)]">
+            {config.title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color:var(--ui-border)] bg-white text-lg font-bold text-[color:var(--ui-text-primary)] transition hover:bg-[color:var(--ui-hover)]"
+            aria-label="Cerrar popup"
+          >
+            ×
+          </button>
+        </div>
+
+        {config.image ? (
+          <Image
+            src={config.image.previewUrl}
+            alt=""
+            width={960}
+            height={480}
+            unoptimized
+            className="mt-4 max-h-[320px] w-full rounded-2xl border border-[color:var(--ui-border)] object-cover"
+          />
+        ) : null}
+
+        {config.message ? (
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[color:var(--ui-text-secondary)]">
+            {config.message}
+          </p>
+        ) : null}
+
+        {config.table ? (
+          <div className="mt-4 overflow-auto rounded-2xl border border-[color:var(--ui-border)]">
+            <table className="w-full min-w-[420px] border-collapse text-sm">
+              <thead className="bg-[#EAF3F8] text-[#0F3C55]">
+                <tr>
+                  {config.table.columns.map((column) => (
+                    <th key={column} className="border-b border-[color:var(--ui-border)] px-3 py-2 text-left font-extrabold">
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {config.table.rows.map((row, rowIndex) => (
+                  <tr key={rowIndex} className="bg-white">
+                    {row.map((cell, cellIndex) => (
+                      <td key={`${rowIndex}-${cellIndex}`} className="border-b border-[color:var(--ui-border)] px-3 py-2 text-[#163247]">
+                        {cell || "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function ConfiguredCtaList({
   ctas,
   className = "grid gap-3",
@@ -207,12 +293,14 @@ export default function ConfiguredCtaList({
   appearance?: CtaAppearance;
 }) {
   const router = useRouter();
+  const [activePopup, setActivePopup] = useState<CtaActionConfig | null>(null);
 
   if (!ctas.length) return null;
 
   return (
-    <div className={className}>
-      {ctas.map((cta) => {
+    <>
+      <div className={className}>
+        {ctas.map((cta) => {
         let classNameForItem = itemClass(cta, itemClassName);
         if (appearance === "pill") {
           classNameForItem = pillClass(cta, itemClassName);
@@ -222,6 +310,23 @@ export default function ConfiguredCtaList({
         }
         if (appearance === "compact") {
           classNameForItem = compactClass(cta, itemClassName);
+        }
+
+        if (cta.kind === "action" && cta.actionConfig?.type === "popup") {
+          return (
+            <button
+              key={cta.id}
+              type="button"
+              onClick={() => {
+                onCtaClick?.(cta);
+                setActivePopup(cta.actionConfig ?? null);
+              }}
+              className={classNameForItem}
+              aria-haspopup="dialog"
+            >
+              <ItemContent cta={cta} appearance={appearance} />
+            </button>
+          );
         }
 
         if (cta.kind === "link" && cta.url) {
@@ -273,7 +378,11 @@ export default function ConfiguredCtaList({
             <ItemContent cta={cta} appearance={appearance} />
           </div>
         );
-      })}
-    </div>
+        })}
+      </div>
+      {activePopup ? (
+        <CtaPopupModal config={activePopup} onClose={() => setActivePopup(null)} />
+      ) : null}
+    </>
   );
 }

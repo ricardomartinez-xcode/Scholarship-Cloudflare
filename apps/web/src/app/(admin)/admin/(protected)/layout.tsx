@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import AdminChrome from "@/components/admin/AdminChrome";
+import AdminTableExcelEnhancer from "@/components/admin/AdminTableExcelEnhancer";
 import { requireAdminAccessUser } from "@/lib/admin-session";
 import { auth } from "@/lib/auth/server";
 import { getCampusIntegrity } from "@/lib/campus";
@@ -137,6 +138,7 @@ export default async function AdminProtectedLayout({
       sidebarBottomAnnouncements={adminSidebarBottomAnnouncements}
       sidebarBottomCtas={adminSidebarBottomCtas}
     >
+      <AdminTableExcelEnhancer />
       {children}
     </AdminChrome>
   );

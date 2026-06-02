@@ -39,7 +39,10 @@ function parsePayload(payload: PresignPayload) {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireAdminApiCapability("files-presigned-upload", AdminCapability.manage_offers);
+  const auth = await requireAdminApiCapability("files-presigned-upload", [
+    AdminCapability.manage_offers,
+    AdminCapability.manage_ctas,
+  ]);
   if (!auth.ok) return auth.response;
 
   const parsed = parsePayload((await request.json()) as PresignPayload);

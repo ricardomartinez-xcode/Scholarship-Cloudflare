@@ -24,6 +24,7 @@ const targetTypeOptions = [
   { value: "training_material", label: "Material de capacitación" },
   { value: "enrollment_format", label: "Formato de inscripción" },
   { value: "academic_offer", label: "Oferta por planteles" },
+  { value: "admin_public_cta", label: "CTA / popup" },
   { value: "campus", label: "Plantel / campus" },
   { value: "global", label: "Global" },
 ];
@@ -40,6 +41,7 @@ const slotOptions = [
   { value: "training_image", label: "Imagen capacitación" },
   { value: "training_file", label: "Archivo capacitación" },
   { value: "format_document", label: "Documento de formato" },
+  { value: "cta_modal_image", label: "Imagen de CTA popup" },
 ];
 
 function formatBytes(value: number | null) {
