@@ -7,9 +7,10 @@ import { getAdminImportTemplate } from "@/lib/importers/admin-import-templates";
 describe("academicOfferCsvToXlsxBuffer", () => {
   it("maps the offer-by-campus CSV template to plantel rows with schedules", async () => {
     const csv = [
-      "ciclo,plantel,programa,linea,modalidad,plan,modulo,horario,horario_escolarizado,horario_ejecutivo,activo,materias_por_modulo",
-      "C1,Los Cabos,Derecho,licenciatura,mixta,9,M2,,L-V 08:00-13:00,Sáb 09:00-14:00,true,4 materias",
-      "C1,Hermosillo,Psicologia,licenciatura,presencial,9,,L-V 08:00-13:00,,,false,",
+      "Ciclo,Plantel,Programa,Línea,Modalidad,Plan,Modulo,No. de modulos,Horario escolarizado,Horario ejecutivo,Estado",
+      "C1,Los Cabos,Derecho,licenciatura,mixta,9,M2,3,L-V 08:00-13:00,Sáb 09:00-14:00,Activo",
+      "C1,Hermosillo,Psicologia,licenciatura,presencial,9,,2,L-V 08:00-13:00,,Inactivo",
+      "C1,Online,Psicologia,licenciatura,online,9,Longitudinal,1,,,Activo",
     ].join("\n");
 
     const buffer = await academicOfferCsvToXlsxBuffer(Buffer.from(csv, "utf8"));
@@ -22,18 +23,48 @@ describe("academicOfferCsvToXlsxBuffer", () => {
 
     const planteles = workbook.getWorksheet("Planteles");
     expect(planteles).toBeDefined();
-    expect(planteles?.rowCount).toBe(2);
+    expect(planteles?.rowCount).toBe(3);
+    expect(planteles?.getRow(1).values).toEqual([
+      undefined,
+      "Ciclo",
+      "Plantel",
+      "Programa",
+      "Línea",
+      "Modalidad",
+      "Plan",
+      "Modulo",
+      "No. de modulos",
+      "Horario escolarizado",
+      "Horario ejecutivo",
+      "Estado",
+    ]);
     expect(planteles?.getRow(2).values).toEqual([
       undefined,
+      "C1",
       "Los Cabos",
       "Derecho",
-      "SI",
-      "SI",
-      "L-V 08:00-13:00",
-      "Sáb 09:00-14:00",
+      "licenciatura",
+      "mixta",
       "9",
       "M2",
-      "4 materias",
+      "3",
+      "L-V 08:00-13:00",
+      "Sáb 09:00-14:00",
+      "Activo",
+    ]);
+    expect(planteles?.getRow(3).values).toEqual([
+      undefined,
+      "C1",
+      "Online",
+      "Psicologia",
+      "licenciatura",
+      "online",
+      "9",
+      "Longitudinal",
+      "1",
+      "",
+      "",
+      "Activo",
     ]);
   });
 
@@ -41,18 +72,17 @@ describe("academicOfferCsvToXlsxBuffer", () => {
     const template = getAdminImportTemplate("academic-offer");
 
     expect(template?.headers).toEqual([
-      "ciclo",
-      "plantel",
-      "programa",
-      "linea",
-      "modalidad",
-      "plan",
-      "modulo",
-      "horario",
-      "horario_escolarizado",
-      "horario_ejecutivo",
-      "activo",
-      "materias_por_modulo",
+      "Ciclo",
+      "Plantel",
+      "Programa",
+      "Línea",
+      "Modalidad",
+      "Plan",
+      "Modulo",
+      "No. de modulos",
+      "Horario escolarizado",
+      "Horario ejecutivo",
+      "Estado",
     ]);
   });
 });

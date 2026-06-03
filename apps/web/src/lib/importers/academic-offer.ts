@@ -12,7 +12,10 @@ import {
   loadImporterAliasRows,
   type ImporterAliasOptions,
 } from "@/lib/importers/configured-aliases";
-import { normalizeBusinessLineWithAliases } from "@/lib/pricing-normalize";
+import {
+  normalizeBusinessLineWithAliases,
+  type CanonicalBusinessLine,
+} from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
@@ -25,6 +28,7 @@ type ParsedRow = {
   programName: string;
   programNormalized: string;
   level: string | null;
+  lineOfBusiness: CanonicalBusinessLine | null;
   escolarizado: boolean;
   ejecutivo: boolean;
   escolarizadoSchedule: string | null;
@@ -53,15 +57,19 @@ type OnlineColumnMap = {
 };
 
 type PlantelesColumnMap = {
+  ciclo: number | null;
   plantel: number;
   programa: number;
-  escolarizado: number;
-  ejecutivo: number;
+  linea: number | null;
+  modalidad: number | null;
+  escolarizado: number | null;
+  ejecutivo: number | null;
   horEscolarizado: number;
   horEjecutivo: number;
   planes: number | null;
   modulo: number | null;
   materiasPorModulo: number | null;
+  estado: number | null;
 };
 
 type PlantelesEntry = {
@@ -85,15 +93,19 @@ export type ImportAcademicOfferSummary = {
   detectedColumns: {
     online: { licenciatura: number; posgrado: number; licenciaturaPlanes: number | null; posgradoPlanes: number | null };
     planteles: {
+      ciclo: number | null;
       plantel: number;
       programa: number;
-      escolarizado: number;
-      ejecutivo: number;
+      linea: number | null;
+      modalidad: number | null;
+      escolarizado: number | null;
+      ejecutivo: number | null;
       horEscolarizado: number;
       horEjecutivo: number;
       planes: number | null;
       modulo: number | null;
       materiasPorModulo: number | null;
+      estado: number | null;
     };
   } | null;
   perCampus: Array<{
@@ -176,6 +188,20 @@ function cellTruthy(value: unknown): boolean {
   return t === "verdadero" || t === "true" || t === "1" || t === "si" || t === "sí";
 }
 
+function cellExplicitlyInactive(value: unknown): boolean {
+  const t = normalizeKey(cellToText(value));
+  if (!t) return false;
+  return (
+    t === "false" ||
+    t === "0" ||
+    t === "no" ||
+    t === "inactivo" ||
+    t === "inactiva" ||
+    t === "inactive" ||
+    t === "baja"
+  );
+}
+
 function cleanText(value: unknown): string {
   return cellToText(value).replace(/\s+/g, " ").trim();
 }
@@ -231,12 +257,16 @@ function detectPlantelesSheet(
   // Detect by first-row header content
   for (const ws of candidates) {
     const hRow = ws.getRow(1);
-    const h1 = normalizeKey(cleanText(hRow.getCell(1).value));
-    const h2 = normalizeKey(cleanText(hRow.getCell(2).value));
-    if (
-      (h1.includes("plantel") || h1.includes("campus") || h1.includes("sede")) &&
-      (h2.includes("programa") || h2.includes("carrera"))
-    ) {
+    const headers = Array.from({ length: 12 }, (_, index) =>
+      normalizeKey(cleanText(hRow.getCell(index + 1).value)),
+    );
+    const hasCampus = headers.some((header) =>
+      header.includes("plantel") || header.includes("campus") || header.includes("sede"),
+    );
+    const hasProgram = headers.some((header) =>
+      header.includes("programa") || header.includes("carrera"),
+    );
+    if (hasCampus && hasProgram) {
       return ws;
     }
   }
@@ -299,39 +329,72 @@ function detectOnlineColumns(ws: ExcelJS.Worksheet): OnlineColumnMap {
  */
 function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
   const hRow = ws.getRow(1);
+  let cicloCol: number | null = null;
   let plantelCol = 1;
   let programaCol = 2;
-  let escolarizadoCol = 3;
-  let ejecutivoCol = 4;
+  let lineaCol: number | null = null;
+  let modalidadCol: number | null = null;
+  let escolarizadoCol: number | null = 3;
+  let ejecutivoCol: number | null = 4;
   let horEscolarizadoCol = 5;
   let horEjecutivoCol = 6;
   let planesCol: number | null = null;
   let moduloCol: number | null = null;
   let materiasPorModuloCol: number | null = null;
+  let estadoCol: number | null = null;
 
   // Only scan if first row looks like a header row (not data)
   const firstCellText = normalizeKey(cleanText(hRow.getCell(1).value));
   const secondCellText = normalizeKey(cleanText(hRow.getCell(2).value));
   // If both first cells look like known headers, try to map all columns
+  const headerProbe = Array.from({ length: 12 }, (_, index) =>
+    normalizeKey(cleanText(hRow.getCell(index + 1).value)),
+  );
   const looksLikeHeader =
     firstCellText.includes("plantel") ||
     firstCellText.includes("campus") ||
     firstCellText.includes("sede") ||
+    firstCellText === "ciclo" ||
     secondCellText.includes("programa") ||
-    secondCellText.includes("carrera");
+    secondCellText.includes("carrera") ||
+    headerProbe.some((header) =>
+      header.includes("plantel") ||
+      header.includes("campus") ||
+      header.includes("sede") ||
+      header.includes("programa") ||
+      header.includes("carrera"),
+    );
 
   if (looksLikeHeader) {
+    escolarizadoCol = null;
+    ejecutivoCol = null;
     for (let c = 1; c <= 16; c++) {
       const h = normalizeKey(cleanText(hRow.getCell(c).value));
       if (!h) continue;
 
-      if (h.includes("plantel") || h.includes("campus") || h.includes("sede")) {
+      if (h === "ciclo" || h === "cycle") {
+        cicloCol = c;
+      } else if (h.includes("plantel") || h.includes("campus") || h.includes("sede")) {
         plantelCol = c;
       } else if (
         (h.includes("programa") || h.includes("carrera")) &&
         !h.includes("horario")
       ) {
         programaCol = c;
+      } else if (
+        h.includes("linea") ||
+        h.includes("línea") ||
+        h.includes("nivel") ||
+        h.includes("business")
+      ) {
+        lineaCol = c;
+      } else if (
+        h.includes("modalidad") ||
+        h.includes("delivery") ||
+        h.includes("formato") ||
+        h === "tipo"
+      ) {
+        modalidadCol = c;
       } else if (h.includes("escolariz") && !h.includes("horario")) {
         escolarizadoCol = c;
       } else if (h.includes("ejecutiv") && !h.includes("horario")) {
@@ -355,6 +418,12 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
       ) {
         planesCol = c;
       } else if (
+        h.includes("no. de modulos") ||
+        h.includes("no de modulos") ||
+        h.includes("numero de modulos") ||
+        h.includes("num modulos") ||
+        h === "modulos" ||
+        h === "módulos" ||
         h.includes("materiaspor") ||
         (h.includes("materia") && (h.includes("modulo") || h.includes("módulo"))) ||
         h === "notas" ||
@@ -363,13 +432,25 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
         materiasPorModuloCol = c;
       } else if (h.includes("modulo") || h.includes("módulo")) {
         moduloCol = c;
+      } else if (
+        h === "estado" ||
+        h === "status" ||
+        h === "activo" ||
+        h === "activa" ||
+        h === "active" ||
+        h === "visible"
+      ) {
+        estadoCol = c;
       }
     }
   }
 
   return {
+    ciclo: cicloCol,
     plantel: plantelCol,
     programa: programaCol,
+    linea: lineaCol,
+    modalidad: modalidadCol,
     escolarizado: escolarizadoCol,
     ejecutivo: ejecutivoCol,
     horEscolarizado: horEscolarizadoCol,
@@ -377,6 +458,7 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
     planes: planesCol,
     modulo: moduloCol,
     materiasPorModulo: materiasPorModuloCol,
+    estado: estadoCol,
   };
 }
 
@@ -418,6 +500,7 @@ function parseOnlineSheet(
         programName: entry.programName,
         programNormalized: canonicalImportKey(aliasRows, "program", entry.programName) || normalizeKey(entry.programName),
         level: entry.level,
+        lineOfBusiness: normalizeBusinessLineWithAliases(entry.level, aliasRows),
         escolarizado: false,
         ejecutivo: false,
         escolarizadoSchedule: null,
@@ -459,9 +542,20 @@ function parsePlantelesSheet(
     }
     emptyStreak = 0;
     if (!campusName || !programName) continue;
+    if (cols.estado && cellExplicitlyInactive(row.getCell(cols.estado).value)) {
+      continue;
+    }
 
     const campusKey = canonicalImportKey(aliasRows, "campus", campusName) || normalizeKey(campusName);
     const programNormalized = canonicalImportKey(aliasRows, "program", programName) || normalizeKey(programName);
+    const lineRaw = cols.linea ? cleanText(row.getCell(cols.linea).value) : "";
+    const lineOfBusiness = normalizeBusinessLineWithAliases(lineRaw, aliasRows);
+    const modality = cols.modalidad
+      ? normalizeKey(cleanText(row.getCell(cols.modalidad).value))
+      : "";
+    const campusLooksOnline = normalizeKey(campusName).includes("online");
+    const delivery =
+      campusLooksOnline || modality.includes("online") ? "ONLINE" : "CAMPUS";
     const pricingPlans = cols.planes
       ? normalizeAcademicPricingPlans(row.getCell(cols.planes).value)
       : null;
@@ -470,15 +564,32 @@ function parsePlantelesSheet(
     );
     const subjectsByModule =
       cols.materiasPorModulo ? cleanText(row.getCell(cols.materiasPorModulo).value) || null : null;
+    const explicitEscolarizado = cols.escolarizado
+      ? cellTruthy(row.getCell(cols.escolarizado).value)
+      : false;
+    const explicitEjecutivo = cols.ejecutivo
+      ? cellTruthy(row.getCell(cols.ejecutivo).value)
+      : false;
+    const modalityEscolarizado =
+      modality.includes("escolar") ||
+      modality.includes("presencial") ||
+      modality.includes("mixt");
+    const modalityEjecutivo =
+      modality.includes("ejecut") ||
+      modality.includes("mixt");
     const next: ParsedRow = {
       programName,
       programNormalized,
-      level: null,
-      escolarizado: cellTruthy(row.getCell(cols.escolarizado).value),
-      ejecutivo: cellTruthy(row.getCell(cols.ejecutivo).value),
-      escolarizadoSchedule: cleanText(row.getCell(cols.horEscolarizado).value) || null,
-      ejecutivoSchedule: cleanText(row.getCell(cols.horEjecutivo).value) || null,
-      delivery: "CAMPUS",
+      level: lineRaw || null,
+      lineOfBusiness,
+      escolarizado:
+        delivery === "ONLINE" ? false : explicitEscolarizado || modalityEscolarizado,
+      ejecutivo: delivery === "ONLINE" ? false : explicitEjecutivo || modalityEjecutivo,
+      escolarizadoSchedule:
+        delivery === "ONLINE" ? null : cleanText(row.getCell(cols.horEscolarizado).value) || null,
+      ejecutivoSchedule:
+        delivery === "ONLINE" ? null : cleanText(row.getCell(cols.horEjecutivo).value) || null,
+      delivery,
       pricingPlans,
       module: academicModule,
       subjectsByModule,
@@ -505,6 +616,12 @@ function parsePlantelesSheet(
       }
       if (!prev.subjectsByModule && next.subjectsByModule) {
         prev.subjectsByModule = next.subjectsByModule;
+      }
+      if (!prev.lineOfBusiness && next.lineOfBusiness) {
+        prev.lineOfBusiness = next.lineOfBusiness;
+      }
+      if (!prev.level && next.level) {
+        prev.level = next.level;
       }
     }
     byCampus.set(campusKey, campusEntry);
@@ -612,7 +729,11 @@ export async function importAcademicOfferFromExcel(params: {
   }
 
   const onlineRows = parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
-  if (onlineRows.length === 0) {
+  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
+  const plantelesIncludeOnline = Array.from(plantelesRows.keys()).some(
+    (campusKey) => campusByNormalizedKey.get(campusKey)?.code === "ONLINE",
+  );
+  if (onlineRows.length === 0 && !plantelesIncludeOnline) {
     warnings.push(
       `Hoja "${onlineSheet.name}" no produjo programas. Verifica que las columnas Licenciatura (${onlineCols.licenciatura}) y Posgrado (${onlineCols.posgrado}) tengan datos.`
     );
@@ -627,7 +748,6 @@ export async function importAcademicOfferFromExcel(params: {
   });
   usedCampusIds.add(onlineCampus.id);
 
-  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
   const unknownCampusNames: string[] = [];
 
   for (const [campusKey, entry] of plantelesRows) {
@@ -680,11 +800,18 @@ export async function importAcademicOfferFromExcel(params: {
 
 
   // === FASE 1: Program upserts outside transaction to avoid tx timeout ===
-  const uniquePrograms = new Map<string, { name: string; level: string | null }>();
+  const uniquePrograms = new Map<
+    string,
+    { name: string; level: string | null; lineOfBusiness: CanonicalBusinessLine | null }
+  >();
   for (const campusRes of parsed) {
     for (const row of campusRes.rows) {
       if (!uniquePrograms.has(row.programNormalized)) {
-        uniquePrograms.set(row.programNormalized, { name: row.programName, level: row.level });
+        uniquePrograms.set(row.programNormalized, {
+          name: row.programName,
+          level: row.level,
+          lineOfBusiness: row.lineOfBusiness,
+        });
       }
     }
   }
@@ -693,11 +820,16 @@ export async function importAcademicOfferFromExcel(params: {
   for (const [nameNormalized, prog] of uniquePrograms) {
     const existing = await prisma.program.findUnique({
       where: { nameNormalized },
-      select: { id: true, name: true, level: true },
+      select: { id: true, name: true, level: true, businessLine: true },
     });
     if (!existing) {
       const created = await prisma.program.create({
-        data: { name: prog.name, nameNormalized, level: prog.level },
+        data: {
+          name: prog.name,
+          nameNormalized,
+          level: prog.level,
+          businessLine: prog.lineOfBusiness,
+        },
         select: { id: true },
       });
       programIdMap.set(nameNormalized, created.id);
@@ -705,10 +837,15 @@ export async function importAcademicOfferFromExcel(params: {
     } else {
       const nextName = prog.name;
       const nextLevel = prog.level ?? existing.level;
-      if (existing.name !== nextName || existing.level !== nextLevel) {
+      const nextBusinessLine = prog.lineOfBusiness ?? existing.businessLine;
+      if (
+        existing.name !== nextName ||
+        existing.level !== nextLevel ||
+        existing.businessLine !== nextBusinessLine
+      ) {
         await prisma.program.update({
           where: { id: existing.id },
-          data: { name: nextName, level: nextLevel },
+          data: { name: nextName, level: nextLevel, businessLine: nextBusinessLine },
         });
         summary.programs.updated += 1;
       }
@@ -764,6 +901,7 @@ export async function importAcademicOfferFromExcel(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            lineOfBusiness: row.lineOfBusiness,
             track: row.module,
             ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
             subjectsByModule: row.subjectsByModule,
@@ -781,6 +919,7 @@ export async function importAcademicOfferFromExcel(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            lineOfBusiness: row.lineOfBusiness,
             pricingPlans: row.pricingPlans ?? [],
             subjectsByModule: row.subjectsByModule,
             track: row.module,
@@ -928,7 +1067,11 @@ export async function prepareAcademicOfferImport(params: {
   }
 
   const onlineRows = parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
-  if (onlineRows.length === 0) {
+  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
+  const plantelesIncludeOnline = Array.from(plantelesRows.keys()).some(
+    (campusKey) => campusByNormalizedKey.get(campusKey)?.code === "ONLINE",
+  );
+  if (onlineRows.length === 0 && !plantelesIncludeOnline) {
     warnings.push(
       `Hoja "${onlineSheet.name}" no produjo programas. Verifica que las columnas Licenciatura y Posgrado tengan datos.`,
     );
@@ -943,7 +1086,6 @@ export async function prepareAcademicOfferImport(params: {
   });
   usedCampusIds.add(onlineCampus.id);
 
-  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
   const unknownCampusNames: string[] = [];
 
   for (const [campusKey, entry] of plantelesRows) {
@@ -996,11 +1138,18 @@ export async function prepareAcademicOfferImport(params: {
     perCampus: [],
   };
 
-  const uniquePrograms = new Map<string, { name: string; level: string | null }>();
+  const uniquePrograms = new Map<
+    string,
+    { name: string; level: string | null; lineOfBusiness: CanonicalBusinessLine | null }
+  >();
   for (const campusRes of parsed) {
     for (const row of campusRes.rows) {
       if (!uniquePrograms.has(row.programNormalized)) {
-        uniquePrograms.set(row.programNormalized, { name: row.programName, level: row.level });
+        uniquePrograms.set(row.programNormalized, {
+          name: row.programName,
+          level: row.level,
+          lineOfBusiness: row.lineOfBusiness,
+        });
       }
     }
   }
@@ -1032,7 +1181,12 @@ export async function prepareAcademicOfferImport(params: {
       continue;
     }
     const nextLevel = program.level ?? existing.level;
-    if (existing.name !== program.name || existing.level !== nextLevel) {
+    const nextBusinessLine = program.lineOfBusiness ?? existing.businessLine;
+    if (
+      existing.name !== program.name ||
+      existing.level !== nextLevel ||
+      existing.businessLine !== nextBusinessLine
+    ) {
       summary.programs.updated += 1;
     }
   }
@@ -1117,7 +1271,7 @@ export async function prepareAcademicOfferImport(params: {
           campusName: campusRes.campusNameFromExcel ?? campusRes.campusCode,
           cycle,
           programName: row.programName,
-          line: program?.businessLine ?? inferPreviewBusinessLine(row, aliasRows),
+          line: program?.businessLine ?? row.lineOfBusiness ?? inferPreviewBusinessLine(row, aliasRows),
           modality: getPreviewModalityLabel(row),
           pricingPlans: row.pricingPlans ?? existingOffering?.pricingPlans ?? [],
           module: row.module,
@@ -1181,11 +1335,18 @@ export async function applyPreparedAcademicOfferImport(params: {
     perCampus: [],
   };
 
-  const uniquePrograms = new Map<string, { name: string; level: string | null }>();
+  const uniquePrograms = new Map<
+    string,
+    { name: string; level: string | null; lineOfBusiness: CanonicalBusinessLine | null }
+  >();
   for (const campusRes of params.payload.parsed) {
     for (const row of campusRes.rows) {
       if (!uniquePrograms.has(row.programNormalized)) {
-        uniquePrograms.set(row.programNormalized, { name: row.programName, level: row.level });
+        uniquePrograms.set(row.programNormalized, {
+          name: row.programName,
+          level: row.level,
+          lineOfBusiness: row.lineOfBusiness,
+        });
       }
     }
   }
@@ -1194,11 +1355,16 @@ export async function applyPreparedAcademicOfferImport(params: {
   for (const [nameNormalized, program] of uniquePrograms) {
     const existing = await prisma.program.findUnique({
       where: { nameNormalized },
-      select: { id: true, name: true, level: true },
+      select: { id: true, name: true, level: true, businessLine: true },
     });
     if (!existing) {
       const created = await prisma.program.create({
-        data: { name: program.name, nameNormalized, level: program.level },
+        data: {
+          name: program.name,
+          nameNormalized,
+          level: program.level,
+          businessLine: program.lineOfBusiness,
+        },
         select: { id: true },
       });
       programIdMap.set(nameNormalized, created.id);
@@ -1208,10 +1374,15 @@ export async function applyPreparedAcademicOfferImport(params: {
 
     const nextName = program.name;
     const nextLevel = program.level ?? existing.level;
-    if (existing.name !== nextName || existing.level !== nextLevel) {
+    const nextBusinessLine = program.lineOfBusiness ?? existing.businessLine;
+    if (
+      existing.name !== nextName ||
+      existing.level !== nextLevel ||
+      existing.businessLine !== nextBusinessLine
+    ) {
       await prisma.program.update({
         where: { id: existing.id },
-        data: { name: nextName, level: nextLevel },
+        data: { name: nextName, level: nextLevel, businessLine: nextBusinessLine },
       });
       summary.programs.updated += 1;
     }
@@ -1264,6 +1435,7 @@ export async function applyPreparedAcademicOfferImport(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            lineOfBusiness: row.lineOfBusiness,
             track: row.module,
             ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
             subjectsByModule: row.subjectsByModule,
@@ -1281,6 +1453,7 @@ export async function applyPreparedAcademicOfferImport(params: {
             ejecutivo: row.ejecutivo,
             escolarizadoSchedule: row.escolarizadoSchedule,
             ejecutivoSchedule: row.ejecutivoSchedule,
+            lineOfBusiness: row.lineOfBusiness,
             pricingPlans: row.pricingPlans ?? [],
             subjectsByModule: row.subjectsByModule,
             track: row.module,

@@ -22,21 +22,16 @@ function yes(value: string) {
 }
 
 function isInactive(row: CsvRecord) {
-  const value = pick(row, ["activo", "activa", "active", "is_active", "visible"]);
+  const value = pick(row, [
+    "estado",
+    "activo",
+    "activa",
+    "active",
+    "is_active",
+    "visible",
+  ]);
   if (!value) return false;
   return !yes(value);
-}
-
-function isOnline(row: CsvRecord) {
-  const campus = normalizeHeader(pick(row, ["plantel", "campus", "sede"]));
-  const modality = normalizeHeader(pick(row, ["modalidad", "delivery", "tipo", "formato"]));
-  return campus === "online" || modality.includes("online");
-}
-
-function isPostgraduate(row: CsvRecord) {
-  const level = normalizeHeader(pick(row, ["nivel", "linea", "linea de negocio", "categoria"]));
-  const program = normalizeHeader(pick(row, ["programa", "carrera", "plan de estudios"]));
-  return level.includes("posgrado") || program.includes("maestr");
 }
 
 export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
@@ -60,15 +55,17 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
 
   const plantelesSheet = workbook.addWorksheet("Planteles");
   plantelesSheet.addRow([
+    "Ciclo",
     "Plantel",
     "Programa",
-    "Escolarizado",
-    "Ejecutivo",
-    "Horario Escolarizado",
-    "Horario Ejecutivo",
-    "Planes",
+    "Línea",
+    "Modalidad",
+    "Plan",
     "Modulo",
-    "Materias por Modulo",
+    "No. de modulos",
+    "Horario escolarizado",
+    "Horario ejecutivo",
+    "Estado",
   ]);
 
   for (const row of records) {
@@ -79,50 +76,43 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     const plans = pick(row, ["planes", "plan", "cuatrimestres", "cuatrimestre", "duracion"]);
     const moduleRaw = pick(row, ["modulo", "módulo", "module"]);
     const academicModule = normalizeAcademicModuleDisplay(moduleRaw || "Longitudinal");
-    const subjectsByModule = pick(row, [
+    const numberOfModules = pick(row, [
+      "no. de modulos",
+      "no de modulos",
+      "no. de módulos",
+      "no de módulos",
+      "numero de modulos",
+      "número de módulos",
+      "num modulos",
+      "num módulos",
+      "modulos",
+      "módulos",
       "materias_por_modulo",
       "materias por modulo",
       "materias por módulo",
       "notas",
     ]);
-
-    if (isOnline(row) && !moduleRaw && !subjectsByModule) {
-      if (isPostgraduate(row)) onlineSheet.addRow(["", program, "", plans]);
-      else onlineSheet.addRow([program, "", plans, ""]);
-      continue;
-    }
-
-    const campus = isOnline(row) ? "Online" : pick(row, ["plantel", "campus", "sede"]);
+    const campus = pick(row, ["plantel", "campus", "sede"]);
     if (!campus) continue;
 
-    const modality = normalizeHeader(pick(row, ["modalidad", "delivery", "tipo", "formato"]));
-    const escolarizadoRaw = pick(row, ["escolarizado", "escolarizada", "presencial"]);
-    const ejecutivoRaw = pick(row, ["ejecutivo", "ejecutiva"]);
+    const modality = pick(row, ["modalidad", "delivery", "tipo", "formato"]);
     const commonSchedule = pick(row, ["horario", "horarios", "schedule"]);
-    const isOnlineProgram = isOnline(row);
-    const escolarizado =
-      !isOnlineProgram &&
-      (yes(escolarizadoRaw) ||
-        (!ejecutivoRaw &&
-          (modality.includes("escolar") ||
-            modality.includes("presencial") ||
-            modality.includes("mixt") ||
-            !modality)));
-    const ejecutivo =
-      !isOnlineProgram && (yes(ejecutivoRaw) || modality.includes("ejecut") || modality.includes("mixt"));
 
     plantelesSheet.addRow([
+      pick(row, ["ciclo", "cycle"]),
       campus,
       program,
-      escolarizado ? "SI" : "",
-      ejecutivo ? "SI" : "",
-      pick(row, ["horario escolarizado", "horario escolarizada", "hor escolarizado"]) ||
-        (escolarizado ? commonSchedule : ""),
-      pick(row, ["horario ejecutivo", "hor ejecutivo"]) ||
-        (ejecutivo ? commonSchedule : ""),
+      pick(row, ["linea", "línea", "linea de negocio", "línea de negocio", "nivel"]),
+      modality,
       plans,
       academicModule,
-      subjectsByModule,
+      numberOfModules,
+      pick(row, ["horario escolarizado", "horario escolarizada", "hor escolarizado"]) ||
+        commonSchedule,
+      pick(row, ["horario ejecutivo", "hor ejecutivo"]) ||
+        commonSchedule,
+      pick(row, ["estado", "activo", "activa", "active", "is_active", "visible"]) ||
+        "Activo",
     ]);
   }
 

@@ -33,13 +33,19 @@ type Summary = {
       posgradoPlanes: number | null;
     };
     planteles: {
+      ciclo: number | null;
       plantel: number;
       programa: number;
-      escolarizado: number;
-      ejecutivo: number;
+      linea: number | null;
+      modalidad: number | null;
+      escolarizado: number | null;
+      ejecutivo: number | null;
       horEscolarizado: number;
       horEjecutivo: number;
       planes: number | null;
+      modulo: number | null;
+      materiasPorModulo: number | null;
+      estado: number | null;
     };
   } | null;
   perCampus: Array<{
@@ -781,7 +787,8 @@ export default function OfferImportClient({
             <summary className="cursor-pointer text-sm font-semibold text-slate-200">Formato esperado</summary>
             <div className="mt-3 grid gap-3 text-xs text-slate-400">
               <p><strong className="text-slate-200">XLSX:</strong> mantiene el formato actual con hojas Online y Planteles.</p>
-              <p><strong className="text-slate-200">CSV:</strong> usa encabezados equivalentes: plantel/campus, programa/carrera, modalidad/delivery, escolarizado, ejecutivo, horario escolarizado, horario ejecutivo y planes. Los registros online pueden usar plantel=ONLINE o modalidad=online.</p>
+              <p><strong className="text-slate-200">CSV:</strong> usa columnas: Ciclo, Plantel, Programa, Línea, Modalidad, Plan, Modulo, No. de modulos, Horario escolarizado, Horario ejecutivo y Estado.</p>
+              <p>Modalidad acepta presencial, escolarizado, ejecutivo, mixta u online. Estado acepta Activo/Inactivo, true/false, si/no o 1/0.</p>
             </div>
           </details>
 
