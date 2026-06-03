@@ -1,6 +1,8 @@
-export const ACADEMIC_MODULES = ["M1", "M2", "M3", "Longitudinal"] as const;
+export const ACADEMIC_MODULES = ["Modular", "M1", "M2", "M3", "Longitudinal"] as const;
+export const ACADEMIC_MODULE_PARTS = ["M1", "M2", "M3"] as const;
 
 export type AcademicModule = (typeof ACADEMIC_MODULES)[number];
+export type AcademicModulePart = (typeof ACADEMIC_MODULE_PARTS)[number];
 
 function normalizeText(value: unknown) {
   return String(value ?? "")
@@ -10,18 +12,38 @@ function normalizeText(value: unknown) {
     .toLowerCase();
 }
 
+const MODULE_TOKEN_PATTERNS: Array<[AcademicModulePart, RegExp[]]> = [
+  ["M1", [/\bm1\b/, /\bmodulo\s*1\b/, /\bmodulo\s*i\b/]],
+  ["M2", [/\bm2\b/, /\bmodulo\s*2\b/, /\bmodulo\s*ii\b/]],
+  ["M3", [/\bm3\b/, /\bmodulo\s*3\b/, /\bmodulo\s*iii\b/]],
+];
+
+function isExplicitModular(value: string) {
+  return value === "modular" || value.startsWith("modular ") || value.includes(" modular");
+}
+
+export function parseAcademicModuleTokens(value: unknown): AcademicModulePart[] {
+  const normalized = normalizeText(value);
+  if (!normalized) return [];
+
+  return MODULE_TOKEN_PATTERNS.flatMap(([module, patterns]) =>
+    patterns.some((pattern) => pattern.test(normalized)) ? [module] : [],
+  );
+}
+
 export function normalizeAcademicModule(value: unknown): AcademicModule | null {
   const normalized = normalizeText(value);
   if (!normalized) return null;
-  if (normalized === "m3" || normalized.includes("modulo 3") || normalized.includes("modulo iii")) {
-    return "M3";
+
+  const moduleParts = parseAcademicModuleTokens(value);
+  if (isExplicitModular(normalized) || moduleParts.length > 1) {
+    return "Modular";
   }
-  if (normalized === "m2" || normalized.includes("modulo 2") || normalized.includes("modulo ii")) {
-    return "M2";
+
+  if (moduleParts[0]) {
+    return moduleParts[0];
   }
-  if (normalized === "m1" || normalized.includes("modulo 1") || normalized.includes("modulo i")) {
-    return "M1";
-  }
+
   if (
     normalized === "longitudinal" ||
     normalized.includes("longitudinal") ||
@@ -29,7 +51,23 @@ export function normalizeAcademicModule(value: unknown): AcademicModule | null {
   ) {
     return "Longitudinal";
   }
+
   return null;
+}
+
+export function normalizeAcademicModuleDisplay(value: unknown): string {
+  const normalizedModule = normalizeAcademicModule(value);
+  const moduleParts = parseAcademicModuleTokens(value);
+
+  if (normalizedModule === "Modular") {
+    return moduleParts.length ? `Modular ${moduleParts.join(", ")}` : "Modular";
+  }
+
+  if (normalizedModule) {
+    return normalizedModule;
+  }
+
+  return String(value ?? "").trim() || "Longitudinal";
 }
 
 export function academicModuleOrDefault(value: unknown): AcademicModule {
@@ -45,6 +83,19 @@ export function academicModuleMatches(
   const requestedModule = normalizeAcademicModule(requested);
 
   if (!configuredModule) return options.emptyMatchesAll ?? true;
-  if (!requestedModule) return configuredModule === "Longitudinal";
-  return configuredModule === requestedModule;
+  if (!requestedModule) return configuredModule === "Longitudinal" || configuredModule === "Modular";
+  if (configuredModule === requestedModule) return true;
+
+  if (configuredModule === "Modular" || requestedModule === "Modular") {
+    const configuredParts = parseAcademicModuleTokens(configured);
+    const requestedParts = parseAcademicModuleTokens(requested);
+
+    if (!configuredParts.length || !requestedParts.length) {
+      return true;
+    }
+
+    return configuredParts.some((part) => requestedParts.includes(part));
+  }
+
+  return false;
 }

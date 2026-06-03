@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 
+import { normalizeAcademicModuleDisplay } from "@/lib/academic-modules";
 import { normalizeHeader, parseCsvText } from "@/lib/importers/csv-utils";
 
 type CsvRecord = Record<string, string>;
@@ -76,35 +77,39 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     if (isInactive(row)) continue;
 
     const plans = pick(row, ["planes", "plan", "cuatrimestres", "cuatrimestre", "duracion"]);
-    const academicModule = pick(row, ["modulo", "módulo", "module"]) || "Longitudinal";
+    const moduleRaw = pick(row, ["modulo", "módulo", "module"]);
+    const academicModule = normalizeAcademicModuleDisplay(moduleRaw || "Longitudinal");
     const subjectsByModule = pick(row, [
       "materias_por_modulo",
       "materias por modulo",
       "materias por módulo",
       "notas",
     ]);
-    if (isOnline(row)) {
+
+    if (isOnline(row) && !moduleRaw && !subjectsByModule) {
       if (isPostgraduate(row)) onlineSheet.addRow(["", program, "", plans]);
       else onlineSheet.addRow([program, "", plans, ""]);
       continue;
     }
 
-    const campus = pick(row, ["plantel", "campus", "sede"]);
+    const campus = isOnline(row) ? "Online" : pick(row, ["plantel", "campus", "sede"]);
     if (!campus) continue;
 
     const modality = normalizeHeader(pick(row, ["modalidad", "delivery", "tipo", "formato"]));
     const escolarizadoRaw = pick(row, ["escolarizado", "escolarizada", "presencial"]);
     const ejecutivoRaw = pick(row, ["ejecutivo", "ejecutiva"]);
     const commonSchedule = pick(row, ["horario", "horarios", "schedule"]);
+    const isOnlineProgram = isOnline(row);
     const escolarizado =
-      yes(escolarizadoRaw) ||
-      (!ejecutivoRaw &&
-        (modality.includes("escolar") ||
-          modality.includes("presencial") ||
-          modality.includes("mixt") ||
-          !modality));
+      !isOnlineProgram &&
+      (yes(escolarizadoRaw) ||
+        (!ejecutivoRaw &&
+          (modality.includes("escolar") ||
+            modality.includes("presencial") ||
+            modality.includes("mixt") ||
+            !modality)));
     const ejecutivo =
-      yes(ejecutivoRaw) || modality.includes("ejecut") || modality.includes("mixt");
+      !isOnlineProgram && (yes(ejecutivoRaw) || modality.includes("ejecut") || modality.includes("mixt"));
 
     plantelesSheet.addRow([
       campus,
