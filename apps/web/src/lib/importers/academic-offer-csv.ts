@@ -97,6 +97,17 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
 
     const modality = pick(row, ["modalidad", "delivery", "tipo", "formato"]);
     const commonSchedule = pick(row, ["horario", "horarios", "schedule"]);
+    const isOnlineProgram = isOnline(row);
+    const escolarizado =
+      !isOnlineProgram &&
+      (yes(escolarizadoRaw) ||
+        (!ejecutivoRaw &&
+          (modality.includes("escolar") ||
+            modality.includes("presencial") ||
+            modality.includes("mixt") ||
+            !modality)));
+    const ejecutivo =
+      !isOnlineProgram && (yes(ejecutivoRaw) || modality.includes("ejecut") || modality.includes("mixt"));
 
     plantelesSheet.addRow([
       pick(row, ["ciclo", "cycle"]),
