@@ -23,6 +23,7 @@ export type OfferDraftSnapshotLike = {
     ejecutivoSchedule: string | null;
     lineOfBusiness: string | null;
     pricingPlans?: number[];
+    moduleCount?: number | null;
     subjectsByModule?: string | null;
     isActive: boolean;
     archivedReason: string | null;
@@ -50,6 +51,7 @@ export function normalizeOfferDraftSnapshot<T extends OfferDraftSnapshotLike>(sn
     ? snapshot.offerings.map((offering) => ({
         ...offering,
         track: offering.track?.trim() ? offering.track : "Longitudinal",
+        moduleCount: offering.moduleCount ?? null,
         subjectsByModule: offering.subjectsByModule ?? null,
       }))
     : [];

@@ -20,6 +20,7 @@ type Identity = {
 type ThreadSummary = {
   id: string;
   subject: string | null;
+  status: "active" | "archived";
   updatedAt: string;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
@@ -119,8 +120,14 @@ export default function InboxDock() {
   const handledMessageIdsRef = useRef<Set<string>>(new Set());
 
   const applyThreadsPayload = useCallback((payload: InboxThreadsPayload) => {
-    setThreads(payload.threads ?? []);
+    const nextThreads = payload.threads ?? [];
+    setThreads(nextThreads);
     setViewer(payload.viewer ?? null);
+    setSelectedThreadId((current) =>
+      current && nextThreads.some((thread) => thread.id === current)
+        ? current
+        : nextThreads[0]?.id ?? "",
+    );
     setStatus("ready");
   }, []);
 
@@ -205,6 +212,9 @@ export default function InboxDock() {
     recentThreads.find((thread) => thread.id === selectedThreadId) ??
     recentThreads[0] ??
     null;
+  const canQuickReply = Boolean(
+    selectedThread && selectedThread.status === "active",
+  );
 
   useEffect(() => {
     if (!recentThreads.length) {
@@ -259,7 +269,7 @@ export default function InboxDock() {
 
   async function sendQuickReply() {
     const content = replyText.trim();
-    if (!selectedThread || !content || replyStatus === "sending") return;
+    if (!selectedThread || !content || replyStatus === "sending" || !canQuickReply) return;
     const createdAt = new Date().toISOString();
     const optimisticMessage: MessageSummary = {
       id: `optimistic-${crypto.randomUUID()}`,
@@ -427,6 +437,11 @@ export default function InboxDock() {
                             <span className="ui-inbox-dock__thread-preview">
                               {thread.lastMessagePreview ?? "Sin mensajes todavía"}
                             </span>
+                            {thread.status === "archived" ? (
+                              <span className="ui-inbox-dock__thread-preview">
+                                Archivada
+                              </span>
+                            ) : null}
                           </span>
                           <span className="ui-inbox-dock__time">
                             {formatTime(thread.lastMessageAt)}
@@ -452,10 +467,20 @@ export default function InboxDock() {
                         void sendQuickReply();
                       }
                     }}
-                    placeholder="Escribe una respuesta rápida..."
+                    placeholder={
+                      canQuickReply
+                        ? "Escribe una respuesta rápida..."
+                        : "Conversación archivada"
+                    }
                     aria-label="Respuesta rápida"
                     aria-keyshortcuts="Enter Control+Enter Meta+Enter Shift+Enter"
+                    disabled={!canQuickReply}
                   />
+                  {!canQuickReply && selectedThread ? (
+                    <div className="ui-inbox-dock__feedback" role="status">
+                      Esta conversación está archivada.
+                    </div>
+                  ) : null}
                   {replyStatus === "error" ? (
                     <div className="ui-inbox-dock__feedback" role="status">
                       No fue posible enviar. Intenta desde el inbox completo.
@@ -479,7 +504,7 @@ export default function InboxDock() {
                     <button
                       type="button"
                       className="ui-inbox-dock__send"
-                      disabled={!replyText.trim() || !selectedThread || replyStatus === "sending"}
+                      disabled={!replyText.trim() || !selectedThread || !canQuickReply || replyStatus === "sending"}
                       onClick={sendQuickReply}
                     >
                       {replyStatus === "sending" ? "Enviando..." : "Enviar"}

@@ -7,7 +7,7 @@ import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { normalizeBusinessLine } from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
-import { academicModuleOrDefault } from "@/lib/academic-modules";
+import { academicModuleOrBlank } from "@/lib/academic-modules";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_ROUTE_CACHE_TAGS,
@@ -36,6 +36,13 @@ function formBoolean(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim() === "true";
 }
 
+function parsePositiveInt(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export async function upsertAcademicOfferAction(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
@@ -54,7 +61,8 @@ export async function upsertAcademicOfferAction(
     const lineRaw = String(formData.get("lineOfBusiness") ?? "").trim();
     const lineOfBusiness = normalizeBusinessLine(lineRaw) ?? null;
     const pricingPlans = normalizeAcademicPricingPlans(formData.get("pricingPlans"));
-    const track = academicModuleOrDefault(formData.get("module"));
+    const track = academicModuleOrBlank(formData.get("module"));
+    const moduleCount = parsePositiveInt(formData.get("moduleCount"));
     const subjectsByModule =
       String(formData.get("subjectsByModule") ?? "").trim() || null;
     const escolarizado =
@@ -90,6 +98,7 @@ export async function upsertAcademicOfferAction(
       lineOfBusiness,
       pricingPlans,
       track,
+      moduleCount,
       subjectsByModule,
       isActive,
       archivedAt: isActive ? null : new Date(),

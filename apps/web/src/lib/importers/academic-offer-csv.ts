@@ -34,6 +34,13 @@ function isInactive(row: CsvRecord) {
   return !yes(value);
 }
 
+function isOnline(row: CsvRecord, campus: string, modality: string) {
+  const onlineRaw = pick(row, ["online", "en linea", "en línea", "virtual"]);
+  const campusKey = normalizeHeader(campus);
+  const modalityKey = normalizeHeader(modality);
+  return yes(onlineRaw) || campusKey.includes("online") || modalityKey.includes("online");
+}
+
 export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
   const rows = parseCsvText(buffer.toString("utf8"));
   if (rows.length < 2) {
@@ -75,7 +82,7 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
 
     const plans = pick(row, ["planes", "plan", "cuatrimestres", "cuatrimestre", "duracion"]);
     const moduleRaw = pick(row, ["modulo", "módulo", "module"]);
-    const academicModule = normalizeAcademicModuleDisplay(moduleRaw || "Longitudinal");
+    const academicModule = moduleRaw ? normalizeAcademicModuleDisplay(moduleRaw) : "";
     const numberOfModules = pick(row, [
       "no. de modulos",
       "no de modulos",
@@ -96,18 +103,27 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     if (!campus) continue;
 
     const modality = pick(row, ["modalidad", "delivery", "tipo", "formato"]);
+    const modalityKey = normalizeHeader(modality);
     const commonSchedule = pick(row, ["horario", "horarios", "schedule"]);
-    const isOnlineProgram = isOnline(row);
+    const escolarizadoRaw = pick(row, ["escolarizado", "escolarizada", "presencial"]);
+    const ejecutivoRaw = pick(row, ["ejecutivo", "ejecutiva"]);
+    const isOnlineProgram = isOnline(row, campus, modality);
     const escolarizado =
       !isOnlineProgram &&
       (yes(escolarizadoRaw) ||
         (!ejecutivoRaw &&
-          (modality.includes("escolar") ||
-            modality.includes("presencial") ||
-            modality.includes("mixt") ||
-            !modality)));
+          (modalityKey.includes("escolar") ||
+            modalityKey.includes("presencial") ||
+            modalityKey.includes("mixt") ||
+            !modalityKey)));
     const ejecutivo =
-      !isOnlineProgram && (yes(ejecutivoRaw) || modality.includes("ejecut") || modality.includes("mixt"));
+      !isOnlineProgram && (yes(ejecutivoRaw) || modalityKey.includes("ejecut") || modalityKey.includes("mixt"));
+    const escolarizadoSchedule =
+      pick(row, ["horario escolarizado", "horario escolarizada", "hor escolarizado"]) ||
+      (escolarizado ? commonSchedule : "");
+    const ejecutivoSchedule =
+      pick(row, ["horario ejecutivo", "hor ejecutivo"]) ||
+      (ejecutivo ? commonSchedule : "");
 
     plantelesSheet.addRow([
       pick(row, ["ciclo", "cycle"]),
@@ -118,10 +134,8 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
       plans,
       academicModule,
       numberOfModules,
-      pick(row, ["horario escolarizado", "horario escolarizada", "hor escolarizado"]) ||
-        commonSchedule,
-      pick(row, ["horario ejecutivo", "hor ejecutivo"]) ||
-        commonSchedule,
+      escolarizadoSchedule,
+      ejecutivoSchedule,
       pick(row, ["estado", "activo", "activa", "active", "is_active", "visible"]) ||
         "Activo",
     ]);

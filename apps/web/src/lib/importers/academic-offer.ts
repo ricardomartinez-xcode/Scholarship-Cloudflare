@@ -17,8 +17,11 @@ import {
   type CanonicalBusinessLine,
 } from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
-import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
-import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
+import {
+  academicModuleOrBlank,
+  type AcademicModuleSelection,
+} from "@/lib/academic-modules";
+import { listProgramOfferingModuleMetaById } from "@/lib/program-offering-subjects";
 import {
   EXCEL_SHEETS_OMIT,
   type AcademicOfferCycle,
@@ -35,7 +38,8 @@ type ParsedRow = {
   ejecutivoSchedule: string | null;
   delivery: "CAMPUS" | "ONLINE";
   pricingPlans: number[] | null;
-  module: AcademicModule;
+  module: AcademicModuleSelection;
+  moduleCount: number | null;
   subjectsByModule: string | null;
 };
 
@@ -68,6 +72,7 @@ type PlantelesColumnMap = {
   horEjecutivo: number;
   planes: number | null;
   modulo: number | null;
+  moduleCount: number | null;
   materiasPorModulo: number | null;
   estado: number | null;
 };
@@ -104,6 +109,7 @@ export type ImportAcademicOfferSummary = {
       horEjecutivo: number;
       planes: number | null;
       modulo: number | null;
+      moduleCount: number | null;
       materiasPorModulo: number | null;
       estado: number | null;
     };
@@ -134,7 +140,8 @@ export type AcademicOfferPreviewRow = {
   line: string | null;
   modality: string;
   pricingPlans: number[];
-  module: AcademicModule;
+  module: AcademicModuleSelection;
+  moduleCount: number | null;
   subjectsByModule: string | null;
   isActive: boolean;
   hasPlanPdf: boolean;
@@ -204,6 +211,15 @@ function cellExplicitlyInactive(value: unknown): boolean {
 
 function cleanText(value: unknown): string {
   return cellToText(value).replace(/\s+/g, " ").trim();
+}
+
+function parseModuleCount(value: unknown): number | null {
+  const text = cleanText(value);
+  if (!text) return null;
+  const match = text.match(/\d+/);
+  if (!match) return null;
+  const count = Number(match[0]);
+  return Number.isInteger(count) && count > 0 ? count : null;
 }
 
 /**
@@ -340,6 +356,7 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
   let horEjecutivoCol = 6;
   let planesCol: number | null = null;
   let moduloCol: number | null = null;
+  let moduleCountCol: number | null = null;
   let materiasPorModuloCol: number | null = null;
   let estadoCol: number | null = null;
 
@@ -423,7 +440,10 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
         h.includes("numero de modulos") ||
         h.includes("num modulos") ||
         h === "modulos" ||
-        h === "módulos" ||
+        h === "módulos"
+      ) {
+        moduleCountCol = c;
+      } else if (
         h.includes("materiaspor") ||
         (h.includes("materia") && (h.includes("modulo") || h.includes("módulo"))) ||
         h === "notas" ||
@@ -457,6 +477,7 @@ function detectPlantelesColumns(ws: ExcelJS.Worksheet): PlantelesColumnMap {
     horEjecutivo: horEjecutivoCol,
     planes: planesCol,
     modulo: moduloCol,
+    moduleCount: moduleCountCol,
     materiasPorModulo: materiasPorModuloCol,
     estado: estadoCol,
   };
@@ -508,6 +529,7 @@ function parseOnlineSheet(
         delivery: "ONLINE",
         pricingPlans: entry.pricingPlans,
         module: "Longitudinal",
+        moduleCount: null,
         subjectsByModule: null,
       });
     }
@@ -559,9 +581,12 @@ function parsePlantelesSheet(
     const pricingPlans = cols.planes
       ? normalizeAcademicPricingPlans(row.getCell(cols.planes).value)
       : null;
-    const academicModule = academicModuleOrDefault(
+    const academicModule = academicModuleOrBlank(
       cols.modulo ? row.getCell(cols.modulo).value : null,
     );
+    const moduleCount = cols.moduleCount
+      ? parseModuleCount(row.getCell(cols.moduleCount).value)
+      : null;
     const subjectsByModule =
       cols.materiasPorModulo ? cleanText(row.getCell(cols.materiasPorModulo).value) || null : null;
     const explicitEscolarizado = cols.escolarizado
@@ -592,6 +617,7 @@ function parsePlantelesSheet(
       delivery,
       pricingPlans,
       module: academicModule,
+      moduleCount,
       subjectsByModule,
     };
 
@@ -616,6 +642,9 @@ function parsePlantelesSheet(
       }
       if (!prev.subjectsByModule && next.subjectsByModule) {
         prev.subjectsByModule = next.subjectsByModule;
+      }
+      if (prev.moduleCount === null && next.moduleCount !== null) {
+        prev.moduleCount = next.moduleCount;
       }
       if (!prev.lineOfBusiness && next.lineOfBusiness) {
         prev.lineOfBusiness = next.lineOfBusiness;
@@ -870,10 +899,10 @@ export async function importAcademicOfferFromExcel(params: {
         select: { programId: true, track: true, isActive: true },
       });
       const existingByProgramId = new Map(
-        existingOfferings.map((o) => [`${o.programId}|${academicModuleOrDefault(o.track)}`, o.isActive])
+        existingOfferings.map((o) => [`${o.programId}|${academicModuleOrBlank(o.track)}`, o.isActive])
       );
 
-      const excelOfferingKeys: Array<{ programId: string; track: AcademicModule }> = [];
+      const excelOfferingKeys: Array<{ programId: string; track: AcademicModuleSelection }> = [];
       let offeringsCreated = 0;
       let offeringsUpdated = 0;
       let offeringsReactivated = 0;
@@ -904,6 +933,7 @@ export async function importAcademicOfferFromExcel(params: {
             lineOfBusiness: row.lineOfBusiness,
             track: row.module,
             ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
+            moduleCount: row.moduleCount,
             subjectsByModule: row.subjectsByModule,
             isActive: true,
             archivedAt: null,
@@ -921,6 +951,7 @@ export async function importAcademicOfferFromExcel(params: {
             ejecutivoSchedule: row.ejecutivoSchedule,
             lineOfBusiness: row.lineOfBusiness,
             pricingPlans: row.pricingPlans ?? [],
+            moduleCount: row.moduleCount,
             subjectsByModule: row.subjectsByModule,
             track: row.module,
             isActive: true,
@@ -1212,23 +1243,26 @@ export async function prepareAcademicOfferImport(params: {
     string,
     Array<{
       nameNormalized: string;
-      module: AcademicModule;
+      module: AcademicModuleSelection;
       isActive: boolean;
       pricingPlans: number[];
+      moduleCount: number | null;
       subjectsByModule: string | null;
     }>
   >();
-  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+  const moduleMetaByOfferingId = await listProgramOfferingModuleMetaById(
     existingOfferings.map((offering) => offering.id),
   );
   for (const offering of existingOfferings) {
+    const moduleMeta = moduleMetaByOfferingId.get(offering.id);
     const rows = offeringsByCampus.get(offering.campusId) ?? [];
     rows.push({
       nameNormalized: offering.program.nameNormalized,
-      module: academicModuleOrDefault(offering.track),
+      module: academicModuleOrBlank(offering.track),
       isActive: offering.isActive,
       pricingPlans: offering.pricingPlans ?? [],
-      subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
+      moduleCount: moduleMeta?.moduleCount ?? null,
+      subjectsByModule: moduleMeta?.subjectsByModule ?? null,
     });
     offeringsByCampus.set(offering.campusId, rows);
   }
@@ -1275,6 +1309,7 @@ export async function prepareAcademicOfferImport(params: {
           modality: getPreviewModalityLabel(row),
           pricingPlans: row.pricingPlans ?? existingOffering?.pricingPlans ?? [],
           module: row.module,
+          moduleCount: row.moduleCount ?? existingOffering?.moduleCount ?? null,
           subjectsByModule: row.subjectsByModule ?? existingOffering?.subjectsByModule ?? null,
           isActive: true,
           hasPlanPdf: Boolean(program?.planPdfUrl ?? program?.planDriveLink ?? program?.planUrl),
@@ -1404,12 +1439,12 @@ export async function applyPreparedAcademicOfferImport(params: {
       });
       const existingByProgramId = new Map(
         existingOfferings.map((offering) => [
-          `${offering.programId}|${academicModuleOrDefault(offering.track)}`,
+          `${offering.programId}|${academicModuleOrBlank(offering.track)}`,
           offering.isActive,
         ]),
       );
 
-      const excelOfferingKeys: Array<{ programId: string; track: AcademicModule }> = [];
+      const excelOfferingKeys: Array<{ programId: string; track: AcademicModuleSelection }> = [];
       let offeringsCreated = 0;
       let offeringsUpdated = 0;
       let offeringsReactivated = 0;
@@ -1438,6 +1473,7 @@ export async function applyPreparedAcademicOfferImport(params: {
             lineOfBusiness: row.lineOfBusiness,
             track: row.module,
             ...(row.pricingPlans !== null ? { pricingPlans: row.pricingPlans } : {}),
+            moduleCount: row.moduleCount,
             subjectsByModule: row.subjectsByModule,
             isActive: true,
             archivedAt: null,
@@ -1455,6 +1491,7 @@ export async function applyPreparedAcademicOfferImport(params: {
             ejecutivoSchedule: row.ejecutivoSchedule,
             lineOfBusiness: row.lineOfBusiness,
             pricingPlans: row.pricingPlans ?? [],
+            moduleCount: row.moduleCount,
             subjectsByModule: row.subjectsByModule,
             track: row.module,
             isActive: true,

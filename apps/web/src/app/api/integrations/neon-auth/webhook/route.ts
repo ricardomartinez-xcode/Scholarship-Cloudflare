@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicKey, verify } from "node:crypto";
+import { createPublicKey, verify, type JsonWebKey } from "node:crypto";
 
 export const runtime = "nodejs";
 

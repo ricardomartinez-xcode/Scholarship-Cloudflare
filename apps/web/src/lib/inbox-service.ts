@@ -183,6 +183,19 @@ export async function getInboxThreadAccessForUser(userId: string, threadId: stri
   };
 }
 
+function normalizeThreadSubject(subject: string | null | undefined) {
+  const value = String(subject ?? "").replace(/\s+/g, " ").trim();
+  return value ? value.slice(0, 140) : null;
+}
+
+async function requireInboxThreadParticipant(userId: string, threadId: string) {
+  const access = await getInboxThreadAccessForUser(userId, threadId);
+  if (!access?.canView) {
+    throw new Error("No tienes acceso a este hilo.");
+  }
+  return access;
+}
+
 export async function createInboxThreadForUser(input: {
   actorUserId: string;
   recipientUserId: string;
@@ -279,6 +292,42 @@ export async function createInboxThreadForUser(input: {
   });
 
   return thread.id;
+}
+
+export async function renameInboxThreadForUser(input: {
+  actorUserId: string;
+  threadId: string;
+  subject: string | null;
+}) {
+  await requireInboxThreadParticipant(input.actorUserId, input.threadId);
+  return prisma.inboxThread.update({
+    where: { id: input.threadId },
+    data: { subject: normalizeThreadSubject(input.subject) },
+    select: { id: true, subject: true, status: true },
+  });
+}
+
+export async function archiveInboxThreadForUser(input: {
+  actorUserId: string;
+  threadId: string;
+}) {
+  await requireInboxThreadParticipant(input.actorUserId, input.threadId);
+  return prisma.inboxThread.update({
+    where: { id: input.threadId },
+    data: { status: InboxThreadStatus.archived },
+    select: { id: true, subject: true, status: true },
+  });
+}
+
+export async function deleteInboxThreadForUser(input: {
+  actorUserId: string;
+  threadId: string;
+}) {
+  await requireInboxThreadParticipant(input.actorUserId, input.threadId);
+  return prisma.inboxThread.delete({
+    where: { id: input.threadId },
+    select: { id: true },
+  });
 }
 
 export async function listInboxMessagesForUser(userId: string, threadId: string) {

@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import AdminRowActions from "@/components/admin/AdminRowActions";
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import { formatAcademicPricingPlans } from "@/lib/academic-offer-plans";
-import { ACADEMIC_MODULES, type AcademicModule } from "@/lib/academic-modules";
+import {
+  ACADEMIC_MODULE_CHOICES,
+  formatAcademicModuleLabel,
+  type AcademicModuleSelection,
+} from "@/lib/academic-modules";
 import {
   ACADEMIC_OFFER_CYCLES,
   type AcademicOfferCycle,
@@ -44,6 +48,7 @@ type Summary = {
       horEjecutivo: number;
       planes: number | null;
       modulo: number | null;
+      moduleCount: number | null;
       materiasPorModulo: number | null;
       estado: number | null;
     };
@@ -72,7 +77,8 @@ type OfferPreviewRow = {
   line: string | null;
   modality: string;
   pricingPlans: number[];
-  module: AcademicModule;
+  module: AcademicModuleSelection;
+  moduleCount: number | null;
   subjectsByModule: string | null;
   delivery: "CAMPUS" | "ONLINE";
   escolarizado: boolean;
@@ -108,7 +114,8 @@ type ManualOfferDraft = {
   ejecutivoSchedule: string;
   lineOfBusiness: string;
   pricingPlans: string;
-  module: AcademicModule;
+  module: AcademicModuleSelection;
+  moduleCount: string;
   subjectsByModule: string;
   isActive: boolean;
 };
@@ -146,6 +153,7 @@ function buildManualDraft(params: {
       lineOfBusiness: row.line ?? "",
       pricingPlans: formatAcademicPricingPlans(row.pricingPlans),
       module: row.module,
+      moduleCount: row.moduleCount != null ? String(row.moduleCount) : "",
       subjectsByModule: row.subjectsByModule ?? "",
       isActive: row.isActive,
     };
@@ -167,7 +175,8 @@ function buildManualDraft(params: {
     ejecutivoSchedule: "",
     lineOfBusiness: defaultProgram?.businessLine ?? "",
     pricingPlans: "",
-    module: "Longitudinal",
+    module: "",
+    moduleCount: "",
     subjectsByModule: "",
     isActive: true,
   };
@@ -243,6 +252,7 @@ export default function OfferImportClient({
         row.line,
         row.modality,
         row.module,
+        row.moduleCount,
         row.subjectsByModule,
         row.cycle,
       ]
@@ -414,7 +424,6 @@ export default function OfferImportClient({
           <col className="w-[9%]" />
           <col className="w-[12%]" />
           <col className="w-[6%]" />
-          <col className="w-[6%]" />
           <col className="w-[7%]" />
         </colgroup>
         <thead>
@@ -426,8 +435,7 @@ export default function OfferImportClient({
             <th className="ui-cell-nowrap text-left">Modalidad</th>
             <th className="ui-cell-nowrap text-left">Planes</th>
             <th className="ui-cell-nowrap text-left">Módulo</th>
-            <th className="ui-cell-nowrap text-left">Materias por módulo</th>
-            <th className="ui-cell-nowrap text-left">PDF</th>
+            <th className="ui-cell-nowrap text-left">No. módulos</th>
             <th className="ui-cell-nowrap text-left">Estado</th>
             <th className="ui-cell-nowrap text-right">Acciones</th>
           </tr>
@@ -447,11 +455,8 @@ export default function OfferImportClient({
                 <td className="ui-cell-nowrap text-slate-300">
                   {row.pricingPlans.length ? formatAcademicPricingPlans(row.pricingPlans) : "Legacy"}
                 </td>
-                <td className="ui-cell-nowrap text-slate-300">{row.module}</td>
-                <td className="text-xs text-slate-300">{row.subjectsByModule ?? "—"}</td>
-                <td className="ui-cell-nowrap text-slate-300">
-                  {row.hasPlanPdf || row.hasBrochurePdf ? "Sí" : "No"}
-                </td>
+                <td className="ui-cell-nowrap text-slate-300">{formatAcademicModuleLabel(row.module)}</td>
+                <td className="text-xs text-slate-300">{row.moduleCount ?? row.subjectsByModule ?? "—"}</td>
                 <td className="ui-cell-nowrap">
                   <span
                     className={[
@@ -490,7 +495,7 @@ export default function OfferImportClient({
             ))
           ) : (
             <tr>
-                <td className="text-slate-400" colSpan={11}>
+                <td className="text-slate-400" colSpan={10}>
                 No hay ofertas con los filtros seleccionados.
               </td>
             </tr>
@@ -648,7 +653,7 @@ export default function OfferImportClient({
                 >
                   {programOptions.map((program) => (
                     <option key={program.id} value={program.id}>
-                      {program.name}{program.businessLine ? ` · ${LINE_LABELS[program.businessLine] ?? program.businessLine}` : ""}{program.hasPlanPdf ? " · PDF" : ""}
+                      {program.name}{program.businessLine ? ` · ${LINE_LABELS[program.businessLine] ?? program.businessLine}` : ""}
                     </option>
                   ))}
                 </select>
@@ -668,8 +673,9 @@ export default function OfferImportClient({
                 </label>
                 <label className="grid gap-2 text-sm">
                   Módulo
-                  <select name="module" value={manualDraft.module} onChange={(event) => setManualDraft((current) => current ? { ...current, module: event.target.value as AcademicModule } : current)} className="ui-control">
-                    {ACADEMIC_MODULES.map((item) => <option key={item} value={item}>{item}</option>)}
+                  <select name="module" value={manualDraft.module} onChange={(event) => setManualDraft((current) => current ? { ...current, module: event.target.value as AcademicModuleSelection } : current)} className="ui-control">
+                    <option value="">Sin módulo</option>
+                    {ACADEMIC_MODULE_CHOICES.map((item) => <option key={item} value={item}>{formatAcademicModuleLabel(item)}</option>)}
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm">
@@ -691,10 +697,16 @@ export default function OfferImportClient({
                 </label>
               </div>
 
-              <label className="grid gap-2 text-sm">
-                Materias por módulo
-                <input name="subjectsByModule" value={manualDraft.subjectsByModule} onChange={(event) => setManualDraft((current) => current ? { ...current, subjectsByModule: event.target.value } : current)} className="ui-control" placeholder="Ej. M1: 3 materias; M2: 4 materias" />
-              </label>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <label className="grid gap-2 text-sm">
+                  No. de módulos
+                  <input name="moduleCount" value={manualDraft.moduleCount} onChange={(event) => setManualDraft((current) => current ? { ...current, moduleCount: event.target.value } : current)} className="ui-control" inputMode="numeric" placeholder="Ej. 3" />
+                </label>
+                <label className="grid gap-2 text-sm">
+                  Materias por módulo (legacy)
+                  <input name="subjectsByModule" value={manualDraft.subjectsByModule} onChange={(event) => setManualDraft((current) => current ? { ...current, subjectsByModule: event.target.value } : current)} className="ui-control" placeholder="Ej. M1: 3 materias; M2: 4 materias" />
+                </label>
+              </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="grid gap-2 text-sm">

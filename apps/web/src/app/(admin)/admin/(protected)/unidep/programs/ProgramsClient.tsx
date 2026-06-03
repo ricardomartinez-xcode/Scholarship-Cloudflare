@@ -7,7 +7,11 @@ import AdminDataTable from "@/components/admin/AdminDataTable";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
 import AdminRowActions from "@/components/admin/AdminRowActions";
 import type { FileAssetRecord, PublicFileAssetPayload } from "@/lib/file-assets";
-import { deleteProgramAction, updateProgramUnidepAction } from "./actions";
+import {
+  createProgramUnidepAction,
+  deleteProgramAction,
+  updateProgramUnidepAction,
+} from "./actions";
 
 type BusinessLine = "salud" | "licenciatura" | "prepa" | "posgrado";
 
@@ -84,6 +88,7 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
   const [lineFilter, setLineFilter] = useState("");
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Program | null>(null);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -120,6 +125,14 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
 
   function openEdit(program: Program) {
     setEditing(program);
+    setCreating(false);
+    setError("");
+    setSuccess("");
+  }
+
+  function openCreate() {
+    setCreating(true);
+    setEditing(null);
     setError("");
     setSuccess("");
   }
@@ -155,6 +168,23 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
     });
   }
 
+  function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget);
+    setError("");
+    setSuccess("");
+    startTransition(async () => {
+      const res = await createProgramUnidepAction(fd);
+      if (res.ok) {
+        setSuccess("Programa creado.");
+        setCreating(false);
+        router.refresh();
+        return;
+      }
+      setError(res.error ?? "Error desconocido.");
+    });
+  }
+
   return (
     <div className="grid gap-5">
       <div className="rounded-[26px] border border-[#c8d6e2] bg-white p-4 shadow-[0_16px_50px_rgb(16_32_42/0.06)] sm:p-5">
@@ -164,9 +194,14 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
             <h2 className="mt-1 text-xl font-black tracking-[-0.035em] text-[#102838]">Catálogo de PDFs y metadata</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">Administra campos operativos, línea de negocio y archivos R2 por programa.</p>
           </div>
-          <button type="button" onClick={() => setTableExpanded((prev) => !prev)} className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-white px-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
-            {tableExpanded ? "Contraer tabla" : "Expandir tabla"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={openCreate} className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-xs font-extrabold uppercase tracking-[0.16em] text-white transition hover:bg-[#0b3d56]">
+              Nuevo programa
+            </button>
+            <button type="button" onClick={() => setTableExpanded((prev) => !prev)} className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-white px-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">
+              {tableExpanded ? "Contraer tabla" : "Expandir tabla"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -269,7 +304,8 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">Nombre del programa<input name="name" defaultValue={editing.name} className="ui-control" placeholder="Nombre del programa" /></label>
               <label className="grid gap-2 text-sm font-bold text-[#163247]">Categoría<input name="category" defaultValue={editing.category ?? ""} className="ui-control" placeholder="Ej. Salud, Ingeniería, Maestría" /></label>
-              <label className="grid gap-2 text-sm font-bold text-[#163247]">Línea de negocio<select name="businessLine" defaultValue={editing.businessLine ?? ""} className="ui-control"><option value="">Sin asignar</option><option value="salud">Salud</option><option value="licenciatura">Licenciatura</option><option value="prepa">Bachillerato</option><option value="posgrado">Posgrado</option></select></label>
+              <label className="grid gap-2 text-sm font-bold text-[#163247]">Nivel interno<input name="level" defaultValue={editing.level ?? ""} className="ui-control" placeholder="Ej. LICENCIATURA" /></label>
+              <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">Línea de negocio<select name="businessLine" defaultValue={editing.businessLine ?? ""} className="ui-control"><option value="">Sin asignar</option><option value="salud">Salud</option><option value="licenciatura">Licenciatura</option><option value="prepa">Bachillerato</option><option value="posgrado">Posgrado</option></select></label>
               <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">URL Plan PDF<input name="planPdfUrl" defaultValue={editing.planPdfUrl ?? ""} className="ui-control" placeholder="https://..." /></label>
               <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">URL Brochure PDF<input name="brochurePdfUrl" defaultValue={editing.brochurePdfUrl ?? ""} className="ui-control" placeholder="https://..." /></label>
             </div>
@@ -290,6 +326,33 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
             </div>
           </form>
         ) : null}
+      </AdminDialogShell>
+      <AdminDialogShell open={creating} onOpenChange={(open) => { if (!open) setCreating(false); }} title="Nuevo programa" description="Crea un plan de estudios manual y vincula assets R2 si ya están cargados." kicker="Programas" size="lg">
+        <form onSubmit={handleCreateSubmit} className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">Nombre del programa<input name="name" className="ui-control" placeholder="Nombre del programa" required /></label>
+            <label className="grid gap-2 text-sm font-bold text-[#163247]">Categoría<input name="category" className="ui-control" placeholder="Ej. Salud, Ingeniería, Maestría" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[#163247]">Nivel interno<input name="level" className="ui-control" placeholder="Ej. LICENCIATURA" /></label>
+            <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">Línea de negocio<select name="businessLine" defaultValue="" className="ui-control"><option value="">Sin asignar</option><option value="salud">Salud</option><option value="licenciatura">Licenciatura</option><option value="prepa">Bachillerato</option><option value="posgrado">Posgrado</option></select></label>
+            <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">URL Plan PDF<input name="planPdfUrl" className="ui-control" placeholder="https://..." /></label>
+            <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">URL Brochure PDF<input name="brochurePdfUrl" className="ui-control" placeholder="https://..." /></label>
+          </div>
+          <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+            <div><div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Assets R2 del programa</div><p className="mt-1 text-xs text-slate-400">Selecciona archivos ya cargados en R2. También puedes dejarlo vacío y vincularlos después.</p></div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <AssetSelect label="Plan PDF" name="r2StudyPlanFileId" assets={pdfAssets} />
+              <AssetSelect label="Brochure PDF" name="r2BrochureFileId" assets={pdfAssets} />
+              <AssetSelect label="Imagen principal" name="r2HeroImageFileId" assets={imageAssets} />
+              <AssetSelect label="Miniatura catálogo" name="r2ThumbnailImageFileId" assets={imageAssets} />
+            </div>
+          </div>
+          {error ? <div className="rounded-[18px] border border-[#8a2d2d]/20 bg-[#fde7e7] px-4 py-2 text-sm font-semibold text-[#8a2d2d]">{error}</div> : null}
+          {success ? <div className="rounded-[18px] border border-[#0c5f3a]/20 bg-[#ddf8ea] px-4 py-2 text-sm font-semibold text-[#0c5f3a]">{success}</div> : null}
+          <div className="sticky bottom-0 flex justify-end gap-2 border-t border-[#c8d6e2] bg-white/95 pt-4">
+            <button type="button" onClick={() => setCreating(false)} className="rounded-full border border-[#c8d6e2] bg-white px-4 py-2 text-sm font-bold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10">Cancelar</button>
+            <button type="submit" disabled={isPending} className="rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0b3d56] disabled:border-[#c8d6e2] disabled:bg-[#e5ebef] disabled:text-[#647684]">{isPending ? "Creando..." : "Crear programa"}</button>
+          </div>
+        </form>
       </AdminDialogShell>
     </div>
   );

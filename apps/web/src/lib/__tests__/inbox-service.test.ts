@@ -11,6 +11,7 @@ const { prismaMock } = vi.hoisted(() => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     inboxMessage: {
       findMany: vi.fn(),
@@ -31,8 +32,11 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import {
+  archiveInboxThreadForUser,
   createInboxThreadForUser,
+  deleteInboxThreadForUser,
   listInboxThreadsForUser,
+  renameInboxThreadForUser,
 } from "@/lib/inbox-service";
 
 describe("inbox-service", () => {
@@ -155,5 +159,82 @@ describe("inbox-service", () => {
       }),
     ).rejects.toThrow("inactivo");
     expect(prismaMock.inboxThread.create).not.toHaveBeenCalled();
+  });
+
+  it("renames a thread when the actor is a participant", async () => {
+    prismaMock.inboxThread.findUnique.mockResolvedValue({
+      id: "thread-1",
+      subject: null,
+      status: "active",
+      organizationId: null,
+      participants: [{ id: "participant-1" }],
+    });
+    prismaMock.inboxThread.update.mockResolvedValue({
+      id: "thread-1",
+      subject: "Seguimiento beca",
+      status: "active",
+    });
+
+    const thread = await renameInboxThreadForUser({
+      actorUserId: "user-1",
+      threadId: "thread-1",
+      subject: "Seguimiento beca",
+    });
+
+    expect(prismaMock.inboxThread.update).toHaveBeenCalledWith({
+      where: { id: "thread-1" },
+      data: { subject: "Seguimiento beca" },
+      select: { id: true, subject: true, status: true },
+    });
+    expect(thread.subject).toBe("Seguimiento beca");
+  });
+
+  it("archives a thread when the actor is a participant", async () => {
+    prismaMock.inboxThread.findUnique.mockResolvedValue({
+      id: "thread-1",
+      subject: "Seguimiento",
+      status: "active",
+      organizationId: null,
+      participants: [{ id: "participant-1" }],
+    });
+    prismaMock.inboxThread.update.mockResolvedValue({
+      id: "thread-1",
+      subject: "Seguimiento",
+      status: "archived",
+    });
+
+    const thread = await archiveInboxThreadForUser({
+      actorUserId: "user-1",
+      threadId: "thread-1",
+    });
+
+    expect(prismaMock.inboxThread.update).toHaveBeenCalledWith({
+      where: { id: "thread-1" },
+      data: { status: "archived" },
+      select: { id: true, subject: true, status: true },
+    });
+    expect(thread.status).toBe("archived");
+  });
+
+  it("deletes a thread when the actor is a participant", async () => {
+    prismaMock.inboxThread.findUnique.mockResolvedValue({
+      id: "thread-1",
+      subject: "Seguimiento",
+      status: "active",
+      organizationId: null,
+      participants: [{ id: "participant-1" }],
+    });
+    prismaMock.inboxThread.delete.mockResolvedValue({ id: "thread-1" });
+
+    const thread = await deleteInboxThreadForUser({
+      actorUserId: "user-1",
+      threadId: "thread-1",
+    });
+
+    expect(prismaMock.inboxThread.delete).toHaveBeenCalledWith({
+      where: { id: "thread-1" },
+      select: { id: true },
+    });
+    expect(thread.id).toBe("thread-1");
   });
 });

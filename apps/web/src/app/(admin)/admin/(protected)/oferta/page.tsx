@@ -7,8 +7,8 @@ import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
 import { canPublishConfigWithAdmin } from "@/lib/admin-publish-auth";
 import { getConfigPublicationState } from "@/lib/admin-config-snapshots";
 import { getAcademicOfferVisibleCycles } from "@/lib/academic-offer-config";
-import { academicModuleOrDefault } from "@/lib/academic-modules";
-import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
+import { academicModuleOrBlank } from "@/lib/academic-modules";
+import { listProgramOfferingModuleMetaById } from "@/lib/program-offering-subjects";
 import { prisma } from "@/lib/prisma";
 import OfferImportClient from "@/components/admin/OfferImportClient";
 import {
@@ -88,7 +88,7 @@ export default async function OfertaPage() {
       },
     }),
   ]);
-  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+  const moduleMetaByOfferingId = await listProgramOfferingModuleMetaById(
     previewRows.map((row) => row.id),
   );
 
@@ -145,8 +145,9 @@ export default async function OfertaPage() {
           line: row.lineOfBusiness ?? row.program.businessLine ?? null,
           modality: getModalityLabel(row),
           pricingPlans: row.pricingPlans ?? [],
-          module: academicModuleOrDefault(row.track),
-          subjectsByModule: subjectsByOfferingId.get(row.id) ?? null,
+          module: academicModuleOrBlank(row.track),
+          moduleCount: moduleMetaByOfferingId.get(row.id)?.moduleCount ?? null,
+          subjectsByModule: moduleMetaByOfferingId.get(row.id)?.subjectsByModule ?? null,
           delivery: row.delivery,
           escolarizado: row.escolarizado,
           ejecutivo: row.ejecutivo,

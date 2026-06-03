@@ -599,6 +599,7 @@ model ProgramOffering {
   ejecutivoSchedule    String?
   lineOfBusiness       String?
   pricingPlans         Int[]                   @default([])
+  moduleCount          Int?                    @map("module_count")
   subjectsByModule     String?                 @map("subjects_by_module")
   isActive             Boolean                 @default(true)
   archivedAt           DateTime?

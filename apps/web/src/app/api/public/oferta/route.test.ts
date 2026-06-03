@@ -4,6 +4,7 @@ const {
   getSessionUserMock,
   getPublishedConfigSnapshotMock,
   getAcademicOfferVisibleCyclesMock,
+  listFileAssetAssignmentsForTargetsMock,
   listContentBucketObjectsMock,
   listFileAssetsMock,
   logPublicRouteTimingMock,
@@ -12,6 +13,7 @@ const {
   getSessionUserMock: vi.fn(),
   getPublishedConfigSnapshotMock: vi.fn(),
   getAcademicOfferVisibleCyclesMock: vi.fn(),
+  listFileAssetAssignmentsForTargetsMock: vi.fn(),
   listContentBucketObjectsMock: vi.fn(),
   listFileAssetsMock: vi.fn(),
   logPublicRouteTimingMock: vi.fn(),
@@ -67,7 +69,7 @@ vi.mock("@/lib/file-assets", () => ({
     previewUrl: `/api/files/${file.id}/auth-view`,
     downloadUrl: `/api/files/${file.id}/download`,
   })),
-  listFileAssetAssignmentsForTargets: vi.fn().mockResolvedValue(new Map()),
+  listFileAssetAssignmentsForTargets: listFileAssetAssignmentsForTargetsMock,
   listFileAssets: listFileAssetsMock,
   resolveProgramR2AssetPayload: vi.fn((input) => ({
     planPdfUrl: input.assets?.study_plan_pdf?.previewUrl ?? input.planPdfUrl,
@@ -114,6 +116,7 @@ describe("GET /api/public/oferta", () => {
       email: "asesor@example.com",
     });
     getAcademicOfferVisibleCyclesMock.mockResolvedValue(["C1"]);
+    listFileAssetAssignmentsForTargetsMock.mockResolvedValue(new Map());
     listContentBucketObjectsMock.mockResolvedValue([]);
     listFileAssetsMock.mockResolvedValue([]);
     getPublishedConfigSnapshotMock.mockResolvedValue({
@@ -210,7 +213,7 @@ describe("GET /api/public/oferta", () => {
     ]);
   });
 
-  it("uses the matching R2 content bucket PDF before the legacy program URL", async () => {
+  it("keeps legacy plan URLs when matching bucket PDFs are not explicitly linked", async () => {
     listContentBucketObjectsMock.mockResolvedValue([
       {
         key: "Licenciatura/Administracion actualizada.pdf",
@@ -232,14 +235,49 @@ describe("GET /api/public/oferta", () => {
     expect(response.status).toBe(200);
     expect(data.programs[0]).toMatchObject({
       name: "Administracion actualizada",
-      planPdfUrl: "https://r2.example/Licenciatura/Administracion%20actualizada.pdf",
-      planDownloadUrl:
-        "https://r2.example/Licenciatura/Administracion%20actualizada.pdf?download=1",
+      planPdfUrl: "https://example.com/current.pdf",
+      planDownloadUrl: "https://example.com/current.pdf",
     });
     expect(data.offerings[0]).toMatchObject({
-      planLink: "https://r2.example/Licenciatura/Administracion%20actualizada.pdf",
-      planDownloadLink:
-        "https://r2.example/Licenciatura/Administracion%20actualizada.pdf?download=1",
+      planLink: "https://example.com/current.pdf",
+      planDownloadLink: "https://example.com/current.pdf",
+    });
+  });
+
+  it("uses explicitly linked R2 study plan assets before legacy program URLs", async () => {
+    listFileAssetAssignmentsForTargetsMock.mockResolvedValue(
+      new Map([
+        [
+          "program_1",
+          {
+            study_plan_pdf: {
+              fileId: "file_program_1_plan",
+              fileName: "Administracion actualizada.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 123,
+              previewUrl: "/api/files/file_program_1_plan/auth-view",
+              downloadUrl: "/api/files/file_program_1_plan/download",
+            },
+          },
+        ],
+      ]),
+    );
+
+    const response = await GET(new Request("http://localhost/api/public/oferta?cycle=C1"));
+    const data = (await response.json()) as {
+      programs: Array<{ name: string; planPdfUrl: string | null; planDownloadUrl: string | null }>;
+      offerings: Array<{ planLink: string | null; planDownloadLink: string | null }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(data.programs[0]).toMatchObject({
+      name: "Administracion actualizada",
+      planPdfUrl: "/api/files/file_program_1_plan/auth-view",
+      planDownloadUrl: "/api/files/file_program_1_plan/download",
+    });
+    expect(data.offerings[0]).toMatchObject({
+      planLink: "/api/files/file_program_1_plan/auth-view",
+      planDownloadLink: "/api/files/file_program_1_plan/download",
     });
   });
 });

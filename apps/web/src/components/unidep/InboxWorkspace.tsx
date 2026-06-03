@@ -9,7 +9,6 @@ import {
   useState,
 } from "react";
 
-import SmartSelect from "@/components/SmartSelect";
 import {
   ChatAvatar,
   ChatEmptyState,
@@ -147,10 +146,14 @@ export default function InboxWorkspace({
   const [eligibleUsers, setEligibleUsers] = useState<EligibleUser[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState(initialThreadId);
   const [recipientUserId, setRecipientUserId] = useState("");
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [threadSubject, setThreadSubject] = useState("");
+  const [renameSubject, setRenameSubject] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreatingThread, setIsCreatingThread] = useState(false);
   const [isRefreshingThreads, setIsRefreshingThreads] = useState(false);
+  const [isUpdatingThread, setIsUpdatingThread] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unreadByThread, setUnreadByThread] = useState<Record<string, number>>({});
@@ -214,6 +217,12 @@ export default function InboxWorkspace({
   const activeThread =
     threads.find((thread) => thread.id === selectedThreadId) ?? null;
 
+  useEffect(() => {
+    setRenameSubject(
+      activeThread ? activeThread.subject ?? threadTitle(activeThread, viewer) : "",
+    );
+  }, [activeThread, viewer]);
+
   const { messages, setMessages, isLoading, error: messagesError } =
     useRealtimeMessages<MessageSummary>({
       fetchUrl: selectedThreadId
@@ -267,14 +276,18 @@ export default function InboxWorkspace({
     activeThread?.lastMessagePreview ??
     "";
 
-  const eligibleUserOptions = useMemo(
-    () =>
-      eligibleUsers.map((user) => ({
-        value: user.userId,
-        label: `${user.displayName} · ${user.email}`,
-        keywords: `${user.displayName} ${user.email}`,
-      })),
-    [eligibleUsers],
+  const eligibleUserMatches = useMemo(() => {
+    const normalizedQuery = recipientSearch.trim().toLowerCase();
+    const rows = eligibleUsers.filter((user) => {
+      if (!normalizedQuery) return true;
+      return `${user.displayName} ${user.email}`.toLowerCase().includes(normalizedQuery);
+    });
+    return rows.slice(0, 6);
+  }, [eligibleUsers, recipientSearch]);
+
+  const selectedRecipient = useMemo(
+    () => eligibleUsers.find((user) => user.userId === recipientUserId) ?? null,
+    [eligibleUsers, recipientUserId],
   );
 
   const refreshThreads = useCallback(async () => {
@@ -332,10 +345,15 @@ export default function InboxWorkspace({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipientUserId }),
+          body: JSON.stringify({
+            recipientUserId,
+            subject: threadSubject.trim() || null,
+          }),
         },
       );
       setRecipientUserId("");
+      setRecipientSearch("");
+      setThreadSubject("");
       await refreshThreads();
       setSelectedThreadId(payload.threadId);
       setError(null);
@@ -347,6 +365,96 @@ export default function InboxWorkspace({
       );
     } finally {
       setIsCreatingThread(false);
+    }
+  }
+
+  async function renameActiveThread() {
+    if (!activeThread || isUpdatingThread) return;
+    setIsUpdatingThread(true);
+    try {
+      const payload = await readJson<{ thread: Pick<ThreadSummary, "id" | "subject" | "status"> }>(
+        `/api/unidep/inbox/threads/${activeThread.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject: renameSubject.trim() || null }),
+        },
+      );
+      setThreads((current) =>
+        current.map((thread) =>
+          thread.id === activeThread.id
+            ? { ...thread, subject: payload.thread.subject ?? null }
+            : thread,
+        ),
+      );
+      setError(null);
+    } catch (renameError) {
+      setError(
+        renameError instanceof Error
+          ? renameError.message
+          : "No se pudo renombrar la conversación.",
+      );
+    } finally {
+      setIsUpdatingThread(false);
+    }
+  }
+
+  async function archiveActiveThread() {
+    if (!activeThread || isUpdatingThread) return;
+    setIsUpdatingThread(true);
+    try {
+      const payload = await readJson<{ thread: Pick<ThreadSummary, "id" | "subject" | "status"> }>(
+        `/api/unidep/inbox/threads/${activeThread.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "archived" }),
+        },
+      );
+      setThreads((current) =>
+        current.map((thread) =>
+          thread.id === activeThread.id
+            ? { ...thread, status: payload.thread.status }
+            : thread,
+        ),
+      );
+      setError(null);
+    } catch (archiveError) {
+      setError(
+        archiveError instanceof Error
+          ? archiveError.message
+          : "No se pudo archivar la conversación.",
+      );
+    } finally {
+      setIsUpdatingThread(false);
+    }
+  }
+
+  async function deleteActiveThread() {
+    if (!activeThread || isUpdatingThread) return;
+    const confirmed = window.confirm(`Eliminar "${threadTitle(activeThread, viewer)}"?`);
+    if (!confirmed) return;
+    setIsUpdatingThread(true);
+    try {
+      await readJson<{ thread: { id: string } }>(
+        `/api/unidep/inbox/threads/${activeThread.id}`,
+        { method: "DELETE" },
+      );
+      setThreads((current) => {
+        const next = current.filter((thread) => thread.id !== activeThread.id);
+        setSelectedThreadId(next[0]?.id ?? "");
+        return next;
+      });
+      setMessages([]);
+      setError(null);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "No se pudo eliminar la conversación.",
+      );
+    } finally {
+      setIsUpdatingThread(false);
     }
   }
 
@@ -554,15 +662,55 @@ export default function InboxWorkspace({
               <label className="ui-inbox-compose__label">
                 Iniciar conversación
               </label>
-              <SmartSelect
-                value={recipientUserId}
-                placeholder="Selecciona un contacto"
-                options={eligibleUserOptions}
-                onChange={setRecipientUserId}
-                searchEnabled
-                disabled={!eligibleUserOptions.length || isCreatingThread}
+              <input
+                value={recipientSearch}
+                onChange={(event) => setRecipientSearch(event.target.value)}
+                className="ui-chat-search"
+                placeholder="Buscar usuario por nombre o correo"
+                disabled={!eligibleUsers.length || isCreatingThread}
               />
             </div>
+            <div className="ui-inbox-user-picker">
+              {eligibleUserMatches.map((user) => {
+                const selected = user.userId === recipientUserId;
+                return (
+                  <button
+                    key={user.userId}
+                    type="button"
+                    className={[
+                      "ui-inbox-user-card",
+                      selected ? "ui-inbox-user-card--active" : "",
+                    ].join(" ")}
+                    onClick={() => setRecipientUserId(user.userId)}
+                  >
+                    <span className="ui-inbox-user-card__avatar">
+                      {avatarLabel(user.displayName)}
+                    </span>
+                    <span className="ui-inbox-user-card__main">
+                      <span className="ui-inbox-user-card__name">{user.displayName}</span>
+                      <span className="ui-inbox-user-card__email">{user.email}</span>
+                    </span>
+                  </button>
+                );
+              })}
+              {!eligibleUserMatches.length ? (
+                <div className="ui-inbox-user-card ui-inbox-user-card--empty">
+                  Sin usuarios disponibles.
+                </div>
+              ) : null}
+            </div>
+            <input
+              value={threadSubject}
+              onChange={(event) => setThreadSubject(event.target.value)}
+              className="ui-chat-search"
+              placeholder="Nombre de conversación (opcional)"
+              disabled={!recipientUserId || isCreatingThread}
+            />
+            {selectedRecipient ? (
+              <div className="ui-inbox-compose__selected">
+                Para: <strong>{selectedRecipient.displayName}</strong>
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => void createThread()}
@@ -692,7 +840,44 @@ export default function InboxWorkspace({
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="ui-inbox-thread-actions">
+            {activeThread ? (
+              <>
+                <div className="ui-inbox-rename">
+                  <input
+                    value={renameSubject}
+                    onChange={(event) => setRenameSubject(event.target.value)}
+                    className="ui-chat-search"
+                    placeholder="Nombre de conversación"
+                    disabled={isUpdatingThread}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void renameActiveThread()}
+                    className="ui-admin-action ui-admin-action--secondary"
+                    disabled={isUpdatingThread}
+                  >
+                    Renombrar
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void archiveActiveThread()}
+                  className="ui-admin-action ui-admin-action--secondary"
+                  disabled={isUpdatingThread || activeThread.status === "archived"}
+                >
+                  Archivar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void deleteActiveThread()}
+                  className="ui-admin-action ui-admin-action--danger"
+                  disabled={isUpdatingThread}
+                >
+                  Eliminar
+                </button>
+              </>
+            ) : null}
             <button
               type="button"
               onClick={() => void refreshThreads()}
@@ -812,7 +997,9 @@ export default function InboxWorkspace({
             aria-label="Mensaje interno"
             aria-keyshortcuts="Enter Control+Enter Meta+Enter Shift+Enter"
             placeholder={
-              activeThread
+              activeThread?.status === "archived"
+                ? "Conversación archivada"
+                : activeThread
                 ? "Escribe un mensaje interno..."
                 : "Selecciona un chat para empezar"
             }

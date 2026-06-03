@@ -1,8 +1,10 @@
-export const ACADEMIC_MODULES = ["Modular", "M1", "M2", "M3", "Longitudinal"] as const;
+export const ACADEMIC_MODULE_CHOICES = ["M1", "M2", "M3", "Longitudinal"] as const;
+export const ACADEMIC_MODULES = [...ACADEMIC_MODULE_CHOICES, "Modular"] as const;
 export const ACADEMIC_MODULE_PARTS = ["M1", "M2", "M3"] as const;
 
 export type AcademicModule = (typeof ACADEMIC_MODULES)[number];
 export type AcademicModulePart = (typeof ACADEMIC_MODULE_PARTS)[number];
+export type AcademicModuleSelection = AcademicModule | "";
 
 function normalizeText(value: unknown) {
   return String(value ?? "")
@@ -13,9 +15,9 @@ function normalizeText(value: unknown) {
 }
 
 const MODULE_TOKEN_PATTERNS: Array<[AcademicModulePart, RegExp[]]> = [
-  ["M1", [/\bm1\b/, /\bmodulo\s*1\b/, /\bmodulo\s*i\b/]],
-  ["M2", [/\bm2\b/, /\bmodulo\s*2\b/, /\bmodulo\s*ii\b/]],
-  ["M3", [/\bm3\b/, /\bmodulo\s*3\b/, /\bmodulo\s*iii\b/]],
+  ["M1", [/\bm1\b/, /\b1\b/, /\bmodulo\s*1\b/, /\bmodulo\s*i\b/]],
+  ["M2", [/\bm2\b/, /\b2\b/, /\bmodulo\s*2\b/, /\bmodulo\s*ii\b/]],
+  ["M3", [/\bm3\b/, /\b3\b/, /\bmodulo\s*3\b/, /\bmodulo\s*iii\b/]],
 ];
 
 function isExplicitModular(value: string) {
@@ -70,8 +72,21 @@ export function normalizeAcademicModuleDisplay(value: unknown): string {
   return String(value ?? "").trim() || "Longitudinal";
 }
 
+export function formatAcademicModuleLabel(value: unknown): string {
+  if (!String(value ?? "").trim()) return "Sin módulo";
+  const normalizedModule = normalizeAcademicModule(value);
+  if (normalizedModule === "M1") return "1";
+  if (normalizedModule === "M2") return "2";
+  if (normalizedModule === "M3") return "3";
+  return normalizeAcademicModuleDisplay(value);
+}
+
 export function academicModuleOrDefault(value: unknown): AcademicModule {
   return normalizeAcademicModule(value) ?? "Longitudinal";
+}
+
+export function academicModuleOrBlank(value: unknown): AcademicModuleSelection {
+  return normalizeAcademicModule(value) ?? "";
 }
 
 export function academicModuleMatches(

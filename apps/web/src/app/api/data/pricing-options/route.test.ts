@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getSessionUserMock,
+  listFileAssetAssignmentsForTargetsMock,
   listContentBucketObjectsMock,
   listFileAssetsMock,
   prismaMock,
 } = vi.hoisted(() => ({
   getSessionUserMock: vi.fn(),
+  listFileAssetAssignmentsForTargetsMock: vi.fn(),
   listContentBucketObjectsMock: vi.fn(),
   listFileAssetsMock: vi.fn(),
   prismaMock: {
@@ -36,7 +38,7 @@ vi.mock("@/lib/file-assets", () => ({
     previewUrl: `/api/files/${file.id}/auth-view`,
     downloadUrl: `/api/files/${file.id}/download`,
   })),
-  listFileAssetAssignmentsForTargets: vi.fn().mockResolvedValue(new Map()),
+  listFileAssetAssignmentsForTargets: listFileAssetAssignmentsForTargetsMock,
   listFileAssets: listFileAssetsMock,
   resolveProgramR2AssetPayload: vi.fn((input) => ({
     planPdfUrl: input.assets?.study_plan_pdf?.previewUrl ?? input.planPdfUrl,
@@ -126,6 +128,7 @@ describe("GET /api/data/pricing-options", () => {
       },
     ]);
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+    listFileAssetAssignmentsForTargetsMock.mockResolvedValue(new Map());
     listContentBucketObjectsMock.mockResolvedValue([]);
     listFileAssetsMock.mockResolvedValue([]);
     prismaMock.program.findMany.mockResolvedValue([
@@ -551,7 +554,7 @@ describe("GET /api/data/pricing-options", () => {
     ]);
   });
 
-  it("prefers a synced R2 file asset over a legacy Drive URL when no explicit usage is assigned", async () => {
+  it("does not auto-attach synced R2 bucket files when no explicit program usage is assigned", async () => {
     listFileAssetsMock.mockResolvedValue([
       {
         id: "file_posgrado_plan",
@@ -562,6 +565,37 @@ describe("GET /api/data/pricing-options", () => {
         updatedAt: new Date("2026-06-01T00:00:00.000Z"),
       },
     ]);
+
+    const response = await GET();
+    const data = (await response.json()) as {
+      studyPrograms: Array<{ id: string; planPdfUrl: string; planDownloadUrl: string | null }>;
+    };
+
+    const program = data.studyPrograms.find((item) => item.id === "program_posgrado");
+
+    expect(response.status).toBe(200);
+    expect(program?.planPdfUrl).toBe("https://example.com/posgrado.pdf");
+    expect(program?.planDownloadUrl).toBe("https://example.com/posgrado.pdf");
+  });
+
+  it("uses an explicitly linked R2 study plan asset as the canonical program plan", async () => {
+    listFileAssetAssignmentsForTargetsMock.mockResolvedValue(
+      new Map([
+        [
+          "program_posgrado",
+          {
+            study_plan_pdf: {
+              fileId: "file_posgrado_plan",
+              fileName: "Maestria en Educacion.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 123,
+              previewUrl: "/api/files/file_posgrado_plan/auth-view",
+              downloadUrl: "/api/files/file_posgrado_plan/download",
+            },
+          },
+        ],
+      ]),
+    );
 
     const response = await GET();
     const data = (await response.json()) as {

@@ -526,7 +526,9 @@ select option {
 .ui-chat-workspace {
   display: grid;
   gap: 18px;
-  min-height: min(78vh, 920px);
+  height: min(78vh, 920px);
+  min-height: 560px;
+  max-height: calc(100svh - 150px);
   grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
 }
 
@@ -537,6 +539,7 @@ select option {
 .ui-chat-sidebar,
 .ui-chat-main,
 .ui-chat-panel {
+  min-height: 0;
   border-radius: 28px;
   border: 1px solid rgba(17, 78, 109, 0.08);
   box-shadow: 0 18px 40px rgba(16, 52, 76, 0.1);
@@ -550,7 +553,7 @@ select option {
 
 .ui-chat-main {
   display: grid;
-  grid-template-rows: 78px minmax(0, 1fr) 92px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   background: #e8f0f6;
 }
@@ -1118,6 +1121,8 @@ select option {
   .ui-chat-workspace,
   .ui-chat-workspace--with-panel {
     grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
     min-height: auto;
   }
 
@@ -2803,12 +2808,15 @@ select:-webkit-autofill {
 .ui-inbox-workspace {
   display: grid;
   gap: 18px;
-  min-height: min(78vh, 920px);
+  height: min(78vh, 920px);
+  min-height: 560px;
+  max-height: calc(100svh - 150px);
   grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
 }
 
 .ui-inbox-sidebar,
 .ui-inbox-main {
+  min-height: 0;
   border-radius: 28px;
   border: 1px solid rgba(17, 78, 109, 0.08);
   box-shadow: 0 18px 40px rgba(16, 52, 76, 0.1);
@@ -2842,6 +2850,7 @@ select:-webkit-autofill {
 
 .ui-inbox-main__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -2883,6 +2892,106 @@ select:-webkit-autofill {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #dceaf2;
+}
+
+.ui-inbox-compose__selected {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #dceaf2;
+  font-size: 0.78rem;
+}
+
+.ui-inbox-user-picker {
+  display: grid;
+  max-height: 210px;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ui-inbox-user-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  border: 1px solid rgba(194, 220, 234, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 9px;
+  text-align: left;
+}
+
+.ui-inbox-user-card:hover,
+.ui-inbox-user-card--active {
+  border-color: rgba(108, 181, 20, 0.38);
+  background: rgba(108, 181, 20, 0.16);
+}
+
+.ui-inbox-user-card__avatar {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  background: #114E6D;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.ui-inbox-user-card__main {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ui-inbox-user-card__name,
+.ui-inbox-user-card__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-inbox-user-card__name {
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.ui-inbox-user-card__email {
+  color: #b7cfde;
+  font-size: 0.76rem;
+}
+
+.ui-inbox-user-card--empty {
+  display: block;
+  color: #b7cfde;
+  font-size: 0.78rem;
+}
+
+.ui-inbox-thread-actions {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ui-inbox-rename {
+  display: flex;
+  flex: 1 1 280px;
+  max-width: 420px;
+  min-width: min(100%, 240px);
+  gap: 8px;
+}
+
+.ui-inbox-rename .ui-chat-search {
+  min-height: 38px;
+  padding-block: 8px;
 }
 
 .ui-inbox-notification-bar {
@@ -3135,6 +3244,8 @@ select:-webkit-autofill {
 @media (max-width: 1100px) {
   .ui-inbox-workspace {
     grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
   }
 
   .ui-inbox-main {
@@ -3170,6 +3281,11 @@ select:-webkit-autofill {
   .ui-inbox-thread__meta {
     grid-column: 2;
     justify-items: start;
+  }
+
+  .ui-inbox-rename {
+    flex-basis: 100%;
+    max-width: none;
   }
 
   .ui-admin-tile {
@@ -5046,6 +5162,28 @@ a[role="button"] {
   color: #0F3C55;
 }
 
+.ui-inbox-compose__label,
+.ui-inbox-compose__selected,
+.ui-inbox-user-card__name {
+  color: #0F3C55;
+}
+
+.ui-inbox-user-card__email,
+.ui-inbox-user-card--empty {
+  color: #4F6B81;
+}
+
+.ui-inbox-user-card {
+  border-color: #D7E4ED;
+  background: #F7FBFD;
+}
+
+.ui-inbox-user-card:hover,
+.ui-inbox-user-card--active {
+  border-color: rgba(108, 181, 20, 0.45);
+  background: #F3FAEA;
+}
+
 .ui-control,
 .ui-select-content,
 .ui-select-item,
@@ -5520,6 +5658,12 @@ a.ui-button-danger:not(:disabled):hover {
 .ui-inbox-dock__textarea:focus {
   border-color: rgba(17, 78, 109, 0.4);
   box-shadow: 0 0 0 3px rgba(17, 78, 109, 0.1);
+}
+
+.ui-inbox-dock__textarea:disabled {
+  background: #EDF3F7;
+  color: #657D8F;
+  cursor: not-allowed;
 }
 
 .ui-inbox-dock__quick-actions {

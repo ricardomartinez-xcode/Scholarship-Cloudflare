@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   academicModuleMatches,
+  formatAcademicModuleLabel,
   normalizeAcademicModule,
   normalizeAcademicModuleDisplay,
   parseAcademicModuleTokens,
@@ -25,5 +26,12 @@ describe("academic module normalization", () => {
     expect(normalizeAcademicModule("Longitudinal")).toBe("Longitudinal");
     expect(normalizeAcademicModule("M2")).toBe("M2");
     expect(academicModuleMatches("Longitudinal", "Longitudinal")).toBe(true);
+  });
+
+  it("formats module labels for authenticated UI without the M prefix", () => {
+    expect(formatAcademicModuleLabel("M1")).toBe("1");
+    expect(formatAcademicModuleLabel("M2")).toBe("2");
+    expect(formatAcademicModuleLabel("M3")).toBe("3");
+    expect(formatAcademicModuleLabel("Longitudinal")).toBe("Longitudinal");
   });
 });

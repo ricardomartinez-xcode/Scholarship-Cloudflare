@@ -16,7 +16,7 @@ import {
   PUBLIC_ROUTE_CACHE_REVALIDATE_SECONDS,
   PUBLIC_ROUTE_CACHE_TAGS,
 } from "@/lib/public-route-cache";
-import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
+import { listProgramOfferingModuleMetaById } from "@/lib/program-offering-subjects";
 import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
@@ -26,16 +26,10 @@ import {
   normalizeUnidepProgramBusinessLine,
 } from "@/lib/unidep-program-catalog";
 import {
-  fileAssetToContentBucketObject,
   listFileAssetAssignmentsForTargets,
-  listFileAssets,
   resolveProgramR2AssetPayload,
   type PublicFileAssetPayload,
 } from "@/lib/file-assets";
-import {
-  findContentBucketPlanForProgram,
-  listContentBucketObjects,
-} from "@/lib/r2-content-bucket";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +83,7 @@ type OfertaPayload = {
     planDownloadLink: string | null;
     pricingPlans: number[];
     module: AcademicModule;
+    moduleCount: number | null;
     subjectsByModule: string | null;
     campus: {
       id: string;
@@ -209,18 +204,10 @@ async function loadOfertaPayload(
 
   const catalog = await getUnidepProgramCatalog();
   const programMap = new Map(catalog.map((program) => [program.id, program]));
-  const [r2Assignments, bucketFiles, syncedPdfAssets] = await Promise.all([
-    listFileAssetAssignmentsForTargets(
-      "program",
-      catalog.map((program) => program.id),
-    ),
-    listContentBucketObjects(),
-    listFileAssets({ mimeType: "application/pdf", limit: 1000 }),
-  ]);
-  const fallbackPlanFiles = [
-    ...syncedPdfAssets.map(fileAssetToContentBucketObject),
-    ...bucketFiles,
-  ];
+  const r2Assignments = await listFileAssetAssignmentsForTargets(
+    "program",
+    catalog.map((program) => program.id),
+  );
   const lineEnum = normalizeUnidepProgramBusinessLine(lineRaw);
   const normalizedLineRaw = normalizeKey(lineRaw);
 
@@ -296,7 +283,7 @@ async function loadOfertaPayload(
       matchesUnidepProgramLine(program, lineRaw)
     );
   });
-  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+  const moduleMetaByOfferingId = await listProgramOfferingModuleMetaById(
     filteredOfferings.map((offering) => offering.id),
   );
 
@@ -311,17 +298,12 @@ async function loadOfertaPayload(
     if (!program) continue;
     seen.add(offering.programId);
     const legacyPlanUrl = getUnidepProgramPlanUrl(program);
-    const bucketPlan = findContentBucketPlanForProgram(program.name, fallbackPlanFiles);
     const r2Payload = resolveProgramR2AssetPayload({
       programId: program.id,
-      planPdfUrl: bucketPlan?.previewUrl ?? legacyPlanUrl,
+      planPdfUrl: legacyPlanUrl,
       brochurePdfUrl: program.brochurePdfUrl ?? null,
       assets: r2Assignments.get(program.id) ?? {},
     });
-    const planDownloadUrl =
-      r2Payload.r2Assets.studyPlan?.downloadUrl ??
-      bucketPlan?.downloadUrl ??
-      r2Payload.planDownloadUrl;
     programs.push({
       programId: program.id,
       name: program.name,
@@ -331,7 +313,7 @@ async function loadOfertaPayload(
       planPdfUrl: r2Payload.planPdfUrl,
       heroImageUrl: r2Payload.heroImageUrl,
       thumbnailImageUrl: r2Payload.thumbnailImageUrl,
-      planDownloadUrl,
+      planDownloadUrl: r2Payload.planDownloadUrl,
       brochureDownloadUrl: r2Payload.brochureDownloadUrl,
       r2Assets: r2Payload.r2Assets,
     });
@@ -344,26 +326,23 @@ async function loadOfertaPayload(
       const program = programMap.get(offering.programId);
       if (!program) return null;
       const legacyPlanUrl = getUnidepProgramPlanUrl(program);
-      const bucketPlan = findContentBucketPlanForProgram(program.name, fallbackPlanFiles);
       const r2Payload = resolveProgramR2AssetPayload({
         programId: program.id,
-        planPdfUrl: bucketPlan?.previewUrl ?? legacyPlanUrl,
+        planPdfUrl: legacyPlanUrl,
         brochurePdfUrl: program.brochurePdfUrl ?? null,
         assets: r2Assignments.get(program.id) ?? {},
       });
-      const planDownloadUrl =
-        r2Payload.r2Assets.studyPlan?.downloadUrl ??
-        bucketPlan?.downloadUrl ??
-        r2Payload.planDownloadUrl;
+      const moduleMeta = moduleMetaByOfferingId.get(offering.id);
       return {
         id: offering.id,
         modality: getModalityLabel(offering),
         schedule: offering.escolarizadoSchedule ?? offering.ejecutivoSchedule ?? null,
         planLink: r2Payload.planPdfUrl,
-        planDownloadLink: planDownloadUrl,
+        planDownloadLink: r2Payload.planDownloadUrl,
         pricingPlans: offering.pricingPlans ?? [],
         module: academicModuleOrDefault(offering.track),
-        subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
+        moduleCount: moduleMeta?.moduleCount ?? null,
+        subjectsByModule: moduleMeta?.subjectsByModule ?? null,
         campus: buildCampusPayload(offering.campus),
         program: { id: program.id, name: program.name },
       };

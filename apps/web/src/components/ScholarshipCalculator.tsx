@@ -11,8 +11,9 @@ import { useSimulator } from "@/components/simulator/SimulatorProvider";
 import FloatingCalculator from "@/components/unidep/FloatingCalculator";
 import ResultsWhatsappTemplatePanel from "@/components/whatsapp/ResultsWhatsappTemplatePanel";
 import {
-  ACADEMIC_MODULES,
+  ACADEMIC_MODULE_CHOICES,
   academicModuleOrDefault,
+  formatAcademicModuleLabel,
   type AcademicModule,
 } from "@/lib/academic-modules";
 import {
@@ -41,10 +42,11 @@ const QUOTE_DEBOUNCE_MS = 300;
 type TipoInscripcion = "nuevo_ingreso" | "regreso" | "reingreso";
 type StartModule = AcademicModule;
 
+// ACADEMIC_MODULES remains the internal superset; quote UI uses ACADEMIC_MODULE_CHOICES.
 const MODULE_OPTIONS_BY_CYCLE: Record<AcademicOfferCycle, StartModule[]> = {
-  C1: [...ACADEMIC_MODULES],
-  C2: [...ACADEMIC_MODULES],
-  C3: [...ACADEMIC_MODULES],
+  C1: [...ACADEMIC_MODULE_CHOICES],
+  C2: [...ACADEMIC_MODULE_CHOICES],
+  C3: [...ACADEMIC_MODULE_CHOICES],
 };
 
 type PricingOption = {
@@ -306,6 +308,7 @@ type OfferProgram = {
   programId: string;
   programName: string;
   module: StartModule;
+  moduleCount: number | null;
   subjectsByModule: string | null;
   modality: string;
   schedule: string | null;
@@ -1094,6 +1097,7 @@ export default function ScholarshipCalculator({
             planDownloadLink?: string | null;
             pricingPlans?: number[];
             module?: string | null;
+            moduleCount?: number | null;
             subjectsByModule?: string | null;
             program: {
               id: string;
@@ -1109,6 +1113,7 @@ export default function ScholarshipCalculator({
             programId: row.program.id,
             programName: row.program.name,
             module: academicModuleOrDefault(row.module),
+            moduleCount: row.moduleCount ?? null,
             subjectsByModule: row.subjectsByModule ?? null,
             modality: row.modality,
             schedule: row.schedule ?? null,
@@ -1223,10 +1228,14 @@ export default function ScholarshipCalculator({
       const fallbackModules = selectedOfferCycle
         ? MODULE_OPTIONS_BY_CYCLE[selectedOfferCycle]
         : MODULE_OPTIONS_BY_CYCLE.C1;
-      const modules = offeredModules.size
-        ? ACADEMIC_MODULES.filter((module) => offeredModules.has(module))
-        : fallbackModules;
-      return modules.map((module) => ({ value: module, label: module }));
+      const configuredModules = offeredModules.size
+        ? ACADEMIC_MODULE_CHOICES.filter((module) => offeredModules.has(module))
+        : [];
+      const modules = configuredModules.length ? configuredModules : fallbackModules;
+      return modules.map((module) => ({
+        value: module,
+        label: formatAcademicModuleLabel(module),
+      }));
     },
     [
       availablePricingOptions,

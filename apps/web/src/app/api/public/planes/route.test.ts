@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getSessionUserMock,
+  listFileAssetAssignmentsForTargetsMock,
   listContentBucketObjectsMock,
   listFileAssetsMock,
   logPublicRouteTimingMock,
   prismaMock,
 } = vi.hoisted(() => ({
   getSessionUserMock: vi.fn(),
+  listFileAssetAssignmentsForTargetsMock: vi.fn(),
   listContentBucketObjectsMock: vi.fn(),
   listFileAssetsMock: vi.fn(),
   logPublicRouteTimingMock: vi.fn(),
@@ -51,7 +53,7 @@ vi.mock("@/lib/file-assets", () => ({
     previewUrl: `/api/files/${file.id}/auth-view`,
     downloadUrl: `/api/files/${file.id}/download`,
   })),
-  listFileAssetAssignmentsForTargets: vi.fn().mockResolvedValue(new Map()),
+  listFileAssetAssignmentsForTargets: listFileAssetAssignmentsForTargetsMock,
   listFileAssets: listFileAssetsMock,
   resolveProgramR2AssetPayload: vi.fn((input) => ({
     planPdfUrl: input.assets?.study_plan_pdf?.previewUrl ?? input.planPdfUrl,
@@ -98,6 +100,7 @@ describe("GET /api/public/planes", () => {
       email: "asesor@example.com",
     });
     listContentBucketObjectsMock.mockResolvedValue([]);
+    listFileAssetAssignmentsForTargetsMock.mockResolvedValue(new Map());
     listFileAssetsMock.mockResolvedValue([]);
     prismaMock.program.findMany.mockResolvedValue([
       {
@@ -180,7 +183,7 @@ describe("GET /api/public/planes", () => {
     expect(data.programs.map((program) => program.id)).toEqual(["program_prepa"]);
   });
 
-  it("prefers a matching R2 content bucket PDF over the legacy program URL", async () => {
+  it("keeps the legacy URL when a matching bucket PDF is not explicitly linked", async () => {
     listContentBucketObjectsMock.mockResolvedValue([
       {
         key: "Bachillerato/Bachillerato UNIDEP actualizado.pdf",
@@ -204,9 +207,42 @@ describe("GET /api/public/planes", () => {
     expect(response.status).toBe(200);
     expect(data.programs[0]).toMatchObject({
       id: "program_prepa",
-      planPdfUrl: "https://r2.example/Bachillerato/Bachillerato%20UNIDEP%20actualizado.pdf",
-      planDownloadUrl:
-        "https://r2.example/Bachillerato/Bachillerato%20UNIDEP%20actualizado.pdf?download=1",
+      planPdfUrl: "https://example.com/prepa-current.pdf",
+      planDownloadUrl: "https://example.com/prepa-current.pdf",
+    });
+  });
+
+  it("prefers an explicitly linked R2 study plan asset over the legacy program URL", async () => {
+    listFileAssetAssignmentsForTargetsMock.mockResolvedValue(
+      new Map([
+        [
+          "program_prepa",
+          {
+            study_plan_pdf: {
+              fileId: "file_prepa_plan",
+              fileName: "Bachillerato UNIDEP actualizado.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 123,
+              previewUrl: "/api/files/file_prepa_plan/auth-view",
+              downloadUrl: "/api/files/file_prepa_plan/download",
+            },
+          },
+        ],
+      ]),
+    );
+
+    const response = await GET(
+      new Request("http://localhost/api/public/planes?line=Bachillerato"),
+    );
+    const data = (await response.json()) as {
+      programs: Array<{ id: string; planPdfUrl: string | null; planDownloadUrl: string | null }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(data.programs[0]).toMatchObject({
+      id: "program_prepa",
+      planPdfUrl: "/api/files/file_prepa_plan/auth-view",
+      planDownloadUrl: "/api/files/file_prepa_plan/download",
     });
   });
 });

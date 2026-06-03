@@ -117,8 +117,8 @@ export const ADMIN_IMPORT_TEMPLATES = [
       "Estado",
     ],
     rows: [
-      ["C1", "Hermosillo", "Administracion de Empresas", "licenciatura", "presencial", "9", "M1", "3", "L-V 08:00-13:00", "", "Activo"],
-      ["C1", "Los Cabos", "Derecho", "licenciatura", "mixta", "9", "M2", "3", "L-V 08:00-13:00", "Sáb 09:00-14:00", "Activo"],
+      ["C1", "Hermosillo", "Administracion de Empresas", "licenciatura", "presencial", "9", "1", "3", "L-V 08:00-13:00", "", "Activo"],
+      ["C1", "Los Cabos", "Derecho", "licenciatura", "mixta", "9", "2", "3", "L-V 08:00-13:00", "Sáb 09:00-14:00", "Activo"],
       ["C1", "Online", "Psicologia", "licenciatura", "online", "9", "Longitudinal", "1", "", "", "Activo"],
     ],
     notes: [

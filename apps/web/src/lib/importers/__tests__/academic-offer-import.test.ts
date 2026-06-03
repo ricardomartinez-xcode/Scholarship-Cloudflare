@@ -60,7 +60,8 @@ describe("prepareAcademicOfferImport", () => {
           modality: "Escolarizado",
           pricingPlans: [9],
           module: "M1",
-          subjectsByModule: "3",
+          moduleCount: 3,
+          subjectsByModule: null,
         }),
       ]),
     );

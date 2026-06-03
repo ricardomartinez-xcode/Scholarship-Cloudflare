@@ -14,6 +14,7 @@ type ParsedOfferRow = ParsedCampus["rows"][number];
 type ProgramSeed = {
   name: string;
   level: string | null;
+  lineOfBusiness: ParsedOfferRow["lineOfBusiness"];
 };
 
 type ProgramIdByNormalizedName = Map<string, string>;
@@ -37,6 +38,7 @@ function getProgramSeeds(payload: PreparedAcademicOfferImportPayload) {
         seeds.set(row.programNormalized, {
           name: row.programName,
           level: row.level,
+          lineOfBusiness: row.lineOfBusiness,
         });
       }
     }
@@ -54,7 +56,7 @@ async function upsertProgramsForImport(
   for (const [nameNormalized, program] of seeds) {
     const existing = await prisma.program.findUnique({
       where: { nameNormalized },
-      select: { id: true, name: true, level: true },
+      select: { id: true, name: true, level: true, businessLine: true },
     });
 
     if (!existing) {
@@ -63,6 +65,7 @@ async function upsertProgramsForImport(
           name: program.name,
           nameNormalized,
           level: program.level,
+          businessLine: program.lineOfBusiness,
         },
         select: { id: true },
       });
@@ -72,12 +75,18 @@ async function upsertProgramsForImport(
     }
 
     const nextLevel = program.level ?? existing.level;
-    if (existing.name !== program.name || existing.level !== nextLevel) {
+    const nextBusinessLine = program.lineOfBusiness ?? existing.businessLine;
+    if (
+      existing.name !== program.name ||
+      existing.level !== nextLevel ||
+      existing.businessLine !== nextBusinessLine
+    ) {
       await prisma.program.update({
         where: { id: existing.id },
         data: {
           name: program.name,
           level: nextLevel,
+          businessLine: nextBusinessLine,
         },
       });
       summary.programs.updated += 1;
@@ -100,7 +109,7 @@ function buildReplacementOfferRows(
       const programId = programIds.get(row.programNormalized);
       if (!programId) continue;
 
-      const key = `${payload.cycle}::${campus.campusId}::${programId}`;
+      const key = `${payload.cycle}::${campus.campusId}::${programId}::${row.module}`;
       byKey.set(key, {
         campusId: campus.campusId,
         campusCode: campus.campusCode,
@@ -183,7 +192,11 @@ export async function applyPreparedAcademicOfferImport(params: {
           ejecutivo: item.row.ejecutivo,
           escolarizadoSchedule: item.row.escolarizadoSchedule,
           ejecutivoSchedule: item.row.ejecutivoSchedule,
+          lineOfBusiness: item.row.lineOfBusiness,
           pricingPlans: item.row.pricingPlans ?? [],
+          track: item.row.module,
+          moduleCount: item.row.moduleCount,
+          subjectsByModule: item.row.subjectsByModule,
           isActive: true,
           archivedAt: null,
           archivedReason: null,

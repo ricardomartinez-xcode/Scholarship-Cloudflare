@@ -31,7 +31,7 @@ import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { getAdminConfigModulePaths } from "@/lib/admin-config-modules";
 import { normalizeOfferDraftSnapshot } from "@/lib/offer-draft-snapshot";
 import { prisma } from "@/lib/prisma";
-import { listProgramOfferingSubjectsById } from "@/lib/program-offering-subjects";
+import { listProgramOfferingModuleMetaById } from "@/lib/program-offering-subjects";
 import {
   getPublicRouteTagsForModule,
   revalidatePublicRouteTags,
@@ -214,6 +214,7 @@ export type OfferProgramOfferingSnapshot = {
   ejecutivoSchedule: string | null;
   lineOfBusiness: string | null;
   pricingPlans?: number[];
+  moduleCount?: number | null;
   subjectsByModule?: string | null;
   isActive: boolean;
   archivedReason: string | null;
@@ -816,7 +817,7 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
   const programMap = new Map<string, OfferProgramSnapshot>();
   const cycleSet = new Set<AcademicOfferCycle>();
   const visibleCycles = await getAcademicOfferVisibleCycles();
-  const subjectsByOfferingId = await listProgramOfferingSubjectsById(
+  const moduleMetaByOfferingId = await listProgramOfferingModuleMetaById(
     offerings.map((offering) => offering.id),
   );
 
@@ -877,7 +878,8 @@ async function captureOfferSnapshot(): Promise<OfferDraftSnapshot> {
       ejecutivoSchedule: offering.ejecutivoSchedule,
       lineOfBusiness: offering.lineOfBusiness,
       pricingPlans: offering.pricingPlans ?? [],
-      subjectsByModule: subjectsByOfferingId.get(offering.id) ?? null,
+      moduleCount: moduleMetaByOfferingId.get(offering.id)?.moduleCount ?? null,
+      subjectsByModule: moduleMetaByOfferingId.get(offering.id)?.subjectsByModule ?? null,
       isActive: offering.isActive,
       archivedReason: offering.archivedReason,
       updatedBy: offering.updatedBy,
@@ -948,6 +950,7 @@ async function restoreOfferSnapshot(snapshot: OfferDraftSnapshot) {
         ejecutivoSchedule: offering.ejecutivoSchedule,
         lineOfBusiness: offering.lineOfBusiness,
         pricingPlans: offering.pricingPlans ?? [],
+        moduleCount: offering.moduleCount ?? null,
         subjectsByModule: offering.subjectsByModule ?? null,
         isActive: offering.isActive,
         archivedReason: offering.archivedReason,

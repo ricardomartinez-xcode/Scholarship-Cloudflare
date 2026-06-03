@@ -26,17 +26,10 @@ import {
   getUnidepProgramPlanUrl,
 } from "@/lib/unidep-program-catalog";
 import {
-  fileAssetToContentBucketObject,
   listFileAssetAssignmentsForTargets,
-  listFileAssets,
   resolveProgramR2AssetPayload,
   type PublicFileAssetPayload,
 } from "@/lib/file-assets";
-import {
-  findContentBucketPlanForProgram,
-  listContentBucketObjects,
-  type ContentBucketObject,
-} from "@/lib/r2-content-bucket";
 
 export const dynamic = "force-dynamic";
 
@@ -168,7 +161,6 @@ function buildStudyProgram(
     planUrl: string | null;
   },
   assets?: Record<string, PublicFileAssetPayload | null>,
-  bucketPlan?: ContentBucketObject | null,
 ) {
   const businessLine =
     normalizeBusinessLine(program.businessLine) ??
@@ -177,15 +169,12 @@ function buildStudyProgram(
   const legacyPlanUrl = getUnidepProgramPlanUrl(program);
   const r2Payload = resolveProgramR2AssetPayload({
     programId: program.id,
-    planPdfUrl: bucketPlan?.previewUrl ?? legacyPlanUrl,
+    planPdfUrl: legacyPlanUrl,
     brochurePdfUrl: program.brochurePdfUrl ?? null,
     assets: assets ?? {},
   });
   const planPdfUrl = r2Payload.planPdfUrl;
-  const planDownloadUrl =
-    r2Payload.r2Assets.studyPlan?.downloadUrl ??
-    bucketPlan?.downloadUrl ??
-    r2Payload.planDownloadUrl;
+  const planDownloadUrl = r2Payload.planDownloadUrl;
 
   if (!businessLine || !planPdfUrl) return null;
 
@@ -219,7 +208,6 @@ function buildConfiguredOfferingPricingOptions(
     };
   }>,
   r2Assignments: Map<string, Record<string, PublicFileAssetPayload>>,
-  bucketPlansByProgramId: Map<string, ContentBucketObject | null>,
 ): QuotePricingOption[] {
   const options = new Map<string, QuotePricingOption>();
 
@@ -234,7 +222,6 @@ function buildConfiguredOfferingPricingOptions(
           normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
       },
       r2Assignments.get(offering.program.id),
-      bucketPlansByProgramId.get(offering.program.id),
     );
     if (!studyProgram) continue;
 
@@ -287,8 +274,6 @@ export async function GET() {
     campuses,
     activeOfferings,
     catalogPrograms,
-    bucketFiles,
-    syncedPdfAssets,
   ] = await Promise.all([
     prisma.scholarshipRule.findMany({
       where: { sourceVersion: "canonical" },
@@ -360,28 +345,9 @@ export async function GET() {
       },
     }),
     getUnidepProgramCatalog(),
-    listContentBucketObjects(),
-    listFileAssets({ mimeType: "application/pdf", limit: 1000 }),
   ]);
 
   const academicOfferByCampus = new Map<string, typeof activeOfferings>();
-  const fallbackPlanFiles = [
-    ...syncedPdfAssets.map(fileAssetToContentBucketObject),
-    ...bucketFiles,
-  ];
-  const bucketPlansByProgramId = new Map(
-    Array.from(
-      new Map(
-        [
-          ...activeOfferings.map((offering) => offering.program),
-          ...catalogPrograms,
-        ].map((program) => [program.id, program] as const),
-      ).values(),
-    ).map((program) => [
-      program.id,
-      findContentBucketPlanForProgram(program.name, fallbackPlanFiles),
-    ] as const),
-  );
   const r2Assignments = await listFileAssetAssignmentsForTargets(
     "program",
     Array.from(
@@ -393,11 +359,7 @@ export async function GET() {
   );
   const pricingOptions = [
     ...buildQuotePricingOptions(rules, priceOverrides),
-    ...buildConfiguredOfferingPricingOptions(
-      activeOfferings,
-      r2Assignments,
-      bucketPlansByProgramId,
-    ),
+    ...buildConfiguredOfferingPricingOptions(activeOfferings, r2Assignments),
   ];
   const priceOverrideSnapshots = priceOverrides.map(
     (override): PriceOverrideSnapshot => ({
@@ -527,7 +489,6 @@ export async function GET() {
               normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
           },
           r2Assignments.get(offering.program.id),
-          bucketPlansByProgramId.get(offering.program.id),
         );
         if (!studyProgram) continue;
         studyPrograms.set(studyProgram.id, studyProgram);
@@ -604,7 +565,6 @@ export async function GET() {
             buildStudyProgram(
               program,
               r2Assignments.get(program.id),
-              bucketPlansByProgramId.get(program.id),
             ),
           )
           .filter((program): program is NonNullable<ReturnType<typeof buildStudyProgram>> =>
