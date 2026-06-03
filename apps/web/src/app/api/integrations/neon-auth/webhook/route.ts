@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicKey, verify, type JsonWebKey } from "node:crypto";
+import { createHmac, createPublicKey, timingSafeEqual, verify, type JsonWebKey } from "node:crypto";
 
 export const runtime = "nodejs";
 
@@ -38,11 +38,62 @@ function timestampSeconds(value: string | null) {
   return Number.isNaN(parsed) ? null : Math.floor(parsed / 1000);
 }
 
+function webhookSecret() {
+  return (
+    process.env.NEON_AUTH_WEBHOOK_SECRET?.trim() ||
+    process.env.NEON_AUTH_SVIX_WEBHOOK_SECRET?.trim() ||
+    process.env.SVIX_WEBHOOK_SECRET?.trim() ||
+    null
+  );
+}
+
+function decodeSvixSecret(secret: string) {
+  const encoded = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
+  return Buffer.from(encoded, "base64");
+}
+
+function verifySvixSignature(request: NextRequest, rawBody: string) {
+  const id = header(request, ["svix-id", "webhook-id"]);
+  const timestampHeader = header(request, ["svix-timestamp", "webhook-timestamp"]);
+  const signatureHeader = header(request, ["svix-signature", "webhook-signature"]);
+
+  if (!id && !timestampHeader && !signatureHeader) return false;
+  if (!id || !timestampHeader || !signatureHeader) throw new Error("Missing Neon Auth Svix webhook signature headers.");
+
+  const timestamp = timestampSeconds(timestampHeader);
+  if (!timestamp) throw new Error("Invalid Neon Auth Svix webhook timestamp.");
+
+  const maxSkew = Number(process.env.NEON_AUTH_WEBHOOK_MAX_SKEW_SECONDS ?? 300);
+  const age = Math.abs(Math.floor(Date.now() / 1000) - timestamp);
+  if (age > maxSkew) throw new Error("Expired Neon Auth Svix webhook timestamp.");
+
+  const secret = webhookSecret();
+  if (!secret) throw new Error("NEON_AUTH_WEBHOOK_SECRET is required for Svix-signed Neon Auth webhooks.");
+
+  const expected = createHmac("sha256", decodeSvixSecret(secret))
+    .update(`${id}.${timestampHeader}.${rawBody}`)
+    .digest();
+
+  const valid = signatureHeader
+    .split(/\s+/)
+    .flatMap((part) => part.split(","))
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "v1")
+    .some((part) => {
+      const actual = Buffer.from(part, "base64");
+      return actual.length === expected.length && timingSafeEqual(actual, expected);
+    });
+
+  if (!valid) throw new Error("Invalid Neon Auth Svix webhook signature.");
+  return true;
+}
+
 async function verifyNeonSignature(request: NextRequest, rawBody: string) {
   if (process.env.NEON_AUTH_WEBHOOK_VERIFY_SIGNATURE === "false") return;
+  if (verifySvixSignature(request, rawBody)) return;
 
   const signature = header(request, ["x-neon-signature", "neon-signature", "x-neon-auth-signature"]);
-  if (!signature) throw new Error("Missing Neon webhook signature.");
+  if (!signature) throw new Error("Missing Neon Auth webhook signature.");
 
   const timestamp = timestampSeconds(header(request, ["x-neon-timestamp", "neon-timestamp", "x-neon-auth-timestamp"]));
   if (timestamp) {
@@ -98,6 +149,7 @@ export async function GET() {
     ok: true,
     service: "neon-auth-webhook",
     verificationEnabled: process.env.NEON_AUTH_WEBHOOK_VERIFY_SIGNATURE !== "false",
+    svixSecretConfigured: Boolean(webhookSecret()),
     jwksConfigured: Boolean(jwksUrl()),
     forwardConfigured: Boolean(process.env.NEON_AUTH_WEBHOOK_FORWARD_URL?.trim()),
   });

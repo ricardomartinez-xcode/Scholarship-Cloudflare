@@ -25,7 +25,13 @@ Local route:
 apps/web/src/app/api/integrations/neon-auth/webhook/route.ts
 ```
 
-The route verifies Neon Auth detached JWS signatures when these environment variables are present:
+The route verifies Svix-signed Neon Auth webhook deliveries using the raw request body and these delivery headers: `svix-id`, `svix-timestamp`, and `svix-signature`. Configure the Svix endpoint secret from Neon Auth in the deployed environment:
+
+```env
+NEON_AUTH_WEBHOOK_SECRET="whsec_..."
+```
+
+For compatibility with older detached JWS test deliveries, the route still supports JWKS verification when these environment variables are present and no Svix headers are sent:
 
 ```env
 NEON_AUTH_BASE_URL="https://<branch-auth-host>"
@@ -72,6 +78,9 @@ NEON_BRANCH_ID=br-old-mountain-ai239lh2
 NEON_AUTH_WEBHOOK_URL=https://recalc.relead.com.mx/api/integrations/neon-auth/webhook
 NEON_AUTH_WEBHOOK_EVENTS=user.created,organization.invitation.created,organization.invitation.accepted,phone.number.verified
 NEON_AUTH_WEBHOOK_TIMEOUT_SECONDS=5
+
+# Deployed endpoint verification
+NEON_AUTH_WEBHOOK_SECRET=whsec_...
 ```
 
 To include delivery events:
