@@ -56,6 +56,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@sentry/nextjs": "^10.42.0",
     "@supabase/supabase-js": "^2.103.2",
+    "better-auth": "1.6.2",
     "exceljs": "^4.4.0",
     "geist": "^1.7.0",
     "html-to-image": "^1.11.13",

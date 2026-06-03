@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import BrandedAuthShell from "@/components/auth/BrandedAuthShell";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
 import { getInviteByToken } from "@/lib/invites";
 import PasswordField from "@/components/auth/PasswordField";
 import { getSystemRoleMeta } from "@/lib/system-roles";
@@ -10,12 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string; token?: string }>;
+  searchParams?: Promise<{ error?: string; success?: string; token?: string }>;
 }) {
   const params = searchParams ? await searchParams : undefined;
   const token = String(params?.token ?? "").trim();
 
-  // Pre-fill email from invite if token is present and valid.
   let inviteEmail: string | null = null;
   let inviteSummary:
     | {
@@ -36,6 +37,8 @@ export default async function SignUpPage({
     }
   }
 
+  const callbackURL = token ? `/invite/accept?token=${encodeURIComponent(token)}` : "/unidep";
+
   return (
     <BrandedAuthShell
       eyebrow={inviteEmail ? "Invitación" : "Alta"}
@@ -49,11 +52,16 @@ export default async function SignUpPage({
               className="ui-auth-link"
               href={
                 token
-                  ? `/auth/sign-in?fromInvite=1&email=${encodeURIComponent(inviteEmail ?? "")}&next=${encodeURIComponent(`/invite/accept?token=${token}`)}`
+                  ? `/auth/sign-in?fromInvite=1&email=${encodeURIComponent(inviteEmail ?? "")}&next=${encodeURIComponent(callbackURL)}`
                   : "/auth/sign-in"
               }
             >
               Iniciar sesión
+            </Link>
+          </div>
+          <div className="text-slate-400">
+            <Link className="ui-auth-link" href="/invite/accept">
+              Tengo una invitación
             </Link>
           </div>
           <div className="text-slate-400">
@@ -79,6 +87,24 @@ export default async function SignUpPage({
           {params.error}
         </div>
       ) : null}
+
+      {params?.success ? (
+        <div className="ui-note ui-note--success text-sm">
+          {params.success}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3">
+        <GoogleSignInButton callbackURL={callbackURL} />
+        <NeonUserAuthMethods
+          callbackURL={callbackURL}
+          defaultEmail={inviteEmail ?? ""}
+          lockedEmail={Boolean(inviteEmail)}
+          mode="sign-up"
+        />
+      </div>
+
+      <div className="ui-auth-divider">o crea contraseña</div>
 
       <form action="/api/auth/sign-up" method="post" className="ui-auth-form">
         {token ? <input type="hidden" name="token" value={token} /> : null}
@@ -113,5 +139,4 @@ export default async function SignUpPage({
       </form>
     </BrandedAuthShell>
   );
-
 }
