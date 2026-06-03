@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import AgendaPanel from "@/components/unidep/AgendaPanel";
+import PhoneVerificationCard from "@/components/auth/PhoneVerificationCard";
 import { auth } from "@/lib/auth/server";
 import { requireAuth } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -92,8 +93,7 @@ export default async function ProfilePage({
               Seguimiento y cuenta
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--ui-text-secondary)]">
-              Gestiona tu identidad visible, revisa tu agenda y mantén segura tu
-              sesión sin salir del flujo operativo de ReCalc.
+              Gestiona tu identidad visible, revisa tu agenda y mantén segura tu sesión sin salir del flujo operativo de ReCalc.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -153,64 +153,67 @@ export default async function ProfilePage({
           <AgendaPanel collapsible={false} defaultOpen integrationNextPath="/profile" />
         </div>
 
-        <section className="ui-card ui-card-pad min-w-0 self-start">
-          <div className="ui-kicker">Ajustes de cuenta</div>
-          <h2 className="mt-2 text-lg font-semibold text-[color:var(--ui-text-primary)]">
-            Cambiar contraseña
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-[color:var(--ui-text-secondary)]">
-            Actualiza tus credenciales y revoca otras sesiones para mantener tu
-            acceso protegido.
-          </p>
+        <div className="grid gap-[var(--ui-shell-gap)] self-start">
+          <section className="ui-card ui-card-pad min-w-0 self-start">
+            <div className="ui-kicker">Ajustes de cuenta</div>
+            <h2 className="mt-2 text-lg font-semibold text-[color:var(--ui-text-primary)]">
+              Cambiar contraseña
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--ui-text-secondary)]">
+              Actualiza tus credenciales y revoca otras sesiones para mantener tu acceso protegido.
+            </p>
 
-          {params?.error ? (
-            <div className="ui-note ui-note--danger mt-4 text-sm">{params.error}</div>
-          ) : null}
-          {params?.success ? (
-            <div className="ui-note ui-note--success mt-4 text-sm">{params.success}</div>
-          ) : null}
+            {params?.error ? (
+              <div className="ui-note ui-note--danger mt-4 text-sm">{params.error}</div>
+            ) : null}
+            {params?.success ? (
+              <div className="ui-note ui-note--success mt-4 text-sm">{params.success}</div>
+            ) : null}
 
-          <form action={changePasswordAction} className="mt-6 grid gap-4">
-            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
-              Correo
-              <input value={email} readOnly className="ui-control opacity-80" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
-              Contraseña actual
-              <input
-                name="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                className="ui-control"
-                placeholder="Tu contraseña actual"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
-              Nueva contraseña
-              <input
-                name="newPassword"
-                type="password"
-                autoComplete="new-password"
-                className="ui-control"
-                placeholder="Nueva contraseña"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
-              Confirmar nueva contraseña
-              <input
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                className="ui-control"
-                placeholder="Repite la nueva contraseña"
-              />
-            </label>
+            <form action={changePasswordAction} className="mt-6 grid gap-4">
+              <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                Correo
+                <input value={email} readOnly className="ui-control opacity-80" />
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                Contraseña actual
+                <input
+                  name="currentPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  className="ui-control"
+                  placeholder="Tu contraseña actual"
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                Nueva contraseña
+                <input
+                  name="newPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  className="ui-control"
+                  placeholder="Nueva contraseña"
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-[color:var(--ui-text-primary)]">
+                Confirmar nueva contraseña
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  className="ui-control"
+                  placeholder="Repite la nueva contraseña"
+                />
+              </label>
 
-            <button type="submit" className="ui-button-primary w-full">
-              Guardar cambios
-            </button>
-          </form>
-        </section>
+              <button type="submit" className="ui-button-primary w-full">
+                Guardar cambios
+              </button>
+            </form>
+          </section>
+
+          <PhoneVerificationCard />
+        </div>
       </section>
     </div>
   );

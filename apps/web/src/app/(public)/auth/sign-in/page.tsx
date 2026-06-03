@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import BrandedAuthShell from "@/components/auth/BrandedAuthShell";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
 import PasswordField from "@/components/auth/PasswordField";
 import { getInviteByToken } from "@/lib/invites";
 import { getSystemRoleMeta } from "@/lib/system-roles";
@@ -31,7 +32,6 @@ export default async function SignInPage({
   const invite = inviteToken ? await getInviteByToken(inviteToken) : null;
   const inviteRoleLabel = invite ? getSystemRoleMeta(invite.role).label : "Invitación pendiente";
 
-  // If already authenticated, redirect away from the sign-in page
   let session: Awaited<ReturnType<typeof auth.getSession>>["data"] | null = null;
   if (process.env.NEON_AUTH_BASE_URL?.trim()) {
     ({ data: session } = await auth.getSession());
@@ -57,6 +57,11 @@ export default async function SignInPage({
               className="ui-auth-link"
             >
               Crear cuenta
+            </Link>
+          </div>
+          <div className="text-slate-400">
+            <Link className="ui-auth-link" href="/invite/accept">
+              Tengo una invitación
             </Link>
           </div>
           <div className="text-slate-400">
@@ -96,13 +101,16 @@ export default async function SignInPage({
         </div>
       ) : null}
 
+      <div className="grid gap-3">
+        <GoogleSignInButton callbackURL={next || "/unidep"} />
+        <NeonUserAuthMethods callbackURL={next || "/unidep"} defaultEmail={prefilledEmail} />
+      </div>
+
+      <div className="ui-auth-divider">o contraseña</div>
+
       <form action="/api/auth/sign-in" method="post" className="ui-auth-form">
         <input type="hidden" name="next" value={next} />
         {fromInvite ? <input type="hidden" name="fromInvite" value="1" /> : null}
-
-        <GoogleSignInButton callbackURL={next || "/unidep"} />
-
-        <div className="ui-auth-divider">o</div>
 
         <label className="ui-auth-form-label">
           Correo
@@ -140,10 +148,7 @@ export default async function SignInPage({
           </Link>
         </div>
 
-        <button
-          type="submit"
-          className="ui-button-primary w-full justify-center"
-        >
+        <button type="submit" className="ui-button-primary w-full justify-center">
           Iniciar sesión
         </button>
       </form>
