@@ -1,22 +1,28 @@
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/authz";
-import { getMetaWhatsappConnectionSummary, getMetaEnvironmentAudit } from "@/lib/meta-whatsapp";
-
 export const dynamic = "force-dynamic";
 
-function statusCodeForSessionState(status: "unauthenticated" | "forbidden" | "inactive" | "ok") {
-  if (status === "ok") return 200;
-  if (status === "unauthenticated") return 401;
-  return 403;
+function disabled() {
+  return NextResponse.json(
+    {
+      ok: false,
+      disabled: true,
+      code: "meta_integrations_temporarily_disabled",
+      message:
+        "Las integraciones nuevas de Meta/WhatsApp estan deshabilitadas temporalmente mientras se usa el flujo legado de invitacion + Neon Auth.",
+    },
+    { status: 503 },
+  );
 }
 
 export async function GET() {
-  const session = await getSessionUser();
-  if (session.status !== "ok") {
-    return NextResponse.json({ ok: false, error: session.status }, { status: statusCodeForSessionState(session.status) });
-  }
+  return disabled();
+}
 
-  const connection = await getMetaWhatsappConnectionSummary(session.user.id);
-  return NextResponse.json({ ok: true, connection, environment: getMetaEnvironmentAudit() });
+export async function POST() {
+  return disabled();
+}
+
+export async function DELETE() {
+  return disabled();
 }

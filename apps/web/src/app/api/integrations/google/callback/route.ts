@@ -1,86 +1,20 @@
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/authz";
-import {
-  parseGoogleCallbackState,
-  updateAgendaSyncPreference,
-  upsertGoogleConnectionFromCode,
-} from "@/lib/google-integration";
-import { forceSyncUserContactsForUser } from "@/lib/user-contacts";
-
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code")?.trim() ?? "";
-  const state = url.searchParams.get("state")?.trim() ?? "";
-  const parsedState = state
-    ? parseGoogleCallbackState(state)
-    : { userId: "", nextPath: "/profile", intent: "manual", service: "all" };
-  const nextPath = parsedState.nextPath;
-
-  if (!code) {
-    return NextResponse.redirect(
-      new URL(`/profile?googleSync=error`, url.origin),
-    );
-  }
-
-  const session = await getSessionUser();
-  let userId = "";
-  if (session.status === "ok") {
-    if (parsedState.userId && parsedState.userId !== session.user.id) {
-      return NextResponse.redirect(
-        new URL(`/profile?googleSync=state-mismatch`, url.origin),
-      );
-    }
-    userId = session.user.id;
-  } else if (
-    session.status === "unauthenticated" &&
-    parsedState.userId &&
-    "signed" in parsedState &&
-    parsedState.signed &&
-    parsedState.validSignature &&
-    !parsedState.expired
-  ) {
-    userId = parsedState.userId;
-  } else {
-    return NextResponse.redirect(
-      new URL(
-        `${nextPath}?googleSync=session-expired&googleSyncIntent=${encodeURIComponent(parsedState.intent)}`,
-        url.origin,
-      ),
-    );
-  }
-
-  try {
-    await upsertGoogleConnectionFromCode({
-      userId,
-      code,
-    });
-    if (
-      parsedState.intent === "contacts_sync" ||
-      parsedState.service === "contacts" ||
-      parsedState.service === "sheets"
-    ) {
-      await updateAgendaSyncPreference({
-        userId,
-        syncSheetsEnabled: true,
-      });
-      await forceSyncUserContactsForUser(userId);
-    }
-  } catch {
-    return NextResponse.redirect(
-      new URL(
-        `${nextPath}?googleSync=sync-error&googleSyncIntent=${encodeURIComponent(parsedState.intent)}`,
-        url.origin,
-      ),
-    );
-  }
-
-  return NextResponse.redirect(
-    new URL(
-      `${nextPath}?googleSync=connected&googleSyncIntent=${encodeURIComponent(parsedState.intent)}`,
-      url.origin,
-    ),
+export async function GET() {
+  return NextResponse.json(
+    {
+      ok: false,
+      disabled: true,
+      code: "oauth_integrations_temporarily_disabled",
+      message:
+        "El callback OAuth externo esta deshabilitado temporalmente. El acceso administrativo queda por invitacion y Neon Auth.",
+    },
+    { status: 503 },
   );
+}
+
+export async function POST() {
+  return GET();
 }

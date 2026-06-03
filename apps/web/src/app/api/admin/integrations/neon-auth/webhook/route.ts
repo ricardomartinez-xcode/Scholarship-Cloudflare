@@ -1,22 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-import { getAdminUser } from "@/lib/admin-session";
-import { syncNeonAuthWebhook } from "@/lib/neon-auth-admin";
+export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
-  const admin = await getAdminUser();
-  if (!admin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+export async function POST() {
+  return NextResponse.json(
+    {
+      ok: false,
+      disabled: true,
+      code: "neon_auth_webhook_admin_temporarily_disabled",
+      message:
+        "La configuracion administrativa de webhooks Neon Auth esta deshabilitada temporalmente. El webhook publico conserva solo el flujo legado necesario.",
+    },
+    { status: 503 },
+  );
+}
 
-  try {
-    const body = (await request.json().catch(() => ({}))) as { events?: string[] };
-    const result = await syncNeonAuthWebhook(request.nextUrl.origin, body.events);
-    return NextResponse.json({ ok: true, result });
-  } catch (error) {
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "No se pudo actualizar Neon Auth webhook." },
-      { status: 500 },
-    );
-  }
+export async function GET() {
+  return POST();
 }

@@ -7,14 +7,17 @@ export async function GET() {
     {
       ok: false,
       disabled: true,
-      code: "oauth_integrations_temporarily_disabled",
-      message:
-        "Las integraciones OAuth externas estan deshabilitadas temporalmente. Usa invitacion por correo/link y creacion de cuenta via Neon Auth.",
+      code: "whatsapp_integration_temporarily_disabled",
+      message: "La integracion WhatsApp/Meta esta deshabilitada temporalmente.",
     },
     { status: 503 },
   );
 }
 
 export async function POST() {
+  return GET();
+}
+
+export async function DELETE() {
   return GET();
 }

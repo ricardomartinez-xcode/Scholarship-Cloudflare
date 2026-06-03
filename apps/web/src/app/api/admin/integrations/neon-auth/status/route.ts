@@ -1,17 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-import { getAdminUser } from "@/lib/admin-session";
-import { getRecentNeonAuthEvents } from "@/lib/neon-auth-event-log";
-import { getNeonAuthAdminStatus } from "@/lib/neon-auth-admin";
+import { getSmtpStatus } from "@/lib/smtp";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  const admin = await getAdminUser();
-  if (!admin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const status = await getNeonAuthAdminStatus(request.nextUrl.origin);
-  return NextResponse.json({ ...status, recentEvents: getRecentNeonAuthEvents() });
+export async function GET() {
+  const smtp = getSmtpStatus();
+  return NextResponse.json({
+    ok: true,
+    mode: "legacy_invitation_neon_auth_only",
+    oauthProviderConfigEnabled: false,
+    webhookForwardingEnabled: false,
+    externalIntegrationsEnabled: false,
+    invitationFlowEnabled: true,
+    neonAuthAccountCreationEnabled: true,
+    smtpDeliveryConfigured: smtp.ok,
+    missingSmtp: smtp.ok ? [] : smtp.missing,
+  });
 }

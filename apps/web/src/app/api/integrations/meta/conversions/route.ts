@@ -7,8 +7,8 @@ export async function POST() {
     {
       ok: false,
       disabled: true,
-      code: "meta_code_exchange_temporarily_disabled",
-      message: "El intercambio OAuth de Meta esta deshabilitado temporalmente.",
+      code: "meta_conversions_temporarily_disabled",
+      message: "Meta Conversions API esta deshabilitado temporalmente.",
     },
     { status: 503 },
   );

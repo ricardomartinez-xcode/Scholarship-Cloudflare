@@ -7,9 +7,8 @@ export async function GET() {
     {
       ok: false,
       disabled: true,
-      code: "oauth_integrations_temporarily_disabled",
-      message:
-        "Las integraciones OAuth externas estan deshabilitadas temporalmente. Usa invitacion por correo/link y creacion de cuenta via Neon Auth.",
+      code: "meta_embedded_signup_temporarily_disabled",
+      message: "Meta Embedded Signup esta deshabilitado temporalmente.",
     },
     { status: 503 },
   );
