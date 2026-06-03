@@ -98,6 +98,37 @@ async function upsertProgramsForImport(
   return programIds;
 }
 
+function mergePricingPlans(
+  left: number[] | null,
+  right: number[] | null,
+): number[] | null {
+  if (left === null && right === null) return null;
+  return Array.from(new Set([...(left ?? []), ...(right ?? [])])).sort((a, b) => a - b);
+}
+
+function mergeText(left: string | null, right: string | null) {
+  return left?.trim() ? left : right?.trim() ? right : null;
+}
+
+function mergeOfferRows(previous: ParsedOfferRow, next: ParsedOfferRow): ParsedOfferRow {
+  return {
+    ...previous,
+    programName: previous.programName || next.programName,
+    programNormalized: previous.programNormalized || next.programNormalized,
+    level: previous.level ?? next.level,
+    lineOfBusiness: previous.lineOfBusiness ?? next.lineOfBusiness,
+    delivery: previous.delivery === "ONLINE" || next.delivery === "ONLINE" ? "ONLINE" : "CAMPUS",
+    escolarizado: previous.escolarizado || next.escolarizado,
+    ejecutivo: previous.ejecutivo || next.ejecutivo,
+    escolarizadoSchedule: mergeText(previous.escolarizadoSchedule, next.escolarizadoSchedule),
+    ejecutivoSchedule: mergeText(previous.ejecutivoSchedule, next.ejecutivoSchedule),
+    pricingPlans: mergePricingPlans(previous.pricingPlans, next.pricingPlans),
+    module: previous.module || next.module,
+    moduleCount: previous.moduleCount ?? next.moduleCount,
+    subjectsByModule: mergeText(previous.subjectsByModule, next.subjectsByModule),
+  };
+}
+
 function buildReplacementOfferRows(
   payload: PreparedAcademicOfferImportPayload,
   programIds: ProgramIdByNormalizedName,
@@ -109,16 +140,27 @@ function buildReplacementOfferRows(
       const programId = programIds.get(row.programNormalized);
       if (!programId) continue;
 
+      // La llave natural del schema es ciclo + campus + programa + track.
+      // El CSV C3 puede traer la misma oferta en dos filas, una presencial y otra ejecutivo.
+      // Esas filas NO son duplicados de negocio: deben fusionarse en una sola oferta con
+      // escolarizado/ejecutivo y sus horarios, no pisarse con last-write-wins.
       const key = `${payload.cycle}::${campus.campusId}::${programId}::${row.module}`;
-      byKey.set(key, {
-        campusId: campus.campusId,
-        campusCode: campus.campusCode,
-        campusName: campus.campusNameFromExcel ?? campus.campusCode,
-        sheetName: campus.sheetName,
-        source: campus.source,
-        programId,
-        row,
-      });
+      const previous = byKey.get(key);
+
+      if (!previous) {
+        byKey.set(key, {
+          campusId: campus.campusId,
+          campusCode: campus.campusCode,
+          campusName: campus.campusNameFromExcel ?? campus.campusCode,
+          sheetName: campus.sheetName,
+          source: campus.source,
+          programId,
+          row,
+        });
+        continue;
+      }
+
+      previous.row = mergeOfferRows(previous.row, row);
     }
   }
 
@@ -128,10 +170,12 @@ function buildReplacementOfferRows(
 /**
  * Applies an academic-offer import as a full replacement for the imported cycle.
  *
- * Previous behavior upserted current rows and archived missing rows, which made
- * repeated imports behave like cumulative history. For operations, each import
- * now becomes the source of truth for its cycle: existing offerings for the cycle
- * are deleted inside the same transaction and then recreated from the payload.
+ * The importer UI stores a prepared payload after validation. Applying the session must
+ * use that payload as source of truth. For C3 and future cycle templates, multiple CSV
+ * rows may describe one logical offering: for example one row for presencial and one
+ * row for ejecutivo, both sharing cycle + campus + program + module. The Prisma model
+ * stores those modalities as flags/schedules on the same ProgramOffering, so this file
+ * merges those rows before delete/createMany.
  */
 export async function applyPreparedAcademicOfferImport(params: {
   payload: PreparedAcademicOfferImportPayload;
@@ -180,32 +224,39 @@ export async function applyPreparedAcademicOfferImport(params: {
 
     if (replacementRows.length > 0) {
       const created = await tx.programOffering.createMany({
-        data: replacementRows.map((item) => ({
-          campusId: item.campusId,
-          programId: item.programId,
-          cycle: params.payload.cycle,
-          delivery:
-            item.row.delivery === "ONLINE"
+        data: replacementRows.map((item) => {
+          const isOnline = item.row.delivery === "ONLINE";
+          return {
+            campusId: item.campusId,
+            programId: item.programId,
+            cycle: params.payload.cycle,
+            delivery: isOnline
               ? ProgramOfferingDelivery.ONLINE
               : ProgramOfferingDelivery.CAMPUS,
-          escolarizado: item.row.escolarizado,
-          ejecutivo: item.row.ejecutivo,
-          escolarizadoSchedule: item.row.escolarizadoSchedule,
-          ejecutivoSchedule: item.row.ejecutivoSchedule,
-          lineOfBusiness: item.row.lineOfBusiness,
-          pricingPlans: item.row.pricingPlans ?? [],
-          track: item.row.module,
-          moduleCount: item.row.moduleCount,
-          subjectsByModule: item.row.subjectsByModule,
-          isActive: true,
-          archivedAt: null,
-          archivedReason: null,
-          updatedBy: params.updatedBy,
-        })),
+            escolarizado: isOnline ? false : item.row.escolarizado,
+            ejecutivo: isOnline ? false : item.row.ejecutivo,
+            escolarizadoSchedule: isOnline ? null : item.row.escolarizadoSchedule,
+            ejecutivoSchedule: isOnline ? null : item.row.ejecutivoSchedule,
+            lineOfBusiness: item.row.lineOfBusiness,
+            pricingPlans: item.row.pricingPlans ?? [],
+            track: item.row.module,
+            moduleCount: item.row.moduleCount,
+            subjectsByModule: item.row.subjectsByModule,
+            isActive: true,
+            archivedAt: null,
+            archivedReason: null,
+            updatedBy: params.updatedBy,
+          };
+        }),
         skipDuplicates: true,
       });
 
       summary.offerings.created = created.count;
+      if (created.count !== replacementRows.length) {
+        summary.warnings.push(
+          `Se omitieron ${replacementRows.length - created.count} ofertas duplicadas por restricción única.`,
+        );
+      }
     }
 
     summary.offerings.deactivated = deleted.count;

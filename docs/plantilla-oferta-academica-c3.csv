@@ -1,0 +1,6 @@
+ciclo,plantel,programa,linea,modalidad,plan,modulo,No. de modulos,horario,horario escolarizado,horario ejecutivo,activo,notas
+C3,Aguascalientes,Administracion de Empresas,licenciatura,ejecutivo,"9, 11",Modular,2,,,08:00 a 15:00 hrs.,true,Ejemplo ejecutivo modular C3
+C3,Altamira,Pedagogia,licenciatura,presencial,"9, 11",Modular,2,,lunes a viernes de 07:00 a 14:00 hrs.,,true,Ejemplo presencial modular C3
+C3,Altamira,Pedagogia,licenciatura,ejecutivo,"9, 11",Modular,2,,,08:00 a 15:00 hrs.,true,Esta fila se fusiona con la presencial anterior en una sola oferta
+C3,Aguascalientes,Bachillerato General - Formacion en Administracion,bachillerato,presencial,6,Longitudinal,1,,lunes a viernes de 07:00 a 14:00 hrs.,,true,Ejemplo longitudinal
+C3,Online,Mercadotecnia,licenciatura,online,"4, 9, 11",Modular,2,,,,true,Online se importa como delivery ONLINE
