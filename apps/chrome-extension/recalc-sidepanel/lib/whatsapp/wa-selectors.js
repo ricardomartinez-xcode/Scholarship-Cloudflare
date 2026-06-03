@@ -246,6 +246,18 @@
       // WhatsApp Web can expose only one media input with accept="image/*".
       // Older builds also used a similar single-image input for Sticker Maker,
       // so prefer richer media inputs above but keep this as the safe fallback.
+      const imageInputsByDom = inputs.filter((input) => {
+        const accept = String(input?.accept || "").toLowerCase().trim();
+        return accept.includes("image") && !accept.includes("audio");
+      });
+      if (
+        imageInputsByDom.length > 1 &&
+        String(imageInputsByDom[0]?.accept || "").toLowerCase().trim() === "image/*" &&
+        !imageInputsByDom[0].multiple
+      ) {
+        return imageInputsByDom[1];
+      }
+
       return sorted.find(({ input }) => {
         const accept = String(input?.accept || "").toLowerCase().trim();
         return accept.includes("image") && !accept.includes("audio");

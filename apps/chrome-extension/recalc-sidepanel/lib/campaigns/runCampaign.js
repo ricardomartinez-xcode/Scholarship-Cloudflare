@@ -102,6 +102,22 @@
     return hasPlus ? `+${digits}` : digits;
   }
 
+  function isCaptionMediaAttachment(attachment) {
+    const mime = String(attachment?.type || "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
+    return mime.startsWith("image/") || mime.startsWith("video/");
+  }
+
+  function shouldPrefillMediaCaption(text, attachments) {
+    return Boolean(
+      String(text || "").trim() &&
+      Array.isArray(attachments) &&
+      attachments.some(isCaptionMediaAttachment),
+    );
+  }
+
   function normalizeRunState(input, current) {
     return {
       ...current,
@@ -353,7 +369,7 @@
 
         const tabId = await deps.ensureWhatsAppTab({
           phone,
-          text: "",
+          text: shouldPrefillMediaCaption(messageText, attachments) ? messageText : "",
         });
         await deps.ensureWhatsAppBridge(tabId);
 

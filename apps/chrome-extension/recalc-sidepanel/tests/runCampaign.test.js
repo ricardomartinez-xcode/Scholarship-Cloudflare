@@ -113,3 +113,87 @@ test("does not send WhatsApp twice when a sent recipient is reclaimed after repo
   assert.equal(sendCalls, 1);
   assert.equal(reportCalls, 2);
 });
+
+test("opens WhatsApp with campaign text prefilled when sending media so it becomes the caption", async () => {
+  const { runner } = createHarness();
+  await runner.runCampaign({
+    campaignId: "campaign_1",
+    appBaseUrl: "https://recalc.test",
+    extensionSessionToken: "token",
+  });
+
+  const ensureCalls = [];
+  const deps = {
+    async claimNextBatch() {
+      return createBatch();
+    },
+    async loadCampaignById() {
+      return { id: "campaign_1", status: "running", campaignName: "Prueba media" };
+    },
+    async reportDispatch() {
+      return { status: "running", campaignName: "Prueba media" };
+    },
+    async ensureWhatsAppTab(input) {
+      ensureCalls.push(input);
+      return 123;
+    },
+    async ensureWhatsAppBridge() {},
+    resolveMessage(_working, recipient) {
+      return recipient.resolvedMessage;
+    },
+    async getAttachmentsForCampaign() {
+      return [{ name: "test.jpg", type: "image/jpeg", size: 3, bytes: [1, 2, 3] }];
+    },
+    async sendToWhatsApp() {
+      return { success: true, delayMs: 1000 };
+    },
+  };
+
+  await runner.processTick(deps);
+
+  assert.equal(ensureCalls.length, 1);
+  assert.equal(ensureCalls[0].phone, "5573578665");
+  assert.equal(ensureCalls[0].text, "Hola con imagen");
+});
+
+test("opens WhatsApp without URL draft for text-only campaigns", async () => {
+  const { runner } = createHarness();
+  await runner.runCampaign({
+    campaignId: "campaign_1",
+    appBaseUrl: "https://recalc.test",
+    extensionSessionToken: "token",
+  });
+
+  const ensureCalls = [];
+  const deps = {
+    async claimNextBatch() {
+      return createBatch();
+    },
+    async loadCampaignById() {
+      return { id: "campaign_1", status: "running", campaignName: "Prueba media" };
+    },
+    async reportDispatch() {
+      return { status: "running", campaignName: "Prueba media" };
+    },
+    async ensureWhatsAppTab(input) {
+      ensureCalls.push(input);
+      return 123;
+    },
+    async ensureWhatsAppBridge() {},
+    resolveMessage(_working, recipient) {
+      return recipient.resolvedMessage;
+    },
+    async getAttachmentsForCampaign() {
+      return [];
+    },
+    async sendToWhatsApp() {
+      return { success: true, delayMs: 1000 };
+    },
+  };
+
+  await runner.processTick(deps);
+
+  assert.equal(ensureCalls.length, 1);
+  assert.equal(ensureCalls[0].phone, "5573578665");
+  assert.equal(ensureCalls[0].text, "");
+});

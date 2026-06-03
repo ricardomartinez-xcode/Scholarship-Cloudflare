@@ -70,6 +70,17 @@ test("prefers richer media input when WhatsApp exposes one", () => {
   assert.equal(selected, inputNodes[1]);
 });
 
+test("prefers the second single-image input when the first one is WhatsApp Sticker Maker", () => {
+  const { context, inputNodes } = createContextWithInputs([
+    { accept: "image/*", multiple: false },
+    { accept: "image/*", multiple: false },
+  ]);
+
+  const selected = context.RecalcWaSelectors.findAttachmentInput("media");
+
+  assert.equal(selected, inputNodes[1]);
+});
+
 test("resolves Premium Sender style attach icons to the clickable button", () => {
   class Element {
     constructor(name) {

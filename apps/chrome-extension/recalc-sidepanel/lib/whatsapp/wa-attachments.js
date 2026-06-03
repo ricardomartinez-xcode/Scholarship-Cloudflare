@@ -61,8 +61,8 @@
       if (kind === "media") {
         return (
           selectors.findAttachmentOption("media") ||
-          selectors.findAttachmentOptionByPosition(0) ||
-          selectors.findAttachmentOptionByPosition(1)
+          selectors.findAttachmentOptionByPosition(1) ||
+          selectors.findAttachmentOptionByPosition(0)
         );
       }
       return (
@@ -200,6 +200,11 @@
     const normalized = String(text || "").trim();
     if (!normalized) return { applied: false };
 
+    const existingComposer = selectors.findMessageInput(pack);
+    if (textUtils.composerText(existingComposer) === normalized) {
+      return { applied: true, via: "existing" };
+    }
+
     const cleared = await clearComposerDraft(pack);
     if (!cleared.cleared) {
       log("No fue posible limpiar el borrador previo del composer.", cleared);
@@ -314,9 +319,11 @@
 
       // Clear any stray text from the composer to ensure we don't carry over
       // unrelated drafts into the caption.
-      const clearedComposer = await clearComposerDraft(pack);
-      if (!clearedComposer.cleared) {
-        log("No fue posible limpiar el borrador previo del composer.", clearedComposer);
+      if (!shouldApplyCaption) {
+        const clearedComposer = await clearComposerDraft(pack);
+        if (!clearedComposer.cleared) {
+          log("No fue posible limpiar el borrador previo del composer.", clearedComposer);
+        }
       }
 
       // If this file should carry the caption, pre-fill the composer now. When the
