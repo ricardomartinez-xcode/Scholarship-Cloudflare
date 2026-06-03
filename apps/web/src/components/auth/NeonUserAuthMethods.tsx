@@ -28,6 +28,7 @@ type AuthClientWithPasswordless = typeof authClient & {
 };
 
 type AuthMethodsMode = "sign-in" | "sign-up";
+type PasswordlessMethod = "magic" | "otp";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
@@ -109,8 +110,8 @@ export default function NeonUserAuthMethods({
   mode?: AuthMethodsMode;
   lockedEmail?: boolean;
 }) {
-  const [magicEmail, setMagicEmail] = useState(defaultEmail);
-  const [otpEmail, setOtpEmail] = useState(defaultEmail);
+  const [method, setMethod] = useState<PasswordlessMethod>("magic");
+  const [email, setEmail] = useState(defaultEmail);
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
@@ -120,9 +121,21 @@ export default function NeonUserAuthMethods({
   const redirect = useMemo(() => safeCallback(callbackURL), [callbackURL]);
   const copy = modeCopy(mode);
 
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    setOtp("");
+    setOtpSent(false);
+  }
+
+  function selectMethod(nextMethod: PasswordlessMethod) {
+    setMethod(nextMethod);
+    setError(null);
+    setNotice(null);
+  }
+
   async function sendMagicLink() {
-    const email = emailFrom(magicEmail);
-    if (!email) {
+    const cleanEmail = emailFrom(email);
+    if (!cleanEmail) {
       setError("Ingresa tu correo para enviarte el enlace mágico.");
       return;
     }
@@ -133,7 +146,7 @@ export default function NeonUserAuthMethods({
     try {
       const client = authClient as AuthClientWithPasswordless;
       const result = await client.signIn.magicLink({
-        email,
+        email: cleanEmail,
         callbackURL: redirect,
         newUserCallbackURL: addQuery(redirect, { newUser: "1" }),
         errorCallbackURL: `/auth/${mode === "sign-up" ? "sign-up" : "sign-in"}?error=${encodeURIComponent("No se pudo validar el enlace mágico.")}`,
@@ -148,8 +161,8 @@ export default function NeonUserAuthMethods({
   }
 
   async function sendEmailOtp() {
-    const email = emailFrom(otpEmail);
-    if (!email) {
+    const cleanEmail = emailFrom(email);
+    if (!cleanEmail) {
       setError("Ingresa tu correo para enviarte el código OTP.");
       return;
     }
@@ -159,7 +172,7 @@ export default function NeonUserAuthMethods({
     setNotice(null);
     try {
       const client = authClient as AuthClientWithPasswordless;
-      const result = await client.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+      const result = await client.emailOtp.sendVerificationOtp({ email: cleanEmail, type: "sign-in" });
       assertNoAuthError(result, "No se pudo enviar el código OTP.");
       setOtpSent(true);
       setNotice(copy.otpSuccess);
@@ -171,9 +184,9 @@ export default function NeonUserAuthMethods({
   }
 
   async function verifyEmailOtp() {
-    const email = emailFrom(otpEmail);
+    const cleanEmail = emailFrom(email);
     const code = otp.trim();
-    if (!email || !code) {
+    if (!cleanEmail || !code) {
       setError("Completa correo y código OTP.");
       return;
     }
@@ -184,9 +197,9 @@ export default function NeonUserAuthMethods({
     try {
       const client = authClient as AuthClientWithPasswordless;
       const result = await client.signIn.emailOtp({
-        email,
+        email: cleanEmail,
         otp: code,
-        ...(mode === "sign-up" ? { name: displayNameFromEmail(email) } : {}),
+        ...(mode === "sign-up" ? { name: displayNameFromEmail(cleanEmail) } : {}),
       });
       assertNoAuthError(result, "No se pudo validar el código OTP.");
       window.location.assign(absoluteUrl(redirect));
@@ -198,7 +211,7 @@ export default function NeonUserAuthMethods({
   }
 
   return (
-    <section className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+    <section className="grid gap-3">
       <div>
         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{copy.eyebrow}</div>
         <p className="mt-1 text-xs leading-5 text-slate-300">{copy.description}</p>
@@ -207,57 +220,69 @@ export default function NeonUserAuthMethods({
       {notice ? <div className="ui-note ui-note--success text-sm">{notice}</div> : null}
       {error ? <div className="ui-note ui-note--danger text-sm">{error}</div> : null}
 
-      <div className="grid gap-2">
-        <label className="ui-auth-form-label">
-          Magic link por correo
-          <input
-            className="ui-control ui-auth-control read-only:cursor-not-allowed read-only:opacity-70"
-            type="email"
-            value={magicEmail}
-            onChange={(event) => setMagicEmail(event.target.value)}
-            placeholder="nombre@unidep.edu.mx"
-            autoComplete="email"
-            readOnly={lockedEmail}
-          />
-        </label>
-        <button type="button" className="ui-auth-social-button justify-center" onClick={() => void sendMagicLink()} disabled={Boolean(pending)}>
-          {pending === "magic" ? copy.magicPending : copy.magicLabel}
+      <div className="ui-auth-segmented" role="tablist" aria-label="Método sin contraseña">
+        <button
+          type="button"
+          className="ui-auth-segment"
+          aria-pressed={method === "magic"}
+          onClick={() => selectMethod("magic")}
+        >
+          Magic link
+        </button>
+        <button
+          type="button"
+          className="ui-auth-segment"
+          aria-pressed={method === "otp"}
+          onClick={() => selectMethod("otp")}
+        >
+          OTP
         </button>
       </div>
 
-      <div className="ui-auth-divider">o código OTP</div>
-
       <div className="grid gap-2">
         <label className="ui-auth-form-label">
-          Correo para OTP
+          Correo
           <input
             className="ui-control ui-auth-control read-only:cursor-not-allowed read-only:opacity-70"
             type="email"
-            value={otpEmail}
-            onChange={(event) => setOtpEmail(event.target.value)}
+            value={email}
+            onChange={(event) => handleEmailChange(event.target.value)}
             placeholder="nombre@unidep.edu.mx"
             autoComplete="email"
             readOnly={lockedEmail}
           />
         </label>
-        <button type="button" className="ui-auth-social-button justify-center" onClick={() => void sendEmailOtp()} disabled={Boolean(pending)}>
-          {pending === "otp-send" ? "Enviando código..." : copy.otpSendLabel}
-        </button>
-        {otpSent ? (
+
+        {method === "magic" ? (
+          <button type="button" className="ui-auth-social-button justify-center" onClick={() => void sendMagicLink()} disabled={Boolean(pending)}>
+            {pending === "magic" ? copy.magicPending : copy.magicLabel}
+          </button>
+        ) : (
           <div className="grid gap-2">
+            <button type="button" className="ui-auth-social-button justify-center" onClick={() => void sendEmailOtp()} disabled={Boolean(pending)}>
+              {pending === "otp-send" ? "Enviando código..." : copy.otpSendLabel}
+            </button>
             <label className="ui-auth-form-label">
               Código recibido
-              <input className="ui-control ui-auth-control" inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="123456" autoComplete="one-time-code" />
+              <input
+                className="ui-control ui-auth-control"
+                inputMode="numeric"
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+                placeholder="123456"
+                autoComplete="one-time-code"
+                disabled={!otpSent}
+              />
             </label>
-            <button type="button" className="ui-button-primary w-full justify-center" onClick={() => void verifyEmailOtp()} disabled={Boolean(pending)}>
+            <button type="button" className="ui-button-primary w-full justify-center" onClick={() => void verifyEmailOtp()} disabled={Boolean(pending) || !otpSent}>
               {pending === "otp-verify" ? "Validando..." : copy.otpVerifyLabel}
             </button>
           </div>
-        ) : null}
+        )}
       </div>
 
-      <div className="rounded-xl border border-slate-700/70 bg-slate-950/40 p-3 text-xs leading-5 text-slate-300">
-        <strong className="text-slate-100">Invitaciones de organización:</strong> abre el enlace de invitación recibido por correo. Si te pide iniciar sesión o crear cuenta, usa Google, magic link u OTP con el mismo correo invitado.
+      <div className="rounded-lg border border-[color:var(--ui-border)] bg-white p-3 text-xs leading-5 text-[color:var(--ui-text-secondary)]">
+        <strong className="text-[color:var(--ui-text-primary)]">Invitaciones de organización:</strong> abre el enlace de invitación recibido por correo. Si te pide iniciar sesión o crear cuenta, usa Google, magic link u OTP con el mismo correo invitado.
       </div>
     </section>
   );

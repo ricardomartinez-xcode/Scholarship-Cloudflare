@@ -46,6 +46,7 @@ describe("Neon Auth webhook route", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     process.env = { ...ORIGINAL_ENV };
   });
 
@@ -76,5 +77,43 @@ describe("Neon Auth webhook route", () => {
       svixSecretConfigured: true,
       jwksConfigured: false,
     });
+  });
+
+  it("rejects delivery events when no custom delivery handler is configured", async () => {
+    const rawBody = JSON.stringify({ event: "send.magic_link", email: "test@unidep.edu.mx" });
+
+    const response = await POST(buildSvixRequest(rawBody));
+
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: "delivery_handler_not_configured",
+    });
+    expect(response.status).toBe(501);
+  });
+
+  it("forwards OTP delivery events when a custom delivery handler is configured", async () => {
+    process.env.NEON_AUTH_WEBHOOK_FORWARD_URL = "https://hooks.recalc.test/neon-auth";
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const rawBody = JSON.stringify({ event: "send.otp", email: "test@unidep.edu.mx" });
+
+    const response = await POST(buildSvixRequest(rawBody));
+
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      event: "send.otp",
+      forwarded: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://hooks.recalc.test/neon-auth",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "x-recalc-integration": "neon-auth",
+          "x-neon-auth-event": "send.otp",
+        }),
+        body: rawBody,
+      }),
+    );
   });
 });

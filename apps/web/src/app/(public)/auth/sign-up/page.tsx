@@ -1,10 +1,8 @@
 import Link from "next/link";
 
+import AuthMethodSwitcher from "@/components/auth/AuthMethodSwitcher";
 import BrandedAuthShell from "@/components/auth/BrandedAuthShell";
-import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
 import { getInviteByToken } from "@/lib/invites";
-import PasswordField from "@/components/auth/PasswordField";
 import { getSystemRoleMeta } from "@/lib/system-roles";
 
 export const dynamic = "force-dynamic";
@@ -94,49 +92,13 @@ export default async function SignUpPage({
         </div>
       ) : null}
 
-      <div className="grid gap-3">
-        <GoogleSignInButton callbackURL={callbackURL} />
-        <NeonUserAuthMethods
-          callbackURL={callbackURL}
-          defaultEmail={inviteEmail ?? ""}
-          lockedEmail={Boolean(inviteEmail)}
-          mode="sign-up"
-        />
-      </div>
-
-      <div className="ui-auth-divider">o crea contraseña</div>
-
-      <form action="/api/auth/sign-up" method="post" className="ui-auth-form">
-        {token ? <input type="hidden" name="token" value={token} /> : null}
-
-        <label className="ui-auth-form-label">
-          Correo
-          <input
-            name="email"
-            type="email"
-            placeholder="nombre@unidep.edu.mx"
-            defaultValue={inviteEmail ?? ""}
-            readOnly={!!inviteEmail}
-            autoComplete="username"
-            className="ui-control ui-auth-control read-only:cursor-not-allowed read-only:opacity-70"
-          />
-        </label>
-        <label className="ui-auth-form-label">
-          Contraseña
-          <PasswordField
-            name="password"
-            placeholder="Crea una contraseña"
-            autoComplete="new-password"
-            className="ui-control ui-auth-control pl-3.5 pr-12"
-          />
-        </label>
-        <button
-          type="submit"
-          className="ui-button-primary w-full justify-center"
-        >
-          Crear cuenta
-        </button>
-      </form>
+      <AuthMethodSwitcher
+        mode="sign-up"
+        callbackURL={callbackURL}
+        defaultEmail={inviteEmail ?? ""}
+        lockedEmail={Boolean(inviteEmail)}
+        token={token}
+      />
     </BrandedAuthShell>
   );
 }

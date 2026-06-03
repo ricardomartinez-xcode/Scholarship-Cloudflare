@@ -2512,6 +2512,53 @@ select:-webkit-autofill {
   box-shadow: 0 0 0 4px rgba(31, 108, 140, 0.2);
 }
 
+.ui-auth-method-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ui-auth-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  border: 1px solid #c9dbe7;
+  border-radius: 8px;
+  background: #eef6fb;
+  padding: 4px;
+}
+
+.ui-auth-segment {
+  min-height: 38px;
+  min-width: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #365770;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+  padding: 8px 10px;
+  text-align: center;
+  transition:
+    background var(--ui-dur) var(--ui-ease),
+    color var(--ui-dur) var(--ui-ease),
+    box-shadow var(--ui-dur) var(--ui-ease);
+}
+
+.ui-auth-segment[aria-pressed="true"] {
+  background: #114E6D;
+  color: #FFFFFF;
+  box-shadow: 0 6px 16px rgba(17, 78, 109, 0.18);
+}
+
+.ui-auth-segment:focus-visible {
+  outline: 3px solid rgba(17, 78, 109, 0.22);
+  outline-offset: 2px;
+}
+
 .ui-auth-inline-note {
   font-size: 13px;
   line-height: 1.6;
