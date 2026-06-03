@@ -17,8 +17,16 @@ const MAX_UA_LENGTH = 240;
 type ExtensionSessionTokenRow = {
   id: string;
   userId: string;
+  scope: string;
   expiresAt: Date;
   revokedAt: Date | null;
+};
+
+export type IssuedExtensionSession = {
+  tokenId: string;
+  scope: string;
+  expiresAt: Date;
+  user: User;
 };
 
 function sha256(value: string) {
@@ -97,13 +105,15 @@ export async function revokeIssuedExtensionSessionToken(token: string) {
   return Number(result) > 0;
 }
 
-export async function getIssuedExtensionSessionUser(token: string): Promise<User | null> {
+export async function getIssuedExtensionSession(
+  token: string,
+): Promise<IssuedExtensionSession | null> {
   const parsed = parseIssuedExtensionToken(token);
   if (!parsed) return null;
   const tokenHash = sha256(parsed.secret);
 
   const rows = await prisma.$queryRaw<ExtensionSessionTokenRow[]>`
-    select id, "userId", "expiresAt", "revokedAt"
+    select id, "userId", scope, "expiresAt", "revokedAt"
     from recalc_admin.extension_session_token
     where id = ${parsed.id}::uuid
       and "tokenHash" = ${tokenHash}
@@ -120,5 +130,18 @@ export async function getIssuedExtensionSessionUser(token: string): Promise<User
     where id = ${row.id}::uuid
   `;
 
-  return prisma.user.findUnique({ where: { id: row.userId } });
+  const user = await prisma.user.findUnique({ where: { id: row.userId } });
+  if (!user) return null;
+
+  return {
+    tokenId: row.id,
+    scope: row.scope,
+    expiresAt: row.expiresAt,
+    user,
+  };
+}
+
+export async function getIssuedExtensionSessionUser(token: string): Promise<User | null> {
+  const session = await getIssuedExtensionSession(token);
+  return session?.user ?? null;
 }
