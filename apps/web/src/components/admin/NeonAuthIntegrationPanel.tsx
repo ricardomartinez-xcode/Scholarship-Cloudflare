@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type StatusPayload = {
   projectId: string;
@@ -59,7 +59,7 @@ export default function NeonAuthIntegrationPanel() {
     return Boolean(status.env.NEON_API_KEY && status.health && !status.errors.length);
   }, [status]);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setState("loading");
     setMessage(null);
     try {
@@ -70,7 +70,7 @@ export default function NeonAuthIntegrationPanel() {
       setState("error");
       setMessage(error instanceof Error ? error.message : "No se pudo cargar el estado.");
     }
-  }
+  }, []);
 
   async function syncWebhook() {
     setState("loading");
@@ -108,8 +108,9 @@ export default function NeonAuthIntegrationPanel() {
   }
 
   useEffect(() => {
-    void refresh();
-  }, []);
+    const timeout = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [refresh]);
 
   return (
     <div className="ui-admin-stack" style={{ gap: 20 }}>

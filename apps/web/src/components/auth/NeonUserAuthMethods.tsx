@@ -5,7 +5,27 @@ import { useMemo, useState } from "react";
 import { authClient } from "@/lib/auth/client";
 
 type AuthResult = { error?: { message?: string } | null; data?: unknown; url?: string; redirectUrl?: string } | void;
-type AuthClientAny = typeof authClient & Record<string, any>;
+type AuthClientWithPasswordless = typeof authClient & {
+  signIn: typeof authClient.signIn & {
+    magicLink(input: {
+      email: string;
+      callbackURL: string;
+      newUserCallbackURL: string;
+      errorCallbackURL: string;
+    }): Promise<AuthResult>;
+    emailOtp(input: {
+      email: string;
+      otp: string;
+      name?: string;
+    }): Promise<AuthResult>;
+  };
+  emailOtp: {
+    sendVerificationOtp(input: {
+      email: string;
+      type: "sign-in";
+    }): Promise<AuthResult>;
+  };
+};
 
 type AuthMethodsMode = "sign-in" | "sign-up";
 
@@ -111,7 +131,7 @@ export default function NeonUserAuthMethods({
     setError(null);
     setNotice(null);
     try {
-      const client = authClient as AuthClientAny;
+      const client = authClient as AuthClientWithPasswordless;
       const result = await client.signIn.magicLink({
         email,
         callbackURL: redirect,
@@ -138,7 +158,7 @@ export default function NeonUserAuthMethods({
     setError(null);
     setNotice(null);
     try {
-      const client = authClient as AuthClientAny;
+      const client = authClient as AuthClientWithPasswordless;
       const result = await client.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
       assertNoAuthError(result, "No se pudo enviar el código OTP.");
       setOtpSent(true);
@@ -162,7 +182,7 @@ export default function NeonUserAuthMethods({
     setError(null);
     setNotice(null);
     try {
-      const client = authClient as AuthClientAny;
+      const client = authClient as AuthClientWithPasswordless;
       const result = await client.signIn.emailOtp({
         email,
         otp: code,

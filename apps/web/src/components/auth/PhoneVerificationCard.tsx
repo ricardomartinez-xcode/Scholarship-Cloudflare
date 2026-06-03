@@ -5,7 +5,16 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
 
 type AuthResult = { error?: { message?: string } | null } | void;
-type AuthClientAny = typeof authClient & Record<string, any>;
+type AuthClientWithPhoneNumber = typeof authClient & {
+  phoneNumber: {
+    sendOtp(input: { phoneNumber: string }): Promise<AuthResult>;
+    verify(input: {
+      phoneNumber: string;
+      code: string;
+      updatePhoneNumber: boolean;
+    }): Promise<AuthResult>;
+  };
+};
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
@@ -40,7 +49,7 @@ export default function PhoneVerificationCard() {
     setError(null);
     setNotice(null);
     try {
-      const client = authClient as AuthClientAny;
+      const client = authClient as AuthClientWithPhoneNumber;
       const result = await client.phoneNumber.sendOtp({ phoneNumber: cleanPhone });
       assertNoAuthError(result, "No se pudo enviar el código al teléfono.");
       setSent(true);
@@ -64,7 +73,7 @@ export default function PhoneVerificationCard() {
     setError(null);
     setNotice(null);
     try {
-      const client = authClient as AuthClientAny;
+      const client = authClient as AuthClientWithPhoneNumber;
       const result = await client.phoneNumber.verify({
         phoneNumber: cleanPhone,
         code: cleanCode,

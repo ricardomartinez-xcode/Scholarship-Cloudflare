@@ -11,6 +11,7 @@ const { prismaMock, txMock } = vi.hoisted(() => {
       createMany: vi.fn(),
     },
   };
+  type TxMock = typeof tx;
 
   return {
     txMock: tx,
@@ -20,7 +21,9 @@ const { prismaMock, txMock } = vi.hoisted(() => {
         create: vi.fn(),
         update: vi.fn(),
       },
-      $transaction: vi.fn(async (callback: (tx: typeof tx) => Promise<unknown>) => callback(tx)),
+      $transaction: vi.fn(async (callback: (transaction: TxMock) => Promise<unknown>) =>
+        callback(tx),
+      ),
     },
   };
 });
