@@ -34,12 +34,21 @@ function getProgramSeeds(payload: PreparedAcademicOfferImportPayload) {
 
   for (const campus of payload.parsed) {
     for (const row of campus.rows) {
-      if (!seeds.has(row.programNormalized)) {
+      const existing = seeds.get(row.programNormalized);
+      if (!existing) {
         seeds.set(row.programNormalized, {
           name: row.programName,
           level: row.level,
           lineOfBusiness: row.lineOfBusiness,
         });
+        continue;
+      }
+
+      if (!existing.level && row.level) {
+        existing.level = row.level;
+      }
+      if (!existing.lineOfBusiness && row.lineOfBusiness) {
+        existing.lineOfBusiness = row.lineOfBusiness;
       }
     }
   }
@@ -107,7 +116,9 @@ function mergePricingPlans(
 }
 
 function mergeText(left: string | null, right: string | null) {
-  return left?.trim() ? left : right?.trim() ? right : null;
+  if (!left?.trim()) return right?.trim() ? right : null;
+  if (!right?.trim() || left === right) return left;
+  return `${left} | ${right}`;
 }
 
 function mergeOfferRows(previous: ParsedOfferRow, next: ParsedOfferRow): ParsedOfferRow {

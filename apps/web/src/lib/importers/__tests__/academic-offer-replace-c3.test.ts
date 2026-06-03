@@ -39,8 +39,8 @@ describe("applyPreparedAcademicOfferImport C3 guardrails", () => {
     prismaMock.program.findUnique.mockResolvedValue({
       id: "program-pedagogia",
       name: "Pedagogia",
-      level: "licenciatura",
-      businessLine: "licenciatura",
+      level: null,
+      businessLine: null,
     });
 
     txMock.campus.update.mockResolvedValue({});
@@ -66,8 +66,8 @@ describe("applyPreparedAcademicOfferImport C3 guardrails", () => {
             {
               programName: "Pedagogia",
               programNormalized: "pedagogia",
-              level: "licenciatura",
-              lineOfBusiness: "licenciatura",
+              level: null,
+              lineOfBusiness: null,
               delivery: "CAMPUS",
               escolarizado: true,
               ejecutivo: false,
@@ -104,6 +104,14 @@ describe("applyPreparedAcademicOfferImport C3 guardrails", () => {
     });
 
     expect(txMock.programOffering.createMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.program.update).toHaveBeenCalledWith({
+      where: { id: "program-pedagogia" },
+      data: {
+        name: "Pedagogia",
+        level: "licenciatura",
+        businessLine: "licenciatura",
+      },
+    });
     const createManyArg = txMock.programOffering.createMany.mock.calls[0]?.[0];
     expect(createManyArg.data).toHaveLength(1);
 
