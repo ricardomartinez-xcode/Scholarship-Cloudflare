@@ -1,0 +1,36 @@
+import { AdminCapability } from "@prisma/client";
+
+import { requireAdminApiCapability } from "@/lib/api-auth";
+import {
+  adminApiError,
+  adminApiSuccess,
+  buildAdminRequestId,
+  logAdminApiFailure,
+} from "@/lib/admin-api";
+import { getAdminSystemHealth } from "@/lib/admin-system-control";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const requestId = buildAdminRequestId("admin_system_health");
+  try {
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.view_admin_operations,
+    );
+    if (!auth.ok) return auth.response;
+
+    return adminApiSuccess(requestId, await getAdminSystemHealth());
+  } catch (error) {
+    logAdminApiFailure({ requestId, module: "admin-system", action: "health", error });
+    return adminApiError({
+      requestId,
+      status: 500,
+      errorCode: "SYSTEM_HEALTH_FAILED",
+      error: "No fue posible ejecutar health check.",
+      details: { reason: error instanceof Error ? error.message : String(error) },
+      recoverable: true,
+    });
+  }
+}
