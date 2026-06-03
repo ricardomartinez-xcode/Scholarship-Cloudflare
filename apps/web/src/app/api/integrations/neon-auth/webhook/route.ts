@@ -1,11 +1,264 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, createPublicKey, timingSafeEqual, verify, type JsonWebKey } from "node:crypto";
 
+import { sendMail } from "@/lib/mailer";
 import { recordNeonAuthEvent } from "@/lib/neon-auth-event-log";
+import { getSmtpStatus } from "@/lib/smtp";
 
 export const runtime = "nodejs";
 
 const DELIVERY_EVENTS = new Set(["send.otp", "send.magic_link"]);
+type DeliveryEvent = "send.otp" | "send.magic_link";
+
+const EMAIL_KEYS = new Set(["email", "to", "recipientemail", "emailaddress"]);
+const OTP_KEYS = new Set(["otp", "code", "verificationcode", "token"]);
+const MAGIC_LINK_KEYS = new Set([
+  "url",
+  "link",
+  "href",
+  "magiclink",
+  "verificationurl",
+  "callbackurl",
+]);
+
+function isDeliveryEvent(event: string): event is DeliveryEvent {
+  return DELIVERY_EVENTS.has(event);
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function keyId(value: string) {
+  return value.replace(/[-_\s]/g, "").toLowerCase();
+}
+
+function valueAtPath(payload: Record<string, unknown>, path: string[]) {
+  let current: unknown = payload;
+  for (const segment of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return null;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return textValue(current);
+}
+
+function firstPathValue(payload: Record<string, unknown>, paths: string[][]) {
+  for (const path of paths) {
+    const value = valueAtPath(payload, path);
+    if (value) return value;
+  }
+  return null;
+}
+
+function findStringByKey(value: unknown, keys: Set<string>, depth = 0): string | null {
+  if (!value || typeof value !== "object" || depth > 6) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const match = findStringByKey(item, keys, depth + 1);
+      if (match) return match;
+    }
+    return null;
+  }
+
+  for (const [key, entry] of Object.entries(value)) {
+    if (keys.has(keyId(key))) {
+      const text = textValue(entry);
+      if (text) return text;
+    }
+  }
+
+  for (const entry of Object.values(value)) {
+    const match = findStringByKey(entry, keys, depth + 1);
+    if (match) return match;
+  }
+  return null;
+}
+
+function extractDeliveryEmail(payload: Record<string, unknown>) {
+  return (
+    firstPathValue(payload, [
+      ["email"],
+      ["to"],
+      ["data", "email"],
+      ["data", "user", "email"],
+      ["payload", "email"],
+      ["payload", "user", "email"],
+      ["user", "email"],
+    ]) ?? findStringByKey(payload, EMAIL_KEYS)
+  );
+}
+
+function extractOtp(payload: Record<string, unknown>) {
+  return (
+    firstPathValue(payload, [
+      ["otp"],
+      ["code"],
+      ["token"],
+      ["data", "otp"],
+      ["data", "code"],
+      ["data", "token"],
+      ["payload", "otp"],
+      ["payload", "code"],
+      ["payload", "token"],
+    ]) ?? findStringByKey(payload, OTP_KEYS)
+  );
+}
+
+function extractMagicLink(payload: Record<string, unknown>) {
+  return (
+    firstPathValue(payload, [
+      ["url"],
+      ["link"],
+      ["magicLink"],
+      ["magic_link"],
+      ["data", "url"],
+      ["data", "link"],
+      ["data", "magicLink"],
+      ["data", "magic_link"],
+      ["payload", "url"],
+      ["payload", "link"],
+      ["payload", "magicLink"],
+      ["payload", "magic_link"],
+    ]) ?? findStringByKey(payload, MAGIC_LINK_KEYS)
+  );
+}
+
+function extractPurpose(payload: Record<string, unknown>) {
+  return firstPathValue(payload, [
+    ["type"],
+    ["purpose"],
+    ["data", "type"],
+    ["data", "purpose"],
+    ["payload", "type"],
+    ["payload", "purpose"],
+  ]);
+}
+
+function publicBaseUrl() {
+  return (process.env.NEXT_PUBLIC_BASE_URL ?? "https://recalc.relead.com.mx").replace(/\/+$/, "");
+}
+
+function normalizeLink(link: string) {
+  if (/^https?:\/\//i.test(link)) return link;
+  if (link.startsWith("/")) return `${publicBaseUrl()}${link}`;
+  return link;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function authEmailLayout(params: {
+  title: string;
+  intro: string;
+  actionHtml: string;
+  fallbackText?: string;
+}) {
+  const year = new Date().getFullYear();
+  return `<!doctype html>
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(params.title)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+          <tr>
+            <td style="background-color:#0f172a;padding:20px 28px;color:#ffffff;font-weight:700;">ReCalc</td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <h1 style="margin:0 0 12px 0;color:#0f172a;font-size:20px;line-height:1.3;">${escapeHtml(params.title)}</h1>
+              <p style="margin:0 0 20px 0;color:#475569;font-size:14px;line-height:1.65;">${escapeHtml(params.intro)}</p>
+              ${params.actionHtml}
+              ${params.fallbackText ? `<p style="margin:18px 0 0 0;color:#64748b;font-size:12px;line-height:1.6;">${params.fallbackText}</p>` : ""}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px;background-color:#f8fafc;color:#64748b;font-size:12px;line-height:1.6;">
+              Si no solicitaste este correo, puedes ignorarlo.<br />
+              © ${year} ReCalc · ReLead
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildOtpEmail(otp: string, purpose: string | null) {
+  const safeOtp = escapeHtml(otp);
+  const purposeText = purpose ? ` para ${purpose}` : "";
+  return {
+    subject: "Tu codigo de acceso a ReCalc",
+    text: `Tu codigo de acceso${purposeText} es: ${otp}
+
+Si no solicitaste este codigo, puedes ignorar este correo.
+`,
+    html: authEmailLayout({
+      title: "Tu codigo de acceso a ReCalc",
+      intro: `Usa este codigo${purposeText} para continuar con tu autenticacion.`,
+      actionHtml: `<div style="display:inline-block;background-color:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px 22px;color:#065f46;font-size:28px;font-weight:800;letter-spacing:.18em;">${safeOtp}</div>`,
+    }),
+  };
+}
+
+function buildMagicLinkEmail(link: string) {
+  const safeLink = escapeHtml(normalizeLink(link));
+  return {
+    subject: "Tu enlace de acceso a ReCalc",
+    text: `Abre este enlace para continuar con tu autenticacion en ReCalc:
+${normalizeLink(link)}
+
+Si no solicitaste este enlace, puedes ignorar este correo.
+`,
+    html: authEmailLayout({
+      title: "Tu enlace de acceso a ReCalc",
+      intro: "Abre este enlace para continuar con tu autenticacion.",
+      actionHtml: `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:10px;background-color:#059669;"><a href="${safeLink}" style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 24px;border-radius:10px;">Entrar a ReCalc</a></td></tr></table>`,
+      fallbackText: `Si el boton no funciona, copia y pega este enlace en tu navegador:<br /><a href="${safeLink}" style="color:#2563eb;text-decoration:underline;word-break:break-all;">${safeLink}</a>`,
+    }),
+  };
+}
+
+async function deliverAuthEmail(event: DeliveryEvent, payload: Record<string, unknown>) {
+  if (!getSmtpStatus().ok) return false;
+
+  const email = extractDeliveryEmail(payload);
+  if (!email) throw new Error("delivery_email_missing");
+
+  const emailPayload =
+    event === "send.otp"
+      ? (() => {
+          const otp = extractOtp(payload);
+          if (!otp) throw new Error("delivery_otp_missing");
+          return buildOtpEmail(otp, extractPurpose(payload));
+        })()
+      : (() => {
+          const link = extractMagicLink(payload);
+          if (!link) throw new Error("delivery_magic_link_missing");
+          return buildMagicLinkEmail(link);
+        })();
+
+  await sendMail({
+    to: email,
+    subject: emailPayload.subject,
+    text: emailPayload.text,
+    html: emailPayload.html,
+  });
+
+  return true;
+}
 
 function b64u(input: string | Buffer) {
   return Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
@@ -146,6 +399,7 @@ export async function GET() {
     svixSecretConfigured: Boolean(webhookSecret()),
     jwksConfigured: Boolean(jwksUrl()),
     forwardConfigured: Boolean(process.env.NEON_AUTH_WEBHOOK_FORWARD_URL?.trim()),
+    smtpDeliveryConfigured: getSmtpStatus().ok,
   });
 }
 
@@ -154,6 +408,7 @@ export async function POST(request: NextRequest) {
   let payload: Record<string, unknown> = {};
   let event = "unknown";
   let forwarded = false;
+  let delivered = false;
 
   try {
     await verifyNeonSignature(request, rawBody);
@@ -161,7 +416,11 @@ export async function POST(request: NextRequest) {
     event = eventName(payload);
     forwarded = await forwardEvent(event, rawBody);
 
-    if (DELIVERY_EVENTS.has(event) && !forwarded && process.env.NEON_AUTH_WEBHOOK_ALLOW_UNHANDLED_DELIVERY !== "true") {
+    if (isDeliveryEvent(event) && !forwarded) {
+      delivered = await deliverAuthEmail(event, payload);
+    }
+
+    if (isDeliveryEvent(event) && !forwarded && !delivered && process.env.NEON_AUTH_WEBHOOK_ALLOW_UNHANDLED_DELIVERY !== "true") {
       recordNeonAuthEvent({ event, payload, forwarded, ok: false, error: "delivery_handler_not_configured" });
       return NextResponse.json({ ok: false, error: "delivery_handler_not_configured" }, { status: 501 });
     }
@@ -172,8 +431,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ allowed: true });
     }
 
-    console.info("Neon Auth webhook received:", { event, forwarded });
-    return NextResponse.json({ ok: true, event, forwarded });
+    console.info("Neon Auth webhook received:", { event, forwarded, delivered });
+    return NextResponse.json({ ok: true, event, forwarded, delivered });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid Neon Auth webhook request.";
     recordNeonAuthEvent({ event, payload, forwarded, ok: false, error: message });

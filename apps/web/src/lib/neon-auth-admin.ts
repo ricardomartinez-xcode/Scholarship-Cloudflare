@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getSmtpStatus } from "@/lib/smtp";
+
 const DEFAULT_PROJECT_ID = "jolly-king-13100259";
 const DEFAULT_BRANCH_ID = "br-old-mountain-ai239lh2";
 const DEFAULT_WEBHOOK_PATH = "/api/integrations/neon-auth/webhook";
@@ -126,6 +128,7 @@ export async function getNeonAuthAdminStatus(origin?: string): Promise<NeonAuthA
       NEON_AUTH_BASE_URL: Boolean(env("NEON_AUTH_BASE_URL")),
       NEON_AUTH_JWKS_URL: Boolean(env("NEON_AUTH_JWKS_URL")),
       NEON_AUTH_WEBHOOK_FORWARD_URL: Boolean(env("NEON_AUTH_WEBHOOK_FORWARD_URL")),
+      SMTP_DELIVERY: getSmtpStatus().ok,
     },
     health,
     webhookConfig,

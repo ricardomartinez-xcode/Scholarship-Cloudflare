@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { NextRequest } from "next/server";
 
+const sendMailMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/mailer", () => ({
+  sendMail: sendMailMock,
+}));
+
 import { GET, POST } from "./route";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -41,6 +47,12 @@ describe("Neon Auth webhook route", () => {
     delete process.env.NEON_AUTH_WEBHOOK_VERIFY_SIGNATURE;
     delete process.env.NEON_AUTH_BASE_URL;
     delete process.env.NEON_AUTH_JWKS_URL;
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_PORT;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+    delete process.env.SMTP_FROM;
+    sendMailMock.mockReset();
   });
 
   afterEach(() => {
@@ -55,7 +67,12 @@ describe("Neon Auth webhook route", () => {
 
     const response = await POST(buildSvixRequest(rawBody));
 
-    await expect(response.json()).resolves.toEqual({ ok: true, event: "user.created", forwarded: false });
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      event: "user.created",
+      forwarded: false,
+      delivered: false,
+    });
     expect(response.status).toBe(200);
   });
 
@@ -76,6 +93,7 @@ describe("Neon Auth webhook route", () => {
       verificationEnabled: true,
       svixSecretConfigured: true,
       jwksConfigured: false,
+      smtpDeliveryConfigured: false,
     });
   });
 
@@ -91,6 +109,73 @@ describe("Neon Auth webhook route", () => {
     expect(response.status).toBe(501);
   });
 
+  it("delivers magic link events with the local SMTP handler", async () => {
+    process.env.SMTP_HOST = "smtp.recalc.test";
+    process.env.SMTP_PORT = "587";
+    process.env.SMTP_USER = "mailer";
+    process.env.SMTP_PASS = "secret";
+    process.env.SMTP_FROM = "ReCalc <no-reply@recalc.test>";
+
+    const rawBody = JSON.stringify({
+      event: "send.magic_link",
+      data: {
+        email: "test@unidep.edu.mx",
+        url: "https://recalc.relead.com.mx/auth/magic?token=abc",
+      },
+    });
+
+    const response = await POST(buildSvixRequest(rawBody));
+
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      event: "send.magic_link",
+      forwarded: false,
+      delivered: true,
+    });
+    expect(response.status).toBe(200);
+    expect(sendMailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "test@unidep.edu.mx",
+        subject: "Tu enlace de acceso a ReCalc",
+        html: expect.stringContaining("https://recalc.relead.com.mx/auth/magic?token=abc"),
+      }),
+    );
+  });
+
+  it("delivers OTP events with the local SMTP handler", async () => {
+    process.env.SMTP_HOST = "smtp.recalc.test";
+    process.env.SMTP_PORT = "587";
+    process.env.SMTP_USER = "mailer";
+    process.env.SMTP_PASS = "secret";
+    process.env.SMTP_FROM = "ReCalc <no-reply@recalc.test>";
+
+    const rawBody = JSON.stringify({
+      event: "send.otp",
+      data: {
+        email: "test@unidep.edu.mx",
+        otp: "123456",
+        type: "sign-in",
+      },
+    });
+
+    const response = await POST(buildSvixRequest(rawBody));
+
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      event: "send.otp",
+      forwarded: false,
+      delivered: true,
+    });
+    expect(response.status).toBe(200);
+    expect(sendMailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "test@unidep.edu.mx",
+        subject: "Tu codigo de acceso a ReCalc",
+        text: expect.stringContaining("123456"),
+      }),
+    );
+  });
+
   it("forwards OTP delivery events when a custom delivery handler is configured", async () => {
     process.env.NEON_AUTH_WEBHOOK_FORWARD_URL = "https://hooks.recalc.test/neon-auth";
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
@@ -103,6 +188,7 @@ describe("Neon Auth webhook route", () => {
       ok: true,
       event: "send.otp",
       forwarded: true,
+      delivered: false,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://hooks.recalc.test/neon-auth",

@@ -34,6 +34,12 @@ function parseEvents() {
     .filter(Boolean);
 }
 
+function smtpConfigured() {
+  return ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"].every((name) =>
+    Boolean(env(name)),
+  );
+}
+
 async function main() {
   const apiKey = requireEnv("NEON_API_KEY");
   const projectId = env("NEON_PROJECT_ID", DEFAULT_PROJECT_ID);
@@ -49,10 +55,11 @@ async function main() {
 
   if (
     enabledEvents.some((event) => event === "send.otp" || event === "send.magic_link") &&
-    !env("NEON_AUTH_WEBHOOK_FORWARD_URL")
+    !env("NEON_AUTH_WEBHOOK_FORWARD_URL") &&
+    !smtpConfigured()
   ) {
     console.warn(
-      "Warning: send.otp/send.magic_link are delivery events. Configure the deployed route with NEON_AUTH_WEBHOOK_FORWARD_URL or a custom handler before enabling them.",
+      "Warning: send.otp/send.magic_link are delivery events. Configure SMTP or NEON_AUTH_WEBHOOK_FORWARD_URL before enabling them.",
     );
   }
 

@@ -11,22 +11,29 @@ const buildErrorUrl = (message: string, token?: string) => {
 };
 
 function buildInviteSignInUrl(params: {
-  token: string;
+  token?: string;
   email: string;
   success?: string;
   error?: string;
 }) {
-  const next = `/invite/accept?token=${params.token}`;
   const search = new URLSearchParams({
-    fromInvite: "1",
-    next,
     email: params.email,
   });
 
+  if (params.token) {
+    search.set("fromInvite", "1");
+    search.set("next", `/invite/accept?token=${params.token}`);
+  }
   if (params.success) search.set("success", params.success);
   if (params.error) search.set("error", params.error);
 
   return `/auth/sign-in?${search.toString()}`;
+}
+
+function isExistingAccountError(message: string) {
+  return /already|exist|registered|duplicate|user already|account.*found|email.*taken|correo.*registrado|cuenta.*existe/i.test(
+    message,
+  );
 }
 
 function redirect(request: Request, path: string) {
@@ -64,16 +71,15 @@ export async function POST(request: Request) {
 
   if (result?.error) {
     const message = result.error.message ?? "No fue posible crear la cuenta.";
-    if (
-      token &&
-      /already|exist|registered|duplicate|user already/i.test(message)
-    ) {
+    if (isExistingAccountError(message)) {
       return redirect(
         request,
         buildInviteSignInUrl({
           token,
           email,
-          error: "Ya existe una cuenta con este correo. Inicia sesión para aceptar la invitación.",
+          error: token
+            ? "Ya existe una cuenta con este correo. Inicia sesión para aceptar la invitación."
+            : "Ya existe una cuenta con este correo. Inicia sesión para continuar.",
         }),
       );
     }

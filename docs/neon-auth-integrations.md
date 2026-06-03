@@ -45,7 +45,17 @@ Signature verification is enabled by default. To temporarily debug in a non-prod
 NEON_AUTH_WEBHOOK_VERIFY_SIGNATURE=false
 ```
 
-## Optional event forwarding
+## Delivery and optional event forwarding
+
+The deployed webhook can deliver Neon Auth `send.otp` and `send.magic_link` events directly through the existing SMTP configuration:
+
+```env
+SMTP_HOST="..."
+SMTP_PORT="587"
+SMTP_USER="..."
+SMTP_PASS="..."
+SMTP_FROM="ReCalc <no-reply@example.com>"
+```
 
 To send verified Neon Auth events to another integration service, configure:
 
@@ -54,7 +64,7 @@ NEON_AUTH_WEBHOOK_FORWARD_URL="https://example.com/integrations/neon-auth"
 NEON_AUTH_WEBHOOK_FORWARD_TOKEN="optional-bearer-token"
 ```
 
-Delivery events like `send.otp` and `send.magic_link` should only be enabled when the deployed route can actually deliver SMS/email directly or can forward to an integration that does it.
+Delivery events like `send.otp` and `send.magic_link` should only be enabled when SMTP delivery is configured or when the route can forward to an integration that does it.
 
 ## Register or update the Neon Auth webhook
 

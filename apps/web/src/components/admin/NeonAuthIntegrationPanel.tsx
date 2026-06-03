@@ -244,7 +244,9 @@ export default function NeonAuthIntegrationPanel() {
     [status?.webhookConfig],
   );
   const visibleEvents = configuredEvents.length ? configuredEvents : selectedEvents;
-  const deliveryHandlerReady = Boolean(status?.env.NEON_AUTH_WEBHOOK_FORWARD_URL);
+  const deliveryHandlerReady = Boolean(
+    status?.env.NEON_AUTH_WEBHOOK_FORWARD_URL || status?.env.SMTP_DELIVERY,
+  );
   const deliverySelected = selectedEvents.some((event) => DELIVERY_WEBHOOK_EVENTS.includes(event as typeof DELIVERY_WEBHOOK_EVENTS[number]));
   const webhookConfigReady = Boolean(
     status?.env.NEON_AUTH_WEBHOOK_SECRET &&
@@ -306,15 +308,15 @@ export default function NeonAuthIntegrationPanel() {
               />
               <FeatureTile
                 title="Magic link"
-                status={magicLinkDeliveryEnabled ? (deliveryHandlerReady ? "Delivery listo" : "Requiere forward") : "SDK activo"}
+                status={magicLinkDeliveryEnabled ? (deliveryHandlerReady ? "Delivery listo" : "Requiere handler") : "SDK activo"}
                 tone={magicLinkDeliveryEnabled && !deliveryHandlerReady ? "warn" : "success"}
-                detail={magicLinkDeliveryEnabled ? "El evento send.magic_link está seleccionado para entrega custom." : "El flujo de magic link usa el SDK de Neon Auth y puede operar con entrega nativa."}
+                detail={magicLinkDeliveryEnabled ? "El evento send.magic_link está seleccionado para entrega custom por SMTP local o forward." : "El flujo de magic link usa el SDK de Neon Auth y puede operar con entrega nativa."}
               />
               <FeatureTile
                 title="OTP"
-                status={otpDeliveryEnabled ? (deliveryHandlerReady ? "Delivery listo" : "Requiere forward") : "SDK activo"}
+                status={otpDeliveryEnabled ? (deliveryHandlerReady ? "Delivery listo" : "Requiere handler") : "SDK activo"}
                 tone={otpDeliveryEnabled && !deliveryHandlerReady ? "warn" : "success"}
-                detail={otpDeliveryEnabled ? "El evento send.otp está seleccionado para entrega custom." : "El flujo de OTP usa emailOtp del SDK y puede operar con entrega nativa."}
+                detail={otpDeliveryEnabled ? "El evento send.otp está seleccionado para entrega custom por SMTP local o forward." : "El flujo de OTP usa emailOtp del SDK y puede operar con entrega nativa."}
               />
               <FeatureTile
                 title="Phone authentication"
@@ -335,7 +337,7 @@ export default function NeonAuthIntegrationPanel() {
             </div>
             {deliverySelected && !deliveryHandlerReady ? (
               <div className="ui-note ui-note--warning mt-4 text-sm">
-                Los eventos send.magic_link y send.otp reemplazan la entrega nativa. Configura NEON_AUTH_WEBHOOK_FORWARD_URL o un handler propio antes de activarlos en producción.
+                Los eventos send.magic_link y send.otp reemplazan la entrega nativa. Configura SMTP o NEON_AUTH_WEBHOOK_FORWARD_URL antes de activarlos en producción.
               </div>
             ) : null}
             <div className="mt-4 grid gap-2">
