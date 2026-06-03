@@ -22,7 +22,7 @@ test("public landing has no app chrome and sign-in route exists", async ({ page 
     page.waitForURL(/\/auth\/sign-in/),
     page.getByRole("link", { name: /Ingresar|Iniciar sesión/i }).first().click(),
   ]);
-  await expect(page.getByLabel(/Correo/i)).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Correo", exact: true })).toBeVisible();
 });
 
 test("sign-in works and /unidep loads app chrome (requires E2E_EMAIL/E2E_PASSWORD)", async ({
@@ -33,7 +33,7 @@ test("sign-in works and /unidep loads app chrome (requires E2E_EMAIL/E2E_PASSWOR
   test.skip(!email || !password, "Set E2E_EMAIL and E2E_PASSWORD to run this test.");
 
   await page.goto("/auth/sign-in");
-  await page.getByLabel(/Correo/i).fill(email!);
+  await page.getByRole("textbox", { name: "Correo", exact: true }).fill(email!);
   await page.getByLabel(/^Contraseña$/i).fill(password!);
   await page.getByRole("button", { name: /Iniciar sesi/i }).click();
 
