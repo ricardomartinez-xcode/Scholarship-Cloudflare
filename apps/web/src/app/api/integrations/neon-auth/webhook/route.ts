@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, createPublicKey, timingSafeEqual, verify, type JsonWebKey } from "node:crypto";
 
+import { recordNeonAuthEvent } from "@/lib/neon-auth-event-log";
+
 export const runtime = "nodejs";
 
 const DELIVERY_EVENTS = new Set(["send.otp", "send.magic_link"]);
@@ -25,7 +27,6 @@ function header(request: NextRequest, names: string[]) {
 function jwksUrl() {
   const explicit = process.env.NEON_AUTH_JWKS_URL?.trim();
   if (explicit) return explicit;
-
   const base = process.env.NEON_AUTH_BASE_URL?.trim().replace(/\/$/, "");
   return base ? `${base}/.well-known/jwks.json` : null;
 }
@@ -70,10 +71,7 @@ function verifySvixSignature(request: NextRequest, rawBody: string) {
   const secret = webhookSecret();
   if (!secret) throw new Error("NEON_AUTH_WEBHOOK_SECRET is required for Svix-signed Neon Auth webhooks.");
 
-  const expected = createHmac("sha256", decodeSvixSecret(secret))
-    .update(`${id}.${timestampHeader}.${rawBody}`)
-    .digest();
-
+  const expected = createHmac("sha256", decodeSvixSecret(secret)).update(`${id}.${timestampHeader}.${rawBody}`).digest();
   const valid = signatureHeader
     .split(/\s+/)
     .flatMap((part) => part.split(","))
@@ -103,17 +101,13 @@ async function verifyNeonSignature(request: NextRequest, rawBody: string) {
   }
 
   const [protectedHeader, detachedPayload, encodedSignature] = signature.split(".");
-  if (!protectedHeader || detachedPayload || !encodedSignature) {
-    throw new Error("Invalid Neon detached JWS signature.");
-  }
+  if (!protectedHeader || detachedPayload || !encodedSignature) throw new Error("Invalid Neon detached JWS signature.");
 
   const url = jwksUrl();
   if (!url) throw new Error("NEON_AUTH_BASE_URL or NEON_AUTH_JWKS_URL is required.");
 
   const { kid } = JSON.parse(b64uDecode(protectedHeader).toString("utf8")) as { kid?: string };
-  const jwks = (await (await fetch(url, { cache: "no-store" })).json()) as {
-    keys?: (Record<string, unknown> & { kid?: string })[];
-  };
+  const jwks = (await (await fetch(url, { cache: "no-store" })).json()) as { keys?: (Record<string, unknown> & { kid?: string })[] };
   const jwk = jwks.keys?.find((key) => !kid || key.kid === kid);
   if (!jwk) throw new Error("No matching Neon webhook JWKS key.");
 
@@ -157,20 +151,22 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
+  let payload: Record<string, unknown> = {};
+  let event = "unknown";
+  let forwarded = false;
 
   try {
     await verifyNeonSignature(request, rawBody);
-
-    const payload = JSON.parse(rawBody) as Record<string, unknown>;
-    const event = eventName(payload);
-    const forwarded = await forwardEvent(event, rawBody);
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
+    event = eventName(payload);
+    forwarded = await forwardEvent(event, rawBody);
 
     if (DELIVERY_EVENTS.has(event) && !forwarded && process.env.NEON_AUTH_WEBHOOK_ALLOW_UNHANDLED_DELIVERY !== "true") {
-      return NextResponse.json(
-        { ok: false, error: "delivery_handler_not_configured" },
-        { status: 501 },
-      );
+      recordNeonAuthEvent({ event, payload, forwarded, ok: false, error: "delivery_handler_not_configured" });
+      return NextResponse.json({ ok: false, error: "delivery_handler_not_configured" }, { status: 501 });
     }
+
+    recordNeonAuthEvent({ event, payload, forwarded, ok: true });
 
     if (event === "user.before_create") {
       return NextResponse.json({ allowed: true });
@@ -179,10 +175,9 @@ export async function POST(request: NextRequest) {
     console.info("Neon Auth webhook received:", { event, forwarded });
     return NextResponse.json({ ok: true, event, forwarded });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid Neon Auth webhook request.";
+    recordNeonAuthEvent({ event, payload, forwarded, ok: false, error: message });
     console.error("Neon Auth webhook rejected:", error);
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Invalid Neon Auth webhook request." },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
