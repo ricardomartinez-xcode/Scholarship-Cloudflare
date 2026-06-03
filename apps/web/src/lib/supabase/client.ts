@@ -66,6 +66,26 @@ async function requestRealtimeToken(topics: string[]) {
   return payload.token;
 }
 
+function buildRealtimeAuthConfig(storageKey: string) {
+  return {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+    storageKey,
+  };
+}
+
+function buildTopicStorageKey(prefix: string, topics: string[]) {
+  const topicKey = topics
+    .slice()
+    .sort()
+    .join("-")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 96);
+
+  return topicKey ? `${prefix}-${topicKey}` : prefix;
+}
+
 function createScopedRealtimeClient(topics: string[]): ScopedRealtimeClient | null {
   const config = getRealtimeClientConfig();
   if (!config) {
@@ -73,6 +93,7 @@ function createScopedRealtimeClient(topics: string[]): ScopedRealtimeClient | nu
   }
 
   return createClient(config.supabaseUrl, config.supabaseClientKey, {
+    auth: buildRealtimeAuthConfig(buildTopicStorageKey("recalc-realtime-private", topics)),
     accessToken: () => requestRealtimeToken(topics),
     realtime: {
       params: {
@@ -89,6 +110,7 @@ function createRealtimeClient(): ScopedRealtimeClient | null {
   }
 
   return createClient(config.supabaseUrl, config.supabaseClientKey, {
+    auth: buildRealtimeAuthConfig("recalc-realtime-public"),
     realtime: {
       params: {
         eventsPerSecond: 10,

@@ -65,18 +65,31 @@ export async function POST(
       content,
     });
 
-    await broadcastInboxMessage(threadId, message as unknown as Record<string, unknown>);
-    const recipientUserIds = await listInboxThreadRecipientUserIds(
-      threadId,
-      session.user.id,
-    );
-    await sendPushNotificationToUsers(recipientUserIds, {
-      title: message.sender.displayName,
-      body: message.content,
-      url: `/unidep/inbox/${threadId}`,
-      tag: `inbox:${threadId}`,
-      threadId,
-    });
+    try {
+      await broadcastInboxMessage(
+        threadId,
+        message as unknown as Record<string, unknown>,
+      );
+    } catch (broadcastError) {
+      console.error("Inbox realtime broadcast failed:", broadcastError);
+    }
+
+    try {
+      const recipientUserIds = await listInboxThreadRecipientUserIds(
+        threadId,
+        session.user.id,
+      );
+
+      await sendPushNotificationToUsers(recipientUserIds, {
+        title: message.sender.displayName,
+        body: message.content,
+        url: `/unidep/inbox/${threadId}`,
+        tag: `inbox:${threadId}`,
+        threadId,
+      });
+    } catch (pushError) {
+      console.error("Inbox push notification failed:", pushError);
+    }
 
     return NextResponse.json(
       {
