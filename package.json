@@ -20,6 +20,8 @@
     "repo:large-files": "node scripts/report-large-source-files.mjs",
     "seed:neon": "node scripts/seed_neon.js",
     "verify:neon": "node scripts/verify_neon.js",
+    "neon:auth:webhook": "node scripts/configure-neon-auth-webhook.mjs",
+    "neon:auth:oauth": "node scripts/configure-neon-auth-oauth-provider.mjs",
     "postinstall": "prisma generate --schema packages/db/prisma/schema.prisma",
     "db:migrate:dev": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",
