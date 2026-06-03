@@ -50,4 +50,55 @@ describe("extension session tokens", () => {
 
     expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(2);
   });
+
+  it("lists issued token summaries without exposing token hashes", async () => {
+    const issuedAt = new Date("2026-06-03T10:00:00.000Z");
+    prismaMock.$queryRaw.mockResolvedValue([
+      {
+        id: "00000000-0000-0000-0000-000000000010",
+        scope: "public-api:recalc",
+        client: "gpt-actions",
+        extensionVersion: null,
+        userAgent: "vitest",
+        expiresAt: new Date("2026-06-04T10:00:00.000Z"),
+        revokedAt: null,
+        lastUsedAt: null,
+        createdAt: issuedAt,
+        updatedAt: issuedAt,
+      },
+    ]);
+    const { listIssuedExtensionSessions } = await import("@/lib/extension-session-tokens");
+
+    const rows = await listIssuedExtensionSessions({
+      userId: "00000000-0000-0000-0000-000000000001",
+      scope: "public-api:recalc",
+      includeRevoked: true,
+      take: 200,
+    });
+
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: "00000000-0000-0000-0000-000000000010",
+      scope: "public-api:recalc",
+      client: "gpt-actions",
+    });
+    expect(rows[0]).not.toHaveProperty("tokenHash");
+  });
+
+  it("revokes a scoped token by id for the issuing user", async () => {
+    prismaMock.$executeRaw.mockResolvedValue(1);
+    const { revokeIssuedExtensionSessionTokenById } = await import(
+      "@/lib/extension-session-tokens"
+    );
+
+    const revoked = await revokeIssuedExtensionSessionTokenById({
+      tokenId: "00000000-0000-0000-0000-000000000010",
+      userId: "00000000-0000-0000-0000-000000000001",
+      scope: "public-api:recalc",
+    });
+
+    expect(revoked).toBe(true);
+    expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(1);
+  });
 });

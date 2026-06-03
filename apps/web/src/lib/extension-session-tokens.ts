@@ -29,6 +29,19 @@ export type IssuedExtensionSession = {
   user: User;
 };
 
+export type IssuedExtensionSessionSummary = {
+  id: string;
+  scope: string;
+  client: string | null;
+  extensionVersion: string | null;
+  userAgent: string | null;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 function sha256(value: string) {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -103,6 +116,54 @@ export async function revokeIssuedExtensionSessionToken(token: string) {
     where id = ${parsed.id}::uuid and "tokenHash" = ${tokenHash} and "revokedAt" is null
   `;
   return Number(result) > 0;
+}
+
+export async function revokeIssuedExtensionSessionTokenById(params: {
+  tokenId: string;
+  userId: string;
+  scope?: string | null;
+}) {
+  const scope = trimForStorage(params.scope, 120);
+  const result = await prisma.$executeRaw`
+    update recalc_admin.extension_session_token
+    set "revokedAt" = coalesce("revokedAt", now()), "updatedAt" = now()
+    where id = ${params.tokenId}::uuid
+      and "userId" = ${params.userId}::uuid
+      and (${scope}::text is null or scope = ${scope})
+      and "revokedAt" is null
+  `;
+  return Number(result) > 0;
+}
+
+export async function listIssuedExtensionSessions(params: {
+  userId: string;
+  scope?: string | null;
+  includeRevoked?: boolean;
+  take?: number;
+}): Promise<IssuedExtensionSessionSummary[]> {
+  const scope = trimForStorage(params.scope, 120);
+  const includeRevoked = Boolean(params.includeRevoked);
+  const take = Math.min(100, Math.max(1, Math.trunc(Number(params.take ?? 50))));
+
+  return prisma.$queryRaw<IssuedExtensionSessionSummary[]>`
+    select
+      id,
+      scope,
+      client,
+      "extensionVersion",
+      "userAgent",
+      "expiresAt",
+      "revokedAt",
+      "lastUsedAt",
+      "createdAt",
+      "updatedAt"
+    from recalc_admin.extension_session_token
+    where "userId" = ${params.userId}::uuid
+      and (${scope}::text is null or scope = ${scope})
+      and (${includeRevoked}::boolean or "revokedAt" is null)
+    order by "createdAt" desc
+    limit ${take}
+  `;
 }
 
 export async function getIssuedExtensionSession(

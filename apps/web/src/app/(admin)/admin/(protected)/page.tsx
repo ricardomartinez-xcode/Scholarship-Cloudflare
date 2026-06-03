@@ -52,6 +52,13 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         eyebrow: "Sistema",
         capability: AdminCapability.view_admin_operations,
       },
+      {
+        title: "Tokens API Recalc",
+        description: "Emisión, revocación y OpenAPI para GPT Actions e intranet.",
+        href: "/admin/integrations/recalc-api",
+        eyebrow: "API",
+        capability: AdminCapability.view_admin_operations,
+      },
     ],
   },
   {

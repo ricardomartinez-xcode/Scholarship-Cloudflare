@@ -252,6 +252,14 @@ export const adminNavGroups: DashboardNavGroup[] = [
             requiredAny: ["view_admin_operations"],
           },
           {
+            key: "recalc-api-tokens",
+            label: "Tokens API Recalc",
+            icon: "sync",
+            href: "/admin/integrations/recalc-api",
+            group: "admin-operacion",
+            requiredAny: ["view_admin_operations"],
+          },
+          {
             key: "importaciones",
             label: "Importaciones",
             icon: "sync",
@@ -528,6 +536,7 @@ export const dashboardTitles: Record<string, string> = {
   "/admin/reporting": "Reporte operativo",
   "/admin/audit": "Auditoría",
   "/admin/auth-sync": "Auth sync",
+  "/admin/integrations/recalc-api": "Tokens API Recalc",
   "/profile": "Área personal",
 };
 
