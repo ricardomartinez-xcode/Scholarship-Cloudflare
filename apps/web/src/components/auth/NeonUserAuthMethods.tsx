@@ -117,7 +117,6 @@ export default function NeonUserAuthMethods({
         callbackURL: redirect,
         newUserCallbackURL: addQuery(redirect, { newUser: "1" }),
         errorCallbackURL: `/auth/${mode === "sign-up" ? "sign-up" : "sign-in"}?error=${encodeURIComponent("No se pudo validar el enlace mágico.")}`,
-        metadata: { source: `recalc-${mode}` },
       });
       assertNoAuthError(result, "No se pudo enviar el enlace mágico.");
       setNotice(copy.magicSuccess);
