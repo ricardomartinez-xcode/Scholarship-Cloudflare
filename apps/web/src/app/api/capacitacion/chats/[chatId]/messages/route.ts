@@ -6,6 +6,7 @@ import {
   createTrainingMessageForUser,
   listTrainingMessagesForUser,
 } from "@/lib/training-rolplay";
+import { maybeGenerateRoleplayAgentAutoReply } from "@/lib/training-roleplay-agents";
 
 export async function GET(
   _request: NextRequest,
@@ -65,10 +66,28 @@ export async function POST(
 
     await broadcastTrainingMessage(chatId, message as unknown as Record<string, unknown>);
 
+    let agentMessage: typeof message | null = null;
+    try {
+      const autoReply = await maybeGenerateRoleplayAgentAutoReply({
+        chatId,
+        triggerMessage: message,
+      });
+      agentMessage = autoReply?.message ?? null;
+      if (agentMessage) {
+        await broadcastTrainingMessage(
+          chatId,
+          agentMessage as unknown as Record<string, unknown>,
+        );
+      }
+    } catch (autoReplyError) {
+      console.error("Error auto-generating roleplay agent reply:", autoReplyError);
+    }
+
     return NextResponse.json(
       {
         success: true,
         message,
+        agentMessage,
       },
       { status: 201 },
     );

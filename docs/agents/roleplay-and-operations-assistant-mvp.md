@@ -4,13 +4,15 @@
 
 Este cambio agrega dos modulos internos sin migraciones Prisma ni acciones destructivas:
 
-- Agente IA para rolplay comercial en `/unidep/capacitacion/rolplay`.
+- Bot guionado para rolplay comercial en `/unidep/capacitacion/rolplay`.
 - Asistente operativo cotidiano en `/admin/operations/assistant`.
 
-Ambos usan el wrapper comun `apps/web/src/lib/ai/client.ts`. Si `OPENAI_API_KEY`
-no esta configurada, los flujos responden con fallback determinista y no fallan la UI.
+El bot de rolplay no usa `OPENAI_API_KEY`. Responde con un catalogo local de
+intenciones, ejemplos y respuestas predeterminadas. El asistente operativo si usa
+el wrapper comun `apps/web/src/lib/ai/client.ts`; si `OPENAI_API_KEY` no esta
+configurada, responde con fallback determinista.
 
-## Modulo 2: agente de roleplay
+## Modulo 2: bot guionado de roleplay
 
 Archivos principales:
 
@@ -27,6 +29,19 @@ El modulo reutiliza los modelos existentes `TrainingRoom`, `TrainingChat`,
 email `sales-roleplay-agent@system.recalc.local` y se agrega como miembro de la
 sala y participante del chat cuando un moderador/admin lo activa.
 
+Al agregarlo a un chat, la configuracion se guarda en
+`TrainingRoomMember.anonymousAlias` con prefijo `roleplay-agent`, sin migracion:
+
+- `mode`: modo del bot.
+- `difficulty`: `basica`, `media` o `dificil`.
+- `scenario`: escenario puntual del ejercicio.
+- `extraInstructions`: guiones, ejemplos u objeciones adicionales.
+
+Cuando una persona real envia un mensaje en un chat abierto donde el bot esta
+agregado, la ruta de mensajes intenta crear automaticamente la siguiente
+respuesta guionada y la emite por realtime. Si el bot no puede responder, el
+mensaje humano no se bloquea.
+
 Modos MVP:
 
 - `prospecto_indeciso`
@@ -41,6 +56,8 @@ Permisos:
 - Alta, baja, respuesta y evaluacion requieren `canManageChats` del contexto de
   la sala de capacitacion.
 - Las mutaciones usan `checkRateLimit` y escriben `AdminAuditLog`.
+- La respuesta automatica se dispara al enviar mensajes normales del chat; no
+  requiere API key ni consume OpenAI.
 
 ## Modulo 3: asistente operativo cotidiano
 
@@ -80,7 +97,7 @@ Permisos:
 
 OpenAI:
 
-- `OPENAI_API_KEY`: requerida para respuestas IA reales.
+- `OPENAI_API_KEY`: opcional para el asistente operativo. No se usa en rolplay.
 - `OPENAI_MODEL`: opcional. Default local: `gpt-4.1-mini`.
 
 GitHub para Auditor/Reparador:

@@ -529,7 +529,10 @@ export default function RolplayWorkspace() {
 
   async function sendMessage() {
     if (!selectedChatId || !messageInput.trim()) return;
-    const payload = await readJson<{ message: MessageSummary }>(
+    const payload = await readJson<{
+      message: MessageSummary;
+      agentMessage?: MessageSummary | null;
+    }>(
       `/api/capacitacion/chats/${selectedChatId}/messages`,
       {
         method: "POST",
@@ -537,11 +540,17 @@ export default function RolplayWorkspace() {
         body: JSON.stringify({ content: messageInput }),
       },
     );
-    setMessages((current) =>
-      current.some((message) => message.id === payload.message.id)
-        ? current
-        : [...current, payload.message],
-    );
+    setMessages((current) => {
+      const next = [...current];
+      for (const message of [payload.message, payload.agentMessage].filter(
+        Boolean,
+      ) as MessageSummary[]) {
+        if (!next.some((currentMessage) => currentMessage.id === message.id)) {
+          next.push(message);
+        }
+      }
+      return next;
+    });
     setMessageInput("");
     await refreshRoomContext();
   }
@@ -577,7 +586,7 @@ export default function RolplayWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(agentForm),
       });
-      setAgentStatus("Agente agregado.");
+      setAgentStatus("Bot agregado. Responderá automático al siguiente mensaje.");
       await refreshRoomContext();
     } catch (error) {
       setAgentStatus(
@@ -614,7 +623,7 @@ export default function RolplayWorkspace() {
     try {
       const payload = await readJson<{
         message: MessageSummary;
-        ai: { ok: true; model: string } | { ok: false; code: string; error: string };
+        ai: { ok: false; code: string; error: string };
       }>(`/api/capacitacion/chats/${selectedChatId}/agent-reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -625,11 +634,7 @@ export default function RolplayWorkspace() {
           ? current
           : [...current, payload.message],
       );
-      setAgentStatus(
-        payload.ai.ok
-          ? "Respuesta generada."
-          : "Respuesta generada con fallback local.",
-      );
+      setAgentStatus("Respuesta guionada generada.");
       await refreshRoomContext();
     } catch (error) {
       setAgentStatus(
@@ -1052,7 +1057,7 @@ export default function RolplayWorkspace() {
           </ChatPanelCard>
 
           {roomAccess?.capabilities.canManageChats ? (
-            <ChatPanelCard title="Agente IA de rolplay">
+            <ChatPanelCard title="Bot de rolplay">
               <div className="ui-chat-mini-form">
                 <select
                   value={agentForm.mode}
@@ -1104,7 +1109,7 @@ export default function RolplayWorkspace() {
                     }))
                   }
                   className="ui-chat-field min-h-[76px]"
-                  placeholder="Instrucciones del agente"
+                  placeholder="Guiones, objeciones o ejemplos"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -1126,7 +1131,7 @@ export default function RolplayWorkspace() {
                     }
                     className="ui-chat-button ui-chat-button--secondary"
                   >
-                    Responder
+                    Responder ahora
                   </button>
                   <button
                     type="button"

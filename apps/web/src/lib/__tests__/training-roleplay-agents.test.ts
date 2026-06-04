@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { prismaMock, getTrainingChatAccessForUserMock, createTrainingMessageForUserMock } =
-  vi.hoisted(() => ({
+const {
+  prismaMock,
+  getTrainingChatAccessForUserMock,
+  createTrainingMessageForUserMock,
+  generateAiTextMock,
+} = vi.hoisted(() => ({
     prismaMock: {
       user: {
         upsert: vi.fn(),
@@ -11,6 +15,7 @@ const { prismaMock, getTrainingChatAccessForUserMock, createTrainingMessageForUs
       },
       trainingChatParticipant: {
         upsert: vi.fn(),
+        findFirst: vi.fn(),
         deleteMany: vi.fn(),
       },
       trainingChat: {
@@ -25,6 +30,7 @@ const { prismaMock, getTrainingChatAccessForUserMock, createTrainingMessageForUs
     },
     getTrainingChatAccessForUserMock: vi.fn(),
     createTrainingMessageForUserMock: vi.fn(),
+    generateAiTextMock: vi.fn(),
   }));
 
 vi.mock("server-only", () => ({}));
@@ -36,6 +42,10 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/training-rolplay", () => ({
   getTrainingChatAccessForUser: getTrainingChatAccessForUserMock,
   createTrainingMessageForUser: createTrainingMessageForUserMock,
+}));
+
+vi.mock("@/lib/ai/client", () => ({
+  generateAiText: generateAiTextMock,
 }));
 
 describe("training roleplay agents", () => {
@@ -139,6 +149,110 @@ describe("training roleplay agents", () => {
             userId: "agent-user",
           },
         },
+      }),
+    );
+  });
+
+  it("generates scripted roleplay replies without calling OpenAI", async () => {
+    getTrainingChatAccessForUserMock.mockResolvedValue({
+      roomAccess: { capabilities: { canManageChats: true } },
+      chat: { roomId: "room-1" },
+    });
+    prismaMock.user.upsert.mockResolvedValue({
+      id: "agent-user",
+      email: "sales-roleplay-agent@system.recalc.local",
+    });
+    prismaMock.trainingRoomMember.upsert.mockResolvedValue({
+      id: "member-1",
+      userId: "agent-user",
+    });
+    prismaMock.trainingChatParticipant.upsert.mockResolvedValue({
+      id: "participant-1",
+    });
+    prismaMock.trainingMessage.findMany.mockResolvedValue([
+      {
+        content: "Me interesa, pero se me hace caro.",
+        user: { email: "prospecto@example.com", displayName: "Prospecto" },
+      },
+    ]);
+    generateAiTextMock.mockResolvedValue({
+      ok: true,
+      text: "Respuesta generada por OpenAI",
+      model: "gpt-test",
+    });
+    createTrainingMessageForUserMock.mockResolvedValue({
+      id: "bot-message-1",
+      content: "Entiendo, pero necesito comparar el valor contra el costo.",
+    });
+
+    const { generateRoleplayAgentReply } = await import(
+      "@/lib/training-roleplay-agents"
+    );
+
+    const result = await generateRoleplayAgentReply({
+      actorUserId: "admin-1",
+      chatId: "chat-1",
+      mode: "prospecto_objecion_precio",
+      scenario: "Objecion por precio",
+      difficulty: "dificil",
+    });
+
+    expect(generateAiTextMock).not.toHaveBeenCalled();
+    expect(createTrainingMessageForUserMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: "agent-user",
+        chatId: "chat-1",
+        content: expect.stringMatching(/costo|precio|beca|valor/i),
+      }),
+    );
+    expect(result.ai).toEqual({
+      ok: false,
+      code: "scripted_bot",
+      error: "Respuesta generada por bot guionado sin OpenAI.",
+    });
+  });
+
+  it("automatically creates a scripted reply when an active bot receives a real participant message", async () => {
+    prismaMock.trainingChatParticipant.findFirst.mockResolvedValue({
+      userId: "agent-user",
+      user: {
+        email: "sales-roleplay-agent@system.recalc.local",
+      },
+      roomMember: {
+        anonymousAlias:
+          "roleplay-agent|mode=prospecto_objecion_precio|difficulty=dificil|scenario=Objecion por precio|extra=",
+      },
+    });
+    prismaMock.trainingMessage.findMany.mockResolvedValue([
+      {
+        content: "Hola, quiero saber cuanto cuesta.",
+        user: { email: "asesor@example.com", displayName: "Asesor" },
+      },
+    ]);
+    createTrainingMessageForUserMock.mockResolvedValue({
+      id: "bot-message-2",
+      content: "Antes de avanzar necesito entender el costo y las facilidades.",
+      sender: { userId: "agent-user" },
+    });
+
+    const roleplayAgents = await import("@/lib/training-roleplay-agents");
+    const maybeGenerateRoleplayAgentAutoReply =
+      roleplayAgents.maybeGenerateRoleplayAgentAutoReply as unknown as (input: {
+        chatId: string;
+        triggerMessage: { sender: { userId: string } };
+      }) => Promise<{ message: { id: string }; agent: { userId: string } } | null>;
+
+    const result = await maybeGenerateRoleplayAgentAutoReply({
+      chatId: "chat-1",
+      triggerMessage: { sender: { userId: "advisor-1" } },
+    });
+
+    expect(result?.message.id).toBe("bot-message-2");
+    expect(createTrainingMessageForUserMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: "agent-user",
+        chatId: "chat-1",
+        content: expect.stringMatching(/costo|precio|beca|valor/i),
       }),
     );
   });
