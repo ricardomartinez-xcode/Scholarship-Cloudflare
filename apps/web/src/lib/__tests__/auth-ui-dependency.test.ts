@@ -18,4 +18,12 @@ describe("auth UI dependency boundaries", () => {
       expect(read(relativePath)).not.toContain("@neondatabase/auth/react/ui");
     }
   });
+
+  it("keeps OAuth buttons gated by verified Neon providers", () => {
+    const source = read("apps/web/src/components/auth/AuthMethodSwitcher.tsx");
+
+    expect(source).toContain('initialMethod = "password"');
+    expect(source).toContain("oauthProviders.length");
+    expect(source).not.toContain("<GoogleSignInButton");
+  });
 });

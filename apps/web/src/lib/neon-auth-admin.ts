@@ -63,6 +63,31 @@ function redact(value: unknown): unknown {
   );
 }
 
+class NeonApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly payload: unknown,
+  ) {
+    super(`Neon API ${status}: ${JSON.stringify(payload)}`);
+  }
+}
+
+function parseJsonOrText(text: string) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function isMissingOAuthProvider(error: unknown) {
+  if (!(error instanceof NeonApiError)) return false;
+  if (error.status === 404) return true;
+  const message = JSON.stringify(error.payload).toLowerCase();
+  return message.includes("not found") || message.includes("does not exist");
+}
+
 async function neonRequest(path: string, init?: RequestInit) {
   const apiKey = env("NEON_API_KEY");
   if (!apiKey) throw new Error("NEON_API_KEY no está configurado en Vercel.");
@@ -78,9 +103,9 @@ async function neonRequest(path: string, init?: RequestInit) {
   });
 
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  const payload = parseJsonOrText(text);
   if (!response.ok) {
-    throw new Error(`Neon API ${response.status}: ${JSON.stringify(redact(payload ?? text))}`);
+    throw new NeonApiError(response.status, redact(payload ?? text));
   }
   return redact(payload);
 }
@@ -172,8 +197,17 @@ export async function updateNeonAuthOAuthProvider(input: {
   if (input.microsoftTenantId?.trim()) body.microsoft_tenant_id = input.microsoftTenantId.trim();
   if (!Object.keys(body).length) throw new Error("No hay cambios para enviar.");
 
-  return neonRequest(`/projects/${projectId()}/branches/${branchId()}/auth/oauth_providers/${provider}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
+  const providersPath = `/projects/${projectId()}/branches/${branchId()}/auth/oauth_providers`;
+  try {
+    return await neonRequest(`${providersPath}/${provider}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    if (!isMissingOAuthProvider(error)) throw error;
+    return neonRequest(providersPath, {
+      method: "POST",
+      body: JSON.stringify({ id: provider, ...body }),
+    });
+  }
 }

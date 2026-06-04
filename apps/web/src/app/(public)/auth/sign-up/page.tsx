@@ -3,6 +3,7 @@ import Link from "next/link";
 import AuthMethodSwitcher from "@/components/auth/AuthMethodSwitcher";
 import BrandedAuthShell from "@/components/auth/BrandedAuthShell";
 import { getInviteByToken } from "@/lib/invites";
+import { getVerifiedNeonAuthOAuthProviders, toOAuthProviderOptions } from "@/lib/neon-auth-oauth";
 import { getSystemRoleMeta } from "@/lib/system-roles";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +37,18 @@ export default async function SignUpPage({
   }
 
   const callbackURL = token ? `/invite/accept?token=${encodeURIComponent(token)}` : "/unidep";
+  const oauthProviders = toOAuthProviderOptions(await getVerifiedNeonAuthOAuthProviders());
 
   return (
     <BrandedAuthShell
       eyebrow={inviteEmail ? "Invitación" : "Alta"}
       title="Crear cuenta"
       surfaceTitle={inviteEmail ? "Activa tu acceso" : "Registra una cuenta"}
+      surfaceDescription={
+        inviteEmail
+          ? "Crea tu acceso con el correo invitado. Las opciones externas solo aparecen cuando están disponibles."
+          : "Crea tu acceso con correo y contraseña. Las opciones externas solo aparecen cuando están disponibles."
+      }
       footer={
         <div className="ui-auth-links text-xs">
           <div className="text-slate-300">
@@ -98,6 +105,7 @@ export default async function SignUpPage({
         defaultEmail={inviteEmail ?? ""}
         lockedEmail={Boolean(inviteEmail)}
         token={token}
+        oauthProviders={oauthProviders}
       />
     </BrandedAuthShell>
   );
