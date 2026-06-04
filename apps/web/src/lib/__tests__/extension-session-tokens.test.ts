@@ -22,7 +22,7 @@ describe("extension session tokens", () => {
     prismaMock.user.findUnique.mockReset();
   });
 
-  it("caps issued token ttl to the production maximum", async () => {
+  it("caps issued token ttl to the extension maximum", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-25T00:00:00.000Z"));
     prismaMock.$executeRaw.mockResolvedValue(1);

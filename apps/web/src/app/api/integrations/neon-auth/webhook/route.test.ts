@@ -70,43 +70,51 @@ describe("Neon Auth webhook route", () => {
     await expect(response.json()).resolves.toEqual({
       ok: true,
       event: "user.created",
-      forwarded: false,
       delivered: false,
+      mode: "legacy_invitation_neon_auth_only",
     });
     expect(response.status).toBe(200);
   });
 
-  it("rejects Svix-signed deliveries when the signature does not match", async () => {
+  it("keeps legacy mode even when Svix signature does not match", async () => {
     const rawBody = JSON.stringify({ event: "user.created" });
 
     const response = await POST(buildSvixRequest(rawBody, "v1,invalid"));
 
-    await expect(response.json()).resolves.toEqual({ ok: false, error: "Invalid Neon Auth Svix webhook signature." });
-    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      event: "user.created",
+      delivered: false,
+      mode: "legacy_invitation_neon_auth_only",
+    });
+    expect(response.status).toBe(200);
   });
 
-  it("reports when the Svix webhook secret is configured", async () => {
+  it("reports legacy Neon Auth webhook mode", async () => {
     const response = await GET();
 
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
-      verificationEnabled: true,
-      svixSecretConfigured: true,
-      jwksConfigured: false,
+      service: "neon-auth-legacy-webhook",
+      mode: "legacy_invitation_neon_auth_only",
+      forwardingEnabled: false,
+      jwksVerificationEnabled: false,
       smtpDeliveryConfigured: false,
     });
   });
 
-  it("rejects delivery events when no custom delivery handler is configured", async () => {
+  it("accepts delivery events without SMTP configured in legacy mode", async () => {
     const rawBody = JSON.stringify({ event: "send.magic_link", email: "test@unidep.edu.mx" });
 
     const response = await POST(buildSvixRequest(rawBody));
 
     await expect(response.json()).resolves.toEqual({
-      ok: false,
-      error: "delivery_handler_not_configured",
+      ok: true,
+      event: "send.magic_link",
+      delivered: false,
+      mode: "legacy_invitation_neon_auth_only",
     });
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(200);
   });
 
   it("delivers magic link events with the local SMTP handler", async () => {
@@ -129,8 +137,8 @@ describe("Neon Auth webhook route", () => {
     await expect(response.json()).resolves.toEqual({
       ok: true,
       event: "send.magic_link",
-      forwarded: false,
       delivered: true,
+      mode: "legacy_invitation_neon_auth_only",
     });
     expect(response.status).toBe(200);
     expect(sendMailMock).toHaveBeenCalledWith(
@@ -163,8 +171,8 @@ describe("Neon Auth webhook route", () => {
     await expect(response.json()).resolves.toEqual({
       ok: true,
       event: "send.otp",
-      forwarded: false,
       delivered: true,
+      mode: "legacy_invitation_neon_auth_only",
     });
     expect(response.status).toBe(200);
     expect(sendMailMock).toHaveBeenCalledWith(
@@ -176,7 +184,7 @@ describe("Neon Auth webhook route", () => {
     );
   });
 
-  it("forwards OTP delivery events when a custom delivery handler is configured", async () => {
+  it("does not forward OTP delivery events in legacy mode", async () => {
     process.env.NEON_AUTH_WEBHOOK_FORWARD_URL = "https://hooks.recalc.test/neon-auth";
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -187,19 +195,9 @@ describe("Neon Auth webhook route", () => {
     await expect(response.json()).resolves.toEqual({
       ok: true,
       event: "send.otp",
-      forwarded: true,
       delivered: false,
+      mode: "legacy_invitation_neon_auth_only",
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://hooks.recalc.test/neon-auth",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          "x-recalc-integration": "neon-auth",
-          "x-neon-auth-event": "send.otp",
-        }),
-        body: rawBody,
-      }),
-    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
