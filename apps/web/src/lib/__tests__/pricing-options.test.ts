@@ -207,5 +207,37 @@ describe("buildQuotePricingOptions", () => {
     ]);
   });
 
+  it("suppresses rule-derived longitudinal options when module-specific prices replace the same combination", () => {
+    const options = buildQuotePricingOptions(
+      [{ businessLine: "licenciatura", modality: "presencial", plan: 9 }],
+      [
+        {
+          targetKeys: {
+            nivel_key: "licenciatura",
+            modalidad_key: "presencial",
+            plan: "9",
+            modulo: "Modular",
+          },
+        },
+      ],
+    );
 
+    expect(
+      options.filter(
+        (option) =>
+          option.enrollmentType === "nuevo_ingreso" &&
+          option.businessLine === "licenciatura" &&
+          option.modality === "presencial" &&
+          option.plan === 9,
+      ),
+    ).toEqual([
+      {
+        enrollmentType: "nuevo_ingreso",
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        module: "Modular",
+      },
+    ]);
+  });
 });

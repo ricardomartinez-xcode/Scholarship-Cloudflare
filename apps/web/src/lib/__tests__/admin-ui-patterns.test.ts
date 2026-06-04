@@ -57,4 +57,18 @@ describe("admin UI patterns", () => {
     expect(source).toContain('<th className="ui-cell-nowrap text-left">Materias por módulo</th>');
     expect(source).toContain("<td className=\"text-xs text-slate-300\">{row.subjectsByModule ?? \"—\"}</td>");
   });
+
+  it("routes price import drafts to the session detail for diff review and publication", () => {
+    const source = read("apps/web/src/components/admin/PricesClient.tsx");
+
+    expect(source).toContain("router.push(`/admin/importaciones/${payload.sessionId}`)");
+    expect(source).toContain("Revisar diff y publicar");
+    expect(source).not.toContain("onClick={applyImportSession}");
+  });
+
+  it("intersects calculator pricing availability by academic module", () => {
+    const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
+
+    expect(source).toContain("option.module === campusOption.module");
+  });
 });
