@@ -29,7 +29,27 @@ function redactSecrets(value) {
   );
 }
 
-async function requestNeon(path, init = {}) {
+function parseJsonOrText(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function printNeonFailure(status, payload) {
+  console.error(`Neon API request failed: ${status}`);
+  console.error(JSON.stringify(redactSecrets(payload), null, 2));
+}
+
+function isMissingOAuthProvider(status, payload) {
+  if (status === 404) return true;
+  const message = JSON.stringify(payload).toLowerCase();
+  return message.includes("not found") || message.includes("does not exist");
+}
+
+async function requestNeon(path, init = {}, options = {}) {
   const apiKey = requireEnv("NEON_API_KEY");
   const response = await fetch(`https://console.neon.tech/api/v2${path}`, {
     ...init,
@@ -41,23 +61,23 @@ async function requestNeon(path, init = {}) {
   });
 
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  const payload = parseJsonOrText(text);
 
   if (!response.ok) {
-    console.error(`Neon API request failed: ${response.status}`);
-    console.error(JSON.stringify(redactSecrets(payload ?? text), null, 2));
+    if (options.allowFailure) return { ok: false, status: response.status, payload };
+    printNeonFailure(response.status, payload ?? text);
     process.exit(1);
   }
 
-  return payload;
+  return { ok: true, status: response.status, payload };
 }
 
 async function listProviders(projectId, branchId) {
-  const payload = await requestNeon(
+  const result = await requestNeon(
     `/projects/${projectId}/branches/${branchId}/auth/oauth_providers`,
   );
 
-  console.log(JSON.stringify(redactSecrets(payload), null, 2));
+  console.log(JSON.stringify(redactSecrets(result.payload), null, 2));
 }
 
 async function updateProvider(projectId, branchId, provider) {
@@ -84,16 +104,35 @@ async function updateProvider(projectId, branchId, provider) {
     process.exit(1);
   }
 
-  const payload = await requestNeon(
-    `/projects/${projectId}/branches/${branchId}/auth/oauth_providers/${provider}`,
+  const providersPath = `/projects/${projectId}/branches/${branchId}/auth/oauth_providers`;
+  let result = await requestNeon(
+    `${providersPath}/${provider}`,
     {
       method: "PATCH",
       body: JSON.stringify(update),
     },
+    { allowFailure: true },
   );
 
-  console.log(`OAuth provider "${provider}" updated.`);
-  console.log(JSON.stringify(redactSecrets(payload), null, 2));
+  let action = "updated";
+  if (!result.ok) {
+    if (!isMissingOAuthProvider(result.status, result.payload)) {
+      printNeonFailure(result.status, result.payload);
+      process.exit(1);
+    }
+
+    result = await requestNeon(
+      providersPath,
+      {
+        method: "POST",
+        body: JSON.stringify({ id: provider, ...update }),
+      },
+    );
+    action = "created";
+  }
+
+  console.log(`OAuth provider "${provider}" ${action}.`);
+  console.log(JSON.stringify(redactSecrets(result.payload), null, 2));
 }
 
 async function main() {

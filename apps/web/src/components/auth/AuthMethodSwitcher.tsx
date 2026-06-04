@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
+import OAuthProviderButtons from "@/components/auth/OAuthProviderButtons";
 import PasswordField from "@/components/auth/PasswordField";
+import type { OAuthProviderOption } from "@/lib/neon-auth-oauth";
 
 type AuthMethod = "passwordless" | "password";
 type AuthMode = "sign-in" | "sign-up";
@@ -19,6 +20,7 @@ type AuthMethodSwitcherProps = {
   fromInvite?: boolean;
   token?: string;
   initialMethod?: AuthMethod;
+  oauthProviders?: OAuthProviderOption[];
 };
 
 export default function AuthMethodSwitcher({
@@ -29,46 +31,44 @@ export default function AuthMethodSwitcher({
   next = "",
   fromInvite = false,
   token = "",
-  initialMethod = "passwordless",
+  initialMethod = "password",
+  oauthProviders = [],
 }: AuthMethodSwitcherProps) {
   const [method, setMethod] = useState<AuthMethod>(initialMethod);
   const isSignUp = mode === "sign-up";
-  const passwordLabel = isSignUp ? "Crear contraseña" : "Contraseña";
   const passwordSubmitLabel = isSignUp ? "Crear cuenta" : "Iniciar sesión";
   const passwordPlaceholder = isSignUp ? "Crea una contraseña" : "Tu contraseña";
 
   return (
     <section className="ui-auth-method-panel">
-      <GoogleSignInButton callbackURL={callbackURL} />
+      {oauthProviders.length ? (
+        <>
+          <OAuthProviderButtons mode={mode} callbackURL={callbackURL} providers={oauthProviders} token={token} />
+          <div className="ui-auth-divider">o usa correo</div>
+        </>
+      ) : null}
 
       <div className="ui-auth-segmented" role="tablist" aria-label="Método de acceso">
-        <button
-          type="button"
-          className="ui-auth-segment"
-          aria-pressed={method === "passwordless"}
-          onClick={() => setMethod("passwordless")}
-        >
-          Sin contraseña
-        </button>
         <button
           type="button"
           className="ui-auth-segment"
           aria-pressed={method === "password"}
           onClick={() => setMethod("password")}
         >
-          {passwordLabel}
+          Correo y contraseña
+        </button>
+        <button
+          type="button"
+          className="ui-auth-segment"
+          aria-pressed={method === "passwordless"}
+          onClick={() => setMethod("passwordless")}
+        >
+          Enlace o código
         </button>
       </div>
 
       <div role="tabpanel">
-        {method === "passwordless" ? (
-          <NeonUserAuthMethods
-            callbackURL={callbackURL}
-            defaultEmail={defaultEmail}
-            lockedEmail={lockedEmail}
-            mode={mode}
-          />
-        ) : (
+        {method === "password" ? (
           <form action={isSignUp ? "/api/auth/sign-up" : "/api/auth/sign-in"} method="post" className="ui-auth-form">
             {isSignUp && token ? <input type="hidden" name="token" value={token} /> : null}
             {!isSignUp ? <input type="hidden" name="next" value={next} /> : null}
@@ -116,6 +116,13 @@ export default function AuthMethodSwitcher({
               {passwordSubmitLabel}
             </button>
           </form>
+        ) : (
+          <NeonUserAuthMethods
+            callbackURL={callbackURL}
+            defaultEmail={defaultEmail}
+            lockedEmail={lockedEmail}
+            mode={mode}
+          />
         )}
       </div>
     </section>
