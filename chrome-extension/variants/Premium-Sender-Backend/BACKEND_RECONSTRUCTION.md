@@ -1,26 +1,26 @@
-# Premium Sender legacy backend compatibility
+# ReCalc Sender backend compatibility
 
-This folder contains the recovered Chrome extension bundle from the old `premiumsender.app` integration.
+This folder contains the recovered Chrome extension bundle adapted to ReCalc.
 
-The new ReCalc-backed version intentionally removes license enforcement. The legacy `/mv3/get-license.php` route is kept only as a compatibility bridge because the bundled extension code still expects that route and response shape. It now returns a synthetic full-access entitlement instead of validating or consuming a paid license key.
+The ReCalc-backed version returns a `totalaccess` entitlement and uses clean route aliases on `https://recalc.relead.com.mx`.
 
-The extension expects these legacy backend routes:
+The extension expects these backend routes:
 
-| Legacy route | Method | Payload | Response expected by extension |
+| Route | Method | Payload | Response expected by extension |
 | --- | --- | --- | --- |
-| `/mv3/get-license.php` | POST | `FormData.encData` AES-256-CBC JSON | `{ data: <encrypted JSON> }` with full-access entitlement |
-| `/mv3/logout.php` | POST | FormData fields | JSON |
-| `/mv3/templates.php` | POST | JSON `{ templates, authid }` | HTTP 2xx is enough |
-| `/mv3/getresponse.php` | POST | `FormData.encData` AES-256-CBC JSON | `{ data: <encrypted JSON> }` |
-| `/mv3/general-data-1.php` | POST | `FormData.encData` AES-256-CBC JSON | JSON |
-| `/mv3/dom-selectors.php` | GET | none | `{ data: <encrypted JSON> }` |
-| `/uninstall.php` | GET | optional `encData` query | redirect/HTML |
+| `/mv3/get-license` | POST | `FormData.encData` AES-256-CBC JSON | `{ data: <encrypted JSON> }` with `totalaccess` entitlement |
+| `/mv3/logout` | POST | FormData fields | JSON |
+| `/mv3/templates` | POST | JSON `{ templates, authid }` | HTTP 2xx is enough |
+| `/mv3/getresponse` | POST | `FormData.encData` AES-256-CBC JSON | `{ data: <encrypted JSON> }` |
+| `/mv3/general-data-1` | POST | `FormData.encData` AES-256-CBC JSON | JSON |
+| `/mv3/dom-selectors` | GET | none | `{ data: <encrypted JSON> }` |
+| `/uninstall` | GET | optional `encData` query | redirect/HTML |
 
 The compatibility implementation lives in the Next.js app under:
 
 - `apps/web/src/lib/premium-sender-legacy.ts`
 - `apps/web/src/app/mv3/**/route.ts`
-- `apps/web/src/app/uninstall.php/route.ts`
+- `apps/web/src/app/uninstall/route.ts`
 
 ## Crypto contract recovered from the ZIP
 
@@ -36,11 +36,11 @@ encoding = base64
 
 ## License-free strategy
 
-`buildLegacyLicense()` keeps its name because the legacy route and extension bundle still use license terminology. Internally it now behaves as an entitlement adapter:
+`buildLegacyLicense()` keeps its name because the extension bundle still uses license terminology. Internally it now behaves as an entitlement adapter:
 
 - always returns `status: "success"`;
 - sets `license_required: false`;
-- returns `entitlement: "full_access"`;
+- returns `entitlement: "totalaccess"`;
 - keeps legacy fields like `license_key`, `remainingdays`, `allowed_devices`, and `all_devices` so the old extension UI does not break;
 - exposes feature flags for all Premium Sender benefits.
 
@@ -48,12 +48,12 @@ This makes the current extension usable while monetization is moved to a future 
 
 ## Runtime notes
 
-The implementation is intentionally permissive and compatibility-first. It lets the repointed extension connect to `https://recalc.relead.com.mx` without requiring the old `premiumsender.app` PHP backend.
+The implementation is intentionally permissive and compatibility-first. It lets the repointed extension connect to `https://recalc.relead.com.mx`.
 
 Recommended next steps:
 
-1. Persist `/mv3/templates.php` templates by browser profile, ReCalc user, or future account identity.
-2. Connect `/mv3/getresponse.php` to the real AI/rewrite service if the feature should remain active.
+1. Persist `/mv3/templates` templates by browser profile, ReCalc user, or future account identity.
+2. Connect `/mv3/getresponse` to the real AI/rewrite service if the feature should remain active.
 3. Replace default DOM selectors when WhatsApp Web changes.
-4. Keep these routes until all installed extension builds are migrated away from legacy `/mv3/*.php` endpoints.
+4. Keep these routes until all installed extension builds use the ReCalc aliases.
 5. When the future monetization model is ready, gate access outside the old license key path and keep this adapter as a compatibility shim.

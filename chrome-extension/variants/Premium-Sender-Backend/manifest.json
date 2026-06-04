@@ -1,8 +1,8 @@
 {
  "update_url": "https://clients2.google.com/service/update2/crx",
-    "name": "Premium Sender",
-    "description": "Send Customized messages, Image, Video and documents. Download group and label contacts. Send message without saving contacts.",
-    "version": "1.0.81",
+    "name": "ReCalc Sender",
+    "description": "Extensión ReCalc para envíos, campañas, adjuntos, plantillas y automatización de WhatsApp Web con acceso total.",
+    "version": "1.1.1",
     "manifest_version": 3,
     "background": {
         "service_worker": "background.min.js"
@@ -52,7 +52,7 @@
             "48": "images/48x48.png",
             "128": "images/128x128.png"
         },
-        "default_title": "Premium Sender",
+        "default_title": "ReCalc Sender",
         "default_popup": "popup.html"
     },
     "icons": {
@@ -61,6 +61,6 @@
         "128": "images/128x128.png"
     },
     "content_security_policy": {
-        "connect-src": "https://premiumsender.app/"
+        "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'self'; connect-src 'self' https://recalc.relead.com.mx http://ip-api.com https://web.whatsapp.com; img-src 'self' data: blob: https://recalc.relead.com.mx; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
     }
 }
