@@ -35,10 +35,35 @@ async function readJsonPayload(request: Request) {
       email?: string;
       password?: string;
       next?: string;
+      ttlMs?: number | string | null;
+      sessionDuration?: string | null;
+      tokenDuration?: string | null;
+      extensionSessionDuration?: string | null;
     };
   } catch {
     return null;
   }
+}
+
+function readRequestedSessionTtl(jsonPayload: Awaited<ReturnType<typeof readJsonPayload>>) {
+  const rawTtlMs = jsonPayload?.ttlMs;
+  const ttlMs =
+    typeof rawTtlMs === "number"
+      ? rawTtlMs
+      : typeof rawTtlMs === "string"
+        ? Number(rawTtlMs)
+        : null;
+
+  const ttlPreset =
+    [
+      jsonPayload?.sessionDuration,
+      jsonPayload?.tokenDuration,
+      jsonPayload?.extensionSessionDuration,
+    ]
+      .map((value) => String(value ?? "").trim())
+      .find(Boolean) ?? null;
+
+  return { ttlMs, ttlPreset };
 }
 
 export async function POST(request: Request) {
@@ -118,12 +143,15 @@ export async function POST(request: Request) {
         );
       }
 
+      const requestedSessionTtl = readRequestedSessionTtl(jsonPayload);
       const issuedToken = await issueExtensionSessionToken({
         userId: resolvedSession.user.id,
         client: request.headers.get("x-extension-client") ?? "chrome-sidepanel",
         extensionVersion: request.headers.get("x-extension-version"),
         userAgent: request.headers.get("user-agent"),
         scope: "extension:chrome-sidepanel",
+        ttlMs: requestedSessionTtl.ttlMs,
+        ttlPreset: requestedSessionTtl.ttlPreset,
       });
 
       // Do not keep a full Neon Auth session token in the extension.
@@ -135,6 +163,8 @@ export async function POST(request: Request) {
         next: next.startsWith("/") ? next : DEFAULT_SUCCESS_PATH,
         extensionSessionToken: issuedToken.token,
         expiresAt: issuedToken.expiresAt.toISOString(),
+        sessionDuration: issuedToken.ttlPreset,
+        sessionTtlMs: issuedToken.ttlMs,
       });
     }
 

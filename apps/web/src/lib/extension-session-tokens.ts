@@ -7,9 +7,24 @@ import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const EXTENSION_TOKEN_PREFIX = "rx_ext_";
+
 const MIN_TTL_MS = 1000 * 60 * 5;
-const MAX_TTL_MS = 1000 * 60 * 60 * 24;
-const DEFAULT_TTL_MS = MAX_TTL_MS;
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+export const EXTENSION_SESSION_TTL_PRESETS = {
+  "24h": DAY_MS,
+  "7d": 7 * DAY_MS,
+  "30d": 30 * DAY_MS,
+  "365d": 365 * DAY_MS,
+  never: null,
+} as const;
+
+export type ExtensionSessionTtlPreset = keyof typeof EXTENSION_SESSION_TTL_PRESETS;
+
+const DEFAULT_TTL_PRESET: ExtensionSessionTtlPreset = "7d";
+const DEFAULT_TTL_MS = EXTENSION_SESSION_TTL_PRESETS[DEFAULT_TTL_PRESET] ?? 7 * DAY_MS;
+const MAX_TTL_MS = EXTENSION_SESSION_TTL_PRESETS["365d"] ?? 365 * DAY_MS;
+const NEVER_EXPIRES_AT = new Date("9999-12-31T23:59:59.000Z");
 const MAX_CLIENT_LENGTH = 80;
 const MAX_VERSION_LENGTH = 32;
 const MAX_UA_LENGTH = 240;
@@ -42,6 +57,12 @@ export type IssuedExtensionSessionSummary = {
   updatedAt: Date;
 };
 
+export type ResolvedExtensionSessionExpiry = {
+  expiresAt: Date;
+  ttlMs: number | null;
+  ttlPreset: ExtensionSessionTtlPreset | "custom";
+};
+
 function sha256(value: string) {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -51,10 +72,89 @@ function trimForStorage(value: string | null | undefined, maxLength: number) {
   return trimmed ? trimmed.slice(0, maxLength) : null;
 }
 
-function clampTtlMs(ttlMs: number | null | undefined) {
-  const requested = Number(ttlMs ?? DEFAULT_TTL_MS);
-  if (!Number.isFinite(requested)) return DEFAULT_TTL_MS;
+export function normalizeExtensionSessionTtlPreset(
+  value: string | null | undefined,
+): ExtensionSessionTtlPreset | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) return null;
+
+  const aliases: Record<string, ExtensionSessionTtlPreset> = {
+    "24h": "24h",
+    "1d": "24h",
+    day: "24h",
+    daily: "24h",
+    dia: "24h",
+    "día": "24h",
+    "7d": "7d",
+    week: "7d",
+    weekly: "7d",
+    semana: "7d",
+    "30d": "30d",
+    "1m": "30d",
+    month: "30d",
+    monthly: "30d",
+    mes: "30d",
+    "365d": "365d",
+    "1y": "365d",
+    year: "365d",
+    yearly: "365d",
+    annual: "365d",
+    ano: "365d",
+    "año": "365d",
+    never: "never",
+    forever: "never",
+    none: "never",
+    "no-expiration": "never",
+    "no_expiration": "never",
+    "sin-expirar": "never",
+    "sin_expirar": "never",
+    nunca: "never",
+  };
+
+  return aliases[normalized] ?? null;
+}
+
+function coerceTtlMs(ttlMs: number | string | null | undefined) {
+  if (ttlMs === null || ttlMs === undefined || ttlMs === "") return null;
+  const requested = Number(ttlMs);
+  return Number.isFinite(requested) ? requested : null;
+}
+
+function clampTtlMs(ttlMs: number | string | null | undefined) {
+  const requested = coerceTtlMs(ttlMs) ?? DEFAULT_TTL_MS;
   return Math.min(MAX_TTL_MS, Math.max(MIN_TTL_MS, requested));
+}
+
+export function resolveExtensionSessionExpiry(params: {
+  ttlMs?: number | string | null;
+  ttlPreset?: string | null;
+} = {}): ResolvedExtensionSessionExpiry {
+  const preset = normalizeExtensionSessionTtlPreset(params.ttlPreset);
+
+  if (preset === "never") {
+    return {
+      expiresAt: new Date(NEVER_EXPIRES_AT.getTime()),
+      ttlMs: null,
+      ttlPreset: "never",
+    };
+  }
+
+  if (preset && preset !== "never") {
+    const presetTtlMs = EXTENSION_SESSION_TTL_PRESETS[preset];
+    const ttlMs = clampTtlMs(presetTtlMs);
+    return {
+      expiresAt: new Date(Date.now() + ttlMs),
+      ttlMs,
+      ttlPreset: preset,
+    };
+  }
+
+  const ttlMs = clampTtlMs(params.ttlMs);
+  return {
+    expiresAt: new Date(Date.now() + ttlMs),
+    ttlMs,
+    ttlPreset: params.ttlMs === null || params.ttlMs === undefined ? DEFAULT_TTL_PRESET : "custom",
+  };
 }
 
 function parseIssuedExtensionToken(token: string) {
@@ -76,7 +176,8 @@ export async function issueExtensionSessionToken(params: {
   extensionVersion?: string | null;
   userAgent?: string | null;
   scope?: string | null;
-  ttlMs?: number | null;
+  ttlMs?: number | string | null;
+  ttlPreset?: string | null;
 }) {
   const id = crypto.randomUUID();
   const secret = crypto.randomBytes(32).toString("base64url");
@@ -84,7 +185,10 @@ export async function issueExtensionSessionToken(params: {
   const tokenHash = sha256(secret);
   const scope = trimForStorage(params.scope, 120) ?? "extension:default";
   const client = trimForStorage(params.client, MAX_CLIENT_LENGTH);
-  const expiresAt = new Date(Date.now() + clampTtlMs(params.ttlMs));
+  const expiry = resolveExtensionSessionExpiry({
+    ttlMs: params.ttlMs,
+    ttlPreset: params.ttlPreset,
+  });
 
   await prisma.$executeRaw`
     update recalc_admin.extension_session_token
@@ -100,10 +204,18 @@ export async function issueExtensionSessionToken(params: {
     insert into recalc_admin.extension_session_token
       (id, "userId", "tokenHash", scope, client, "extensionVersion", "userAgent", "expiresAt", "updatedAt")
     values
-      (${id}::uuid, ${params.userId}::uuid, ${tokenHash}, ${scope}, ${client}, ${trimForStorage(params.extensionVersion, MAX_VERSION_LENGTH)}, ${trimForStorage(params.userAgent, MAX_UA_LENGTH)}, ${expiresAt}, now())
+      (${id}::uuid, ${params.userId}::uuid, ${tokenHash}, ${scope}, ${client}, ${trimForStorage(
+        params.extensionVersion,
+        MAX_VERSION_LENGTH,
+      )}, ${trimForStorage(params.userAgent, MAX_UA_LENGTH)}, ${expiry.expiresAt}, now())
   `;
 
-  return { token, expiresAt };
+  return {
+    token,
+    expiresAt: expiry.expiresAt,
+    ttlMs: expiry.ttlMs,
+    ttlPreset: expiry.ttlPreset,
+  };
 }
 
 export async function revokeIssuedExtensionSessionToken(token: string) {
