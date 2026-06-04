@@ -71,6 +71,21 @@ type RoomAccessPayload = {
     canEvaluate: boolean;
   };
 };
+type RoleplayAgentMode =
+  | "prospecto_indeciso"
+  | "prospecto_objecion_precio"
+  | "prospecto_comparando_escuelas"
+  | "coach_ventas"
+  | "evaluador";
+type RoleplayAgentDifficulty = "basica" | "media" | "dificil";
+type RoleplayAgentDefinition = {
+  mode: RoleplayAgentMode;
+  label: string;
+  participantLabel: string;
+  description: string;
+};
+
+const ROLEPLAY_AGENT_EMAIL = "sales-roleplay-agent@system.recalc.local";
 
 function readTime(value: string | null) {
   if (!value) return "Sin actividad";
@@ -110,6 +125,26 @@ function practiceType(chat: ChatSummary, room: RoomSummary | null) {
   return chat.title?.trim() || room?.scenario || "Simulación 1:1";
 }
 
+function isRoleplayAgentIdentity(identity: TrainingIdentity) {
+  const haystack = [
+    identity.email,
+    identity.displayName,
+    identity.alias,
+    identity.realDisplayName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return (
+    haystack.includes(ROLEPLAY_AGENT_EMAIL) ||
+    haystack.includes("roleplay-agent") ||
+    haystack.includes("agente ia") ||
+    haystack.includes("prospecto ia") ||
+    haystack.includes("coach ia") ||
+    haystack.includes("evaluador ia")
+  );
+}
+
 async function readJson<T>(input: RequestInfo, init?: RequestInit) {
   const response = await fetch(input, { cache: "no-store", ...init });
   const payload = (await response.json().catch(() => null)) as (T & {
@@ -141,6 +176,9 @@ export default function RolplayWorkspace() {
   const [selectedChatId, setSelectedChatId] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [feedbackEntries, setFeedbackEntries] = useState<FeedbackSummary[]>([]);
+  const [roleplayAgents, setRoleplayAgents] = useState<RoleplayAgentDefinition[]>([]);
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<string | null>(null);
   const [chatSearch, setChatSearch] = useState("");
   const [chatFilter, setChatFilter] = useState<
     ReturnType<typeof practiceStatus>
@@ -169,11 +207,39 @@ export default function RolplayWorkspace() {
     rating: "5",
     summary: "",
   });
+  const [agentForm, setAgentForm] = useState({
+    mode: "prospecto_indeciso" as RoleplayAgentMode,
+    difficulty: "media" as RoleplayAgentDifficulty,
+    scenario: "",
+    extraInstructions: "",
+  });
 
   const activeRoom = rooms.find((room) => room.id === selectedRoomId) ?? null;
   const activeChat = chats.find((chat) => chat.id === selectedChatId) ?? null;
   const currentMember =
     members.find((member) => member.userId === viewer?.userId) ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAgents() {
+      if (!permissions.canViewRolplay) {
+        setRoleplayAgents([]);
+        return;
+      }
+      try {
+        const payload = await readJson<{ agents: RoleplayAgentDefinition[] }>(
+          "/api/capacitacion/agents",
+        );
+        if (!cancelled) setRoleplayAgents(payload.agents ?? []);
+      } catch {
+        if (!cancelled) setRoleplayAgents([]);
+      }
+    }
+    void loadAgents();
+    return () => {
+      cancelled = true;
+    };
+  }, [permissions.canViewRolplay]);
 
   useEffect(() => {
     let cancelled = false;
@@ -326,7 +392,9 @@ export default function RolplayWorkspace() {
   const feedbackTargets = useMemo(
     () =>
       activeChat?.participants.filter(
-        (participant) => participant.userId !== viewer?.userId,
+        (participant) =>
+          participant.userId !== viewer?.userId &&
+          !isRoleplayAgentIdentity(participant),
       ) ?? [],
     [activeChat, viewer?.userId],
   );
@@ -351,6 +419,15 @@ export default function RolplayWorkspace() {
       return matchesSearch && matchesFilter;
     });
   }, [activeRoom, chatFilter, chatSearch, chats, viewer?.userId]);
+
+  const selectedAgentDefinition =
+    roleplayAgents.find((agent) => agent.mode === agentForm.mode) ??
+    roleplayAgents[0] ??
+    null;
+
+  const activeChatHasAgent = Boolean(
+    activeChat?.participants.some(isRoleplayAgentIdentity),
+  );
 
   async function refreshRooms() {
     if (!selectedOrganizationId) return;
@@ -488,6 +565,103 @@ export default function RolplayWorkspace() {
       rating: "5",
       summary: "",
     });
+  }
+
+  async function addAgentToChat() {
+    if (!selectedChatId || !selectedAgentDefinition) return;
+    setAgentBusy(true);
+    setAgentStatus(null);
+    try {
+      await readJson(`/api/capacitacion/chats/${selectedChatId}/agents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(agentForm),
+      });
+      setAgentStatus("Agente agregado.");
+      await refreshRoomContext();
+    } catch (error) {
+      setAgentStatus(
+        error instanceof Error ? error.message : "No se pudo agregar el agente.",
+      );
+    } finally {
+      setAgentBusy(false);
+    }
+  }
+
+  async function removeAgentFromChat() {
+    if (!selectedChatId) return;
+    setAgentBusy(true);
+    setAgentStatus(null);
+    try {
+      await readJson(`/api/capacitacion/chats/${selectedChatId}/agents`, {
+        method: "DELETE",
+      });
+      setAgentStatus("Agente removido.");
+      await refreshRoomContext();
+    } catch (error) {
+      setAgentStatus(
+        error instanceof Error ? error.message : "No se pudo remover el agente.",
+      );
+    } finally {
+      setAgentBusy(false);
+    }
+  }
+
+  async function generateAgentReply() {
+    if (!selectedChatId || !selectedAgentDefinition) return;
+    setAgentBusy(true);
+    setAgentStatus(null);
+    try {
+      const payload = await readJson<{
+        message: MessageSummary;
+        ai: { ok: true; model: string } | { ok: false; code: string; error: string };
+      }>(`/api/capacitacion/chats/${selectedChatId}/agent-reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(agentForm),
+      });
+      setMessages((current) =>
+        current.some((message) => message.id === payload.message.id)
+          ? current
+          : [...current, payload.message],
+      );
+      setAgentStatus(
+        payload.ai.ok
+          ? "Respuesta generada."
+          : "Respuesta generada con fallback local.",
+      );
+      await refreshRoomContext();
+    } catch (error) {
+      setAgentStatus(
+        error instanceof Error ? error.message : "No se pudo generar respuesta.",
+      );
+    } finally {
+      setAgentBusy(false);
+    }
+  }
+
+  async function generateAgentEvaluation() {
+    if (!selectedChatId) return;
+    setAgentBusy(true);
+    setAgentStatus(null);
+    try {
+      await readJson(`/api/capacitacion/chats/${selectedChatId}/agent-evaluation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: selectedFeedbackTargetId || null }),
+      });
+      const payload = await readJson<{ feedback: FeedbackSummary[] }>(
+        `/api/capacitacion/chats/${selectedChatId}/feedback`,
+      );
+      setFeedbackEntries(payload.feedback ?? []);
+      setAgentStatus("Evaluación generada.");
+    } catch (error) {
+      setAgentStatus(
+        error instanceof Error ? error.message : "No se pudo generar evaluación.",
+      );
+    } finally {
+      setAgentBusy(false);
+    }
   }
 
   function focusFeedback() {
@@ -740,11 +914,16 @@ export default function RolplayWorkspace() {
                 !messagesError &&
                 messages.map((message) => {
                   const isMine = message.sender.userId === viewer?.userId;
+                  const isAgent = isRoleplayAgentIdentity(message.sender);
                   return (
                     <ChatMessageBubble
                       key={message.id}
                       align={isMine ? "out" : "in"}
-                      author={message.sender.displayName}
+                      author={
+                        isAgent
+                          ? `${message.sender.displayName} · IA`
+                          : message.sender.displayName
+                      }
                       timestamp={readTime(message.createdAt)}
                     >
                       {message.content}
@@ -871,6 +1050,109 @@ export default function RolplayWorkspace() {
               </button>
             </div>
           </ChatPanelCard>
+
+          {roomAccess?.capabilities.canManageChats ? (
+            <ChatPanelCard title="Agente IA de rolplay">
+              <div className="ui-chat-mini-form">
+                <select
+                  value={agentForm.mode}
+                  onChange={(event) =>
+                    setAgentForm((current) => ({
+                      ...current,
+                      mode: event.target.value as RoleplayAgentMode,
+                    }))
+                  }
+                  className="ui-chat-field"
+                >
+                  {roleplayAgents.map((agent) => (
+                    <option key={agent.mode} value={agent.mode}>
+                      {agent.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={agentForm.difficulty}
+                  onChange={(event) =>
+                    setAgentForm((current) => ({
+                      ...current,
+                      difficulty: event.target.value as RoleplayAgentDifficulty,
+                    }))
+                  }
+                  className="ui-chat-field"
+                >
+                  <option value="basica">Básica</option>
+                  <option value="media">Media</option>
+                  <option value="dificil">Difícil</option>
+                </select>
+                <input
+                  value={agentForm.scenario}
+                  onChange={(event) =>
+                    setAgentForm((current) => ({
+                      ...current,
+                      scenario: event.target.value,
+                    }))
+                  }
+                  className="ui-chat-field"
+                  placeholder="Escenario específico"
+                />
+                <textarea
+                  value={agentForm.extraInstructions}
+                  onChange={(event) =>
+                    setAgentForm((current) => ({
+                      ...current,
+                      extraInstructions: event.target.value,
+                    }))
+                  }
+                  className="ui-chat-field min-h-[76px]"
+                  placeholder="Instrucciones del agente"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void addAgentToChat()}
+                    disabled={!activeChat || agentBusy || roleplayAgents.length === 0}
+                    className="ui-chat-button"
+                  >
+                    Agregar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void generateAgentReply()}
+                    disabled={
+                      !activeChat ||
+                      activeChat.status !== "open" ||
+                      agentBusy ||
+                      roleplayAgents.length === 0
+                    }
+                    className="ui-chat-button ui-chat-button--secondary"
+                  >
+                    Responder
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void generateAgentEvaluation()}
+                    disabled={!activeChat || agentBusy || feedbackTargets.length === 0}
+                    className="ui-chat-button ui-chat-button--secondary"
+                  >
+                    Evaluar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void removeAgentFromChat()}
+                    disabled={!activeChat || agentBusy || !activeChatHasAgent}
+                    className="ui-chat-button ui-chat-button--danger"
+                  >
+                    Remover
+                  </button>
+                </div>
+                {agentStatus ? (
+                  <p className="ui-chat-copy" role="status">
+                    {agentStatus}
+                  </p>
+                ) : null}
+              </div>
+            </ChatPanelCard>
+          ) : null}
 
           {roomAccess?.capabilities.canManageRoom ? (
             <ChatPanelCard title="Sala">
