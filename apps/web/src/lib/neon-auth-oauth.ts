@@ -12,6 +12,8 @@ export type OAuthProviderOption = {
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
+const DEFAULT_UI_PROVIDERS: NeonAuthOAuthProvider[] = ["google"];
+
 const PROVIDER_LABELS: Record<NeonAuthOAuthProvider, string> = {
   google: "Google",
   github: "GitHub",
@@ -120,6 +122,10 @@ export function toOAuthProviderOptions(providers: NeonAuthOAuthProvider[]): OAut
   return providers.map((id) => ({ id, label: PROVIDER_LABELS[id] }));
 }
 
+function defaultUiProviders() {
+  return [...DEFAULT_UI_PROVIDERS];
+}
+
 export async function getVerifiedNeonAuthOAuthProviders(fetchImpl: FetchLike = fetch): Promise<NeonAuthOAuthProvider[]> {
   const manualUiProviders = parseManualNeonAuthOAuthProviders(env("NEON_AUTH_OAUTH_UI_PROVIDERS"));
   if (manualUiProviders.length) return manualUiProviders;
@@ -129,7 +135,7 @@ export async function getVerifiedNeonAuthOAuthProviders(fetchImpl: FetchLike = f
 
   const apiKey = env("NEON_API_KEY");
   const authBaseUrl = env("NEON_AUTH_BASE_URL");
-  if (!apiKey || !authBaseUrl) return [];
+  if (!apiKey || !authBaseUrl) return defaultUiProviders();
 
   const projectId = env("NEON_PROJECT_ID", DEFAULT_PROJECT_ID);
   const branchId = env("NEON_BRANCH_ID", DEFAULT_BRANCH_ID);
@@ -146,9 +152,10 @@ export async function getVerifiedNeonAuthOAuthProviders(fetchImpl: FetchLike = f
       },
       cache: "no-store",
     });
-    if (!response.ok) return [];
-    return extractConfiguredNeonAuthOAuthProviders(await response.json());
+    if (!response.ok) return defaultUiProviders();
+    const configuredProviders = extractConfiguredNeonAuthOAuthProviders(await response.json());
+    return configuredProviders.length ? configuredProviders : defaultUiProviders();
   } catch {
-    return [];
+    return defaultUiProviders();
   }
 }
