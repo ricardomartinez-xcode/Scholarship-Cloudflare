@@ -4,6 +4,7 @@ import {
   BenefitDuration,
   BenefitModality,
   EnrollmentType,
+  Prisma,
 } from "@prisma/client";
 
 import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
@@ -80,6 +81,16 @@ type ParsedBenefitRow = {
   appliesToAll: boolean;
   campusIds: string[];
   campusLabels: string[];
+  extraPercent: number;
+  firstPaymentAmount: number;
+  isActive: boolean;
+  notes: string | null;
+};
+
+type BenefitsImportDbClient = Pick<Prisma.TransactionClient, "adminAdditionalBenefit">;
+
+type ExistingBenefit = {
+  id: string;
   extraPercent: number;
   firstPaymentAmount: number;
   isActive: boolean;
@@ -189,12 +200,7 @@ function buildBenefitScopeKey(input: {
 }
 
 function hasBenefitValueChanged(
-  existing: {
-    extraPercent: number;
-    firstPaymentAmount: number;
-    isActive: boolean;
-    notes: string | null;
-  },
+  existing: ExistingBenefit,
   row: ParsedBenefitRow,
 ) {
   return (
@@ -234,8 +240,10 @@ async function buildCampusLookup(
   return addConfiguredCampusAliasesToLookup(lookup, aliasRows);
 }
 
-async function buildExistingBenefitsByScopeKey() {
-  const rows = await prisma.adminAdditionalBenefit.findMany({
+async function buildExistingBenefitsByScopeKey(
+  client: BenefitsImportDbClient = prisma,
+) {
+  const rows = await client.adminAdditionalBenefit.findMany({
     select: {
       id: true,
       benefitType: true,
@@ -254,16 +262,7 @@ async function buildExistingBenefitsByScopeKey() {
     },
   });
 
-  const map = new Map<
-    string,
-    Array<{
-      id: string;
-      extraPercent: number;
-      firstPaymentAmount: number;
-      isActive: boolean;
-      notes: string | null;
-    }>
-  >();
+  const map = new Map<string, ExistingBenefit[]>();
   for (const row of rows) {
     const key = buildBenefitScopeKey({
       benefitType: row.benefitType,
@@ -550,12 +549,9 @@ export async function applyPreparedBenefitsImport(params: {
   let unchanged = 0;
 
   await prisma.$transaction(async (tx) => {
-    for (const row of rows) {
-      if (row.action === "noop") {
-        unchanged += 1;
-        continue;
-      }
+    const existingByScope = await buildExistingBenefitsByScopeKey(tx);
 
+    for (const row of rows) {
       const data = {
         appliesToAll: row.appliesToAll,
         benefitType: row.benefitType,
@@ -570,20 +566,31 @@ export async function applyPreparedBenefitsImport(params: {
         updatedBy: params.updatedBy,
       };
 
-      let benefitId = row.existingId ?? null;
-      if (benefitId) {
+      const matches = existingByScope.get(row.key) ?? [];
+      const naturalMatch = matches[0] ?? null;
+      let benefitId = naturalMatch?.id ?? null;
+      let shouldRefreshCampuses = false;
+
+      if (!benefitId && row.existingId) {
         const exists = await tx.adminAdditionalBenefit.findUnique({
-          where: { id: benefitId },
+          where: { id: row.existingId },
           select: { id: true },
         });
-        if (exists) {
+        if (exists?.id) {
+          benefitId = String(exists.id);
+        }
+      }
+
+      if (benefitId) {
+        if (!naturalMatch || hasBenefitValueChanged(naturalMatch, row)) {
           await tx.adminAdditionalBenefit.update({
             where: { id: benefitId },
             data,
           });
           updated += 1;
+          shouldRefreshCampuses = true;
         } else {
-          benefitId = null;
+          unchanged += 1;
         }
       }
 
@@ -594,17 +601,30 @@ export async function applyPreparedBenefitsImport(params: {
         });
         benefitId = createdBenefit.id;
         created += 1;
+        shouldRefreshCampuses = true;
       }
 
-      await tx.adminAdditionalBenefitCampus.deleteMany({
-        where: { benefitId },
-      });
-      if (!row.appliesToAll && row.campusIds.length) {
-        await tx.adminAdditionalBenefitCampus.createMany({
-          data: row.campusIds.map((campusId) => ({
-            benefitId,
-            campusId,
-          })),
+      if (shouldRefreshCampuses) {
+        await tx.adminAdditionalBenefitCampus.deleteMany({
+          where: { benefitId },
+        });
+        if (!row.appliesToAll && row.campusIds.length) {
+          await tx.adminAdditionalBenefitCampus.createMany({
+            data: row.campusIds.map((campusId) => ({
+              benefitId,
+              campusId,
+            })),
+          });
+        }
+      }
+
+      const duplicateIds = matches.map((match) => match.id).filter((id) => id !== benefitId);
+      if (duplicateIds.length) {
+        await tx.adminAdditionalBenefitCampus.deleteMany({
+          where: { benefitId: { in: duplicateIds } },
+        });
+        await tx.adminAdditionalBenefit.deleteMany({
+          where: { id: { in: duplicateIds } },
         });
       }
     }

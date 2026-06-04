@@ -2,6 +2,7 @@ import {
   BenefitBusinessLine,
   CanonicalModality,
   EnrollmentType,
+  Prisma,
 } from "@prisma/client";
 
 import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
@@ -72,6 +73,13 @@ type ParsedBaseScholarshipRow = Omit<
   BaseScholarshipImportPreviewRow,
   "action"
 >;
+
+type BaseScholarshipsImportDbClient = Pick<Prisma.TransactionClient, "scholarshipRule">;
+
+type ExistingBaseScholarshipRule = {
+  id: string;
+  scholarshipPercent: number | null;
+};
 
 const HEADER_ALIASES = {
   region: ["region", "región"],
@@ -250,14 +258,16 @@ function buildBaseScholarshipKey(input: {
 }
 
 function hasRuleValueChanged(
-  existing: { scholarshipPercent: number | null },
+  existing: ExistingBaseScholarshipRule,
   row: ParsedBaseScholarshipRow,
 ) {
   return existing.scholarshipPercent !== row.scholarshipPercent;
 }
 
-async function buildExistingBaseScholarshipsByKey() {
-  const rows = await prisma.scholarshipRule.findMany({
+async function buildExistingBaseScholarshipsByKey(
+  client: BaseScholarshipsImportDbClient = prisma,
+) {
+  const rows = await client.scholarshipRule.findMany({
     where: { sourceVersion: "canonical" },
     select: {
       id: true,
@@ -275,28 +285,32 @@ async function buildExistingBaseScholarshipsByKey() {
     },
   });
 
-  const map = new Map<string, { id: string; scholarshipPercent: number | null }>();
+  const map = new Map<string, ExistingBaseScholarshipRule[]>();
   for (const row of rows) {
     if (row.minAverage === null || row.maxAverage === null) continue;
-    map.set(
-      buildBaseScholarshipKey({
-        enrollmentType: row.enrollmentType,
-        businessLine: row.businessLine,
-        modality: row.modality,
-        plan: row.plan,
-        tier: row.campusTier || "ANY",
-        region: row.region || null,
-        plantel: row.plantel || null,
-        programaKey: row.programaKey || null,
-        minAverage: Number(row.minAverage),
-        maxAverage: Number(row.maxAverage),
-      }),
-      {
-        id: row.id,
-        scholarshipPercent:
-          row.scholarshipPercent === null ? null : Number(row.scholarshipPercent),
-      },
-    );
+    const key = buildBaseScholarshipKey({
+      enrollmentType: row.enrollmentType,
+      businessLine: row.businessLine,
+      modality: row.modality,
+      plan: row.plan,
+      tier: row.campusTier || "ANY",
+      region: row.region || null,
+      plantel: row.plantel || null,
+      programaKey: row.programaKey || null,
+      minAverage: Number(row.minAverage),
+      maxAverage: Number(row.maxAverage),
+    });
+    const entry = {
+      id: row.id,
+      scholarshipPercent:
+        row.scholarshipPercent === null ? null : Number(row.scholarshipPercent),
+    };
+    const current = map.get(key);
+    if (!current) {
+      map.set(key, [entry]);
+      continue;
+    }
+    current.push(entry);
   }
   return map;
 }
@@ -448,7 +462,7 @@ export async function prepareBaseScholarshipsCsvImport(input: {
 
   for (const parsedRow of parsedRows) {
     const key = buildBaseScholarshipKey(parsedRow);
-    const existing = existingByKey.get(key) ?? null;
+    const existing = (existingByKey.get(key) ?? [])[0] ?? null;
     const action: BaseScholarshipImportDiffAction = !existing
       ? "create"
       : hasRuleValueChanged(existing, parsedRow)
@@ -491,12 +505,9 @@ export async function applyPreparedBaseScholarshipsImport(params: {
   let unchanged = 0;
 
   await prisma.$transaction(async (tx) => {
-    for (const row of rows) {
-      if (row.action === "noop") {
-        unchanged += 1;
-        continue;
-      }
+    const existingByKey = await buildExistingBaseScholarshipsByKey(tx);
 
+    for (const row of rows) {
       const data = {
         enrollmentType: row.enrollmentType,
         businessLine: row.businessLine,
@@ -514,19 +525,38 @@ export async function applyPreparedBaseScholarshipsImport(params: {
         sourceVersion: "canonical",
       };
 
-      if (row.existingId) {
+      const matches = existingByKey.get(row.key) ?? [];
+      const naturalMatch = matches[0] ?? null;
+      let existingId = naturalMatch?.id ?? null;
+
+      if (!existingId && row.existingId) {
         const exists = await tx.scholarshipRule.findUnique({
           where: { id: row.existingId },
           select: { id: true },
         });
-        if (exists) {
+        if (exists?.id) {
+          existingId = String(exists.id);
+        }
+      }
+
+      if (existingId) {
+        if (!naturalMatch || hasRuleValueChanged(naturalMatch, row)) {
           await tx.scholarshipRule.update({
-            where: { id: row.existingId },
+            where: { id: existingId },
             data,
           });
           updated += 1;
-          continue;
+        } else {
+          unchanged += 1;
         }
+
+        const duplicateIds = matches.map((match) => match.id).filter((id) => id !== existingId);
+        if (duplicateIds.length) {
+          await tx.scholarshipRule.deleteMany({
+            where: { id: { in: duplicateIds } },
+          });
+        }
+        continue;
       }
 
       await tx.scholarshipRule.create({ data });
