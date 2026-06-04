@@ -6,6 +6,7 @@ import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 
 type TokenStatus = "active" | "expired" | "revoked";
 type TokenTarget = "gpt-actions" | "intranet-api";
+type TokenDurationOption = "1h" | "8h" | "24h" | "7d" | "30d" | "365d" | "never";
 type RequestState = "idle" | "loading" | "success" | "error";
 
 type RecalcApiToken = {
@@ -25,6 +26,7 @@ type RecalcApiTokenPayload = {
     tokenType: "Bearer";
     authHeader: string;
     openApiUrl: string;
+    openApiSchemas?: OpenApiSchemaLink[];
     serverUrl: string;
     maxTtlHours: number;
     clients: string[];
@@ -33,9 +35,18 @@ type RecalcApiTokenPayload = {
   tokens: RecalcApiToken[];
 };
 
+type OpenApiSchemaLink = {
+  id: string;
+  label: string;
+  url: string;
+  actionCount: number;
+  maxActions: number;
+};
+
 type CreatedToken = {
   token: string;
   expiresAt: string;
+  ttlPreset?: string | null;
 };
 
 const TARGET_COPY: Record<TokenTarget, { label: string; description: string; client: string }> = {
@@ -56,11 +67,21 @@ const EYEBROW_CLASS = "text-xs font-black uppercase tracking-[0.14em] text-[colo
 const TITLE_CLASS = "mt-1 text-2xl font-black text-[color:var(--admin-shell-ink)]";
 const SECTION_TITLE_CLASS = "text-base font-black text-[color:var(--admin-shell-ink)]";
 const COPY_CLASS = "mt-1 max-w-3xl text-sm leading-6 text-[color:var(--admin-shell-muted)]";
-const LABEL_CLASS = "grid gap-2 text-sm font-semibold text-[color:var(--admin-shell-ink)]";
+const LABEL_CLASS = "grid min-w-0 gap-2 text-sm font-semibold text-[color:var(--admin-shell-ink)]";
 const INPUT_CLASS =
-  "min-w-0 flex-1 rounded-xl border border-[color:var(--admin-shell-border)] bg-white px-3 py-2 text-sm text-[color:var(--admin-shell-ink)] shadow-sm";
+  "min-w-0 w-full flex-1 rounded-xl border border-[color:var(--admin-shell-border)] bg-white px-3 py-2 text-sm text-[color:var(--admin-shell-ink)] shadow-sm";
 const SUCCESS_MESSAGE_CLASS = "mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800";
 const ERROR_MESSAGE_CLASS = "mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800";
+
+const TOKEN_DURATION_OPTIONS: Array<{ value: TokenDurationOption; label: string }> = [
+  { value: "1h", label: "1 hora" },
+  { value: "8h", label: "8 horas" },
+  { value: "24h", label: "24 horas" },
+  { value: "7d", label: "7 dias" },
+  { value: "30d", label: "30 dias" },
+  { value: "365d", label: "1 año" },
+  { value: "never", label: "Nunca expira" },
+];
 
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: "no-store", ...init });
@@ -71,10 +92,17 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 function formatDate(value: string | null) {
   if (!value) return "Sin uso";
+  if (value.startsWith("9999-12-31")) return "Nunca";
   return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function tokenDurationPayload(value: TokenDurationOption) {
+  if (value === "1h") return { ttlHours: 1 };
+  if (value === "8h") return { ttlHours: 8 };
+  return { ttlPreset: value };
 }
 
 function statusChip(status: TokenStatus) {
@@ -93,7 +121,7 @@ export default function RecalcApiTokensPanel() {
   const [payload, setPayload] = useState<RecalcApiTokenPayload | null>(null);
   const [target, setTarget] = useState<TokenTarget>("gpt-actions");
   const [client, setClient] = useState(TARGET_COPY["gpt-actions"].client);
-  const [ttlHours, setTtlHours] = useState(24);
+  const [tokenDuration, setTokenDuration] = useState<TokenDurationOption>("24h");
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
   const [state, setState] = useState<RequestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -104,6 +132,21 @@ export default function RecalcApiTokensPanel() {
   );
 
   const selectedTarget = TARGET_COPY[target];
+  const schemaLinks = useMemo<OpenApiSchemaLink[]>(() => {
+    if (payload?.integration.openApiSchemas?.length) return payload.integration.openApiSchemas;
+    if (!payload?.integration.openApiUrl) return [];
+    return [
+      {
+        id: "full",
+        label: "OpenAPI completo",
+        url: payload.integration.openApiUrl,
+        actionCount: 0,
+        maxActions: 0,
+      },
+    ];
+  }, [payload]);
+  const primarySchemaUrl =
+    schemaLinks[0]?.url ?? payload?.integration.openApiUrl ?? "/api/public/recalc/openapi/gpt-core.json";
 
   const refresh = useCallback(async () => {
     setState("loading");
@@ -145,11 +188,11 @@ export default function RecalcApiTokensPanel() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ client, ttlHours }),
+          body: JSON.stringify({ client, ...tokenDurationPayload(tokenDuration) }),
         },
       );
       setPayload({ integration: next.integration, tokens: next.tokens });
-      setCreatedToken({ token: next.token, expiresAt: next.expiresAt });
+      setCreatedToken({ token: next.token, expiresAt: next.expiresAt, ttlPreset: next.ttlPreset });
       setState("success");
       setMessage(`Token ${selectedTarget.label} creado. Copia el valor antes de salir.`);
     } catch (error) {
@@ -187,8 +230,8 @@ export default function RecalcApiTokensPanel() {
             <button className="ui-admin-action ui-admin-action--secondary" type="button" onClick={() => void refresh()} disabled={state === "loading"}>
               Sincronizar
             </button>
-            <a className="ui-admin-action" href={payload?.integration.openApiUrl ?? "/api/public/recalc/openapi.json"} target="_blank" rel="noreferrer">
-              Abrir OpenAPI
+            <a className="ui-admin-action" href={primarySchemaUrl} target="_blank" rel="noreferrer">
+              Abrir schema
             </a>
           </div>
         </div>
@@ -209,20 +252,35 @@ export default function RecalcApiTokensPanel() {
           </div>
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <label className={LABEL_CLASS}>
-            <span>OpenAPI schema</span>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input className={`${INPUT_CLASS} font-mono`} readOnly value={payload?.integration.openApiUrl ?? ""} />
-              <button
-                className="ui-admin-action ui-admin-action--secondary"
-                type="button"
-                disabled={!payload?.integration.openApiUrl}
-                onClick={() => payload?.integration.openApiUrl ? void copyText(payload.integration.openApiUrl, "URL OpenAPI copiada.") : undefined}
-              >
-                Copiar
-              </button>
+          <div className={LABEL_CLASS}>
+            <span>Schema OpenAI / GPT Actions</span>
+            <div className="grid gap-2">
+              {schemaLinks.length ? schemaLinks.map((schema) => (
+                <div className="grid gap-2" key={schema.id}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <strong>{schema.label}</strong>
+                    {schema.maxActions ? (
+                      <span className="ui-admin-chip">
+                        {schema.actionCount}/{schema.maxActions} actions
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input className={`${INPUT_CLASS} font-mono`} readOnly value={schema.url} />
+                    <button
+                      className="ui-admin-action ui-admin-action--secondary"
+                      type="button"
+                      onClick={() => void copyText(schema.url, "URL de schema copiada.")}
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                </div>
+              )) : (
+                <input className={`${INPUT_CLASS} font-mono`} readOnly value="" />
+              )}
             </div>
-          </label>
+          </div>
           <label className={LABEL_CLASS}>
             <span>Encabezado de autenticación</span>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -263,10 +321,16 @@ export default function RecalcApiTokensPanel() {
           </label>
           <label className={LABEL_CLASS}>
             <span>Vigencia</span>
-            <select className={INPUT_CLASS} value={ttlHours} onChange={(event) => setTtlHours(Number(event.target.value))}>
-              <option value={1}>1 hora</option>
-              <option value={8}>8 horas</option>
-              <option value={24}>24 horas</option>
+            <select
+              className={INPUT_CLASS}
+              value={tokenDuration}
+              onChange={(event) => setTokenDuration(event.target.value as TokenDurationOption)}
+            >
+              {TOKEN_DURATION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -294,7 +358,7 @@ export default function RecalcApiTokensPanel() {
             <h2 className={SECTION_TITLE_CLASS}>Tokens emitidos</h2>
             <p className={COPY_CLASS}>Listado de tokens personales para Recalc API. No se muestran secretos ni hashes.</p>
           </div>
-          <span className="ui-admin-chip">Máximo TTL: {payload?.integration.maxTtlHours ?? 24}h</span>
+          <span className="ui-admin-chip">TTL: hasta 1 año o nunca</span>
         </div>
         {payload?.tokens.length ? (
           <div className="ui-admin-table-shell">

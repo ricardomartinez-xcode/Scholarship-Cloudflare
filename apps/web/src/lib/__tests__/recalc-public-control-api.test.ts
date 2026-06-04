@@ -126,4 +126,43 @@ describe("recalc public control api", () => {
     expect(spec.paths).toHaveProperty("/api/public/recalc/benefits/base-scholarships");
     expect(spec.paths).toHaveProperty("/api/public/recalc/quotes/simulate");
   });
+
+  it("allows public api tokens to last up to one year", async () => {
+    const { clampRecalcPublicApiTtlMs } = await import(
+      "@/lib/recalc-public-control-api"
+    );
+
+    const oneYearMs = 1000 * 60 * 60 * 24 * 365;
+
+    expect(clampRecalcPublicApiTtlMs(8760)).toBe(oneYearMs);
+    expect(clampRecalcPublicApiTtlMs(9000)).toBe(oneYearMs);
+  });
+
+  it("resolves never-expiring token presets for public api tokens", async () => {
+    const { resolveRecalcPublicApiTokenTtl } = await import(
+      "@/lib/recalc-public-control-api"
+    );
+
+    expect(resolveRecalcPublicApiTokenTtl({ ttlPreset: "never" })).toMatchObject({
+      ttlMs: null,
+      ttlPreset: "never",
+    });
+  });
+
+  it("splits GPT Actions schemas into groups with at most 30 actions", async () => {
+    const { getRecalcPublicApiGptActionOpenApiSpecs } = await import(
+      "@/lib/recalc-public-control-api"
+    );
+
+    const schemas = getRecalcPublicApiGptActionOpenApiSpecs("https://recalc.relead.com.mx");
+
+    expect(schemas.length).toBeGreaterThan(1);
+    expect(schemas.every((schema) => schema.actionCount <= 30)).toBe(true);
+    expect(schemas.map((schema) => schema.url)).toEqual([
+      "https://recalc.relead.com.mx/api/public/recalc/openapi/gpt-core.json",
+      "https://recalc.relead.com.mx/api/public/recalc/openapi/gpt-ops.json",
+    ]);
+    expect(schemas[0].spec.paths).toHaveProperty("/api/public/recalc/quotes/simulate");
+    expect(schemas[1].spec.paths).toHaveProperty("/api/public/recalc/github/actions/runs");
+  });
 });

@@ -11,8 +11,10 @@ import {
 } from "@/lib/extension-session-tokens";
 import { getPublicBaseUrl } from "@/lib/public-base-url";
 import {
-  clampRecalcPublicApiTtlMs,
+  getRecalcPublicApiOpenApiSchemaLinks,
+  RECALC_PUBLIC_API_MAX_TTL_HOURS,
   RECALC_PUBLIC_API_SCOPE,
+  resolveRecalcPublicApiTokenTtl,
 } from "@/lib/recalc-public-control-api";
 
 export const runtime = "nodejs";
@@ -20,7 +22,8 @@ export const dynamic = "force-dynamic";
 
 const tokenRequestSchema = z.object({
   client: z.string().trim().min(1).max(80).default("gpt-actions"),
-  ttlHours: z.coerce.number().min(0.083).max(24).default(24),
+  ttlHours: z.coerce.number().min(0.083).max(RECALC_PUBLIC_API_MAX_TTL_HOURS).optional(),
+  ttlPreset: z.enum(["24h", "7d", "30d", "365d", "never"]).optional(),
 });
 
 function publicOrigin(request: Request) {
@@ -64,8 +67,9 @@ async function buildTokenPayload(request: Request, userId: string) {
       tokenType: "Bearer",
       authHeader: "Authorization: Bearer <token>",
       openApiUrl: `${origin}/api/public/recalc/openapi.json`,
+      openApiSchemas: getRecalcPublicApiOpenApiSchemaLinks(origin),
       serverUrl: origin,
-      maxTtlHours: 24,
+      maxTtlHours: RECALC_PUBLIC_API_MAX_TTL_HOURS,
       clients: ["gpt-actions", "intranet-api"],
       actionsReady: true,
     },
@@ -109,12 +113,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    const ttl = resolveRecalcPublicApiTokenTtl(parsed.data);
     const issued = await issueExtensionSessionToken({
       userId: auth.admin.id,
       scope: RECALC_PUBLIC_API_SCOPE,
       client: parsed.data.client,
       userAgent: request.headers.get("user-agent"),
-      ttlMs: clampRecalcPublicApiTtlMs(parsed.data.ttlHours),
+      ttlMs: ttl.ttlMs,
+      ttlPreset: ttl.ttlPreset,
     });
 
     await writeBusinessEventSafe({
@@ -127,6 +133,7 @@ export async function POST(request: Request) {
         scope: RECALC_PUBLIC_API_SCOPE,
         tokenType: "bearer",
         expiresAt: issued.expiresAt.toISOString(),
+        ttlPreset: issued.ttlPreset,
       },
     });
 
@@ -141,6 +148,7 @@ export async function POST(request: Request) {
         client: parsed.data.client,
         scope: RECALC_PUBLIC_API_SCOPE,
         expiresAt: issued.expiresAt.toISOString(),
+        ttlPreset: issued.ttlPreset,
       },
       message: `Token API Recalc emitido para ${parsed.data.client}.`,
     });

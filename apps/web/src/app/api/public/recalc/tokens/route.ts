@@ -8,10 +8,10 @@ import {
   revokeIssuedExtensionSessionToken,
 } from "@/lib/extension-session-tokens";
 import {
-  clampRecalcPublicApiTtlMs,
   readRecalcPublicApiBearerToken,
   RECALC_PUBLIC_API_SCOPE,
   requireRecalcPublicApiCapability,
+  resolveRecalcPublicApiTokenTtl,
 } from "@/lib/recalc-public-control-api";
 
 export const runtime = "nodejs";
@@ -30,13 +30,16 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => ({}))) as {
     client?: unknown;
     ttlHours?: unknown;
+    ttlPreset?: unknown;
   };
+  const ttl = resolveRecalcPublicApiTokenTtl(payload);
   const issued = await issueExtensionSessionToken({
     userId: auth.admin.id,
     scope: RECALC_PUBLIC_API_SCOPE,
     client: sanitizeClient(payload.client),
     userAgent: request.headers.get("user-agent"),
-    ttlMs: clampRecalcPublicApiTtlMs(payload.ttlHours),
+    ttlMs: ttl.ttlMs,
+    ttlPreset: ttl.ttlPreset,
   });
 
   await writeBusinessEventSafe({
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
       scope: RECALC_PUBLIC_API_SCOPE,
       tokenType: "bearer",
       expiresAt: issued.expiresAt.toISOString(),
+      ttlPreset: issued.ttlPreset,
     },
   });
 
@@ -57,6 +61,7 @@ export async function POST(request: Request) {
     scope: RECALC_PUBLIC_API_SCOPE,
     token: issued.token,
     expiresAt: issued.expiresAt.toISOString(),
+    ttlPreset: issued.ttlPreset,
   });
 }
 
