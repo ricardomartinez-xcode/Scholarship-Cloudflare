@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 const LEGACY_KEY = "abc123abc123abc123abc123abc123ab";
 const LEGACY_IV = "a1b2c3d4e5f6g7h8";
 
+const FULL_ACCESS_ID = "RECALC-FULL-ACCESS";
+const FULL_ACCESS_REMAINING_DAYS = 36500;
+const FULL_ACCESS_ALLOWED_DEVICES = 999;
+
 export type LegacyPayload = Record<string, unknown>;
 
 export function decryptLegacyPayload(encData: string | null | undefined): LegacyPayload {
@@ -90,8 +94,15 @@ export function asString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+/**
+ * Legacy contract adapter.
+ *
+ * The original extension calls `/mv3/get-license.php` and expects a payload shaped
+ * like a license response. The new ReCalc version intentionally removes license
+ * enforcement, so this function returns a synthetic full-access entitlement while
+ * preserving the legacy field names required by the bundled extension code.
+ */
 export function buildLegacyLicense(payload: LegacyPayload) {
-  const license = asString(payload.license_key, asString(payload.license, "RECALC-DEMO-KEY"));
   const deviceCode = asString(payload.device_code, asString(payload.deviceid, "legacy-device"));
   const deviceName = asString(payload.device_name, "Premium Sender Device");
   const mobile = asString(payload.mobile, "");
@@ -99,24 +110,37 @@ export function buildLegacyLicense(payload: LegacyPayload) {
   return {
     status: "success",
     identifier: "OK",
-    message: "License activated",
+    message: "Full access enabled",
     data: {
-      id: license,
-      license,
-      license_key: license,
+      id: FULL_ACCESS_ID,
+      license: FULL_ACCESS_ID,
+      license_key: FULL_ACCESS_ID,
+      entitlement: "full_access",
+      license_required: false,
+      monetization: "future",
       device_code: deviceCode,
       device_name: deviceName,
       mobile,
       name: deviceName,
       img: null,
-      plan: "Legacy compatibility",
-      remainingdays: Number(process.env.PREMIUM_SENDER_LEGACY_REMAINING_DAYS ?? 365),
+      plan: "ReCalc Full Access",
+      remainingdays: Number(process.env.PREMIUM_SENDER_FULL_ACCESS_DAYS ?? FULL_ACCESS_REMAINING_DAYS),
+      expires_at: null,
       all_devices: [deviceCode],
-      allowed_devices: Number(process.env.PREMIUM_SENDER_LEGACY_ALLOWED_DEVICES ?? 10),
+      allowed_devices: Number(process.env.PREMIUM_SENDER_FULL_ACCESS_DEVICES ?? FULL_ACCESS_ALLOWED_DEVICES),
       whatsapp_connected: false,
       templates: [],
       set: 7.77,
       server: "recalc",
+      features: {
+        bulk_send: true,
+        attachments: true,
+        labels: true,
+        downloads: true,
+        templates: true,
+        ai_rewrite: true,
+        dom_selectors: true,
+      },
     },
   };
 }
