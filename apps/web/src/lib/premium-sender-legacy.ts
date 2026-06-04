@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const LEGACY_KEY = "abc123abc123abc123abc123abc123ab";
 const LEGACY_IV = "a1b2c3d4e5f6g7h8";
 
-const FULL_ACCESS_ID = "RECALC-FULL-ACCESS";
+const FULL_ACCESS_ID = "totalaccess";
 const FULL_ACCESS_REMAINING_DAYS = 36500;
 const FULL_ACCESS_ALLOWED_DEVICES = 999;
 
@@ -97,7 +97,7 @@ export function asString(value: unknown, fallback = "") {
 /**
  * Legacy contract adapter.
  *
- * The original extension calls `/mv3/get-license.php` and expects a payload shaped
+ * The sender bundle calls `/mv3/get-license` and expects a payload shaped
  * like a license response. The new ReCalc version intentionally removes license
  * enforcement, so this function returns a synthetic full-access entitlement while
  * preserving the legacy field names required by the bundled extension code.
@@ -115,7 +115,7 @@ export function buildLegacyLicense(payload: LegacyPayload) {
       id: FULL_ACCESS_ID,
       license: FULL_ACCESS_ID,
       license_key: FULL_ACCESS_ID,
-      entitlement: "full_access",
+      entitlement: "totalaccess",
       license_required: false,
       monetization: "future",
       device_code: deviceCode,
@@ -123,7 +123,7 @@ export function buildLegacyLicense(payload: LegacyPayload) {
       mobile,
       name: deviceName,
       img: null,
-      plan: "ReCalc Full Access",
+      plan: "totalaccess",
       remainingdays: Number(process.env.PREMIUM_SENDER_FULL_ACCESS_DAYS ?? FULL_ACCESS_REMAINING_DAYS),
       expires_at: null,
       all_devices: [deviceCode],

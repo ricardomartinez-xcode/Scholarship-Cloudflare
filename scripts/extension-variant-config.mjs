@@ -17,6 +17,10 @@ export const variantRoots = [
   path.join(repoRoot, "chrome-extension", "variants", "preview-first"),
 ];
 
+export const manualVariantRoots = [
+  path.join(repoRoot, "chrome-extension", "variants", "Premium-Sender-Backend"),
+];
+
 export const exactCopyFiles = [
   "panel.html",
   "panel.css",
