@@ -139,7 +139,7 @@ export function resolveExtensionSessionExpiry(params: {
     };
   }
 
-  if (preset && preset !== "never") {
+  if (preset) {
     const presetTtlMs = EXTENSION_SESSION_TTL_PRESETS[preset];
     const ttlMs = clampTtlMs(presetTtlMs);
     return {

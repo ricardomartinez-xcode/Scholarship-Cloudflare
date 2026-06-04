@@ -32,10 +32,22 @@ describe("extension session tokens", () => {
       userId: "00000000-0000-0000-0000-000000000001",
       client: "chrome-sidepanel",
       scope: "extension:chrome-sidepanel",
-      ttlMs: 1000 * 60 * 60 * 24 * 30,
+      ttlMs: 1000 * 60 * 60 * 24 * 400,
     });
 
-    expect(issued.expiresAt.toISOString()).toBe("2026-05-26T00:00:00.000Z");
+    expect(issued.expiresAt.toISOString()).toBe("2027-05-25T00:00:00.000Z");
+  });
+
+  it("resolves never-expiring extension token presets", async () => {
+    const { resolveExtensionSessionExpiry } = await import("@/lib/extension-session-tokens");
+
+    const expiry = resolveExtensionSessionExpiry({ ttlPreset: "never" });
+
+    expect(expiry).toMatchObject({
+      ttlMs: null,
+      ttlPreset: "never",
+    });
+    expect(expiry.expiresAt.toISOString()).toBe("9999-12-31T23:59:59.000Z");
   });
 
   it("revokes active equivalent tokens before issuing a rotated token", async () => {

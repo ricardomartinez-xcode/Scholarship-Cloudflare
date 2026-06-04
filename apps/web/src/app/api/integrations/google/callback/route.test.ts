@@ -1,107 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-const {
-  getSessionUserMock,
-  forceSyncUserContactsForUserMock,
-  parseGoogleCallbackStateMock,
-  updateAgendaSyncPreferenceMock,
-  upsertGoogleConnectionFromCodeMock,
-} = vi.hoisted(() => ({
-  getSessionUserMock: vi.fn(),
-  forceSyncUserContactsForUserMock: vi.fn(),
-  parseGoogleCallbackStateMock: vi.fn(),
-  updateAgendaSyncPreferenceMock: vi.fn(),
-  upsertGoogleConnectionFromCodeMock: vi.fn(),
-}));
+import { GET, POST } from "./route";
 
-vi.mock("@/lib/authz", () => ({
-  getSessionUser: getSessionUserMock,
-}));
+describe("Google OAuth callback disabled route", () => {
+  it("returns the temporary disabled response for GET", async () => {
+    const response = await GET();
+    const body = await response.json();
 
-vi.mock("@/lib/google-integration", () => ({
-  parseGoogleCallbackState: parseGoogleCallbackStateMock,
-  updateAgendaSyncPreference: updateAgendaSyncPreferenceMock,
-  upsertGoogleConnectionFromCode: upsertGoogleConnectionFromCodeMock,
-}));
-
-vi.mock("@/lib/user-contacts", () => ({
-  forceSyncUserContactsForUser: forceSyncUserContactsForUserMock,
-}));
-
-import { GET } from "./route";
-
-function buildRequest(state = "state", code = "code") {
-  return new Request(
-    `https://recalc.relead.com.mx/api/integrations/google/callback?state=${state}&code=${code}`,
-  );
-}
-
-describe("GET /api/integrations/google/callback", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    parseGoogleCallbackStateMock.mockReturnValue({
-      userId: "user-1",
-      nextPath: "/unidep/contactos",
-      intent: "contacts_sync",
-      service: "contacts",
-      signed: true,
-      validSignature: true,
-      expired: false,
+    expect(response.status).toBe(503);
+    expect(body).toMatchObject({
+      ok: false,
+      disabled: true,
+      code: "oauth_integrations_temporarily_disabled",
     });
-    upsertGoogleConnectionFromCodeMock.mockResolvedValue({ ok: true });
-    updateAgendaSyncPreferenceMock.mockResolvedValue({ ok: true });
-    forceSyncUserContactsForUserMock.mockResolvedValue({ ok: true });
   });
 
-  it("acepta callback sin cookie cuando el state viene firmado y vigente", async () => {
-    getSessionUserMock.mockResolvedValue({ status: "unauthenticated" });
+  it("returns the temporary disabled response for POST", async () => {
+    const response = await POST();
+    const body = await response.json();
 
-    const response = await GET(buildRequest());
-
-    expect(upsertGoogleConnectionFromCodeMock).toHaveBeenCalledWith({
-      userId: "user-1",
-      code: "code",
+    expect(response.status).toBe(503);
+    expect(body).toMatchObject({
+      ok: false,
+      disabled: true,
+      code: "oauth_integrations_temporarily_disabled",
     });
-    expect(updateAgendaSyncPreferenceMock).toHaveBeenCalledWith({
-      userId: "user-1",
-      syncSheetsEnabled: true,
-    });
-    expect(forceSyncUserContactsForUserMock).toHaveBeenCalledWith("user-1");
-    expect(response.headers.get("location")).toContain(
-      "/unidep/contactos?googleSync=connected&googleSyncIntent=contacts_sync",
-    );
-  });
-
-  it("rechaza callback sin cookie cuando el state no está firmado", async () => {
-    getSessionUserMock.mockResolvedValue({ status: "unauthenticated" });
-    parseGoogleCallbackStateMock.mockReturnValue({
-      userId: "user-1",
-      nextPath: "/unidep/contactos",
-      intent: "contacts_sync",
-      service: "contacts",
-      signed: false,
-      validSignature: false,
-      expired: false,
-    });
-
-    const response = await GET(buildRequest());
-
-    expect(upsertGoogleConnectionFromCodeMock).not.toHaveBeenCalled();
-    expect(forceSyncUserContactsForUserMock).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toContain(
-      "/unidep/contactos?googleSync=session-expired&googleSyncIntent=contacts_sync",
-    );
-  });
-
-  it("mantiene validación de mismatch cuando sí hay sesión", async () => {
-    getSessionUserMock.mockResolvedValue({
-      status: "ok",
-      user: { id: "user-2" },
-    });
-
-    const response = await GET(buildRequest());
-
-    expect(upsertGoogleConnectionFromCodeMock).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toContain("/profile?googleSync=state-mismatch");
   });
 });
