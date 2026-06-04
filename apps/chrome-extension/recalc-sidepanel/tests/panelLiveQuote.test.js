@@ -13,3 +13,11 @@ test("delegates quote validation to the live backend instead of a stale local ru
   assert.doesNotMatch(panelSource, /hasMatchingQuoteRule/);
   assert.doesNotMatch(panelSource, /No hay regla activa/);
 });
+
+test("requires an extension-issued token before opening the authenticated panel", () => {
+  assert.match(
+    panelSource,
+    /if \(!state\.extensionSessionToken\) \{[\s\S]*await clearStoredSessionToken\(\);[\s\S]*return null;[\s\S]*\}/,
+  );
+  assert.match(panelSource, /token de extension/i);
+});

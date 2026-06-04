@@ -2,69 +2,35 @@
   const DEFAULT_SELECTOR_PACK = {
     selectors: {
       // Estos selectores siguen siendo sensibles a cambios de WhatsApp Web,
-      // pero ahora se fusionan con cualquier selector remoto para evitar que
-      // el backend sobrescriba selectores locales más actualizados.
+      // pero se usan solo como punto de partida antes de aplicar fallbacks por texto/atributos.
       searchBox:
         "div[role='textbox'][contenteditable='true'][data-tab], div[contenteditable='true'][data-tab='3']",
-
       messageInput:
         "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
-
       sendButton:
-        "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], button[aria-label='Enviar'], button[aria-label='Send'], span[data-icon='wds-ic-send-filled'], span[data-testid='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
-
+        "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], button[aria-label='Enviar'], button[aria-label='Send'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
       attachButton:
-        "button[aria-label='Adjuntar'], button[aria-label='Attach'], [role='button'][aria-label='Adjuntar'], [role='button'][aria-label='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], [role='button'][aria-label*='Adjuntar'], [role='button'][aria-label*='Attach'], button[title*='Adjuntar'], button[title*='Attach'], span[data-testid='plus-rounded'], span[data-icon='plus-rounded'], span[data-icon='plus']",
-
+        "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus-i'], span[data-icon='plus'], span[data-icon='plus-rounded']",
       mediaCaptionInput:
-        "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], p.copyable-text",
-
+        "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6']",
       conversationReady:
         "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
-
       previewModal:
-        "div[role='dialog'], div[data-testid='media-viewer'], div[data-animate-modal-body='true'], div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file'], div[role='button'][aria-label*='Send'][aria-label*='selected'], div[role='button'][aria-label*='Enviar'][aria-label*='seleccionado']",
-
-      fileInput:
-        "input[type='file']",
+        "div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file']",
+      fileInput: "input[type='file']",
     },
   };
 
-  function mergeSelector(defaultSelector, overrideSelector) {
-    const pieces = [
-      String(overrideSelector || "").trim(),
-      String(defaultSelector || "").trim(),
-    ].filter(Boolean);
-
-    return pieces
-      .join(", ")
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .filter((item, index, list) => list.indexOf(item) === index)
-      .join(", ");
-  }
-
   function normalizeSelectorPack(pack) {
-    const selectors =
-      pack && typeof pack === "object" && typeof pack.selectors === "object"
-        ? pack.selectors
-        : {};
-
-    const defaults = DEFAULT_SELECTOR_PACK.selectors;
-    const merged = {};
-
-    Object.keys(defaults).forEach((key) => {
-      merged[key] = mergeSelector(defaults[key], selectors[key]);
-    });
-
-    Object.keys(selectors).forEach((key) => {
-      if (!merged[key]) {
-        merged[key] = String(selectors[key] || "").trim();
-      }
-    });
-
-    return { selectors: merged };
+    const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
+      ? pack.selectors
+      : {};
+    return {
+      selectors: {
+        ...DEFAULT_SELECTOR_PACK.selectors,
+        ...selectors,
+      },
+    };
   }
 
   function parseSelectorList(value) {
@@ -78,30 +44,16 @@
     if (!(node instanceof Element)) return false;
     const style = window.getComputedStyle(node);
     const rect = node.getBoundingClientRect();
-
-    return (
-      style.display !== "none" &&
-      style.visibility !== "hidden" &&
-      rect.width > 0 &&
-      rect.height > 0
-    );
+    return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
   }
 
   function firstVisible(selectors) {
     for (const selector of parseSelectorList(selectors)) {
-      let nodes = [];
-
-      try {
-        nodes = Array.from(document.querySelectorAll(selector));
-      } catch {
-        continue;
-      }
-
+      const nodes = Array.from(document.querySelectorAll(selector));
       const visible = nodes.find((node) => isVisible(node));
       if (visible) return visible;
       if (nodes[0]) return nodes[0];
     }
-
     return null;
   }
 
@@ -112,39 +64,58 @@
       .toLowerCase();
   }
 
-  function matchAnyText(node, needles) {
-    const haystack = [
-      node?.getAttribute?.("aria-label"),
-      node?.getAttribute?.("title"),
-      node?.textContent,
-      node?.innerText,
-    ]
+  function resolveClickable(target) {
+    if (!(target instanceof Element)) return null;
+    return (
+      target.closest?.("button, [role='button'], [role='menuitem'], label, [tabindex]") ||
+      target
+    );
+  }
+
+  function accessibleText(node) {
+    if (!(node instanceof Element)) return "";
+    const parts = [
+      node.getAttribute?.("aria-label"),
+      node.getAttribute?.("title"),
+      node.getAttribute?.("data-icon"),
+      node.textContent,
+      node.innerText,
+    ];
+
+    try {
+      node.querySelectorAll?.("[aria-label], [title], [data-icon], title")?.forEach((child) => {
+        parts.push(
+          child.getAttribute?.("aria-label"),
+          child.getAttribute?.("title"),
+          child.getAttribute?.("data-icon"),
+          child.textContent,
+          child.innerText,
+        );
+      });
+    } catch {
+      // Some DOM shims used by tests do not implement full selector parsing.
+    }
+
+    return parts
       .map((value) => String(value || "").trim().toLowerCase())
       .filter(Boolean)
       .join(" ");
+  }
 
-    return needles.some((needle) =>
-      haystack.includes(String(needle).trim().toLowerCase()),
-    );
+  function matchAnyText(node, needles) {
+    const haystack = accessibleText(node);
+
+    return needles.some((needle) => haystack.includes(String(needle).trim().toLowerCase()));
   }
 
   function firstVisibleWithin(root, selectors) {
     if (!(root instanceof Element)) return null;
-
     for (const selector of parseSelectorList(selectors)) {
-      let nodes = [];
-
-      try {
-        nodes = Array.from(root.querySelectorAll(selector));
-      } catch {
-        continue;
-      }
-
+      const nodes = Array.from(root.querySelectorAll(selector));
       const visible = nodes.find((node) => isVisible(node));
       if (visible) return visible;
       if (nodes[0]) return nodes[0];
     }
-
     return null;
   }
 
@@ -158,56 +129,44 @@
   }
 
   function findMessageInput(pack) {
-    return (
-      firstVisibleInFooter(getSelector("messageInput", pack)) ||
-      firstVisible(getSelector("messageInput", pack))
-    );
+    return firstVisibleInFooter(getSelector("messageInput", pack)) || firstVisible(getSelector("messageInput", pack));
   }
 
   function findSendButton(pack) {
-    return (
-      firstVisibleInFooter(getSelector("sendButton", pack)) ||
-      firstVisible(getSelector("sendButton", pack))
-    );
+    return firstVisibleInFooter(getSelector("sendButton", pack)) || firstVisible(getSelector("sendButton", pack));
+  }
+
+  function findPreviewSendButton(pack) {
+    const previewAnchor = findPreviewModal(pack);
+    if (!(previewAnchor instanceof Element)) return null;
+
+    const previewSpecificSelectors = [
+      "span[data-icon='wds-ic-send-filled']",
+      "span[data-icon='send-i']",
+      "span[data-icon='send-filled']",
+      "div[role='button'][aria-label='Enviar']",
+      "div[role='button'][aria-label='Send']",
+      "button[aria-label='Enviar']",
+      "button[aria-label='Send']",
+    ];
+
+    for (const selector of previewSpecificSelectors) {
+      const nodes = Array.from(document.querySelectorAll(selector))
+        .map((node) => node.closest?.("button, [role='button']") || node)
+        .filter((node, index, list) => node && list.indexOf(node) === index);
+      const visible = nodes.find((node) => isVisible(node));
+      const previewScoped = [visible, ...nodes]
+        .filter(Boolean)
+        .find((node) => node instanceof Element && !node.closest("footer"));
+      if (previewScoped) return previewScoped;
+    }
+
+    return null;
   }
 
   function findAttachButton(pack) {
-    const fromSelectors = firstVisible(getSelector("attachButton", pack));
-
-    if (fromSelectors) {
-      const clickable =
-        fromSelectors.closest?.("button, [role='button']") ||
-        fromSelectors;
-
-      if (clickable instanceof Element && isVisible(clickable)) {
-        return clickable;
-      }
-    }
-
-    const candidates = Array.from(
-      document.querySelectorAll("button, [role='button']"),
-    )
-      .filter((node) => isVisible(node))
-      .filter((node) => {
-        const icon = node.querySelector(
-          "[data-icon='plus-rounded'], [data-testid='plus-rounded'], [data-icon='plus']",
-        );
-
-        const label = String(
-          node.getAttribute("aria-label") ||
-            node.getAttribute("title") ||
-            node.textContent ||
-            "",
-        ).toLowerCase();
-
-        return (
-          icon ||
-          label.includes("adjuntar") ||
-          label.includes("attach")
-        );
-      });
-
-    return candidates[0] || null;
+    const target = firstVisible(getSelector("attachButton", pack));
+    return resolveClickable(target);
   }
 
   function findConversationReady(pack) {
@@ -215,58 +174,30 @@
   }
 
   function findPreviewModal(pack) {
-    const selectors = getSelector("previewModal", pack);
-    const found = firstVisible(selectors);
-    if (found) return found;
+    const removeButton = firstVisible(
+      "div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file']",
+    );
+    if (removeButton) return removeButton;
 
-    const sendSelectedButton = Array.from(
-      document.querySelectorAll("button, [role='button']"),
-    ).find((node) => {
-      if (!isVisible(node)) return false;
-
-      const label = String(
-        node.getAttribute("aria-label") ||
-          node.getAttribute("title") ||
-          node.textContent ||
-          "",
-      ).toLowerCase();
-
-      return (
-        label.includes("send") && label.includes("selected")
-      ) || (
-        label.includes("enviar") && label.includes("seleccion")
-      );
-    });
-
-    return sendSelectedButton || null;
+    return firstVisible(getSelector("previewModal", pack));
   }
 
   function findCaptionInput(pack) {
     const modal = findPreviewModal(pack);
     if (!(modal instanceof Element)) return null;
-
     const selectorsToTry = parseSelectorList(getSelector("mediaCaptionInput", pack));
 
     for (const selector of selectorsToTry) {
-      let nodes = [];
-
-      try {
-        nodes = Array.from(document.querySelectorAll(selector));
-      } catch {
-        continue;
-      }
-
+      const nodes = Array.from(document.querySelectorAll(selector));
       const visible = nodes.find((node) => isVisible(node));
       if (visible) return visible;
       if (nodes[0]) return nodes[0];
     }
-
     return null;
   }
 
   function allFileInputs(pack) {
-    return Array.from(document.querySelectorAll(getSelector("fileInput", pack)))
-      .filter((node) => node instanceof HTMLInputElement);
+    return Array.from(document.querySelectorAll(getSelector("fileInput", pack))).filter((node) => node instanceof HTMLInputElement);
   }
 
   function scoreAttachmentInput(input, kind) {
@@ -275,26 +206,21 @@
 
     if (kind === "media") {
       let score = 0;
-
       if (accept.includes("image")) score += 3;
       if (accept.includes("video")) score += 6;
       if (accept.includes("audio")) score -= 4;
       if (multiple) score += 4;
-
-      // WhatsApp deja un input image/* que puede abrir Sticker Maker.
-      // Lo penalizamos cuando no es múltiple para preferir Fotos y Videos.
+      // WhatsApp deja un input image/* que abre Sticker Maker; penalizarlo cuando exista
+      // otra opción más parecida al flujo real de Fotos y videos.
       if (accept === "image/*" && !multiple) score -= 6;
-
       return score;
     }
 
     let score = 0;
-
     if (!accept) score += 1;
     if (accept.includes("application")) score += 2;
     if (accept.includes("pdf")) score += 2;
     if (accept.includes("*")) score += 1;
-
     return score;
   }
 
@@ -317,6 +243,21 @@
 
       if (viableMediaInputs[0]?.input) return viableMediaInputs[0].input;
 
+      // WhatsApp Web can expose only one media input with accept="image/*".
+      // Older builds also used a similar single-image input for Sticker Maker,
+      // so prefer richer media inputs above but keep this as the safe fallback.
+      const imageInputsByDom = inputs.filter((input) => {
+        const accept = String(input?.accept || "").toLowerCase().trim();
+        return accept.includes("image") && !accept.includes("audio");
+      });
+      if (
+        imageInputsByDom.length > 1 &&
+        String(imageInputsByDom[0]?.accept || "").toLowerCase().trim() === "image/*" &&
+        !imageInputsByDom[0].multiple
+      ) {
+        return imageInputsByDom[1];
+      }
+
       return sorted.find(({ input }) => {
         const accept = String(input?.accept || "").toLowerCase().trim();
         return accept.includes("image") && !accept.includes("audio");
@@ -326,103 +267,27 @@
     return sorted[0]?.input || null;
   }
 
-  function findPreviewSendButton(pack) {
-    const previewAnchor = findPreviewModal(pack);
-    if (!(previewAnchor instanceof Element)) return null;
-
-    const previewSpecificSelectors = [
-      "div[role='button'][aria-label='Send 1 selected']",
-      "div[role='button'][aria-label*='Send'][aria-label*='selected']",
-      "div[role='button'][aria-label*='Enviar'][aria-label*='seleccionado']",
-      "button[aria-label*='Send'][aria-label*='selected']",
-      "button[aria-label*='Enviar'][aria-label*='seleccionado']",
-      "span[data-icon='wds-ic-send-filled']",
-      "span[data-testid='wds-ic-send-filled']",
-      "span[data-icon='send-filled']",
-      "div[role='button'][aria-label='Enviar']",
-      "div[role='button'][aria-label='Send']",
-      "button[aria-label='Enviar']",
-      "button[aria-label='Send']",
-    ];
-
-    for (const selector of previewSpecificSelectors) {
-      let nodes = [];
-
-      try {
-        nodes = Array.from(document.querySelectorAll(selector));
-      } catch {
-        continue;
-      }
-
-      const normalized = nodes
-        .map((node) => node.closest?.("button, [role='button']") || node)
-        .filter((node, index, list) => node && list.indexOf(node) === index);
-
-      const visible = normalized.find((node) => isVisible(node));
-      const previewScoped = [visible, ...normalized]
-        .filter(Boolean)
-        .find((node) => node instanceof Element && !node.closest("footer"));
-
-      if (previewScoped) return previewScoped;
-    }
-
-    const buttons = Array.from(document.querySelectorAll("button, [role='button']"))
-      .filter((node) => isVisible(node))
-      .filter((node) => !node.closest("footer"))
-      .filter((node) => {
-        const icon = node.querySelector(
-          "[data-icon='wds-ic-send-filled'], [data-testid='wds-ic-send-filled'], [data-icon='send-filled'], [data-icon='send']",
-        );
-
-        const label = String(
-          node.getAttribute("aria-label") ||
-            node.getAttribute("title") ||
-            node.textContent ||
-            "",
-        ).toLowerCase();
-
-        return (
-          icon ||
-          (label.includes("send") && label.includes("selected")) ||
-          (label.includes("enviar") && label.includes("seleccion"))
-        );
-      });
-
-    return buttons[0] || null;
-  }
-
   function findAttachmentOption(kind) {
-    const needles =
-      kind === "document"
-        ? ["document", "documento", "archivo", "file"]
-        : [
-            "photos & videos",
-            "photos and videos",
-            "fotos y videos",
-            "foto y video",
-            "photos",
-            "videos",
-            "fotos",
-          ];
+    const needles = kind === "document"
+      ? ["document", "documento", "archivo", "file"]
+      : ["photos & videos", "photos and videos", "fotos y videos", "photos", "videos", "fotos"];
 
     const candidates = Array.from(
-      document.querySelectorAll(
-        "[role='menuitem'], [role='button'], button, li, div[aria-label], div[title], div",
-      ),
+      document.querySelectorAll("[role='menuitem'], [role='button'], button, li, div[aria-label], div[title]"),
     ).filter((node) => isVisible(node));
 
-    return candidates.find((node) => matchAnyText(node, needles)) || null;
+    return candidates.find((node) => isVisible(node) && matchAnyText(node, needles)) || null;
   }
 
   function findAttachmentMenuOptions() {
     const candidates = Array.from(
       document.querySelectorAll(
-        "[role='menuitem'], [data-animate-dropdown-item='true'], li [role='button'], li button, [role='button']",
+        "[role='menu'] [role='menuitem'], [role='menuitem'], [data-animate-dropdown-item='true'], div[role='application'] li[role='button'], li[role='button'], li [role='button'], li button",
       ),
     )
       .filter((node) => isVisible(node))
       .map((node) =>
-        node.closest?.("[role='menuitem'], button, [role='button'], li") ||
+        resolveClickable(node.closest?.("[role='menuitem'], button, [role='button'], li") || node) ||
         (node instanceof Element ? node : null),
       )
       .filter(Boolean);
@@ -442,6 +307,7 @@
     firstVisible,
     textContent,
     matchAnyText,
+    resolveClickable,
     findMessageInput,
     findSendButton,
     findPreviewSendButton,

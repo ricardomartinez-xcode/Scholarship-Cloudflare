@@ -3,19 +3,14 @@ const DEFAULT_SELECTOR_PACK = {
   selectors: {
     messageInput:
       "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
-
     sendButton:
-      "button[aria-label='Enviar'], button[aria-label='Send'], div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], div[role='button'][aria-label*='Send'][aria-label*='selected'], div[role='button'][aria-label*='Enviar'][aria-label*='seleccionado'], span[data-icon='wds-ic-send-filled'], span[data-testid='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
-
+      "button[aria-label='Enviar'], button[aria-label='Send'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
     attachButton:
-      "button[aria-label='Adjuntar'], button[aria-label='Attach'], [role='button'][aria-label='Adjuntar'], [role='button'][aria-label='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], [role='button'][aria-label*='Adjuntar'], [role='button'][aria-label*='Attach'], button[title*='Adjuntar'], button[title*='Attach'], span[data-testid='plus-rounded'], span[data-icon='plus-rounded'], span[data-icon='plus']",
-
+      "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus-i'], span[data-icon='plus'], span[data-icon='plus-rounded']",
     fileInput:
       "input[type='file'][accept*='image'], input[type='file'][accept*='video'], input[type='file']",
-
     mediaCaptionInput:
-      "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], p.copyable-text",
-
+      "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6']",
     conversationReady:
       "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
   },
@@ -24,21 +19,6 @@ const DEFAULT_SELECTOR_PACK = {
 let awaitingChatNotified = false;
 let observer = null;
 let applyingDraft = false;
-
-function mergeSelector(defaultSelector, overrideSelector) {
-  const pieces = [
-    String(overrideSelector || "").trim(),
-    String(defaultSelector || "").trim(),
-  ].filter(Boolean);
-
-  return pieces
-    .join(", ")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .filter((item, index, list) => list.indexOf(item) === index)
-    .join(", ");
-}
 
 function normalizeSelectorPack(pack) {
   const selectors =
@@ -49,43 +29,33 @@ function normalizeSelectorPack(pack) {
   return {
     selectors: {
       messageInput:
-        mergeSelector(
-          DEFAULT_SELECTOR_PACK.selectors.messageInput,
-          typeof selectors.messageInput === "string" ? selectors.messageInput : "",
-        ),
-
+        typeof selectors.messageInput === "string" && selectors.messageInput.trim()
+          ? selectors.messageInput.trim()
+          : DEFAULT_SELECTOR_PACK.selectors.messageInput,
       sendButton:
-        mergeSelector(
-          DEFAULT_SELECTOR_PACK.selectors.sendButton,
-          typeof selectors.sendButton === "string" ? selectors.sendButton : "",
-        ),
-
+        typeof selectors.sendButton === "string" && selectors.sendButton.trim()
+          ? selectors.sendButton.trim()
+          : DEFAULT_SELECTOR_PACK.selectors.sendButton,
       attachButton:
-        mergeSelector(
-          DEFAULT_SELECTOR_PACK.selectors.attachButton,
-          typeof selectors.attachButton === "string" ? selectors.attachButton : "",
-        ),
-
+        typeof selectors.attachButton === "string" && selectors.attachButton.trim()
+          ? selectors.attachButton.trim()
+          : DEFAULT_SELECTOR_PACK.selectors.attachButton,
       fileInput:
-        mergeSelector(
-          DEFAULT_SELECTOR_PACK.selectors.fileInput,
-          typeof selectors.fileInput === "string" ? selectors.fileInput : "",
-        ),
-
+        typeof selectors.fileInput === "string" && selectors.fileInput.trim()
+          ? selectors.fileInput.trim()
+          : DEFAULT_SELECTOR_PACK.selectors.fileInput,
       mediaCaptionInput:
-        mergeSelector(
-          DEFAULT_SELECTOR_PACK.selectors.mediaCaptionInput,
-          typeof selectors.mediaCaptionInput === "string" ? selectors.mediaCaptionInput : "",
-        ),
-
+        typeof selectors.mediaCaptionInput === "string" && selectors.mediaCaptionInput.trim()
+          ? selectors.mediaCaptionInput.trim()
+          : DEFAULT_SELECTOR_PACK.selectors.mediaCaptionInput,
       conversationReady:
-        mergeSelector(
-          DEFAULT_SELECTOR_PACK.selectors.conversationReady,
-          typeof selectors.conversationReady === "string" ? selectors.conversationReady : "",
-        ),
+        typeof selectors.conversationReady === "string" && selectors.conversationReady.trim()
+          ? selectors.conversationReady.trim()
+          : DEFAULT_SELECTOR_PACK.selectors.conversationReady,
     },
   };
 }
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -134,99 +104,19 @@ function findComposer(selectorPack) {
 function findSendButton(selectorPack) {
   const selectors = normalizeSelectorPack(selectorPack).selectors.sendButton;
   const footer = document.querySelector("footer");
-
   if (footer) {
     for (const selector of parseSelectorList(selectors)) {
-      let nodes = [];
-
-      try {
-        nodes = Array.from(footer.querySelectorAll(selector));
-      } catch {
-        continue;
-      }
-
+      const nodes = Array.from(footer.querySelectorAll(selector));
       const visible = nodes.find((node) => isVisible(node));
-      if (visible) {
-        return visible.closest?.("button, [role='button']") || visible;
-      }
-
-      if (nodes[0]) {
-        return nodes[0].closest?.("button, [role='button']") || nodes[0];
-      }
+      if (visible) return visible;
+      if (nodes[0]) return nodes[0];
     }
   }
-
-  const fromSelectors = findFirstVisible(selectors);
-
-  if (fromSelectors) {
-    return fromSelectors.closest?.("button, [role='button']") || fromSelectors;
-  }
-
-  const candidates = Array.from(document.querySelectorAll("button, [role='button']"))
-    .filter((node) => isVisible(node))
-    .filter((node) => {
-      const icon = node.querySelector(
-        "[data-icon='wds-ic-send-filled'], [data-testid='wds-ic-send-filled'], [data-icon='send-filled'], [data-icon='send']",
-      );
-
-      const label = String(
-        node.getAttribute("aria-label") ||
-          node.getAttribute("title") ||
-          node.textContent ||
-          "",
-      ).toLowerCase();
-
-      return (
-        icon ||
-        label === "send" ||
-        label === "enviar" ||
-        (label.includes("send") && label.includes("selected")) ||
-        (label.includes("enviar") && label.includes("seleccion"))
-      );
-    });
-
-  return candidates[0] || null;
+  return findFirstVisible(selectors);
 }
 
 function findAttachButton(selectorPack) {
-  const fromSelectors = findFirstVisible(
-    normalizeSelectorPack(selectorPack).selectors.attachButton,
-  );
-
-  if (fromSelectors) {
-    const clickable =
-      fromSelectors.closest?.("button, [role='button']") ||
-      fromSelectors;
-
-    if (clickable instanceof Element && isVisible(clickable)) {
-      return clickable;
-    }
-  }
-
-  const candidates = Array.from(
-    document.querySelectorAll("button, [role='button']"),
-  )
-    .filter((node) => isVisible(node))
-    .filter((node) => {
-      const icon = node.querySelector(
-        "[data-icon='plus-rounded'], [data-testid='plus-rounded'], [data-icon='plus']",
-      );
-
-      const label = String(
-        node.getAttribute("aria-label") ||
-          node.getAttribute("title") ||
-          node.textContent ||
-          "",
-      ).toLowerCase();
-
-      return (
-        icon ||
-        label.includes("adjuntar") ||
-        label.includes("attach")
-      );
-    });
-
-  return candidates[0] || null;
+  return findFirstVisible(normalizeSelectorPack(selectorPack).selectors.attachButton);
 }
 
 function findFileInput(selectorPack) {
@@ -396,14 +286,15 @@ function clickElement(target) {
 
   clickable.scrollIntoView?.({ block: "center", inline: "center" });
   clickable.focus?.();
-  ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((eventName) => {
-    clickable.dispatchEvent(new MouseEvent(eventName, {
+  try {
+    clickable.click();
+  } catch {
+    clickable.dispatchEvent(new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
       composed: true,
     }));
-  });
-  clickable.click();
+  }
   return true;
 }
 
@@ -524,63 +415,18 @@ async function attachMedia(selectorPack, mediaUrl, extensionSessionToken) {
   if (!clickElement(attachButton)) {
     throw new Error("No fue posible abrir el menú de adjuntos en WhatsApp Web.");
   }
-  // Aumentar el tiempo de espera después de abrir el menú para
-  // garantizar que la animación termine antes de buscar las opciones.
-  await wait(500);
+  await wait(350);
 
   const menuOptions = await waitFor(
-    () =>
-      Array.from(
-        document.querySelectorAll("[role='menuitem'], [data-animate-dropdown-item='true']"),
-      ).filter((node) => isVisible(node)),
+    () => Array.from(document.querySelectorAll("[role='menuitem'], [data-animate-dropdown-item='true']")).filter((node) => isVisible(node)),
     6000,
     200,
   );
-  /*
-   * WhatsApp Web ha cambiado el orden de las opciones del menú de adjuntos en
-   * distintas versiones. Anteriormente se asumía que la opción de "Fotos y
-   * videos" se encontraba en la segunda posición (índice 1), pero esto ya no
-   * siempre es cierto. Para evitar seleccionar una opción incorrecta (por
-   * ejemplo "Documento" o "Sticker"), buscamos primero por palabras
-   * clave en la etiqueta o el texto visible del elemento. Si no se
-   * encuentra ninguna coincidencia, usamos como último recurso la opción
-   * existente en la posición 1 o 0.
-   */
-  let mediaOption = null;
-  if (Array.isArray(menuOptions) && menuOptions.length) {
-    const needles = [
-      "photos & videos",
-      "photos and videos",
-      "fotos y videos",
-      "photos",
-      "videos",
-      "fotos",
-    ];
-    mediaOption =
-      menuOptions.find((node) => {
-        const pieces = [
-          node?.getAttribute?.("aria-label"),
-          node?.getAttribute?.("title"),
-          node?.textContent,
-          node?.innerText,
-        ];
-        const haystack = pieces
-          .map((v) => String(v || "").trim().toLowerCase())
-          .filter(Boolean)
-          .join(" ");
-        return needles.some((needle) => haystack.includes(needle.toLowerCase()));
-      }) || null;
-    if (!mediaOption) {
-      mediaOption = menuOptions[1] || menuOptions[0] || null;
-    }
-  }
+  const mediaOption = menuOptions?.[1] || null;
   if (!clickElement(mediaOption)) {
     throw new Error("No fue posible seleccionar la opción de imagen en WhatsApp Web.");
   }
-  // Dar más tiempo para que el input de archivos se inserte luego de
-  // seleccionar la opción correcta. En algunos casos el input tarda
-  // más de 300 ms en aparecer.
-  await wait(500);
+  await wait(300);
 
   const fileInput = await waitFor(() => findFileInput(selectorPack), 10000, 300);
   if (!(fileInput instanceof HTMLInputElement)) {
@@ -590,23 +436,15 @@ async function attachMedia(selectorPack, mediaUrl, extensionSessionToken) {
   const file = await fetchMediaFile(mediaUrl, extensionSessionToken);
   assignFilesToInput(fileInput, [file]);
   const preview = await waitFor(
-    () =>
-      document.querySelector(
-        "div[role='dialog'], div[data-testid='media-viewer'], div[data-animate-modal-body='true']",
-      ),
-    // Extender el timeout a 15 s para detectar el modal de preview, ya que
-    // algunos usuarios experimentan retrasos en su aparición.
-    15000,
+    () => document.querySelector("div[role='dialog'], div[data-testid='media-viewer'], div[data-animate-modal-body='true']"),
+    12000,
     250,
   );
   if (!preview) {
     throw new Error("No se detectó un preview válido para la imagen en WhatsApp Web.");
   }
 
-  // Dar más tiempo antes de continuar una vez que el preview está
-  // disponible, permitiendo al usuario ver el adjunto y a la página
-  // estabilizarse.
-  await wait(2000);
+  await wait(1200);
   return true;
 }
 

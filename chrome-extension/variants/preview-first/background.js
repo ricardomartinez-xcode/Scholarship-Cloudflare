@@ -41,6 +41,8 @@ async function apiJsonFetch({ appBaseUrl, extensionSessionToken, path, method = 
     headers.set("Authorization", `Bearer ${token}`);
     headers.set("x-extension-session-token", token);
   }
+  headers.set("x-extension-client", "chrome-sidepanel");
+  headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
 
   const response = await fetch(`${appBaseUrl}${path}`, {
     method,
@@ -61,6 +63,8 @@ async function apiBinaryFetch({ appBaseUrl, extensionSessionToken, path }) {
     headers.set("Authorization", `Bearer ${token}`);
     headers.set("x-extension-session-token", token);
   }
+  headers.set("x-extension-client", "chrome-sidepanel");
+  headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
 
   return fetch(`${appBaseUrl}${path}`, {
     method: "GET",
@@ -79,6 +83,8 @@ async function logRunEvent({ appBaseUrl, extensionSessionToken, runId, eventType
         "Content-Type": "application/json",
         Authorization: `Bearer ${extensionSessionToken}`,
         "x-extension-session-token": extensionSessionToken,
+        "x-extension-client": "chrome-sidepanel",
+        "x-extension-version": chrome?.runtime?.getManifest?.().version || "unknown",
       },
       credentials: "include",
       body: JSON.stringify({ eventType, message, metaJson: metaJson ?? null }),
@@ -105,30 +111,14 @@ function buildWhatsAppUrl({ phone, text }) {
   return url.toString();
 }
 
-function waitForTabComplete(tabId, { timeoutMs = 15000 } = {}) {
+function waitForTabComplete(tabId) {
   return new Promise((resolve) => {
-    let settled = false;
     const listener = (updatedTabId, changeInfo) => {
       if (updatedTabId !== tabId || changeInfo.status !== "complete") return;
-      done();
-    };
-    const timeoutId = setTimeout(() => done(), timeoutMs);
-    const cleanup = () => {
-      clearTimeout(timeoutId);
       chrome.tabs.onUpdated.removeListener(listener);
-    };
-    function done() {
-      if (settled) return;
-      settled = true;
-      cleanup();
       resolve();
-    }
-
+    };
     chrome.tabs.onUpdated.addListener(listener);
-    chrome.tabs.get(tabId, (tab) => {
-      if (chrome.runtime.lastError) return;
-      if (tab?.status === "complete") done();
-    });
   });
 }
 
@@ -150,133 +140,33 @@ async function ensureWhatsAppTab({ phone, text } = {}) {
 }
 
 async function ensureWhatsAppBridge(tabId) {
-  console.log("[ReCalc][BG] Inyectando bridge de WhatsApp.", {
-    tabId,
+  await chrome.scripting.executeScript({
+    target: { tabId },
     files: mainWorldFiles,
-  });
-
-  try {
-    const injectionResult = await chrome.scripting.executeScript({
-      target: { tabId },
-      files: mainWorldFiles,
-      world: "MAIN",
-    });
-
-    console.log("[ReCalc][BG] Bridge de WhatsApp inyectado.", {
-      tabId,
-      resultCount: Array.isArray(injectionResult) ? injectionResult.length : 0,
-    });
-  } catch (error) {
-    console.error("[ReCalc][BG] Falló la inyección del bridge de WhatsApp.", error);
-
-    throw new Error(
-      `No fue posible inyectar los scripts de WhatsApp: ${error?.message || String(error)}`,
-    );
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  try {
-    const [probeResult] = await chrome.scripting.executeScript({
-      target: { tabId },
-      world: "MAIN",
-      func: () => ({
-        href: window.location.href,
-        readyState: document.readyState,
-        hasSelectors: Boolean(window.RecalcWaSelectors),
-        hasText: Boolean(window.RecalcWaText),
-        hasChat: Boolean(window.RecalcWaChat),
-        hasAttachments: Boolean(window.RecalcWaAttachments),
-        hasRunner: Boolean(window.RecalcWaRunner),
-        attachButtonFound: Boolean(
-          document.querySelector(
-            "button[aria-label='Adjuntar'], button[aria-label='Attach'], [role='button'][aria-label='Adjuntar'], [role='button'][aria-label='Attach'], span[data-icon='plus-rounded'], span[data-testid='plus-rounded'], span[data-icon='plus']",
-          ),
-        ),
-      }),
-    });
-
-    const probe = probeResult?.result || null;
-
-    console.log("[ReCalc][BG] Diagnóstico del bridge de WhatsApp.", probe);
-
-    if (!probe?.hasSelectors || !probe?.hasText || !probe?.hasChat || !probe?.hasAttachments || !probe?.hasRunner) {
-      throw new Error(
-        `Bridge incompleto. Estado: ${JSON.stringify(probe)}`,
-      );
-    }
-
-    if (!probe?.attachButtonFound) {
-      console.warn("[ReCalc][BG] Bridge cargado, pero no se detectó el botón Adjuntar en el DOM actual.", probe);
-    }
-
-    return probe;
-  } catch (error) {
-    console.error("[ReCalc][BG] Falló el diagnóstico del bridge de WhatsApp.", error);
-
-    throw new Error(
-      `No fue posible validar el bridge de WhatsApp: ${error?.message || String(error)}`,
-    );
-  }
+    world: "MAIN",
+  }).catch(() => null);
 }
 
 async function sendMessageToTab(tabId, message, { retries = 10, delayMs = 700 } = {}) {
-  let lastTransportError = null;
-
   for (let attempt = 0; attempt < retries; attempt += 1) {
-    console.log("[ReCalc][BG] Enviando mensaje a WhatsApp.", {
-      tabId,
-      type: message?.type,
-      attempt: attempt + 1,
-      retries,
-    });
-
     const response = await new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, message, (result) => {
         const lastError = chrome.runtime.lastError;
-
         if (lastError) {
-          resolve({
-            transportError: true,
-            error: lastError.message,
-          });
+          resolve({ transportError: true, error: lastError.message });
           return;
         }
-
         if (typeof result === "undefined") {
-          resolve({
-            transportError: true,
-            error: "Sin respuesta del content script.",
-          });
+          resolve({ transportError: true, error: "Sin respuesta del content script." });
           return;
         }
-
         resolve(result);
       });
     });
-
-    console.log("[ReCalc][BG] Respuesta de WhatsApp/content script.", {
-      attempt: attempt + 1,
-      response,
-    });
-
-    if (!response?.transportError) {
-      return response;
-    }
-
-    lastTransportError = response?.error || "Error de transporte desconocido.";
-
-    console.warn("[ReCalc][BG] No hubo respuesta válida del content script. Reintentando.", {
-      attempt: attempt + 1,
-      error: lastTransportError,
-    });
-
+    if (!response?.transportError) return response;
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-
-  throw new Error(
-    `No fue posible comunicarse con WhatsApp Web desde la extensión. Último error: ${lastTransportError || "sin detalle"}`,
-  );
+  throw new Error("No fue posible comunicarse con WhatsApp Web desde la extensión.");
 }
 
 async function loadCampaignById(runnerState) {
@@ -328,26 +218,24 @@ function resolveMessage(working, recipient) {
   );
 }
 
-const UNSUPPORTED_CAMPAIGN_IMAGE_TYPES = new Set(["image/x-icon", "image/vnd.microsoft.icon"]);
+const SUPPORTED_CAMPAIGN_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function normalizeContentType(value) {
-  return String(value || "").split(";")[0].trim().toLowerCase();
+  const normalized = String(value || "").split(";")[0].trim().toLowerCase();
+  if (normalized === "image/jpg" || normalized === "image/pjpeg" || normalized === "image/jfif") {
+    return "image/jpeg";
+  }
+  return normalized;
 }
 
 function isSupportedCampaignImageType(value) {
-  const normalized = normalizeContentType(value);
-  if (!normalized.startsWith("image/")) return false;
-  return !UNSUPPORTED_CAMPAIGN_IMAGE_TYPES.has(normalized);
+  return SUPPORTED_CAMPAIGN_IMAGE_TYPES.has(normalizeContentType(value));
 }
 
 function extensionForCampaignImageType(contentType) {
   const normalized = normalizeContentType(contentType);
   if (normalized === "image/png") return "png";
   if (normalized === "image/webp") return "webp";
-  if (normalized === "image/gif") return "gif";
-  if (normalized === "image/bmp") return "bmp";
-  if (normalized === "image/svg+xml") return "svg";
-  if (normalized === "image/jfif") return "jfif";
   return "jpg";
 }
 
@@ -398,7 +286,7 @@ async function getAttachmentsForCampaign(working) {
 
   if (!isSupportedCampaignImageType(contentType)) {
     throw new Error(
-      `La imagen de campaña debe ser un archivo image/* compatible con WhatsApp. El backend entregó: ${contentType || "desconocido"}.`,
+      `La imagen de campaña debe ser PNG, JPG o WEBP. El backend entregó: ${contentType || "desconocido"}.`,
     );
   }
 

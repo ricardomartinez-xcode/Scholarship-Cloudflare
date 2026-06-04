@@ -432,6 +432,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function validateSession() {
+    state.extensionSessionToken = normalizeSessionToken(
+      state.extensionSessionToken || (await getStoredSessionToken()),
+    );
+    if (!state.extensionSessionToken) {
+      await clearStoredSessionToken();
+      return null;
+    }
+
     const { response, data } = await fetchJson("/api/extension/auth/session");
     if (!response.ok || !data?.authenticated) {
       if (response.status === 401 || response.status === 403) {
@@ -828,9 +836,15 @@ document.addEventListener("DOMContentLoaded", () => {
       showError(refs.authError, data?.error ?? "No fue posible iniciar sesión.");
       return;
     }
-    if (data?.extensionSessionToken) {
-      await setStoredSessionToken(data.extensionSessionToken);
+    if (!data?.extensionSessionToken) {
+      refs.authSubmit.disabled = false;
+      refs.authSubmit.textContent = "Entrar";
+      setStatus("danger", "Sesión inválida", "invalid_session");
+      showError(refs.authError, "Scholarship no devolvió el token de extension para esta sesión.");
+      await clearStoredSessionToken();
+      return;
     }
+    await setStoredSessionToken(data.extensionSessionToken);
     const session = await validateSessionRetry();
     refs.authSubmit.disabled = false;
     refs.authSubmit.textContent = "Entrar";
@@ -887,6 +901,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const session = await validateSession();
     if (!session) {
       setSessionRequiredStatus();
+      showError(refs.authError, "Inicia sesión con Scholarship para crear el token de extension.");
       setView("auth");
       return;
     }

@@ -81,7 +81,7 @@ test("prefers the second single-image input when the first one is WhatsApp Stick
   assert.equal(selected, inputNodes[1]);
 });
 
-test("resolves Premium Sender style attach icons to the clickable button", () => {
+test("resolves legacy attach icons to the clickable button", () => {
   class Element {
     constructor(name) {
       this.name = name;

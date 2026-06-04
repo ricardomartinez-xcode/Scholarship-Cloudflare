@@ -11,12 +11,6 @@
       step: "init",
       error: null,
       delayMs: 4000,
-      mediaInsertionStrategy: attachments.MEDIA_INSERTION_STRATEGY || null,
-      attachmentSummary: {
-        total: files.length,
-        media: files.filter((file) => attachments.isMediaAttachment?.(file)).length,
-        documents: files.filter((file) => !attachments.isMediaAttachment?.(file)).length,
-      },
     };
 
     try {
@@ -26,7 +20,6 @@
       if (files.length) {
         const attachmentResult = await attachments.sendAttachments(files, normalizedText, selectorPack);
         result.step = "attachments_sent";
-        result.attachmentResult = attachmentResult;
         if (attachmentResult.needsTextFallback && normalizedText) {
           await textUtils.sendTextMessage(normalizedText, selectorPack);
           result.step = "caption_fallback_sent";
