@@ -4,13 +4,15 @@ Fecha de diagnóstico: 2026-06-03
 
 ## Hallazgos principales
 
-### 1. TTL de tokens de extensión
+### 1. TTL de tokens de API `/api/ext/*`
 
 El límite de 24 horas venía de `apps/web/src/lib/extension-session-tokens.ts`:
 
 - `MAX_TTL_MS` estaba fijado en 24 horas.
 - `DEFAULT_TTL_MS` heredaba ese máximo.
-- El endpoint JSON de `/api/extension/auth/sign-in` emitía tokens sin permitir elegir duración.
+- El endpoint `POST /api/ext/token` emitía tokens sin permitir elegir duración.
+
+Aunque el nombre interno dice `extension_session_token`, en el código actual esos tokens funcionan como el token bearer que protege los endpoints `/api/ext/*`. Por eso el cambio aplica al token de API usado por ese espacio de integración.
 
 El cambio propuesto deja el esquema actual de tokens intacto: siguen siendo opacos, revocables, se guardan hasheados y se validan contra `revokedAt` + `expiresAt`.
 
@@ -26,6 +28,13 @@ Duraciones soportadas:
 
 El valor `never` no elimina `expiresAt` del modelo para evitar una migración de base de datos. Funciona como “no expira operacionalmente”, pero sigue siendo revocable.
 
+### Contrato de API para emitir token
+
+`POST /api/ext/token`
+
+```json
+{
+  "tokenDuration": "7d"
 ### Contrato de API
 
 `POST /api/extension/auth/sign-in`
@@ -40,6 +49,11 @@ El valor `never` no elimina `expiresAt` del modelo para evitar una migración de
 
 Aliases aceptados:
 
+- `apiTokenDuration`
+- `tokenDuration`
+- `sessionDuration`
+- `duration`
+- `ttlPreset`
 - `sessionDuration`
 - `tokenDuration`
 - `extensionSessionDuration`
@@ -50,22 +64,30 @@ Respuesta nueva:
 ```json
 {
   "ok": true,
-  "email": "usuario@dominio.com",
-  "next": "/extension",
-  "extensionSessionToken": "rx_ext_...",
+  "token": "rx_ext_...",
   "expiresAt": "2026-06-10T00:00:00.000Z",
-  "sessionDuration": "7d",
-  "sessionTtlMs": 604800000
+  "tokenDuration": "7d",
+  "tokenTtlMs": 604800000,
+  "user": {
+    "id": "...",
+    "email": "usuario@dominio.com",
+    "role": "user"
+  }
 }
 ```
 
-Para `never`, `sessionTtlMs` regresa `null`.
+Para `never`, `tokenTtlMs` regresa `null`.
+
+### Compatibilidad con inicio de sesión JSON de extensión
+
+`POST /api/extension/auth/sign-in` también puede solicitar duración al emitir un token bearer para clientes JSON. Esto conserva compatibilidad con el sidepanel, pero la emisión principal del token de API es `/api/ext/token`.
 
 ## Recomendaciones de seguridad para tokens largos
 
 - No usar `never` como default.
 - Mantener un panel para revocar sesiones por usuario, cliente y scope.
 - Mostrar `lastUsedAt`, `createdAt`, `client`, `extensionVersion` y `userAgent`.
+- Rotar token en cada emisión por scope + cliente, como ya hace el código.
 - Rotar token en cada inicio de sesión por scope + cliente, como ya hace el código.
 - Agregar alerta cuando un token de 365 días o `never` se usa desde un agente de usuario distinto.
 
