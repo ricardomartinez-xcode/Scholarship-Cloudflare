@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  academicOfferRowsToCsvText,
   buildEnvPresence,
   inferAcademicOfferCycle,
   normalizeAcademicOfferRows,
   parseAdminPagination,
+  parseAcademicOfferCsvRows,
   validateAcademicOfferRows,
 } from "@/lib/admin-control-api";
 
@@ -64,6 +66,33 @@ describe("admin-control-api helpers", () => {
         expect.objectContaining({ row: 2, field: "plan", code: "INVALID_PLAN" }),
         expect.objectContaining({ row: 2, field: "modulo", code: "INVALID_MODULE" }),
       ],
+    });
+  });
+
+  it("serializes academic offer module count and subject distribution separately", () => {
+    const rows = normalizeAcademicOfferRows([
+      {
+        Ciclo: "C2",
+        Plantel: "Online",
+        Programa: "Administracion de Empresas",
+        Linea: "licenciatura",
+        Modalidad: "online",
+        Plan: "9, 11",
+        Modulo: "Modular M1, M2, M3",
+        "No. de modulos": "3",
+        "Materias por módulo": "9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)",
+        Estado: "Activo",
+      },
+    ]);
+
+    const csvText = academicOfferRowsToCsvText(rows);
+    const [header, row] = csvText.split("\n");
+
+    expect(header).toContain("No. de modulos,Materias por módulo");
+    expect(row).toContain('"Modular M1, M2, M3",3,"9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)"');
+    expect(parseAcademicOfferCsvRows(csvText)[0]?.values).toMatchObject({
+      nodemodulos: "3",
+      materiaspormodulo: "9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)",
     });
   });
 });

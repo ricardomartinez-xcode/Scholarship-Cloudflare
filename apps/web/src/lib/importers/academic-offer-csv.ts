@@ -41,6 +41,30 @@ function isOnline(row: CsvRecord, campus: string, modality: string) {
   return yes(onlineRaw) || campusKey.includes("online") || modalityKey.includes("online");
 }
 
+function looksLikeSubjectsByModule(value: string) {
+  const key = normalizeHeader(value);
+  return (
+    /m[123]/.test(key) &&
+    (key.includes("materia") || value.includes("=") || value.includes(":"))
+  );
+}
+
+function pickSubjectsByModule(row: CsvRecord) {
+  const explicit = pick(row, [
+    "materias_por_modulo",
+    "materias por modulo",
+    "materias por módulo",
+    "materias modulo",
+    "materias módulo",
+    "subjects_by_module",
+    "subjects by module",
+  ]);
+  if (explicit) return explicit;
+
+  const notes = pick(row, ["notas", "nota"]);
+  return notes && looksLikeSubjectsByModule(notes) ? notes : "";
+}
+
 export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
   const rows = parseCsvText(buffer.toString("utf8"));
   if (rows.length < 2) {
@@ -70,6 +94,7 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
     "Plan",
     "Modulo",
     "No. de modulos",
+    "Materias por módulo",
     "Horario escolarizado",
     "Horario ejecutivo",
     "Estado",
@@ -92,13 +117,10 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
       "número de módulos",
       "num modulos",
       "num módulos",
-      "modulos",
-      "módulos",
-      "materias_por_modulo",
-      "materias por modulo",
-      "materias por módulo",
-      "notas",
+      "total modulos",
+      "total módulos",
     ]);
+    const subjectsByModule = pickSubjectsByModule(row);
     const campus = pick(row, ["plantel", "campus", "sede"]);
     if (!campus) continue;
 
@@ -134,6 +156,7 @@ export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
       plans,
       academicModule,
       numberOfModules,
+      subjectsByModule,
       escolarizadoSchedule,
       ejecutivoSchedule,
       pick(row, ["estado", "activo", "activa", "active", "is_active", "visible"]) ||

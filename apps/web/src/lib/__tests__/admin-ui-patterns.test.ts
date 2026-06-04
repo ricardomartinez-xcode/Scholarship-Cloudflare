@@ -42,9 +42,19 @@ describe("admin UI patterns", () => {
     const enhancer = read("apps/web/src/components/admin/AdminTableExcelEnhancer.tsx");
 
     expect(layout).toContain("AdminTableExcelEnhancer");
+    expect(enhancer).toContain('[aria-label="Contenido admin"] table');
+    expect(enhancer).toContain(".ui-table-wrap table");
     expect(enhancer).toContain("Buscar en tabla");
     expect(enhancer).toContain("Filtrar columna");
     expect(enhancer).toContain("Columnas");
     expect(enhancer).toContain("CSV");
+  });
+
+  it("exposes academic offer module subjects as their own table column", () => {
+    const source = read("apps/web/src/components/admin/OfferImportClient.tsx");
+
+    expect(source).toContain("ACADEMIC_MODULES.map");
+    expect(source).toContain('<th className="ui-cell-nowrap text-left">Materias por módulo</th>');
+    expect(source).toContain("<td className=\"text-xs text-slate-300\">{row.subjectsByModule ?? \"—\"}</td>");
   });
 });

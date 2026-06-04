@@ -225,7 +225,14 @@ export default function AdminTableExcelEnhancer() {
     const enhanceAll = () => {
       document
         .querySelectorAll<HTMLTableElement>(
-          ".ui-admin-table-shell table, [data-admin-excel-scope='true'] table, table[data-admin-excel-table='true']",
+          [
+            '[aria-label="Contenido admin"] table',
+            ".ui-table-wrap table",
+            ".ui-admin-table-wrap table",
+            ".ui-admin-table-shell table",
+            "[data-admin-excel-scope='true'] table",
+            "table[data-admin-excel-table='true']",
+          ].join(", "),
         )
         .forEach(enhanceTable);
     };

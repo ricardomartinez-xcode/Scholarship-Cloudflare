@@ -7,7 +7,7 @@ import AdminRowActions from "@/components/admin/AdminRowActions";
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import { formatAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import {
-  ACADEMIC_MODULE_CHOICES,
+  ACADEMIC_MODULES,
   formatAcademicModuleLabel,
   type AcademicModuleSelection,
 } from "@/lib/academic-modules";
@@ -413,18 +413,19 @@ export default function OfferImportClient({
 
   const renderOfferTable = () => (
     <div className="ui-table-wrap ui-table-wrap--scroll-y ui-scrollbar mt-4 max-h-[calc(100dvh-14rem)] w-full">
-      <table className="ui-table !w-full !min-w-full table-fixed">
+      <table className="ui-table w-full min-w-[1280px] table-fixed">
         <colgroup>
-          <col className="w-[12%]" />
-          <col className="w-[7%]" />
-          <col className="w-[18%]" />
-          <col className="w-[9%]" />
-          <col className="w-[10%]" />
+          <col className="w-[11%]" />
+          <col className="w-[6%]" />
+          <col className="w-[17%]" />
           <col className="w-[8%]" />
           <col className="w-[9%]" />
-          <col className="w-[12%]" />
-          <col className="w-[6%]" />
           <col className="w-[7%]" />
+          <col className="w-[8%]" />
+          <col className="w-[8%]" />
+          <col className="w-[14%]" />
+          <col className="w-[5%]" />
+          <col className="w-[8%]" />
         </colgroup>
         <thead>
           <tr>
@@ -436,6 +437,7 @@ export default function OfferImportClient({
             <th className="ui-cell-nowrap text-left">Planes</th>
             <th className="ui-cell-nowrap text-left">Módulo</th>
             <th className="ui-cell-nowrap text-left">No. módulos</th>
+            <th className="ui-cell-nowrap text-left">Materias por módulo</th>
             <th className="ui-cell-nowrap text-left">Estado</th>
             <th className="ui-cell-nowrap text-right">Acciones</th>
           </tr>
@@ -453,10 +455,11 @@ export default function OfferImportClient({
                 <td className="ui-cell-nowrap text-slate-300">{row.line ?? "—"}</td>
                 <td className="ui-cell-nowrap text-slate-300">{row.modality}</td>
                 <td className="ui-cell-nowrap text-slate-300">
-                  {row.pricingPlans.length ? formatAcademicPricingPlans(row.pricingPlans) : "Legacy"}
+                  {row.pricingPlans.length ? formatAcademicPricingPlans(row.pricingPlans) : "Sin plan"}
                 </td>
                 <td className="ui-cell-nowrap text-slate-300">{formatAcademicModuleLabel(row.module)}</td>
-                <td className="text-xs text-slate-300">{row.moduleCount ?? row.subjectsByModule ?? "—"}</td>
+                <td className="ui-cell-nowrap text-slate-300">{row.moduleCount ?? "—"}</td>
+                <td className="text-xs text-slate-300">{row.subjectsByModule ?? "—"}</td>
                 <td className="ui-cell-nowrap">
                   <span
                     className={[
@@ -495,7 +498,7 @@ export default function OfferImportClient({
             ))
           ) : (
             <tr>
-                <td className="text-slate-400" colSpan={10}>
+                <td className="text-slate-400" colSpan={11}>
                 No hay ofertas con los filtros seleccionados.
               </td>
             </tr>
@@ -675,7 +678,7 @@ export default function OfferImportClient({
                   Módulo
                   <select name="module" value={manualDraft.module} onChange={(event) => setManualDraft((current) => current ? { ...current, module: event.target.value as AcademicModuleSelection } : current)} className="ui-control">
                     <option value="">Sin módulo</option>
-                    {ACADEMIC_MODULE_CHOICES.map((item) => <option key={item} value={item}>{formatAcademicModuleLabel(item)}</option>)}
+                    {ACADEMIC_MODULES.map((item) => <option key={item} value={item}>{formatAcademicModuleLabel(item)}</option>)}
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm">
@@ -703,8 +706,8 @@ export default function OfferImportClient({
                   <input name="moduleCount" value={manualDraft.moduleCount} onChange={(event) => setManualDraft((current) => current ? { ...current, moduleCount: event.target.value } : current)} className="ui-control" inputMode="numeric" placeholder="Ej. 3" />
                 </label>
                 <label className="grid gap-2 text-sm">
-                  Materias por módulo (legacy)
-                  <input name="subjectsByModule" value={manualDraft.subjectsByModule} onChange={(event) => setManualDraft((current) => current ? { ...current, subjectsByModule: event.target.value } : current)} className="ui-control" placeholder="Ej. M1: 3 materias; M2: 4 materias" />
+                  Materias por módulo
+                  <input name="subjectsByModule" value={manualDraft.subjectsByModule} onChange={(event) => setManualDraft((current) => current ? { ...current, subjectsByModule: event.target.value } : current)} className="ui-control" placeholder="Ej. 9=(M1=2,M2=2,M3=1)" />
                 </label>
               </div>
 
@@ -799,7 +802,7 @@ export default function OfferImportClient({
             <summary className="cursor-pointer text-sm font-semibold text-slate-200">Formato esperado</summary>
             <div className="mt-3 grid gap-3 text-xs text-slate-400">
               <p><strong className="text-slate-200">XLSX:</strong> mantiene el formato actual con hojas Online y Planteles.</p>
-              <p><strong className="text-slate-200">CSV:</strong> usa columnas: Ciclo, Plantel, Programa, Línea, Modalidad, Plan, Modulo, No. de modulos, Horario escolarizado, Horario ejecutivo y Estado.</p>
+              <p><strong className="text-slate-200">CSV:</strong> usa columnas: Ciclo, Plantel, Programa, Línea, Modalidad, Plan, Modulo, No. de modulos, Materias por módulo, Horario escolarizado, Horario ejecutivo y Estado.</p>
               <p>Modalidad acepta presencial, escolarizado, ejecutivo, mixta u online. Estado acepta Activo/Inactivo, true/false, si/no o 1/0.</p>
             </div>
           </details>

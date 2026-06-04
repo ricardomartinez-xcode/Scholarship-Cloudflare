@@ -40,8 +40,8 @@ describe("prepareAcademicOfferImport", () => {
 
   it("uses the Linea column from the flat offer template for campus preview rows", async () => {
     const csv = [
-      "Ciclo,Plantel,Programa,Línea,Modalidad,Plan,Modulo,No. de modulos,Horario escolarizado,Horario ejecutivo,Estado",
-      "C1,Hermosillo,Enfermería,salud,presencial,9,M1,3,L-V 08:00-13:00,,Activo",
+      "Ciclo,Plantel,Programa,Línea,Modalidad,Plan,Modulo,No. de modulos,Materias por módulo,Horario escolarizado,Horario ejecutivo,Estado",
+      "C1,Hermosillo,Enfermería,salud,presencial,9,\"Modular M1, M2, M3\",3,\"9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)\",L-V 08:00-13:00,,Activo",
     ].join("\n");
     const buffer = await academicOfferCsvToXlsxBuffer(Buffer.from(csv, "utf8"));
 
@@ -59,9 +59,9 @@ describe("prepareAcademicOfferImport", () => {
           line: "salud",
           modality: "Escolarizado",
           pricingPlans: [9],
-          module: "M1",
+          module: "Modular",
           moduleCount: 3,
-          subjectsByModule: null,
+          subjectsByModule: "9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)",
         }),
       ]),
     );

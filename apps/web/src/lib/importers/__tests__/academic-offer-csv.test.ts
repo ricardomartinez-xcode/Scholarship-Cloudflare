@@ -7,10 +7,10 @@ import { getAdminImportTemplate } from "@/lib/importers/admin-import-templates";
 describe("academicOfferCsvToXlsxBuffer", () => {
   it("maps the offer-by-campus CSV template to plantel rows with schedules", async () => {
     const csv = [
-      "Ciclo,Plantel,Programa,Línea,Modalidad,Plan,Modulo,No. de modulos,Horario escolarizado,Horario ejecutivo,Estado",
-      "C1,Los Cabos,Derecho,licenciatura,mixta,9,M2,3,L-V 08:00-13:00,Sáb 09:00-14:00,Activo",
-      "C1,Hermosillo,Psicologia,licenciatura,presencial,9,,2,L-V 08:00-13:00,,Inactivo",
-      "C1,Online,Psicologia,licenciatura,online,9,Longitudinal,1,,,Activo",
+      "Ciclo,Plantel,Programa,Línea,Modalidad,Plan,Modulo,No. de modulos,Materias por módulo,Horario escolarizado,Horario ejecutivo,Estado",
+      "C1,Los Cabos,Derecho,licenciatura,mixta,9,\"Modular M1, M2, M3\",3,\"9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)\",L-V 08:00-13:00,Sáb 09:00-14:00,Activo",
+      "C1,Hermosillo,Psicologia,licenciatura,presencial,9,,2,,L-V 08:00-13:00,,Inactivo",
+      "C1,Online,Psicologia,licenciatura,online,9,Longitudinal,1,,,,Activo",
     ].join("\n");
 
     const buffer = await academicOfferCsvToXlsxBuffer(Buffer.from(csv, "utf8"));
@@ -34,6 +34,7 @@ describe("academicOfferCsvToXlsxBuffer", () => {
       "Plan",
       "Modulo",
       "No. de modulos",
+      "Materias por módulo",
       "Horario escolarizado",
       "Horario ejecutivo",
       "Estado",
@@ -46,8 +47,9 @@ describe("academicOfferCsvToXlsxBuffer", () => {
       "licenciatura",
       "mixta",
       "9",
-      "M2",
+      "Modular M1, M2, M3",
       "3",
+      "9=(M1=2,M2=2,M3=1);11=(M1=1,M2=2,M3=1)",
       "L-V 08:00-13:00",
       "Sáb 09:00-14:00",
       "Activo",
@@ -62,6 +64,7 @@ describe("academicOfferCsvToXlsxBuffer", () => {
       "9",
       "Longitudinal",
       "1",
+      "",
       "",
       "",
       "Activo",
@@ -80,6 +83,7 @@ describe("academicOfferCsvToXlsxBuffer", () => {
       "Plan",
       "Modulo",
       "No. de modulos",
+      "Materias por módulo",
       "Horario escolarizado",
       "Horario ejecutivo",
       "Estado",
