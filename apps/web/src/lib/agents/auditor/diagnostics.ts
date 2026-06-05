@@ -389,6 +389,9 @@ async function diagnoseOffersAndQuote(findings: AuditorFinding[]) {
 
 function diagnoseRateLimit(findings: AuditorFinding[]) {
   const state = getRateLimitStoreState();
+  const suggestedAction = state.sharedStoreConfigured
+    ? "Requiere triage operativo."
+    : "Configurar UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN en Vercel.";
   findings.push({
     id: "security.rate-limit.store",
     module: "security",
@@ -398,9 +401,7 @@ function diagnoseRateLimit(findings: AuditorFinding[]) {
       ? "El rate limiter detecta store compartido Upstash."
       : "El rate limiter usara fallback local si Upstash no esta configurado.",
     evidence: state,
-    suggestedAction: state.sharedStoreConfigured
-      ? undefined
-      : "Configurar UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN en Vercel.",
+    suggestedAction,
     repairable: !state.sharedStoreConfigured,
     repairActionId: state.sharedStoreConfigured ? undefined : "document_rate_limit_env",
   });

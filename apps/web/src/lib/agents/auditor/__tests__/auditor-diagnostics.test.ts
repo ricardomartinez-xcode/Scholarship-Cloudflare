@@ -109,4 +109,24 @@ describe("runAuditorDiagnostics", () => {
       missing: ["GITHUB_TOKEN", "GITHUB_OWNER", "GITHUB_REPO"],
     });
   });
+
+  it("marca rate limit operativo como triage cuando Upstash esta configurado", async () => {
+    rateLimitStoreStateMock.mockReturnValue({
+      sharedStoreConfigured: true,
+      missing: [],
+      store: "upstash",
+    });
+    const { runAuditorDiagnostics } = await import("@/lib/agents/auditor/diagnostics");
+    const diagnosis = await runAuditorDiagnostics({
+      env: {},
+      now: new Date("2026-06-04T12:00:00.000Z"),
+    });
+
+    const finding = diagnosis.findings.find((entry) => entry.id === "security.rate-limit.store");
+    expect(finding).toMatchObject({
+      severity: "info",
+      suggestedAction: "Requiere triage operativo.",
+      repairable: false,
+    });
+  });
 });
