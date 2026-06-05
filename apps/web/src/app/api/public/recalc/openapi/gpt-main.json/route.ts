@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { normalizeOpenApiObjectSchemas } from "@/lib/openapi-schema-normalizer";
 import {
-  getRecalcPublicApiOpenApiSpec,
+  getRecalcPublicApiGptActionOpenApiSpec,
   type RecalcPublicApiOpenApiSpec,
 } from "@/lib/recalc-public-control-api";
 
@@ -22,48 +22,15 @@ const OPENAPI_HTTP_METHODS = new Set([
   "trace",
 ]);
 
-const GPT_MAIN_PATHS = [
-  "/api/public/recalc/status",
-  "/api/public/recalc/config",
-  "/api/public/recalc/audit-log",
-  "/api/public/recalc/offers",
-  "/api/public/recalc/offers/{id}/status",
-  "/api/public/recalc/importers/academic-offer/validate",
-  "/api/public/recalc/importers/academic-offer",
-  "/api/public/recalc/importers/prices",
-  "/api/public/recalc/prices/overrides",
-  "/api/public/recalc/prices/overrides/{id}",
-  "/api/public/recalc/importers/prices/{sessionId}/apply",
-  "/api/public/recalc/importers/prices/{sessionId}/rollback",
-  "/api/public/recalc/importers/benefits",
-  "/api/public/recalc/importers/benefits/{sessionId}/apply",
-  "/api/public/recalc/importers/benefits/{sessionId}/rollback",
-  "/api/public/recalc/importers/base-scholarships",
-  "/api/public/recalc/benefits/base-scholarships",
-  "/api/public/recalc/benefits/base-scholarships/{id}",
-  "/api/public/recalc/importers/base-scholarships/{sessionId}/apply",
-  "/api/public/recalc/importers/base-scholarships/{sessionId}/rollback",
-  "/api/public/recalc/quotes/diagnose",
-  "/api/public/recalc/quotes/simulate",
-  "/api/public/recalc/system/env-check",
-  "/api/public/recalc/system/importer-status",
-  "/api/public/recalc/system/quote-engine-status",
-  "/api/public/recalc/github/pulls",
-  "/api/public/recalc/github/actions/runs",
-  "/api/public/recalc/github/actions/dispatch",
-  "/api/public/recalc/github/commits/latest",
-  "/api/public/recalc/github/issues",
-] as const;
+const OMITTED_OPERATION_IDS = new Set([
+  "getRecalcSystemHealth",
+  "getGitHubRepository",
+  "getLatestGitHubCommit",
+]);
 
 type RecalcOpenApiPaths = RecalcPublicApiOpenApiSpec["paths"];
 
-function filterOpenApiPaths(paths: RecalcOpenApiPaths): RecalcOpenApiPaths {
-  return GPT_MAIN_PATHS.reduce<RecalcOpenApiPaths>((filtered, path) => {
-    const pathItem = paths[path];
-    if (pathItem) filtered[path] = pathItem;
-    return filtered;
-  }, {});
-}
+type RecalcPathItem = RecalcOpenApiPaths[string];
 
 function countOpenApiActions(paths: RecalcOpenApiPaths): number {
   return Object.values(paths).reduce((total, pathItem) => {
@@ -72,36 +39,95 @@ function countOpenApiActions(paths: RecalcOpenApiPaths): number {
   }, 0);
 }
 
-export async function GET(request: Request) {
-  const fullSpec = getRecalcPublicApiOpenApiSpec(new URL(request.url).origin);
-  const paths = filterOpenApiPaths(fullSpec.paths);
-  const actionCount = countOpenApiActions(paths);
+function isOmittedOperation(operation: unknown): boolean {
+  if (!operation || typeof operation !== "object") return false;
+  const operationId = (operation as { operationId?: unknown }).operationId;
+  return typeof operationId === "string" && OMITTED_OPERATION_IDS.has(operationId);
+}
 
-  if (actionCount > GPT_ACTION_SCHEMA_LIMIT) {
+function hasOpenApiOperation(pathItem: RecalcPathItem): boolean {
+  return Object.keys(pathItem).some((method) => OPENAPI_HTTP_METHODS.has(method));
+}
+
+function mergePathItems(current: RecalcPathItem | undefined, next: RecalcPathItem): RecalcPathItem {
+  return {
+    ...(current ?? {}),
+    ...next,
+  };
+}
+
+function mergeGptActionSpecs(origin: string): RecalcPublicApiOpenApiSpec | null {
+  const coreSpec = getRecalcPublicApiGptActionOpenApiSpec(origin, "gpt-core");
+  const opsSpec = getRecalcPublicApiGptActionOpenApiSpec(origin, "gpt-ops");
+
+  if (!coreSpec || !opsSpec) return null;
+
+  const paths = Object.entries(opsSpec.paths).reduce<RecalcOpenApiPaths>(
+    (mergedPaths, [path, pathItem]) => {
+      mergedPaths[path] = mergePathItems(mergedPaths[path], pathItem);
+      return mergedPaths;
+    },
+    { ...coreSpec.paths },
+  );
+
+  return {
+    ...coreSpec,
+    info: {
+      ...coreSpec.info,
+      title: "Recalc Public Control API - GPT Actions Main",
+      description:
+        `${coreSpec.info.description} Schema consolidado para GPT Actions con maximo ${GPT_ACTION_SCHEMA_LIMIT} acciones.`,
+    },
+    paths,
+  };
+}
+
+function omitLeastUsefulOperations(paths: RecalcOpenApiPaths): RecalcOpenApiPaths {
+  return Object.entries(paths).reduce<RecalcOpenApiPaths>((filteredPaths, [path, pathItem]) => {
+    const filteredPathItem = Object.entries(pathItem).reduce<RecalcPathItem>((nextPathItem, [method, operation]) => {
+      if (OPENAPI_HTTP_METHODS.has(method) && isOmittedOperation(operation)) return nextPathItem;
+      nextPathItem[method] = operation;
+      return nextPathItem;
+    }, {});
+
+    if (hasOpenApiOperation(filteredPathItem)) filteredPaths[path] = filteredPathItem;
+    return filteredPaths;
+  }, {});
+}
+
+export async function GET(request: Request) {
+  const origin = new URL(request.url).origin;
+  const mergedSpec = mergeGptActionSpecs(origin);
+
+  if (!mergedSpec) {
     return NextResponse.json(
       {
-        error: "GPT_ACTION_SCHEMA_LIMIT_EXCEEDED",
+        error: "GPT_MAIN_SCHEMA_SOURCE_NOT_FOUND",
+      },
+      { status: 500 },
+    );
+  }
+
+  const paths = omitLeastUsefulOperations(mergedSpec.paths);
+  const actionCount = countOpenApiActions(paths);
+
+  if (actionCount !== GPT_ACTION_SCHEMA_LIMIT) {
+    return NextResponse.json(
+      {
+        error: "GPT_MAIN_SCHEMA_ACTION_COUNT_MISMATCH",
         actionCount,
-        maxActions: GPT_ACTION_SCHEMA_LIMIT,
+        expectedActions: GPT_ACTION_SCHEMA_LIMIT,
+        omittedOperationIds: Array.from(OMITTED_OPERATION_IDS),
       },
       { status: 500 },
     );
   }
 
   const spec = {
-    ...fullSpec,
-    info: {
-      ...fullSpec.info,
-      title: `${fullSpec.info.title} - GPT Actions Main`,
-      description:
-        `${fullSpec.info.description} Schema consolidado para GPT Actions con maximo ${GPT_ACTION_SCHEMA_LIMIT} acciones.`,
-    },
+    ...mergedSpec,
     paths,
     "x-recalc-actionCount": actionCount,
-    "x-recalc-omittedFromMainSchema": [
-      "/api/public/recalc/system/health",
-      "/api/public/recalc/github/repository",
-    ],
+    "x-recalc-omittedFromMainSchema": Array.from(OMITTED_OPERATION_IDS),
   };
 
   return NextResponse.json(normalizeOpenApiObjectSchemas(spec));
