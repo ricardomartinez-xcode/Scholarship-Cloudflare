@@ -26,10 +26,32 @@ const tokenRequestSchema = z.object({
   ttlPreset: z.enum(["24h", "7d", "30d", "365d", "never"]).optional(),
 });
 
+type OpenApiSchemaLink = {
+  id: string;
+  label: string;
+  url: string;
+  actionCount: number;
+  maxActions: number;
+};
+
 function publicOrigin(request: Request) {
   const configured = getPublicBaseUrl();
   if (configured) return configured;
   return new URL(request.url).origin.replace(/\/+$/, "");
+}
+
+function getRecalcPublicApiSchemaLinks(origin: string): OpenApiSchemaLink[] {
+  const existingLinks = getRecalcPublicApiOpenApiSchemaLinks(origin) as OpenApiSchemaLink[];
+  const mainSchemaUrl = `${origin}/api/public/recalc/openapi/gpt-main.json`;
+  const mainSchemaLink: OpenApiSchemaLink = {
+    id: "gpt-main",
+    label: "GPT Actions Main",
+    url: mainSchemaUrl,
+    actionCount: 30,
+    maxActions: 30,
+  };
+
+  return [mainSchemaLink, ...existingLinks.filter((schema) => schema.id !== mainSchemaLink.id)];
 }
 
 function serializeTokenRow(row: Awaited<ReturnType<typeof listIssuedExtensionSessions>>[number]) {
@@ -67,7 +89,7 @@ async function buildTokenPayload(request: Request, userId: string) {
       tokenType: "Bearer",
       authHeader: "Authorization: Bearer <token>",
       openApiUrl: `${origin}/api/public/recalc/openapi.json`,
-      openApiSchemas: getRecalcPublicApiOpenApiSchemaLinks(origin),
+      openApiSchemas: getRecalcPublicApiSchemaLinks(origin),
       serverUrl: origin,
       maxTtlHours: RECALC_PUBLIC_API_MAX_TTL_HOURS,
       clients: ["gpt-actions", "intranet-api"],
