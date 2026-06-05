@@ -430,7 +430,7 @@ export async function runAuditorDiagnostics(
       : "Faltan variables para crear issues, ramas, commits y PRs.",
     evidence: github,
     suggestedAction: github.configured
-      ? undefined
+      ? "Sin accion requerida; hallazgo informativo."
       : "Configurar GITHUB_TOKEN, GITHUB_OWNER y GITHUB_REPO con permisos minimos.",
     repairable: !github.configured,
     repairActionId: github.configured ? undefined : "document_github_env",

@@ -89,6 +89,10 @@ describe("runAuditorDiagnostics", () => {
     expect(serialized).not.toContain("google-secret");
     expect(serialized).not.toContain("redis-secret");
     expect(serialized).not.toContain("postgres://secret");
+
+    const githubReadyFinding = diagnosis.findings.find((entry) => entry.id === "github.integration.ready");
+    expect(githubReadyFinding?.severity).toBe("info");
+    expect(githubReadyFinding?.suggestedAction).toBe("Sin accion requerida; hallazgo informativo.");
   });
 
   it("detecta GitHub env faltante con nombres de variables, no valores", async () => {
