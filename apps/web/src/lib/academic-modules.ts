@@ -1,10 +1,18 @@
-export const ACADEMIC_MODULE_CHOICES = ["M1", "M2", "M3", "Longitudinal", "Modular"] as const;
-export const ACADEMIC_MODULES = ACADEMIC_MODULE_CHOICES;
+export const ACADEMIC_MODULES = ["M1", "M2", "M3", "Longitudinal", "Modular"] as const;
 export const ACADEMIC_MODULE_PARTS = ["M1", "M2", "M3"] as const;
+export const DEFAULT_ACADEMIC_MODULE_CHOICES = ["M1", "M2", "M3", "Longitudinal"] as const;
 
 export type AcademicModule = (typeof ACADEMIC_MODULES)[number];
 export type AcademicModulePart = (typeof ACADEMIC_MODULE_PARTS)[number];
 export type AcademicModuleSelection = AcademicModule | "";
+
+/**
+ * Visible options consumed by the quote UI. Keep it mutable on purpose:
+ * pricing-option-display updates it from Prisma-backed pricingOptions so the
+ * large quote component can keep consuming the same reference without showing
+ * generic/static module choices.
+ */
+export const ACADEMIC_MODULE_CHOICES: AcademicModule[] = [...DEFAULT_ACADEMIC_MODULE_CHOICES];
 
 function normalizeText(value: unknown) {
   return String(value ?? "")
@@ -22,6 +30,24 @@ const MODULE_TOKEN_PATTERNS: Array<[AcademicModulePart, RegExp[]]> = [
 
 function isExplicitModular(value: string) {
   return value === "modular" || value.startsWith("modular ") || value.includes(" modular");
+}
+
+function uniqueVisibleModules(modules: readonly unknown[]): AcademicModule[] {
+  const next = modules
+    .map((module) => normalizeAcademicModule(module))
+    .filter((module): module is AcademicModule => Boolean(module))
+    .flatMap((module) => (module === "Modular" ? ACADEMIC_MODULE_PARTS : [module]));
+
+  return DEFAULT_ACADEMIC_MODULE_CHOICES.filter((module) => next.includes(module));
+}
+
+export function setVisibleAcademicModuleChoicesForQuote(modules: readonly unknown[]) {
+  const next = uniqueVisibleModules(modules);
+  ACADEMIC_MODULE_CHOICES.splice(
+    0,
+    ACADEMIC_MODULE_CHOICES.length,
+    ...(next.length ? next : DEFAULT_ACADEMIC_MODULE_CHOICES),
+  );
 }
 
 export function parseAcademicModuleTokens(value: unknown): AcademicModulePart[] {

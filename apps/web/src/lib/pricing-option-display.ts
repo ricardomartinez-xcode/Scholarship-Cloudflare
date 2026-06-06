@@ -1,4 +1,7 @@
-import type { AcademicModule } from "@/lib/academic-modules";
+import {
+  setVisibleAcademicModuleChoicesForQuote,
+  type AcademicModule,
+} from "@/lib/academic-modules";
 import {
   normalizeBusinessLine,
   normalizeCanonicalModality,
@@ -65,6 +68,56 @@ function sortModules<T extends AcademicModule>(modules: T[]) {
   );
 }
 
+function pricingOptionMatches(
+  option: NonNullable<QuoteCampusOption["pricingOptions"]>[number],
+  params: {
+    businessLine?: string;
+    modality?: string;
+    plan?: number | null;
+    programId?: string | null;
+  },
+) {
+  const normalizedBusinessLine = normalizeBusinessLine(params.businessLine) ?? params.businessLine;
+  const normalizedModality = normalizeCanonicalModality(params.modality) ?? params.modality;
+
+  return (
+    (!normalizedBusinessLine || option.businessLine === normalizedBusinessLine) &&
+    (!normalizedModality || option.modality === normalizedModality) &&
+    (!params.plan || option.plan === params.plan) &&
+    (!params.programId || option.programId === params.programId)
+  );
+}
+
+function collectQuoteModules(
+  campuses: QuoteCampusOption[],
+  params: {
+    businessLine?: string;
+    modality?: string;
+    plan?: number | null;
+    programId?: string | null;
+  },
+): AcademicModule[] {
+  const modules = campuses.flatMap((campus) =>
+    (campus.pricingOptions ?? [])
+      .filter((option) => pricingOptionMatches(option, params))
+      .map((option) => option.module),
+  );
+
+  return sortModules(Array.from(new Set(modules.filter(Boolean))));
+}
+
+function publishQuoteModules(
+  campuses: QuoteCampusOption[],
+  params: {
+    businessLine?: string;
+    modality?: string;
+    plan?: number | null;
+    programId?: string | null;
+  },
+) {
+  setVisibleAcademicModuleChoicesForQuote(collectQuoteModules(campuses, params));
+}
+
 export function visibleQuoteModalities(
   modalities: string[],
   businessLine?: string,
@@ -93,6 +146,12 @@ export function visibleQuoteCampuses(
   const normalizedModality = normalizeCanonicalModality(modality);
   const selectedBusinessLine = normalizedBusinessLine ?? businessLine;
   const selectedModality = normalizedModality ?? modality;
+  const moduleParams = {
+    businessLine: selectedBusinessLine,
+    modality: selectedModality,
+    plan,
+    programId,
+  };
 
   if (selectedModality === "online") {
     const sourceOnlineCampus: QuoteCampusOption =
@@ -109,28 +168,30 @@ export function visibleQuoteCampuses(
       !sourceOnlineCampus.studyPrograms?.length ||
       sourceOnlineCampus.studyPrograms.some((program) => program.id === programId);
 
-    if (!offersSelectedProgram) return [];
+    if (!offersSelectedProgram) {
+      publishQuoteModules([], moduleParams);
+      return [];
+    }
 
     if (!selectedBusinessLine || !selectedModality || !plan) {
+      publishQuoteModules([sourceOnlineCampus], moduleParams);
       return [onlineCampus];
     }
 
     if (!sourceOnlineCampus.pricingOptions?.length) {
+      publishQuoteModules([], moduleParams);
       return [];
     }
 
-    return sourceOnlineCampus.pricingOptions.some(
-      (option) =>
-        option.businessLine === selectedBusinessLine &&
-        option.modality === selectedModality &&
-        (!plan || option.plan === plan) &&
-        (!programId || option.programId === programId),
-    )
-      ? [onlineCampus]
-      : [];
+    const hasPricingOption = sourceOnlineCampus.pricingOptions.some((option) =>
+      pricingOptionMatches(option, moduleParams),
+    );
+    publishQuoteModules(hasPricingOption ? [sourceOnlineCampus] : [], moduleParams);
+
+    return hasPricingOption ? [onlineCampus] : [];
   }
 
-  return campuses
+  const filteredCampuses = campuses
     .filter((campus) => campus.value && campus.value.toUpperCase() !== ONLINE_QUOTE_CAMPUS.value)
     .filter((campus) => {
       if (!selectedBusinessLine || !campus.businessLines?.length) return true;
@@ -147,15 +208,12 @@ export function visibleQuoteCampuses(
     .filter((campus) => {
       if (!selectedBusinessLine || !selectedModality || !plan) return true;
       if (!campus.pricingOptions?.length) return false;
-      return campus.pricingOptions.some(
-        (option) =>
-          option.businessLine === selectedBusinessLine &&
-          option.modality === selectedModality &&
-          (!plan || option.plan === plan) &&
-          (!programId || option.programId === programId),
-      );
+      return campus.pricingOptions.some((option) => pricingOptionMatches(option, moduleParams));
     })
     .sort((left, right) => left.label.localeCompare(right.label, "es"));
+
+  publishQuoteModules(filteredCampuses, moduleParams);
+  return filteredCampuses;
 }
 
 export function visibleQuoteModules(
@@ -167,23 +225,7 @@ export function visibleQuoteModules(
     programId?: string | null;
   },
 ): AcademicModule[] {
-  const normalizedBusinessLine = normalizeBusinessLine(params.businessLine) ?? params.businessLine;
-  const normalizedModality = normalizeCanonicalModality(params.modality) ?? params.modality;
-
-  if (!campus?.pricingOptions?.length) {
-    return [];
-  }
-
-  const modules = campus.pricingOptions
-    .filter(
-      (option) =>
-        (!normalizedBusinessLine || option.businessLine === normalizedBusinessLine) &&
-        (!normalizedModality || option.modality === normalizedModality) &&
-        (!params.plan || option.plan === params.plan) &&
-        (!params.programId || option.programId === params.programId),
-    )
-    .map((option) => option.module)
-    .filter((module): module is AcademicModule => Boolean(module));
-
-  return sortModules(Array.from(new Set(modules)));
+  const modules = campus ? collectQuoteModules([campus], params) : [];
+  setVisibleAcademicModuleChoicesForQuote(modules);
+  return modules;
 }
