@@ -1,5 +1,5 @@
-export const ACADEMIC_MODULE_CHOICES = ["M1", "M2", "M3", "Longitudinal"] as const;
-export const ACADEMIC_MODULES = [...ACADEMIC_MODULE_CHOICES, "Modular"] as const;
+export const ACADEMIC_MODULE_CHOICES = ["M1", "M2", "M3", "Longitudinal", "Modular"] as const;
+export const ACADEMIC_MODULES = ACADEMIC_MODULE_CHOICES;
 export const ACADEMIC_MODULE_PARTS = ["M1", "M2", "M3"] as const;
 
 export type AcademicModule = (typeof ACADEMIC_MODULES)[number];
