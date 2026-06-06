@@ -19,6 +19,7 @@ import {
   academicOfferCsvToXlsxBuffer,
   isAcademicOfferCsvFileName,
 } from "@/lib/importers/academic-offer-csv";
+import { enrichAcademicOfferImportWithModuleSheet } from "@/lib/importers/academic-offer-module-sheet";
 import { captureException, logStructured } from "@/lib/observability";
 import {
   createAdminImportPreviewSession,
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const prepared = await prepareAcademicOfferImport({ input, cycle });
+    let prepared = await prepareAcademicOfferImport({ input, cycle });
+    prepared = await enrichAcademicOfferImportWithModuleSheet({ input, prepared });
 
     const session = await createAdminImportPreviewSession({
       module: AdminConfigModule.OFFER,
