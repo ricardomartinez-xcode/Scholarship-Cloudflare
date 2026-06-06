@@ -1667,12 +1667,12 @@ export default function ScholarshipCalculator({
     setCopyQuoteImageStatus(null);
 
     try {
-      const width = 408;
-      const padding = 18;
+      const width = 720;
+      const padding = 32;
       const contentWidth = width - padding * 2;
-      const cardRadius = 8;
-      const cardGap = 16;
-      const scale = Math.min(window.devicePixelRatio || 2, 2);
+      const cardRadius = 18;
+      const cardGap = 24;
+      const scale = Math.max(3, window.devicePixelRatio || 3);
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
 
@@ -1682,12 +1682,12 @@ export default function ScholarshipCalculator({
 
       const fontFamily =
         "Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-      const bodyFont = `14px ${fontFamily}`;
-      const smallFont = `12px ${fontFamily}`;
-      const rowFont = `14px ${fontFamily}`;
-      const strongFont = `700 16px ${fontFamily}`;
-      const cardInner = 16;
-      const amountColumnWidth = 112;
+      const bodyFont = `18px ${fontFamily}`;
+      const smallFont = `14px ${fontFamily}`;
+      const rowFont = `18px ${fontFamily}`;
+      const strongFont = `800 22px ${fontFamily}`;
+      const cardInner = 24;
+      const amountColumnWidth = 180;
       const labelColumnWidth = contentWidth - cardInner * 2 - amountColumnWidth - 12;
       const detailRows: Array<{
         label: string;
@@ -1743,8 +1743,8 @@ export default function ScholarshipCalculator({
           ? wrapCanvasText(ctx, row.muted, labelColumnWidth, smallFont)
           : [];
         const rowHeight = Math.max(
-          row.strong ? 44 : 30,
-          8 + labelLines.length * 20 + mutedLines.length * 16,
+          row.strong ? 72 : 42,
+          16 + labelLines.length * 24 + mutedLines.length * 18,
         );
 
         return { ...row, labelLines, mutedLines, rowHeight };
@@ -1781,7 +1781,7 @@ export default function ScholarshipCalculator({
         heroAmount,
         contentWidth - cardInner * 2,
         fontFamily,
-        { max: 42, min: 30, weight: 800 },
+        { max: 68, min: 48, weight: 800 },
       );
       const heroHeight = Math.max(
         153,
@@ -1796,7 +1796,7 @@ export default function ScholarshipCalculator({
                 firstPaymentNotesLines.length * 20,
             )
           : 0;
-      const breakdownHeight = 50 + detailRowsHeight;
+      const breakdownHeight = 68 + detailRowsHeight;
       const height =
         padding +
         22 +
@@ -1816,7 +1816,7 @@ export default function ScholarshipCalculator({
       drawRoundedRect(ctx, 0.5, 0.5, width - 1, height - 1, 6, "#ffffff", "#c8d5df");
       ctx.fillStyle = "#55728b";
       ctx.font = `700 12px ${fontFamily}`;
-      ctx.fillText("C O T I Z A C I Ó N", padding, padding + 12);
+      ctx.fillText("COTIZACIÓN", padding, padding + 16);
 
       let y = padding + 38;
 
@@ -1826,11 +1826,11 @@ export default function ScholarshipCalculator({
       ctx.fillText("C O S T O   M E N S U A L", padding + cardInner, y + 28);
       ctx.fillStyle = "#ffffff";
       ctx.font = heroAmountFont.font;
-      ctx.fillText(heroAmount, padding + cardInner, y + 78);
+      ctx.fillText(heroAmount, padding + cardInner, y + 116);
       ctx.fillStyle = "#edf6fb";
       ctx.font = bodyFont;
       heroCopyLines.forEach((line, index) => {
-        ctx.fillText(line, padding + cardInner, y + 104 + index * 22);
+        ctx.fillText(line, padding + cardInner, y + 152 + index * 26);
       });
 
       y += heroHeight + cardGap;
@@ -1854,9 +1854,9 @@ export default function ScholarshipCalculator({
         ctx.fillText(
           formatMoney(resultPanelFirstPaymentAmount),
           padding + cardInner,
-          y + 54,
+          y + 72,
         );
-        let noteY = y + 78;
+        let noteY = y + 104;
         ctx.font = smallFont;
         firstPaymentDurationLines.forEach((line) => {
           ctx.fillText(line, padding + cardInner, noteY);
@@ -1881,9 +1881,9 @@ export default function ScholarshipCalculator({
       );
       ctx.fillStyle = "#668097";
       ctx.font = `700 11px ${fontFamily}`;
-      ctx.fillText("D E S G L O S E", padding + cardInner, y + 28);
+      ctx.fillText("DESGLOSE", padding + cardInner, y + 36);
 
-      y += 50;
+      y += 68;
       detailRowsForImage.forEach((row) => {
         if (row.label === "Subtotal" || row.strong) {
           ctx.strokeStyle = "#cbdce8";
@@ -1896,12 +1896,12 @@ export default function ScholarshipCalculator({
         ctx.fillStyle = row.strong ? "#17385f" : "#55728b";
         ctx.font = row.strong ? strongFont : rowFont;
         row.labelLines.forEach((line, index) => {
-          ctx.fillText(line, padding + cardInner, y + 20 + index * 20);
+          ctx.fillText(line, padding + cardInner, y + (row.strong ? 36 : 24) + index * 24);
         });
         ctx.textAlign = "right";
         ctx.fillStyle = "#17385f";
         ctx.font = row.strong ? strongFont : `600 14px ${fontFamily}`;
-        ctx.fillText(row.value, padding + contentWidth - cardInner, y + 20);
+        ctx.fillText(row.value, padding + contentWidth - cardInner, y + (row.strong ? 36 : 24));
         ctx.textAlign = "left";
         if (row.mutedLines.length) {
           ctx.fillStyle = "#668097";
@@ -1910,7 +1910,7 @@ export default function ScholarshipCalculator({
             ctx.fillText(
               line,
               padding + cardInner,
-              y + 22 + row.labelLines.length * 20 + index * 16,
+              y + 30 + row.labelLines.length * 24 + index * 16,
             );
           });
         }
@@ -2621,7 +2621,7 @@ export default function ScholarshipCalculator({
                     <div>
                       <div className="ui-panel-kicker">Plan de pagos</div>
                       <div className="mt-1 text-sm text-[color:var(--ui-text-secondary)]">
-                        Muestra mensualidades y pagos de incorporación por cuatrimestre.
+                        Muestra mensualidades y pagos de incorporación por cuatrimestre. <div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => void handleCopyPaymentPlanImage()} disabled={copyQuoteImagePending} className="ui-button-secondary min-h-9 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-60">Copiar todos los planes</button></div>
                       </div>
                     </div>
                   </div>
@@ -2642,7 +2642,7 @@ export default function ScholarshipCalculator({
                             {section.title}
                           </div>
                           <div className="shrink-0 text-right text-sm font-semibold text-[color:var(--ui-text-primary)]">
-                            {formatMoney(sectionTotal)}
+                            {formatMoney(sectionTotal)} <button type="button" onClick={() => void handleCopyPaymentPlanImage(section.title)} disabled={copyQuoteImagePending} className="ui-button-secondary ml-3 min-h-7 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] disabled:opacity-60">Copiar imagen</button>
                           </div>
                         </div>
                         {section.rows.map((row) => (
