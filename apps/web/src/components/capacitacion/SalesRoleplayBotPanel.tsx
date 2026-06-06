@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChatPanelCard } from "@/components/ui/chat-workspace";
 import {
@@ -28,6 +28,11 @@ type SalesRoleplayBotPanelProps = {
   onUseResponse: (response: string) => void;
 };
 
+type RequestState = {
+  kind: "idle" | "loading" | "success" | "error";
+  message: string;
+};
+
 export default function SalesRoleplayBotPanel({
   activeChatId,
   canUseComposer,
@@ -40,10 +45,15 @@ export default function SalesRoleplayBotPanel({
   const [selectedBotId, setSelectedBotId] = useState<RoleplayBotId>("closing");
   const [advisorDrafts, setAdvisorDrafts] = useState<Record<string, string>>({});
   const [extraKnowledge, setExtraKnowledge] = useState("");
+  const [autoRespond, setAutoRespond] = useState(true);
+  const [isAutoReplying, setIsAutoReplying] = useState(false);
   const [replyState, setReplyState] = useState<{
     signature: string;
     reply: RoleplayBotReply;
   } | null>(null);
+  const [requestState, setRequestState] = useState<RequestState>({ kind: "idle", message: "" });
+  const autoReplyBaselineByChatRef = useRef<Record<string, string>>({});
+  const lastAutoReplyMessageIdRef = useRef("");
 
   const lastAdvisorMessage = useMemo(
     () => findLastAdvisorMessage(messages, viewerUserId),
@@ -51,17 +61,81 @@ export default function SalesRoleplayBotPanel({
   );
 
   const draftKey = activeChatId ?? "no-chat";
-  const advisorMessage =
-    advisorDrafts[draftKey] ?? lastAdvisorMessage?.content ?? "";
-  const replySignature = [
+  const advisorMessage = advisorDrafts[draftKey] ?? lastAdvisorMessage?.content ?? "";
+  const replySignature = [draftKey, selectedBotId, advisorMessage, extraKnowledge, messages.length].join("::");
+  const reply = replyState?.signature === replySignature ? replyState.reply : null;
+
+  useEffect(() => {
+    if (!activeChatId) return;
+    const lastMessage = messages.at(-1);
+    if (!lastMessage) {
+      autoReplyBaselineByChatRef.current[activeChatId] = "";
+      return;
+    }
+
+    const baseline = autoReplyBaselineByChatRef.current[activeChatId];
+    if (baseline === undefined) {
+      autoReplyBaselineByChatRef.current[activeChatId] = lastMessage.id;
+      return;
+    }
+
+    if (!autoRespond || !canUseComposer || !viewerUserId) return;
+    if (lastMessage.id === baseline || lastMessage.sender.userId !== viewerUserId) {
+      autoReplyBaselineByChatRef.current[activeChatId] = lastMessage.id;
+      return;
+    }
+    if (lastAutoReplyMessageIdRef.current === lastMessage.id) return;
+
+    lastAutoReplyMessageIdRef.current = lastMessage.id;
+    autoReplyBaselineByChatRef.current[activeChatId] = lastMessage.id;
+    let cancelled = false;
+
+    async function sendAutomaticBotReply() {
+      setIsAutoReplying(true);
+      try {
+        const payload = await readJson<{ reply: RoleplayBotReply }>(
+          `/api/capacitacion/chats/${activeChatId}/bots/messages`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              botId: selectedBotId,
+              advisorMessage: lastMessage.content,
+              extraKnowledge,
+            }),
+          },
+        );
+        if (cancelled) return;
+        setReplyState({
+          signature: [draftKey, selectedBotId, lastMessage.content, extraKnowledge, messages.length].join("::"),
+          reply: payload.reply,
+        });
+        setRequestState({ kind: "success", message: "Respuesta automática enviada por el bot." });
+      } catch (error) {
+        if (cancelled) return;
+        setRequestState({
+          kind: "error",
+          message: error instanceof Error ? error.message : "No se pudo enviar la respuesta automática.",
+        });
+      } finally {
+        if (!cancelled) setIsAutoReplying(false);
+      }
+    }
+
+    void sendAutomaticBotReply();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeChatId,
+    autoRespond,
+    canUseComposer,
     draftKey,
-    selectedBotId,
-    advisorMessage,
     extraKnowledge,
-    messages.length,
-  ].join("::");
-  const reply =
-    replyState?.signature === replySignature ? replyState.reply : null;
+    messages,
+    selectedBotId,
+    viewerUserId,
+  ]);
 
   function generateReply() {
     const trimmedMessage = advisorMessage.trim();
@@ -78,10 +152,52 @@ export default function SalesRoleplayBotPanel({
     });
   }
 
+  async function addBotToChat() {
+    if (!activeChatId) return;
+    setRequestState({ kind: "loading", message: "Agregando bot al chat..." });
+    try {
+      await readJson(`/api/capacitacion/chats/${activeChatId}/bots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botId: selectedBotId }),
+      });
+      setRequestState({ kind: "success", message: "Bot agregado como participante." });
+    } catch (error) {
+      setRequestState({
+        kind: "error",
+        message: error instanceof Error ? error.message : "No se pudo agregar el bot.",
+      });
+    }
+  }
+
+  async function respondAsBot() {
+    const trimmedMessage = advisorMessage.trim();
+    if (!activeChatId || !trimmedMessage) return;
+    setRequestState({ kind: "loading", message: "Generando respuesta del bot..." });
+    try {
+      const payload = await readJson<{ reply: RoleplayBotReply }>(`/api/capacitacion/chats/${activeChatId}/bots/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          botId: selectedBotId,
+          advisorMessage: trimmedMessage,
+          extraKnowledge,
+        }),
+      });
+      setReplyState({ signature: replySignature, reply: payload.reply });
+      setRequestState({ kind: "success", message: "El bot respondió dentro del chat." });
+    } catch (error) {
+      setRequestState({
+        kind: "error",
+        message: error instanceof Error ? error.message : "No se pudo enviar la respuesta del bot.",
+      });
+    }
+  }
+
   return (
-    <ChatPanelCard title="Bots de rolplay">
+    <ChatPanelCard title="Bots de roleplay">
       <div className="ui-chat-mini-form">
-        <div className="ui-chat-filter-row" role="tablist" aria-label="Bot de rolplay">
+        <div className="ui-chat-filter-row" role="tablist" aria-label="Bot de roleplay">
           {bots.map((bot) => (
             <button
               key={bot.id}
@@ -93,11 +209,26 @@ export default function SalesRoleplayBotPanel({
               ].join(" ")}
               aria-selected={selectedBotId === bot.id}
               role="tab"
+              title={bot.name}
             >
               {bot.shortLabel}
             </button>
           ))}
         </div>
+
+        <p className="ui-chat-copy">
+          Agrega el bot como participante para que el asesor practique contra una persona simulada. Con respuesta automática activa, el bot contesta solo después de cada mensaje del asesor.
+        </p>
+
+        <label className="ui-chat-checkbox">
+          <input
+            type="checkbox"
+            checked={autoRespond}
+            onChange={(event) => setAutoRespond(event.target.checked)}
+          />
+          Respuesta automática
+          {isAutoReplying ? <span className="text-slate-300"> · respondiendo...</span> : null}
+        </label>
 
         <textarea
           value={advisorMessage}
@@ -115,17 +246,47 @@ export default function SalesRoleplayBotPanel({
           value={extraKnowledge}
           onChange={(event) => setExtraKnowledge(event.target.value)}
           className="ui-chat-field min-h-[76px]"
-          placeholder="Conocimiento extra"
+          placeholder="Conocimiento extra: tema - detalle"
         />
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={addBotToChat}
+            disabled={!activeChatId}
+            className="ui-chat-button ui-chat-button--secondary"
+          >
+            Agregar al chat
+          </button>
+          <button
+            type="button"
+            onClick={respondAsBot}
+            disabled={!activeChatId || !advisorMessage.trim()}
+            className="ui-chat-button"
+          >
+            Responder como bot
+          </button>
+        </div>
 
         <button
           type="button"
           onClick={generateReply}
           disabled={!advisorMessage.trim()}
-          className="ui-chat-button"
+          className="ui-chat-button ui-chat-button--secondary"
         >
-          Generar objeción
+          Generar objeción local
         </button>
+
+        {requestState.kind !== "idle" && requestState.message ? (
+          <p
+            className={[
+              "text-xs leading-5",
+              requestState.kind === "error" ? "text-rose-200" : "text-slate-300",
+            ].join(" ")}
+          >
+            {requestState.message}
+          </p>
+        ) : null}
 
         {reply ? (
           <div className="rounded-[16px] border border-white/8 bg-white/5 p-3">
@@ -137,9 +298,7 @@ export default function SalesRoleplayBotPanel({
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-100">{reply.text}</p>
             {reply.usedKnowledge ? (
-              <p className="mt-2 text-xs leading-5 text-slate-300">
-                Base: {reply.usedKnowledge}
-              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-300">Base: {reply.usedKnowledge}</p>
             ) : null}
             <button
               type="button"
@@ -156,10 +315,16 @@ export default function SalesRoleplayBotPanel({
   );
 }
 
-function findLastAdvisorMessage(
-  messages: BotPanelMessage[],
-  viewerUserId: string | null,
-) {
+async function readJson<T>(input: RequestInfo, init?: RequestInit) {
+  const response = await fetch(input, { cache: "no-store", ...init });
+  const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
+  if (!response.ok) {
+    throw new Error(payload?.error ?? "La operación no se pudo completar.");
+  }
+  return payload as T;
+}
+
+function findLastAdvisorMessage(messages: BotPanelMessage[], viewerUserId: string | null) {
   const usableMessages = messages.filter((message) => message.content.trim());
   const viewerMessage = [...usableMessages]
     .reverse()
