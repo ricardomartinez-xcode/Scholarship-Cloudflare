@@ -63,6 +63,7 @@ export type ShareMatriculaResponse = {
   externalId?: string;
   status?: string;
   message?: string;
+  credentialUrl?: string;
   raw?: unknown;
 };
 

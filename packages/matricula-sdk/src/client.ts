@@ -60,6 +60,7 @@ function normalizeShareResponse(payload: unknown): ShareMatriculaResponse {
     externalId: readString(payload.externalId),
     status: readString(payload.status),
     message: readString(payload.message),
+    credentialUrl: readString(payload.credentialUrl),
     raw: payload,
   };
 }

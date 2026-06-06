@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 type ShareState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; message: string }
+  | { status: "success"; message: string; credentialUrl?: string }
   | { status: "error"; message: string };
 
 type ShareResponse = {
@@ -13,6 +13,7 @@ type ShareResponse = {
   shareId?: string;
   status?: string;
   message?: string;
+  credentialUrl?: string;
   error?: string;
 };
 
@@ -87,6 +88,7 @@ export default function MatriculaShareForm() {
       setState({
         status: "success",
         message: result.message ?? `Matrícula compartida correctamente.${detail}`,
+        credentialUrl: result.credentialUrl,
       });
     } catch (error) {
       setState({
@@ -181,6 +183,17 @@ export default function MatriculaShareForm() {
           {disabled ? "Compartiendo..." : "Compartir matrícula"}
         </button>
       </div>
+
+      {state.status === "success" && state.credentialUrl ? (
+        <a
+          href={state.credentialUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[color:var(--ui-border)] bg-white px-5 py-2.5 text-sm font-bold text-[color:var(--ui-text-primary)] transition hover:bg-[color:var(--ui-hover)]"
+        >
+          Abrir credencial UNIDEP
+        </a>
+      ) : null}
     </form>
   );
 }
