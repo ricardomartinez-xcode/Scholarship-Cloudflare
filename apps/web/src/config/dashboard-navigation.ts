@@ -19,8 +19,8 @@ export type DashboardNavGroup = {
 
 export const workspaceNavGroups: DashboardNavGroup[] = [
   {
-    key: "workspace",
-    label: "Workspace",
+    key: "workspace-daily-operations",
+    label: "Operación diaria",
     items: [
       {
         key: "becas",
@@ -28,7 +28,7 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
         icon: "calculator",
         shortLabel: "Cotizador",
         href: "/unidep",
-        group: "workspace",
+        group: "workspace-daily-operations",
         aliases: ["/unidep/cotizador"],
       },
       {
@@ -36,38 +36,36 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
         label: "Prospectos",
         icon: "contacts",
         href: "/unidep/prospectos",
-        group: "workspace",
+        group: "workspace-daily-operations",
         aliases: ["/unidep/contactos"],
       },
       {
-        key: "oferta",
-        label: "Oferta académica",
-        icon: "offer",
-        href: "/unidep/oferta",
-        group: "workspace",
-        children: [
-          {
-            key: "oferta-academica",
-            label: "Oferta por planteles",
-            icon: "offer",
-            href: "/unidep/oferta",
-            group: "oferta",
-          },
-          {
-            key: "formatos",
-            label: "Formatos",
-            icon: "plan",
-            href: "/unidep/formatos",
-            group: "oferta",
-          },
-        ],
+        key: "inbox",
+        label: "Inbox",
+        icon: "inbox",
+        href: "/unidep/inbox",
+        group: "workspace-daily-operations",
       },
+      {
+        key: "historial",
+        label: "Actividad",
+        icon: "history",
+        href: "/unidep/actividad",
+        group: "workspace-daily-operations",
+        aliases: ["/unidep/historial"],
+      },
+    ],
+  },
+  {
+    key: "workspace-communication",
+    label: "Comunicación",
+    items: [
       {
         key: "comunicacion",
         label: "Comunicación",
         icon: "announcement",
         href: "/unidep/web",
-        group: "workspace",
+        group: "workspace-communication",
         aliases: ["/unidep/comunicacion"],
         children: [
           {
@@ -76,7 +74,7 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
             icon: "web",
             shortLabel: "Campañas",
             href: "/unidep/web",
-            group: "comunicacion",
+            group: "workspace-communication",
           },
           {
             key: "waba",
@@ -84,61 +82,94 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
             icon: "whatsapp",
             shortLabel: "WhatsApp",
             href: "/unidep/waba",
-            group: "comunicacion",
+            group: "workspace-communication",
           },
         ],
       },
+    ],
+  },
+  {
+    key: "workspace-academic-offer",
+    label: "Oferta académica",
+    items: [
       {
-        key: "catalogos",
-        label: "Catálogos",
-        icon: "plan",
-        href: "/unidep/planes",
-        group: "workspace",
+        key: "oferta",
+        label: "Oferta académica",
+        icon: "offer",
+        href: "/unidep/oferta",
+        group: "workspace-academic-offer",
         children: [
+          {
+            key: "oferta-academica",
+            label: "Oferta por planteles",
+            icon: "offer",
+            href: "/unidep/oferta",
+            group: "workspace-academic-offer",
+          },
           {
             key: "planes",
             label: "Planes de estudio",
             icon: "plan",
             href: "/unidep/planes",
-            group: "catalogos",
+            group: "workspace-academic-offer",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "workspace-unidep-catalogs",
+    label: "Catálogos UNIDEP",
+    items: [
+      {
+        key: "catalogos",
+        label: "Catálogos",
+        icon: "plan",
+        href: "/unidep/formatos",
+        group: "workspace-unidep-catalogs",
+        children: [
+          {
+            key: "formatos",
+            label: "Formatos",
+            icon: "plan",
+            href: "/unidep/formatos",
+            group: "workspace-unidep-catalogs",
           },
           {
             key: "costos",
             label: "Costos",
             icon: "price",
             href: "/unidep/costos",
-            group: "catalogos",
+            group: "workspace-unidep-catalogs",
           },
           {
             key: "planteles",
             label: "Planteles",
             icon: "campus",
             href: "/unidep/planteles",
-            group: "catalogos",
+            group: "workspace-unidep-catalogs",
           },
           {
             key: "directorio",
             label: "Directorio",
             icon: "directory",
             href: "/unidep/directorio",
-            group: "catalogos",
+            group: "workspace-unidep-catalogs",
           },
         ],
       },
-      {
-        key: "historial",
-        label: "Actividad",
-        icon: "history",
-        href: "/unidep/actividad",
-        group: "workspace",
-        aliases: ["/unidep/historial"],
-      },
+    ],
+  },
+  {
+    key: "workspace-training",
+    label: "Capacitación",
+    items: [
       {
         key: "capacitacion",
         label: "Capacitación",
         icon: "training",
         href: "/unidep/capacitacion",
-        group: "workspace",
+        group: "workspace-training",
         aliases: ["/capacitacion"],
         children: [
           {
@@ -146,21 +177,21 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
             label: "Rolplay",
             icon: "contacts",
             href: "/unidep/capacitacion/rolplay",
-            group: "capacitacion",
+            group: "workspace-training",
           },
           {
             key: "materiales",
             label: "Materiales",
             icon: "plan",
             href: "/unidep/capacitacion/materiales",
-            group: "capacitacion",
+            group: "workspace-training",
           },
           {
             key: "evaluaciones",
             label: "Evaluaciones",
             icon: "audit",
             href: "/unidep/capacitacion/evaluaciones",
-            group: "capacitacion",
+            group: "workspace-training",
           },
         ],
       },
@@ -168,15 +199,7 @@ export const workspaceNavGroups: DashboardNavGroup[] = [
   },
 ];
 
-export const workspaceFooterNavItems: DashboardNavItem[] = [
-  {
-    key: "inbox",
-    label: "Inbox",
-    icon: "inbox",
-    href: "/unidep/inbox",
-    group: "footer",
-  },
-];
+export const workspaceFooterNavItems: DashboardNavItem[] = [];
 
 export function flattenDashboardNavItems(
   groups: DashboardNavGroup[],
@@ -211,6 +234,15 @@ export const adminNavGroups: DashboardNavGroup[] = [
         href: "/admin",
         group: "admin-workspace",
         requiredAny: ["view_admin"],
+      },
+      {
+        key: "autorepair",
+        label: "Autoreparador",
+        icon: "summary",
+        href: "/admin/reporting",
+        group: "admin-workspace",
+        requiredAll: ["view_admin_operations"],
+        requiredAny: ["view_reports"],
       },
       {
         key: "admin-access",
@@ -427,15 +459,6 @@ export const adminNavGroups: DashboardNavGroup[] = [
             requiredAll: ["view_admin_operations"],
           },
           {
-            key: "reporting",
-            label: "Reporte operativo",
-            icon: "summary",
-            href: "/admin/reporting",
-            group: "admin-system",
-            requiredAll: ["view_admin_operations"],
-            requiredAny: ["view_reports"],
-          },
-          {
             key: "audit",
             label: "Auditoría",
             icon: "audit",
@@ -457,6 +480,14 @@ export const adminNavGroups: DashboardNavGroup[] = [
             label: "Capacitación",
             icon: "training",
             href: "/admin/capacitacion",
+            group: "admin-system",
+            requiredAny: ["view_users", "manage_users", "view_org_members", "manage_org_members"],
+          },
+          {
+            key: "training-bots",
+            label: "Configuración de bots",
+            icon: "contacts",
+            href: "/admin/capacitacion/bots",
             group: "admin-system",
             requiredAny: ["view_users", "manage_users", "view_org_members", "manage_org_members"],
           },
@@ -535,6 +566,7 @@ export const dashboardTitles: Record<string, string> = {
   "/admin/prices": "Precios",
   "/admin/oferta": "Oferta por planteles",
   "/admin/capacitacion": "Capacitación",
+  "/admin/capacitacion/bots": "Configuración de bots",
   "/admin/unidep/programs": "Programas académicos",
   "/admin/unidep/campuses": "Planteles",
   "/admin/unidep/fees": "Costos académicos",
@@ -551,7 +583,7 @@ export const dashboardTitles: Record<string, string> = {
   "/admin/invitations": "Invitaciones",
   "/admin/users": "Usuarios",
   "/admin/organizations": "Organizaciones",
-  "/admin/reporting": "Reporte operativo",
+  "/admin/reporting": "Autoreparador",
   "/admin/audit": "Auditoría",
   "/admin/auth-sync": "Auth sync",
   "/admin/integrations/recalc-api": "Tokens API Recalc",

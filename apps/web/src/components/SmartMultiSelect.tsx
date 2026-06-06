@@ -59,6 +59,10 @@ export default function SmartMultiSelect({
       return hay.includes(q);
     });
   }, [options, query, shouldSearch]);
+  const isCompactMenu =
+    !shouldSearch &&
+    options.length <= 6 &&
+    options.every((option) => option.label.length <= 36);
 
   const focusActiveOption = (index: number) => {
     window.requestAnimationFrame(() => {
@@ -198,7 +202,10 @@ export default function SmartMultiSelect({
             sticky="always"
             onKeyDown={onKeyDown}
             style={{
-              width: "var(--radix-popover-trigger-width)",
+              width: isCompactMenu
+                ? "clamp(12rem, var(--radix-popover-trigger-width, 12rem), 22rem)"
+                : "var(--radix-popover-trigger-width)",
+              minWidth: isCompactMenu ? "min(12rem, calc(100vw - 24px))" : undefined,
               maxWidth: "calc(100vw - 24px)",
             }}
           >
@@ -238,6 +245,7 @@ export default function SmartMultiSelect({
                     data-active={isActive ? "true" : "false"}
                     disabled={opt.disabled}
                     className="ui-select-item"
+                    style={{ width: "100%" }}
                     onClick={() => toggleOption(opt)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >

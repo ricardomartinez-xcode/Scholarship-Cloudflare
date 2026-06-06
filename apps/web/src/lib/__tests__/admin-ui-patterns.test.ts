@@ -77,6 +77,23 @@ describe("admin UI patterns", () => {
     }
   });
 
+  it("keeps autorepair and bot configuration visible in admin navigation", () => {
+    const source = read("apps/web/src/config/dashboard-navigation.ts");
+    const botsPagePath =
+      "apps/web/src/app/(admin)/admin/(protected)/capacitacion/bots/page.tsx";
+
+    expect(source).toContain('key: "autorepair"');
+    expect(source).toContain('label: "Autoreparador"');
+    expect(source).toContain('href: "/admin/reporting"');
+    expect(source).toContain('key: "training-bots"');
+    expect(source).toContain('label: "Configuración de bots"');
+    expect(source).toContain('href: "/admin/capacitacion/bots"');
+    expect(source).toContain('"/admin/capacitacion/bots": "Configuración de bots"');
+    expect(fs.existsSync(path.join(rootDir, botsPagePath))).toBe(true);
+    expect(read(botsPagePath)).toContain('listRoleplayBots');
+    expect(read(botsPagePath)).toContain('PRELOADED_ROLEPLAY_KNOWLEDGE');
+  });
+
   it("mounts the shared Excel-style table enhancer in protected admin pages", () => {
     const layout = read("apps/web/src/app/(admin)/admin/(protected)/layout.tsx");
     const enhancer = read("apps/web/src/components/admin/AdminTableExcelEnhancer.tsx");

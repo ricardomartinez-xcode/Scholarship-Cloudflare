@@ -47,6 +47,10 @@ export default function SmartSelect({
   }, [options, query, shouldSearch]);
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? "";
+  const isCompactMenu =
+    !shouldSearch &&
+    options.length <= 6 &&
+    options.every((option) => option.label.length <= 36);
 
   const focusActiveOption = (index: number) => {
     window.requestAnimationFrame(() => {
@@ -181,7 +185,10 @@ export default function SmartSelect({
           sticky="always"
           onKeyDown={onKeyDown}
           style={{
-            width: "var(--radix-popover-trigger-width)",
+            width: isCompactMenu
+              ? "clamp(12rem, var(--radix-popover-trigger-width, 12rem), 22rem)"
+              : "var(--radix-popover-trigger-width)",
+            minWidth: isCompactMenu ? "min(12rem, calc(100vw - 24px))" : undefined,
             maxWidth: "calc(100vw - 24px)",
           }}
         >
@@ -219,6 +226,7 @@ export default function SmartSelect({
                   data-state={checked ? "checked" : "unchecked"}
                   data-active={isActive ? "true" : "false"}
                   className="ui-select-item"
+                  style={{ width: "100%" }}
                   onClick={() => selectOption(opt)}
                   onMouseEnter={() => setActiveIndex(index)}
                 >

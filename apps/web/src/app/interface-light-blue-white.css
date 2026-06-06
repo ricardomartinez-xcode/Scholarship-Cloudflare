@@ -177,7 +177,7 @@ body th {
   background: #f8fcff !important;
 }
 
-body :is([role="dialog"], [role="listbox"], .select-content, .dropdown-content, .radix-select-content) {
+body :is([role="dialog"], .select-content, .dropdown-content, .radix-select-content) {
   border-color: var(--recalc-border) !important;
   background: #ffffff !important;
   color: var(--recalc-ink) !important;

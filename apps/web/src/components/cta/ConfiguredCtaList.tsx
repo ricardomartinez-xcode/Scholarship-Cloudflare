@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -205,20 +206,48 @@ function CtaPopupModal({
   config: CtaActionConfig;
   onClose: () => void;
 }) {
-  return (
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    window.requestAnimationFrame(() => panelRef.current?.focus({ preventScroll: true }));
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label={config.title}
+      className="ui-cta-popup-overlay fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="max-h-[88dvh] w-full max-w-2xl overflow-auto rounded-[22px] border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-primary)] p-5 text-[color:var(--ui-text-primary)] shadow-[0_24px_70px_rgba(15,41,61,0.28)]"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-auto rounded-[22px] border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-primary)] p-5 text-[color:var(--ui-text-primary)] shadow-[0_24px_70px_rgba(15,41,61,0.28)] outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-lg font-extrabold tracking-[-0.02em] text-[color:var(--ui-text-primary)]">
+          <h2 id={titleId} className="text-lg font-extrabold tracking-[-0.02em] text-[color:var(--ui-text-primary)]">
             {config.title}
           </h2>
           <button
@@ -275,7 +304,8 @@ function CtaPopupModal({
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

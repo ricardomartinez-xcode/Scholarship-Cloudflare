@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  DashboardNavGroup,
   DashboardNavItem,
 } from "@/config/dashboard-navigation";
 import DashboardSidebarNav from "@/components/layout/DashboardSidebarNav";
@@ -55,100 +54,6 @@ function filterWorkspaceNavItems(items: DashboardNavItem[], userEmail: string | 
     .filter((item) => showWorkspaceWhatsapp || item.key !== "waba");
 }
 
-function removeChildByKey(item: DashboardNavItem, key: string) {
-  const match = item.children?.find((child) => child.key === key) ?? null;
-  if (!item.children?.length) return { item, match };
-
-  return {
-    item: {
-      ...item,
-      children: item.children.filter((child) => child.key !== key),
-    },
-    match,
-  };
-}
-
-function upsertChild(parent: DashboardNavItem, child: DashboardNavItem, index?: number) {
-  const children = (parent.children ?? []).filter((current) => current.key !== child.key);
-  const safeIndex = typeof index === "number" ? Math.max(0, Math.min(index, children.length)) : children.length;
-  children.splice(safeIndex, 0, child);
-  return { ...parent, children };
-}
-
-function rearrangeWorkspaceNavGroups(groups: DashboardNavGroup[]) {
-  return groups.map((group) => {
-    let movedFormats: DashboardNavItem | null = null;
-    let movedPlans: DashboardNavItem | null = null;
-
-    const itemsWithoutMovedChildren = group.items.map((item) => {
-      let nextItem: DashboardNavItem = {
-        ...item,
-        children: item.children?.map((child) => ({ ...child })),
-      };
-
-      if (nextItem.key === "oferta") {
-        const withoutFormats = removeChildByKey(nextItem, "formatos");
-        nextItem = withoutFormats.item;
-        movedFormats = withoutFormats.match;
-        nextItem = {
-          ...nextItem,
-          children: nextItem.children?.map((child) =>
-            child.key === "oferta-academica"
-              ? {
-                  ...child,
-                  label: "Oferta por planteles",
-                  shortLabel: "Planteles",
-                }
-              : child,
-          ),
-        };
-      }
-
-      if (nextItem.key === "catalogos") {
-        const withoutPlans = removeChildByKey(nextItem, "planes");
-        nextItem = withoutPlans.item;
-        movedPlans = withoutPlans.match;
-      }
-
-      return nextItem;
-    });
-
-    const items = itemsWithoutMovedChildren.map((item) => {
-      if (item.key === "oferta") {
-        return movedPlans
-          ? upsertChild(
-              item,
-              {
-                ...movedPlans,
-                group: "oferta",
-              },
-              1,
-            )
-          : item;
-      }
-
-      if (item.key === "catalogos") {
-        const itemWithFormats = movedFormats
-          ? upsertChild(
-              item,
-              {
-                ...movedFormats,
-                group: "catalogos",
-              },
-              0,
-            )
-          : item;
-        const firstChild = itemWithFormats.children?.[0];
-        return firstChild ? { ...itemWithFormats, href: firstChild.href } : itemWithFormats;
-      }
-
-      return item;
-    });
-
-    return { ...group, items };
-  });
-}
-
 export default function AppSidebar({
   activeKey,
   onSelect,
@@ -156,12 +61,10 @@ export default function AppSidebar({
   collapsed = false,
   userEmail,
 }: AppSidebarProps) {
-  const filteredWorkspaceNavGroups = rearrangeWorkspaceNavGroups(
-    workspaceNavGroups.map((group) => ({
-      ...group,
-      items: filterWorkspaceNavItems(group.items, userEmail ?? null),
-    })),
-  );
+  const filteredWorkspaceNavGroups = workspaceNavGroups.map((group) => ({
+    ...group,
+    items: filterWorkspaceNavItems(group.items, userEmail ?? null),
+  }));
 
   return (
     <div className="ui-shell-nav-layout">
@@ -172,15 +75,17 @@ export default function AppSidebar({
         onItemSelect={onSelect}
         onLinkNavigate={onNavigate}
       />
-      <div className="ui-shell-nav-footer" aria-label="Navegación fija">
-        <DashboardSidebarNav
-          groups={[{ key: "footer", label: "Footer", items: workspaceFooterNavItems }]}
-          activeKey={activeKey}
-          collapsed={collapsed}
-          onItemSelect={onSelect}
-          onLinkNavigate={onNavigate}
-        />
-      </div>
+      {workspaceFooterNavItems.length ? (
+        <div className="ui-shell-nav-footer" aria-label="Navegación fija">
+          <DashboardSidebarNav
+            groups={[{ key: "footer", label: "Footer", items: workspaceFooterNavItems }]}
+            activeKey={activeKey}
+            collapsed={collapsed}
+            onItemSelect={onSelect}
+            onLinkNavigate={onNavigate}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

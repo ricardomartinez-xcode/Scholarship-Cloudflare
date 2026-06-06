@@ -330,7 +330,6 @@
 
 .ui-page-frame [role="dialog"],
 .ui-page-frame [data-radix-popper-content-wrapper] > *,
-.ui-page-frame [role="listbox"],
 .ui-page-frame [cmdk-root],
 .ui-page-frame .radix-select-content,
 .ui-page-frame .select-content,

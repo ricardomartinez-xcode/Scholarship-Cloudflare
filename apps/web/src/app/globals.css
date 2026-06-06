@@ -2017,6 +2017,14 @@ select option {
   overscroll-behavior: contain;
 }
 
+.ui-select-viewport[role="listbox"] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
 .ui-select-search {
   position: sticky;
   top: 0;
@@ -2032,6 +2040,7 @@ select option {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  width: 100%;
   min-width: 0;
   padding: 10px 10px;
   border-radius: 14px;
