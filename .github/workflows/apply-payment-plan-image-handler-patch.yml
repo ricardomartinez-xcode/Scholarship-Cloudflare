@@ -23,19 +23,19 @@ jobs:
         shell: bash
         run: |
           cat > /tmp/payment_plan_handler.txt <<'TS'
-]); const handleCopyPaymentPlanImage = useCallback(async (sectionTitle?: string) => {
+          ]); const handleCopyPaymentPlanImage = useCallback(async (sectionTitle?: string) => {
             const sections = sectionTitle
               ? paymentPlanSections.filter((section) => section.title === sectionTitle)
               : paymentPlanSections;
-
+          
             if (!sections.length) {
               setCopyQuoteImageStatus("No hay plan de pagos para exportar.");
               return;
             }
-
+          
             setCopyQuoteImagePending(true);
             setCopyQuoteImageStatus(null);
-
+          
             try {
               const width = 720;
               const padding = 32;
@@ -44,16 +44,16 @@ jobs:
               const rowHeight = 42;
               const sectionHeaderHeight = 58;
               const height = padding * 2 + 72 + sections.reduce((total, section) => total + sectionHeaderHeight + section.rows.length * rowHeight + 24, 0);
-
+          
               const canvas = document.createElement("canvas");
               canvas.width = width * scale;
               canvas.height = height * scale;
               canvas.style.width = `${width}px`;
               canvas.style.height = `${height}px`;
-
+          
               const ctx = canvas.getContext("2d");
               if (!ctx) throw new Error("No fue posible preparar la imagen.");
-
+          
               ctx.scale(scale, scale);
               drawRoundedRect(ctx, 0.5, 0.5, width - 1, height - 1, 18, "#ffffff", "#c8d5df");
               ctx.fillStyle = "#55728b";
@@ -62,22 +62,22 @@ jobs:
               ctx.fillStyle = "#17385f";
               ctx.font = `800 36px ${fontFamily}`;
               ctx.fillText(sectionTitle ?? "Todos los cuatrimestres", padding, padding + 60);
-
+          
               let y = padding + 92;
               for (const section of sections) {
                 const total = round2(section.rows.reduce((sum, row) => sum + row.amount, 0));
                 const cardHeight = sectionHeaderHeight + section.rows.length * rowHeight;
                 drawRoundedRect(ctx, padding, y, width - padding * 2, cardHeight, 18, "#eef5f9", "#cbdce8");
-
+          
                 ctx.fillStyle = "#55728b";
                 ctx.font = `800 14px ${fontFamily}`;
-                ctx.fillText(section.title, padding + 24, y + 32);
+                ctx.fillText(section.title, padding, + 24, y + 32);
                 ctx.textAlign = "right";
                 ctx.fillStyle = "#17385f";
                 ctx.font = `800 20px ${fontFamily}`;
                 ctx.fillText(formatMoney(total), width - padding - 24, y + 32);
                 ctx.textAlign = "left";
-
+          
                 let rowY = y + sectionHeaderHeight;
                 for (const row of section.rows) {
                   ctx.fillStyle = "#17385f";
@@ -95,16 +95,16 @@ jobs:
                 }
                 y += cardHeight + 24;
               }
-
+          
               const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((value) => resolve(value), "image/png", 0.98));
               if (!blob) throw new Error("No fue posible generar la imagen.");
-
+          
               if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
                 await navigator.clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })]);
                 setCopyQuoteImageStatus(sectionTitle ? "El cuatrimestre se copió como imagen." : "Los planes de pago se copiaron como imagen.");
                 return;
               }
-
+          
               const url = URL.createObjectURL(blob);
               const link = document.createElement("a");
               link.href = url;
@@ -118,7 +118,7 @@ jobs:
               setCopyQuoteImagePending(false);
             }
           }, [paymentPlanSections]); return ( <>
-TS
+          TS
           python <<'PY'
           from pathlib import Path
           path = Path("apps/web/src/components/ScholarshipCalculator.tsx")
