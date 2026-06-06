@@ -258,7 +258,7 @@ test.describe("WhatsApp media automation", () => {
     }
   });
 
-  test("usa el input image/* simple como fallback cuando es el único disponible", async ({ page }) => {
+  test("no usa el input image/* simple que dispara Sticker Maker", async ({ page }) => {
     await setFixture(page, stickerOnlyAttachmentFixture());
 
     const inputId = await page.evaluate(() => {
@@ -270,7 +270,7 @@ test.describe("WhatsApp media automation", () => {
       return win.RecalcWaSelectors.findAttachmentInput("media", null)?.id ?? null;
     });
 
-    expect(inputId).toBe("sticker-input");
+    expect(inputId).toBeNull();
   });
 
   test("usa el botón contenedor real para adjuntar y escribe el caption dentro del modal", async ({ page }) => {
@@ -321,7 +321,7 @@ test.describe("WhatsApp media automation", () => {
     expect(result.sendResult.captionApplied).toBe(true);
     expect(result.state.attachButtonClicks).toBe(1);
     expect(result.state.attachIconClicks).toBe(0);
-    expect([null, "media-option"]).toContain(result.state.selectedOption);
+    expect(result.state.selectedOption).toBe("media-option");
     expect(result.state.lastChangedInput).toBe("media-input");
     expect(result.state.modalSendClicks).toBe(1);
     expect(result.state.modalSendIconClicks).toBe(0);

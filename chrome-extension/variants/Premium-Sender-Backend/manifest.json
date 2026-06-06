@@ -1,0 +1,66 @@
+{
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  "name": "ReCalc Sender",
+  "description": "Extensión ReCalc para envíos, campañas, adjuntos, plantillas y automatización de WhatsApp Web con acceso completo sin licencia.",
+  "version": "1.1.0",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.min.js"
+  },
+  "host_permissions": [
+    "https://web.whatsapp.com/*",
+    "https://recalc.relead.com.mx/*",
+    "http://ip-api.com/*"
+  ],
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting",
+    "activeTab",
+    "unlimitedStorage"
+  ],
+  "content_scripts": [
+    {
+      "js": [
+        "content.min.js"
+      ],
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "js": [
+        "page.min.js",
+        "lib.min.js"
+      ],
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://web.whatsapp.com/*"
+    ]
+  },
+  "action": {
+    "default_icon": {
+      "16": "images/16x16.png",
+      "48": "images/48x48.png",
+      "128": "images/128x128.png"
+    },
+    "default_title": "ReCalc Sender",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "images/16x16.png",
+    "48": "images/48x48.png",
+    "128": "images/128x128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'self'; connect-src 'self' https://recalc.relead.com.mx http://ip-api.com https://web.whatsapp.com; img-src 'self' data: blob: https://recalc.relead.com.mx; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
+  }
+}

@@ -344,9 +344,14 @@ export default function PricesClient({
 
   const [deleteTransition, startDeleteTransition] = useTransition();
   const [importLoading, setImportLoading] = useState(false);
+  const [applyImportLoading, setApplyImportLoading] = useState(false);
+  const [rollbackImportLoading, setRollbackImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSummary, setImportSummary] = useState<PriceImportSummary | null>(null);
   const [importPreviewRows, setImportPreviewRows] = useState<PriceImportPreviewRow[]>([]);
+  const [importSessionId, setImportSessionId] = useState<string | null>(null);
+  const [importApplied, setImportApplied] = useState(false);
+  const [importRolledBack, setImportRolledBack] = useState(false);
 
   const { handleSubmit, saveState, saving, clearSaveState } = useAdminActionForm(
     upsertMontoOverrideAction,
@@ -436,8 +441,9 @@ export default function PricesClient({
   async function validateImportCsv() {
     setImportLoading(true);
     setImportError(null);
+    setImportApplied(false);
+    setImportRolledBack(false);
     setImportSummary(null);
-    setImportPreviewRows([]);
     try {
       const file = importFileRef.current?.files?.[0] ?? null;
       if (!file) {
@@ -456,11 +462,64 @@ export default function PricesClient({
       }
       setImportSummary(payload);
       setImportPreviewRows(payload.previewRows ?? []);
-      router.push(`/admin/importaciones/${payload.sessionId}`);
+      setImportSessionId(payload.sessionId);
     } catch (error) {
       setImportError(error instanceof Error ? error.message : "No fue posible validar el CSV.");
     } finally {
       setImportLoading(false);
+    }
+  }
+
+  async function applyImportSession() {
+    if (!importSessionId) return;
+    setApplyImportLoading(true);
+    setImportError(null);
+    try {
+      const response = await fetch(`/api/admin/prices/import/${importSessionId}/apply`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as PriceImportSummary | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible aplicar la sesión.");
+      }
+      setImportSummary((previous) =>
+        previous
+          ? { ...previous, ...payload, applied: true }
+          : { ...payload, applied: true },
+      );
+      setImportApplied(true);
+      setImportRolledBack(false);
+      router.refresh();
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "No fue posible aplicar la importación.",
+      );
+    } finally {
+      setApplyImportLoading(false);
+    }
+  }
+
+  async function rollbackImportSession() {
+    if (!importSessionId) return;
+    setRollbackImportLoading(true);
+    setImportError(null);
+    try {
+      const response = await fetch(`/api/admin/prices/import/${importSessionId}/rollback`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { ok: true } | ApiError;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.ok === false ? payload.error : "No fue posible revertir la sesión.");
+      }
+      setImportRolledBack(true);
+      setImportApplied(false);
+      router.refresh();
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "No fue posible ejecutar rollback.",
+      );
+    } finally {
+      setRollbackImportLoading(false);
     }
   }
 
@@ -509,18 +568,36 @@ export default function PricesClient({
               Importar precio lista
             </div>
             <p className="mt-1 text-sm text-slate-300">
-              Importa archivos XLSX o CSV con el orden canónico de precio. Se crea un
-              borrador para revisar diff y confirmar la publicación.
+              Importa archivos XLSX o CSV con el orden canónico de precio. Se genera preview
+              de diff antes de aplicar cambios.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={validateImportCsv}
-              disabled={importLoading}
+              disabled={importLoading || applyImportLoading || rollbackImportLoading}
               className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60"
             >
-              {importLoading ? "Analizando..." : "Revisar diff y publicar"}
+              {importLoading ? "Analizando..." : "Validar archivo"}
+            </button>
+            <button
+              type="button"
+              onClick={applyImportSession}
+              disabled={Boolean(
+                !importSessionId || applyImportLoading || importSummary?.errors?.length,
+              )}
+              className="rounded-xl border border-emerald-500/40 bg-blue-950/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-blue-950/25 disabled:opacity-60"
+            >
+              {applyImportLoading ? "Aplicando..." : "Aplicar"}
+            </button>
+            <button
+              type="button"
+              onClick={rollbackImportSession}
+              disabled={!importSessionId || !importApplied || rollbackImportLoading}
+              className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60"
+            >
+              {rollbackImportLoading ? "Revirtiendo..." : "Rollback"}
             </button>
           </div>
         </div>
@@ -582,6 +659,11 @@ export default function PricesClient({
             {importSummary.errors.length ? (
               <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-xs text-red-100">
                 {importSummary.errors[0]}
+              </div>
+            ) : null}
+            {importRolledBack ? (
+              <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                Rollback ejecutado para la sesión actual.
               </div>
             ) : null}
             {importPreviewRows.length ? (

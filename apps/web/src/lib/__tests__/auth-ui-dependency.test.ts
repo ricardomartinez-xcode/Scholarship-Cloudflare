@@ -19,11 +19,12 @@ describe("auth UI dependency boundaries", () => {
     }
   });
 
-  it("keeps OAuth buttons gated by verified Neon providers", () => {
-    const source = read("apps/web/src/components/auth/AuthMethodSwitcher.tsx");
-
-    expect(source).toContain('initialMethod = "password"');
-    expect(source).toContain("oauthProviders.length");
-    expect(source).not.toContain("<GoogleSignInButton");
+  it("keeps public auth pages off mutating server session reads", () => {
+    for (const relativePath of [
+      "apps/web/src/app/(public)/auth/sign-in/page.tsx",
+      "apps/web/src/app/(public)/auth/sign-up/page.tsx",
+    ]) {
+      expect(read(relativePath)).not.toContain("auth.getSession");
+    }
   });
 });

@@ -1995,12 +1995,24 @@ select option {
     calc(100vw - 24px)
   );
   max-width: calc(100vw - 24px);
-  max-height: min(360px, var(--radix-select-content-available-height));
+  max-height: min(
+    360px,
+    var(
+      --radix-select-content-available-height,
+      var(--radix-popover-content-available-height, calc(100dvh - 24px))
+    )
+  );
 }
 
 .ui-select-viewport {
   padding: 6px;
-  max-height: min(360px, var(--radix-select-content-available-height));
+  max-height: min(
+    360px,
+    var(
+      --radix-select-content-available-height,
+      var(--radix-popover-content-available-height, calc(100dvh - 24px))
+    )
+  );
   overflow: auto;
   overscroll-behavior: contain;
 }

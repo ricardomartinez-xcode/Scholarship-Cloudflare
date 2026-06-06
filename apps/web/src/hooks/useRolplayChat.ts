@@ -42,20 +42,12 @@ export function useRolplayChat(chatId: string) {
           throw new Error("No se pudo enviar el mensaje.");
         }
 
-        const payload = (await response.json()) as {
-          message: RolplayMessage;
-          agentMessage?: RolplayMessage | null;
-        };
+        const payload = (await response.json()) as { message: RolplayMessage };
         setMessages((current) => {
-          const next = [...current];
-          for (const message of [payload.message, payload.agentMessage].filter(
-            Boolean,
-          ) as RolplayMessage[]) {
-            if (!next.some((currentMessage) => currentMessage.id === message.id)) {
-              next.push(message);
-            }
+          if (current.some((message) => message.id === payload.message.id)) {
+            return current;
           }
-          return next;
+          return [...current, payload.message];
         });
         return true;
       } catch {

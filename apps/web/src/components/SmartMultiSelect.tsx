@@ -60,23 +60,33 @@ export default function SmartMultiSelect({
     });
   }, [options, query, shouldSearch]);
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (!nextOpen) {
-      setQuery("");
-      return;
-    }
-    setActiveIndex(0);
+  const focusActiveOption = (index: number) => {
     window.requestAnimationFrame(() => {
       if (shouldSearch) {
         inputRef.current?.focus();
-      } else {
-        const active = listRef.current?.querySelector(
-          `[data-index="0"]`
-        ) as HTMLElement | null;
-        active?.focus();
+        return;
       }
+
+      const active = listRef.current?.querySelector(
+        `[data-index="${index}"]`
+      ) as HTMLElement | null;
+      active?.focus();
     });
+  };
+
+  const openAtIndex = (index: number) => {
+    setOpen(true);
+    setActiveIndex(index);
+    focusActiveOption(index);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setOpen(false);
+      setQuery("");
+      return;
+    }
+    openAtIndex(0);
   };
 
   useEffect(() => {
@@ -116,6 +126,14 @@ export default function SmartMultiSelect({
       event.preventDefault();
       moveActive(-1);
     }
+    if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(Math.max(filteredOptions.length - 1, 0));
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       const opt = filteredOptions[activeIndex];
@@ -124,6 +142,19 @@ export default function SmartMultiSelect({
     if (event.key === "Escape") {
       event.preventDefault();
       handleOpenChange(false);
+    }
+  }
+
+  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (open) return;
+
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenChange(true);
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      openAtIndex(Math.max(filteredOptions.length - 1, 0));
     }
   }
 
@@ -148,6 +179,7 @@ export default function SmartMultiSelect({
             aria-expanded={open}
             aria-haspopup="listbox"
             aria-controls={listId}
+            onKeyDown={handleTriggerKeyDown}
           >
             <span className="truncate">{display}</span>
             <span className="ui-select-icon" aria-hidden="true">
@@ -158,10 +190,12 @@ export default function SmartMultiSelect({
 
         <Popover.Portal>
           <Popover.Content
+            avoidCollisions
             sideOffset={8}
             collisionPadding={12}
             className="ui-select-content"
             align="start"
+            sticky="always"
             onKeyDown={onKeyDown}
             style={{
               width: "var(--radix-popover-trigger-width)",

@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth/server";
 import AuthMethodSwitcher from "@/components/auth/AuthMethodSwitcher";
 import BrandedAuthShell from "@/components/auth/BrandedAuthShell";
 import { getInviteByToken } from "@/lib/invites";
-import { getVerifiedNeonAuthOAuthProviders, toOAuthProviderOptions } from "@/lib/neon-auth-oauth";
 import { getSystemRoleMeta } from "@/lib/system-roles";
 
 export const dynamic = "force-dynamic";
@@ -31,24 +28,10 @@ export default async function SignInPage({
   const invite = inviteToken ? await getInviteByToken(inviteToken) : null;
   const inviteRoleLabel = invite ? getSystemRoleMeta(invite.role).label : "Invitación pendiente";
 
-  let session: Awaited<ReturnType<typeof auth.getSession>>["data"] | null = null;
-  if (process.env.NEON_AUTH_BASE_URL?.trim()) {
-    ({ data: session } = await auth.getSession());
-  }
-  if (session?.user) {
-    redirect(next || "/unidep");
-  }
-  const oauthProviders = toOAuthProviderOptions(await getVerifiedNeonAuthOAuthProviders());
-
   return (
     <BrandedAuthShell
       eyebrow={fromInvite ? "Invitación" : "Acceso"}
       surfaceTitle="Iniciar sesión"
-      surfaceDescription={
-        fromInvite
-          ? "Usa el correo invitado. Las opciones externas solo aparecen cuando están disponibles."
-          : "Entra con correo y contraseña. Las opciones externas solo aparecen cuando están disponibles."
-      }
       footer={
         <div className="ui-auth-links text-xs">
           <div className="text-slate-300">
@@ -113,7 +96,6 @@ export default async function SignInPage({
         lockedEmail={fromInvite && !!prefilledEmail}
         next={next}
         fromInvite={fromInvite}
-        oauthProviders={oauthProviders}
       />
     </BrandedAuthShell>
   );

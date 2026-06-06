@@ -687,8 +687,7 @@ export default function ScholarshipCalculator({
           option.enrollmentType === tipo &&
           option.businessLine === campusOption.businessLine &&
           option.modality === campusOption.modality &&
-          option.plan === campusOption.plan &&
-          option.module === campusOption.module,
+          option.plan === campusOption.plan,
       ),
     );
   }, [campusPricingOptions, pricingOptions, tipo]);

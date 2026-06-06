@@ -1259,7 +1259,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       state.token = await getStoredSessionToken();
       if (!state.token) {
-        throw new Error("Inicia sesión con Scholarship en la extensión antes de crear campañas.");
+        throw new Error("Inicia sesion en la extension antes de crear campañas.");
       }
       if (!state.bootstrap) {
         await loadBootstrap();
@@ -1346,7 +1346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.token = await getStoredSessionToken();
     if (!state.token) {
       state.bootstrap = null;
-      setApiPill("warning", "Login Scholarship requerido");
+      setApiPill("warning", "Inicia sesion para campañas");
       renderRunnerStatus();
       renderCampaignActions(getSelectedCampaign());
       return;

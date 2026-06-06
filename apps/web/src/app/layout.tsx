@@ -34,7 +34,12 @@ export default function RootLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} ui-density-compact-desktop antialiased`}
       >
-        <div>{children}</div>
+        <a className="ui-skip-link" href="#main-content">
+          Saltar al contenido
+        </a>
+        <div id="main-content" tabIndex={-1}>
+          {children}
+        </div>
       </body>
     </html>
   );

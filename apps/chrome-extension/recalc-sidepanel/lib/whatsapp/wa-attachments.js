@@ -110,6 +110,26 @@
       await openAttachmentMenu(pack);
 
       if (kind === "media") {
+        const mediaOption =
+          selectors.findAttachmentOption("media") ||
+          selectors.findAttachmentOptionByPosition(1) ||
+          selectors.findAttachmentOptionByPosition(0);
+
+        if (mediaOption) {
+          await chooseAttachmentOption(kind);
+          const input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 5000, 200);
+          if (input) {
+            log("Input de adjunto listo.", {
+              kind,
+              accept: String(input.accept || ""),
+              attempt: attempt + 1,
+            });
+            return input;
+          }
+          await textUtils.wait(250);
+          continue;
+        }
+
         const existingMediaInput = await textUtils.waitFor(
           () => selectors.findAttachmentInput(kind, pack),
           800,

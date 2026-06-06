@@ -3,8 +3,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import {
+  allowedVariantRoots,
   exactCopyFiles,
-  manualVariantRoots,
   repoRoot,
   sourceRoot,
   variantRoots,
@@ -29,8 +29,8 @@ function verifyFile(sourcePath, variantPath) {
 
 const failures = [];
 const variantsRoot = path.join(repoRoot, "chrome-extension", "variants");
-const configuredVariantNames = new Set(
-  [...variantRoots, ...manualVariantRoots].map((variantRoot) => path.basename(variantRoot)),
+const allowedVariantNames = new Set(
+  (allowedVariantRoots ?? variantRoots).map((variantRoot) => path.basename(variantRoot)),
 );
 
 if (!existsSync(variantsRoot)) {
@@ -41,7 +41,7 @@ if (!existsSync(variantsRoot)) {
   );
 
   for (const variantName of existingVariantNames) {
-    if (!configuredVariantNames.has(variantName)) {
+    if (!allowedVariantNames.has(variantName)) {
       failures.push(`unexpected variant ${path.join("chrome-extension", "variants", variantName)}`);
     }
   }
@@ -50,12 +50,6 @@ if (!existsSync(variantsRoot)) {
 for (const variantRoot of variantRoots) {
   if (!existsSync(variantRoot)) {
     failures.push(`missing configured variant ${path.relative(repoRoot, variantRoot)}`);
-  }
-}
-
-for (const variantRoot of manualVariantRoots) {
-  if (!existsSync(variantRoot)) {
-    failures.push(`missing manual variant ${path.relative(repoRoot, variantRoot)}`);
   }
 }
 

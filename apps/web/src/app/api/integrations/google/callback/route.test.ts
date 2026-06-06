@@ -2,28 +2,26 @@ import { describe, expect, it } from "vitest";
 
 import { GET, POST } from "./route";
 
-describe("Google OAuth callback disabled route", () => {
-  it("returns the temporary disabled response for GET", async () => {
+describe("Google OAuth callback route", () => {
+  it("keeps external OAuth callbacks temporarily disabled", async () => {
     const response = await GET();
-    const body = await response.json();
 
-    expect(response.status).toBe(503);
-    expect(body).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       ok: false,
       disabled: true,
       code: "oauth_integrations_temporarily_disabled",
     });
+    expect(response.status).toBe(503);
   });
 
-  it("returns the temporary disabled response for POST", async () => {
+  it("uses the same disabled contract for POST", async () => {
     const response = await POST();
-    const body = await response.json();
 
-    expect(response.status).toBe(503);
-    expect(body).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       ok: false,
       disabled: true,
       code: "oauth_integrations_temporarily_disabled",
     });
+    expect(response.status).toBe(503);
   });
 });

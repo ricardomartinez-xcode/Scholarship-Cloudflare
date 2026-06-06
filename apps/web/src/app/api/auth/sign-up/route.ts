@@ -10,6 +10,20 @@ const buildErrorUrl = (message: string, token?: string) => {
   return token ? `${base}&token=${encodeURIComponent(token)}` : base;
 };
 
+function safeCallbackPath(value: FormDataEntryValue | null, token: string) {
+  const fallback = token ? `/invite/accept?token=${encodeURIComponent(token)}` : "/unidep";
+  const raw = String(value ?? "").trim();
+  if (!raw.startsWith("/") || raw.startsWith("//")) return fallback;
+
+  try {
+    const url = new URL(raw, "https://recalc.local");
+    if (url.origin !== "https://recalc.local") return fallback;
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return fallback;
+  }
+}
+
 function buildInviteSignInUrl(params: {
   token?: string;
   email: string;
@@ -45,6 +59,7 @@ export async function POST(request: Request) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const token = String(formData.get("token") ?? "").trim();
+  const callbackPath = safeCallbackPath(formData.get("callbackURL"), token);
 
   if (!email || !password) {
     return redirect(request, buildErrorUrl("Completa correo y contraseña.", token));
@@ -66,7 +81,7 @@ export async function POST(request: Request) {
     email,
     name,
     password,
-    callbackURL: origin,
+    callbackURL: `${origin}${callbackPath}`,
   });
 
   if (result?.error) {

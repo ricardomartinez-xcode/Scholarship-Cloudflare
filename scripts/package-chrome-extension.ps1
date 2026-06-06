@@ -11,7 +11,7 @@ if (-not (Test-Path $extensionRoot)) {
 
 $manifest = Get-Content (Join-Path $extensionRoot "manifest.json") -Raw | ConvertFrom-Json
 $version = [string]$manifest.version
-$zipPath = Join-Path $distRoot "ReCalc-Sender-Panel-$version.zip"
+$zipPath = Join-Path $distRoot "recalc-sidepanel-v$version.zip"
 $bundleRoot = Join-Path $distRoot "bundle"
 $bundleExtensionRoot = Join-Path $bundleRoot "extension"
 $bundleAssetsRoot = Join-Path $bundleRoot "store-assets"

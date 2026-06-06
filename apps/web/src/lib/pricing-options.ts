@@ -81,26 +81,11 @@ function compareOptions(left: QuotePricingOption, right: QuotePricingOption) {
   );
 }
 
-function replacementKey(option: {
-  businessLine: string;
-  modality: string;
-  plan: number;
-  programKey?: string | null;
-}) {
-  return [
-    option.businessLine,
-    option.modality,
-    option.plan,
-    option.programKey ?? "",
-  ].join("|");
-}
-
 export function buildQuotePricingOptions(
   rules: RuleSource[],
   priceOverrides: PriceOverrideSource[] = [],
 ): QuotePricingOption[] {
   const options = new Map<string, QuotePricingOption>();
-  const moduleSpecificReplacementKeys = new Set<string>();
 
   function addForAllEnrollmentTypes(params: {
     businessLine: string;
@@ -122,58 +107,19 @@ export function buildQuotePricingOptions(
     }
   }
 
-  for (const override of priceOverrides) {
-    const keys = targetRecord(override.targetKeys);
-    const businessLine = normalizeBusinessLine(
-      String(keys.nivel_key ?? keys.businessLine ?? keys.nivel ?? ""),
-    );
-    const modality = normalizeCanonicalModality(
-      String(keys.modalidad_key ?? keys.modality ?? keys.modalidad ?? ""),
-    );
-    const plan = normalizePlan(keys.plan);
-    const programKey = normalizeProgramKey(
-      keys.programa_key ??
-        keys.programaKey ??
-        keys.program_key ??
-        keys.programId ??
-        keys.program_id ??
-        keys.programa ??
-        keys.program,
-    );
-    const academicModule = academicModuleOrDefault(
-      keys.modulo ?? keys.module ?? keys.academicModule,
-    );
-
-    if (!businessLine || !modality || plan === null || academicModule === "Longitudinal") {
-      continue;
-    }
-
-    moduleSpecificReplacementKeys.add(
-      replacementKey({ businessLine, modality, plan, programKey }),
-    );
-  }
-
   for (const rule of rules) {
     const businessLine = normalizeBusinessLine(rule.businessLine);
     const modality = normalizeCanonicalModality(rule.modality);
     const plan = normalizePlan(rule.plan);
-    const programKey = normalizeProgramKey(rule.programKey ?? rule.programaKey);
 
     if (!businessLine || !modality || plan === null) continue;
-    if (
-      moduleSpecificReplacementKeys.has(
-        replacementKey({ businessLine, modality, plan, programKey }),
-      )
-    ) {
-      continue;
-    }
 
     addForAllEnrollmentTypes({
       businessLine,
       modality,
       plan,
       module: "Longitudinal",
-      programKey,
+      programKey: normalizeProgramKey(rule.programKey ?? rule.programaKey),
     });
   }
 

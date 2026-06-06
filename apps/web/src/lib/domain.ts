@@ -35,6 +35,12 @@ export const isAllowedUnidepEmail = (email?: string | null) => {
   );
 };
 
+export const isAllowedOperatorEmail = (email?: string | null) => {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return false;
+  return normalized.endsWith("@relead.com.mx");
+};
+
 export const isAllowedByEnv = (email?: string | null) => {
   const normalized = normalizeEmail(email);
   if (!normalized) return false;
@@ -43,4 +49,7 @@ export const isAllowedByEnv = (email?: string | null) => {
 };
 
 export const isAllowedEmail = (email?: string | null) =>
-  isRootAdminEmail(email) || isAllowedUnidepEmail(email) || isAllowedByEnv(email);
+  isRootAdminEmail(email) ||
+  isAllowedUnidepEmail(email) ||
+  isAllowedOperatorEmail(email) ||
+  isAllowedByEnv(email);

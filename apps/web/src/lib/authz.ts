@@ -183,8 +183,13 @@ function readExtensionTokenFromRequestHeaders(requestHeaders: Headers) {
   return authorization.slice(7).trim();
 }
 
-function isExtensionClientRequest(requestHeaders: Headers) {
-  return Boolean(requestHeaders.get("x-extension-client")?.trim());
+async function getExtensionSessionTokenFromHeaders() {
+  try {
+    const requestHeaders = await headers();
+    return readExtensionTokenFromRequestHeaders(requestHeaders);
+  } catch {
+    return "";
+  }
 }
 
 export async function getSessionUserFromExtensionToken(
@@ -259,20 +264,7 @@ export async function getSessionUser(): Promise<SessionUserState> {
   }
 
   try {
-    let requestHeaders = new Headers();
-    try {
-      requestHeaders = await headers();
-    } catch {
-      requestHeaders = new Headers();
-    }
-    const extensionSessionToken = readExtensionTokenFromRequestHeaders(requestHeaders);
-    if (isExtensionClientRequest(requestHeaders)) {
-      if (!extensionSessionToken) {
-        return { status: "unauthenticated", user: null, email: null };
-      }
-      return getSessionUserFromExtensionToken(extensionSessionToken);
-    }
-
+    const extensionSessionToken = await getExtensionSessionTokenFromHeaders();
     if (extensionSessionToken) {
       const extensionSessionState = await getSessionUserFromExtensionToken(
         extensionSessionToken,

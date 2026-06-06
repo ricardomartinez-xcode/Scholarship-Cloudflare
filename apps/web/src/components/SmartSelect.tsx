@@ -48,25 +48,35 @@ export default function SmartSelect({
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? "";
 
+  const focusActiveOption = (index: number) => {
+    window.requestAnimationFrame(() => {
+      if (shouldSearch) {
+        inputRef.current?.focus();
+        return;
+      }
+
+      const active = listRef.current?.querySelector(
+        `[data-index="${index}"]`
+      ) as HTMLElement | null;
+      active?.focus();
+    });
+  };
+
+  const openAtIndex = (index: number) => {
+    setOpen(true);
+    setActiveIndex(index);
+    focusActiveOption(index);
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
     if (!nextOpen) {
+      setOpen(false);
       setQuery("");
       return;
     }
 
     const idx = filteredOptions.findIndex((o) => o.value === value);
-    setActiveIndex(idx >= 0 ? idx : 0);
-    window.requestAnimationFrame(() => {
-      if (shouldSearch) {
-        inputRef.current?.focus();
-      } else {
-        const active = listRef.current?.querySelector(
-          `[data-index="${idx >= 0 ? idx : 0}"]`
-        ) as HTMLElement | null;
-        active?.focus();
-      }
-    });
+    openAtIndex(idx >= 0 ? idx : 0);
   };
 
   useEffect(() => {
@@ -102,6 +112,14 @@ export default function SmartSelect({
       event.preventDefault();
       moveActive(-1);
     }
+    if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(Math.max(filteredOptions.length - 1, 0));
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       const opt = filteredOptions[activeIndex];
@@ -110,6 +128,19 @@ export default function SmartSelect({
     if (event.key === "Escape") {
       event.preventDefault();
       handleOpenChange(false);
+    }
+  }
+
+  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (open) return;
+
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenChange(true);
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      openAtIndex(Math.max(filteredOptions.length - 1, 0));
     }
   }
 
@@ -129,6 +160,7 @@ export default function SmartSelect({
           aria-haspopup="listbox"
           aria-labelledby={labelId}
           aria-controls={selectId}
+          onKeyDown={handleTriggerKeyDown}
         >
           <span className="min-w-0 whitespace-normal break-words">
             {selectedLabel || placeholder}
@@ -141,10 +173,12 @@ export default function SmartSelect({
 
       <Popover.Portal>
         <Popover.Content
+          avoidCollisions
           sideOffset={8}
           collisionPadding={12}
           className="ui-select-content"
           align="start"
+          sticky="always"
           onKeyDown={onKeyDown}
           style={{
             width: "var(--radix-popover-trigger-width)",

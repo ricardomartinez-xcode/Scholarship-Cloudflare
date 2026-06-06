@@ -37,6 +37,46 @@ describe("admin UI patterns", () => {
     expect(source).toContain("End");
   });
 
+  it("keeps popovers and dialogs inside the visible viewport", () => {
+    const globals = read("apps/web/src/app/globals.css");
+    const a11yPass = read("apps/web/src/app/interface-a11y-responsive-pass.css");
+    const smartSelect = read("apps/web/src/components/SmartSelect.tsx");
+    const smartMultiSelect = read("apps/web/src/components/SmartMultiSelect.tsx");
+    const adminDialog = read("apps/web/src/components/admin/AdminDialogShell.tsx");
+
+    expect(globals).toContain("--radix-popover-content-available-height");
+    expect(globals).toContain("calc(100dvh - 24px)");
+    expect(a11yPass).toContain("[data-radix-popper-content-wrapper]");
+    expect(smartSelect).toContain('sticky="always"');
+    expect(smartSelect).toContain("avoidCollisions");
+    expect(smartSelect).toContain("function handleTriggerKeyDown");
+    expect(smartSelect).toContain('event.key === "ArrowDown"');
+    expect(smartSelect).toContain('event.key === "Enter"');
+    expect(smartMultiSelect).toContain('sticky="always"');
+    expect(smartMultiSelect).toContain("avoidCollisions");
+    expect(smartMultiSelect).toContain("function handleTriggerKeyDown");
+    expect(adminDialog).toContain("max-h-[calc(100dvh-1rem)]");
+  });
+
+  it("keeps admin navigation ordered by daily workflow", () => {
+    const source = read("apps/web/src/config/dashboard-navigation.ts");
+    const order = [
+      'key: "admin-summary"',
+      'key: "admin-access"',
+      'key: "admin-academics"',
+      'key: "admin-unidep-catalogs"',
+      'key: "admin-communication"',
+      'key: "admin-system"',
+    ];
+
+    let previous = -1;
+    for (const marker of order) {
+      const index = source.indexOf(marker);
+      expect(index, marker).toBeGreaterThan(previous);
+      previous = index;
+    }
+  });
+
   it("mounts the shared Excel-style table enhancer in protected admin pages", () => {
     const layout = read("apps/web/src/app/(admin)/admin/(protected)/layout.tsx");
     const enhancer = read("apps/web/src/components/admin/AdminTableExcelEnhancer.tsx");
@@ -56,19 +96,5 @@ describe("admin UI patterns", () => {
     expect(source).toContain("ACADEMIC_MODULES.map");
     expect(source).toContain('<th className="ui-cell-nowrap text-left">Materias por módulo</th>');
     expect(source).toContain("<td className=\"text-xs text-slate-300\">{row.subjectsByModule ?? \"—\"}</td>");
-  });
-
-  it("routes price import drafts to the session detail for diff review and publication", () => {
-    const source = read("apps/web/src/components/admin/PricesClient.tsx");
-
-    expect(source).toContain("router.push(`/admin/importaciones/${payload.sessionId}`)");
-    expect(source).toContain("Revisar diff y publicar");
-    expect(source).not.toContain("onClick={applyImportSession}");
-  });
-
-  it("intersects calculator pricing availability by academic module", () => {
-    const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
-
-    expect(source).toContain("option.module === campusOption.module");
   });
 });

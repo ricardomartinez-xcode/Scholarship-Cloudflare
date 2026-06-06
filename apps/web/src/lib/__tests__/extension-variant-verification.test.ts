@@ -29,47 +29,53 @@ describe("extension variant verification", () => {
     ).toBe(true);
   });
 
-  it("keeps the single generated extension variant explicit", async () => {
+  it("registers sidepanel and popup extension variants", async () => {
     const config = (await import(
       pathToFileURL(path.join(rootDir, "scripts/extension-variant-config.mjs")).href
-    )) as { manualVariantRoots: string[]; variantRoots: string[] };
-    const variantNames = config.variantRoots.map((variantRoot) =>
+    )) as { allowedVariantRoots: string[]; variantRoots: string[] };
+    const allowedVariantNames = config.allowedVariantRoots.map((variantRoot) =>
       path.basename(variantRoot),
     );
-    const manualVariantNames = config.manualVariantRoots.map((variantRoot) =>
+    const variantNames = config.variantRoots.map((variantRoot) =>
       path.basename(variantRoot),
     );
 
     expect(variantNames).toEqual(["preview-first"]);
-    expect(manualVariantNames).toEqual([]);
+    expect(allowedVariantNames).toEqual(["preview-first", "Premium-Sender-Backend"]);
     expect(
       fs.existsSync(path.join(rootDir, "chrome-extension/variants/preview-first")),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(rootDir, "chrome-extension/variants/composer-first")),
-    ).toBe(false);
+      fs.existsSync(path.join(rootDir, "chrome-extension/variants/Premium-Sender-Backend")),
+    ).toBe(true);
   });
 
-  it("keeps the active variant as the fused ReCalc Sender panel", () => {
-    const variantRoot = path.join(rootDir, "chrome-extension/variants/preview-first");
+  it("keeps the recovered popup variant pointed at ReCalc legacy aliases", () => {
+    const variantRoot = path.join(
+      rootDir,
+      "chrome-extension/variants/Premium-Sender-Backend",
+    );
     const manifest = JSON.parse(
       fs.readFileSync(path.join(variantRoot, "manifest.json"), "utf8"),
     ) as {
-      action?: { default_popup?: string; default_title?: string };
+      content_security_policy?: { extension_pages?: string; "connect-src"?: string };
       host_permissions?: string[];
       name?: string;
-      side_panel?: { default_path?: string };
-      version?: string;
     };
-    const blockedSuffix = "." + "php";
+    const popupBundle = fs.readFileSync(path.join(variantRoot, "popup.min.js"), "utf8");
+    const backgroundBundle = fs.readFileSync(
+      path.join(variantRoot, "background.min.js"),
+      "utf8",
+    );
 
     expect(manifest.name).toBe("ReCalc Sender");
-    expect(manifest.version).toBe("6.2.1");
-    expect(manifest.action?.default_title).toBe("ReCalc Sender");
-    expect(manifest.action?.default_popup).toBeUndefined();
-    expect(manifest.side_panel?.default_path).toBe("panel.html");
     expect(manifest.host_permissions).toContain("https://recalc.relead.com.mx/*");
-    expect(manifest.host_permissions).toContain("https://web.whatsapp.com/*");
-    expect(JSON.stringify(manifest)).not.toContain(blockedSuffix);
+    expect(JSON.stringify(manifest.content_security_policy)).toContain(
+      "https://recalc.relead.com.mx",
+    );
+    expect(`${popupBundle}\n${backgroundBundle}`).not.toContain("premiumsender.app");
+    expect(`${popupBundle}\n${backgroundBundle}`).not.toMatch(/\/(?:mv3\/)?[a-z0-9-]+\.php/);
+    expect(popupBundle).toContain("/get-license");
+    expect(backgroundBundle).toContain("/uninstall");
   });
 });

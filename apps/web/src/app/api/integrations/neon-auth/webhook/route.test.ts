@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { NextRequest } from "next/server";
@@ -12,24 +11,12 @@ vi.mock("@/lib/mailer", () => ({
 import { GET, POST } from "./route";
 
 const ORIGINAL_ENV = { ...process.env };
-const SECRET = "whsec_" + Buffer.from("test-neon-auth-svix-secret").toString("base64");
 
-function signSvixPayload({ id, timestamp, rawBody }: { id: string; timestamp: string; rawBody: string }) {
-  const digest = createHmac("sha256", Buffer.from(SECRET.slice("whsec_".length), "base64"))
-    .update(`${id}.${timestamp}.${rawBody}`)
-    .digest("base64");
-
-  return `v1,${digest}`;
-}
-
-function buildSvixRequest(rawBody: string, signature = signSvixPayload({ id: "msg_123", timestamp: "1", rawBody })) {
+function buildWebhookRequest(rawBody: string) {
   return new Request("https://recalc.relead.com.mx/api/integrations/neon-auth/webhook", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "svix-id": "msg_123",
-      "svix-timestamp": "1",
-      "svix-signature": signature,
     },
     body: rawBody,
   }) as NextRequest;
@@ -42,7 +29,7 @@ describe("Neon Auth webhook route", () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
     process.env = { ...ORIGINAL_ENV };
-    process.env.NEON_AUTH_WEBHOOK_SECRET = SECRET;
+    delete process.env.NEON_AUTH_WEBHOOK_SECRET;
     delete process.env.NEON_AUTH_WEBHOOK_FORWARD_URL;
     delete process.env.NEON_AUTH_WEBHOOK_VERIFY_SIGNATURE;
     delete process.env.NEON_AUTH_BASE_URL;
@@ -62,24 +49,31 @@ describe("Neon Auth webhook route", () => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  it("accepts valid Svix-signed Neon Auth deliveries", async () => {
-    const rawBody = JSON.stringify({ event: "user.created" });
+  it("allows Neon Auth account creation events in legacy mode", async () => {
+    const rawBody = JSON.stringify({ event: "user.before_create" });
 
-    const response = await POST(buildSvixRequest(rawBody));
+    const response = await POST(buildWebhookRequest(rawBody));
 
-    await expect(response.json()).resolves.toEqual({
-      ok: true,
-      event: "user.created",
-      delivered: false,
-      mode: "legacy_invitation_neon_auth_only",
-    });
+    await expect(response.json()).resolves.toEqual({ allowed: true });
     expect(response.status).toBe(200);
   });
 
-  it("keeps legacy mode even when Svix signature does not match", async () => {
+  it("recognizes Neon Auth event_type account creation hooks", async () => {
+    const rawBody = JSON.stringify({
+      event_type: "user.before_create",
+      user: { email: "new-user@unidep.edu.mx" },
+    });
+
+    const response = await POST(buildWebhookRequest(rawBody));
+
+    await expect(response.json()).resolves.toEqual({ allowed: true });
+    expect(response.status).toBe(200);
+  });
+
+  it("records non-delivery events without forwarding in legacy mode", async () => {
     const rawBody = JSON.stringify({ event: "user.created" });
 
-    const response = await POST(buildSvixRequest(rawBody, "v1,invalid"));
+    const response = await POST(buildWebhookRequest(rawBody));
 
     await expect(response.json()).resolves.toEqual({
       ok: true,
@@ -97,16 +91,16 @@ describe("Neon Auth webhook route", () => {
       ok: true,
       service: "neon-auth-legacy-webhook",
       mode: "legacy_invitation_neon_auth_only",
+      smtpDeliveryConfigured: false,
       forwardingEnabled: false,
       jwksVerificationEnabled: false,
-      smtpDeliveryConfigured: false,
     });
   });
 
-  it("accepts delivery events without SMTP configured in legacy mode", async () => {
-    const rawBody = JSON.stringify({ event: "send.magic_link", email: "test@unidep.edu.mx" });
+  it("accepts delivery events without SMTP but marks them as not delivered", async () => {
+    const rawBody = JSON.stringify({ event_type: "send.magic_link", email: "test@unidep.edu.mx" });
 
-    const response = await POST(buildSvixRequest(rawBody));
+    const response = await POST(buildWebhookRequest(rawBody));
 
     await expect(response.json()).resolves.toEqual({
       ok: true,
@@ -132,7 +126,7 @@ describe("Neon Auth webhook route", () => {
       },
     });
 
-    const response = await POST(buildSvixRequest(rawBody));
+    const response = await POST(buildWebhookRequest(rawBody));
 
     await expect(response.json()).resolves.toEqual({
       ok: true,
@@ -166,7 +160,7 @@ describe("Neon Auth webhook route", () => {
       },
     });
 
-    const response = await POST(buildSvixRequest(rawBody));
+    const response = await POST(buildWebhookRequest(rawBody));
 
     await expect(response.json()).resolves.toEqual({
       ok: true,
@@ -184,13 +178,13 @@ describe("Neon Auth webhook route", () => {
     );
   });
 
-  it("does not forward OTP delivery events in legacy mode", async () => {
+  it("keeps forwarding disabled even when a legacy forward URL is present", async () => {
     process.env.NEON_AUTH_WEBHOOK_FORWARD_URL = "https://hooks.recalc.test/neon-auth";
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const rawBody = JSON.stringify({ event: "send.otp", email: "test@unidep.edu.mx" });
 
-    const response = await POST(buildSvixRequest(rawBody));
+    const response = await POST(buildWebhookRequest(rawBody));
 
     await expect(response.json()).resolves.toEqual({
       ok: true,

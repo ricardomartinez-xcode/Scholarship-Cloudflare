@@ -719,8 +719,6 @@ document.addEventListener("DOMContentLoaded", () => {
       headers.set(EXTENSION_SESSION_TOKEN_HEADER, token);
       headers.set("Authorization", `Bearer ${token}`);
     }
-    headers.set("x-extension-client", "chrome-sidepanel");
-    headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
     const response = await fetch(`${APP_BASE_URL}${path}`, {
       ...options,
       headers,
@@ -739,8 +737,6 @@ document.addEventListener("DOMContentLoaded", () => {
       headers.set(EXTENSION_SESSION_TOKEN_HEADER, token);
       headers.set("Authorization", `Bearer ${token}`);
     }
-    headers.set("x-extension-client", "chrome-sidepanel");
-    headers.set("x-extension-version", chrome?.runtime?.getManifest?.().version || "unknown");
     const response = await fetch(`${APP_BASE_URL}${path}`, {
       method: "POST",
       headers,
@@ -759,7 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
       throw new Error(data?.error || "No fue posible cargar el bootstrap de la extension.");
     }
     state.bootstrap = data;
-    setApiPill("success", "SelecPack activo");
+    setApiPill("success", "Conectado con Scholarship");
     return data;
   }
 
@@ -981,7 +977,6 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadCampaigns({ silent = false } = {}) {
     if (state.loadingCampaigns) return;
     state.loadingCampaigns = true;
-    const previousCampaigns = Array.isArray(state.campaigns) ? [...state.campaigns] : [];
     try {
       const { response, data } = await fetchJson("/api/ext/campaigns");
       if (!response.ok || !data?.ok) {
@@ -990,7 +985,6 @@ document.addEventListener("DOMContentLoaded", () => {
       state.campaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
       renderCampaignList();
       if (!silent) setFeedback("", "");
-      void maybeAutoResumeCampaign(previousCampaigns, state.campaigns);
     } catch (error) {
       if (!silent) {
         setFeedback("danger", error instanceof Error ? error.message : "No fue posible cargar campañas.");
@@ -1108,24 +1102,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function forcePauseCampaign(campaignId = state.runner?.campaignId ?? state.selectedCampaignId) {
-    const targetCampaignId = String(campaignId ?? "").trim();
-    if (!targetCampaignId) {
+    const campaign = state.campaigns.find((item) => item.id === campaignId) ?? null;
+    if (!campaign?.id) {
       throw new Error("Selecciona una campaña para pausarla.");
     }
 
-    let localRunnerError = null;
-    if (state.runner?.enabled && state.runner?.campaignId === targetCampaignId) {
-      try {
-        await stopLocalRunner();
-      } catch (error) {
-        localRunnerError = error instanceof Error ? error.message : "No fue posible detener el runner local.";
-      }
+    if (state.runner?.enabled && state.runner?.campaignId === campaign.id) {
+      await stopLocalRunner();
     }
 
-    await updateCampaignAction(targetCampaignId, "force_pause");
+    await updateCampaignAction(campaign.id, "pause");
     await loadCampaigns({ silent: true });
     await loadRunnerStatus();
-    return { localRunnerError };
   }
 
   async function deleteSelectedCampaign(campaignId = state.selectedCampaignId) {
@@ -1259,7 +1247,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       state.token = await getStoredSessionToken();
       if (!state.token) {
-        throw new Error("Inicia sesión con Scholarship en la extensión antes de crear campañas.");
+        throw new Error("Inicia sesion en la extension antes de crear campañas.");
       }
       if (!state.bootstrap) {
         await loadBootstrap();
@@ -1267,8 +1255,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       refreshRecipientDraft();
       ensureCampaignPayloadAllowed();
-
-      const automationSettings = getCampaignAutomationSettings();
 
       const payload = {
         campaignName: normalizeText(refs.campaignName.value) || "Campaña extensión",
@@ -1281,14 +1267,10 @@ document.addEventListener("DOMContentLoaded", () => {
         scheduleAt: refs.campaignSchedule.value || null,
         batchSize: Math.min(200, Math.max(1, Number(refs.campaignBatchSize.value) || 25)),
         messageTemplate: normalizeMultilineText(refs.campaignTemplate.value) || "",
-        messageDelayMs: automationSettings.messageDelayMs,
+        messageDelayMs: Math.max(0.25, Number(refs.campaignDelaySeconds.value) || 4) * 1000,
         mediaUrl: state.uploadedAsset?.secureUrl || null,
         meta: {
           source: "chrome_side_panel_campaigns",
-          extensionVersion: chrome?.runtime?.getManifest?.().version || "unknown",
-          batchDelayMs: automationSettings.batchDelayMs,
-          jitterMs: automationSettings.jitterMs,
-          scheduleTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Mexico_City",
           mediaPublicId: state.uploadedAsset?.publicId ?? null,
           mediaBytes: state.uploadedAsset?.bytes ?? null,
           mediaFormat: state.uploadedAsset?.format ?? null,
@@ -1326,14 +1308,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       setFeedback(state.recipientDraft.invalidCount ? "warning" : "success", pieces.join(" "));
 
-      const shouldStartNow = refs.campaignStartNow.checked;
-      const wasScheduled = Boolean(refs.campaignSchedule.value);
+      const shouldStartNow = refs.campaignStartNow.checked && !refs.campaignSchedule.value;
       resetCampaignForm();
       activateTab("reports-panel");
 
       if (shouldStartNow) {
         await startSelectedCampaign(data.campaign.id);
-        setFeedback("success", wasScheduled ? "Campaña programada y runner activado; se enviará a la hora indicada." : "Campaña creada e iniciada en el runner automático.");
+        setFeedback("success", "Campaña creada e iniciada en el runner automático.");
       }
     } catch (error) {
       setFeedback("danger", error instanceof Error ? error.message : "No fue posible crear la campaña.");
@@ -1346,7 +1327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.token = await getStoredSessionToken();
     if (!state.token) {
       state.bootstrap = null;
-      setApiPill("warning", "Login Scholarship requerido");
+      setApiPill("warning", "Inicia sesion para campañas");
       renderRunnerStatus();
       renderCampaignActions(getSelectedCampaign());
       return;
@@ -1420,12 +1401,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   refs.campaignStopRunner.addEventListener("click", async () => {
     try {
-      const result = await forcePauseCampaign();
-      if (result?.localRunnerError) {
-        setFeedback("warning", `Campaña pausada en backend, pero el runner local reportó: ${result.localRunnerError}`);
-      } else {
-        setFeedback("success", "La campaña seleccionada quedo en pausa segura.");
-      }
+      await forcePauseCampaign();
+      setFeedback("success", "La campaña seleccionada quedo en pausa segura.");
     } catch (error) {
       setFeedback("danger", error instanceof Error ? error.message : "No fue posible pausar la campaña.");
     }
@@ -1440,12 +1417,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   refs.campaignPauseSelected.addEventListener("click", async () => {
     try {
-      const result = await forcePauseCampaign();
-      if (result?.localRunnerError) {
-        setFeedback("warning", `Campaña pausada en backend, pero el runner local reportó: ${result.localRunnerError}`);
-      } else {
-        setFeedback("success", "La campaña fue pausada correctamente.");
-      }
+      await forcePauseCampaign();
+      setFeedback("success", "La campaña fue pausada correctamente.");
     } catch (error) {
       setFeedback("danger", error instanceof Error ? error.message : "No fue posible pausar la campaña.");
     }

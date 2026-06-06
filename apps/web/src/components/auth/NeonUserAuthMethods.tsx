@@ -282,7 +282,7 @@ export default function NeonUserAuthMethods({
       </div>
 
       <div className="rounded-lg border border-[color:var(--ui-border)] bg-white p-3 text-xs leading-5 text-[color:var(--ui-text-secondary)]">
-        <strong className="text-[color:var(--ui-text-primary)]">Invitaciones de organización:</strong> abre el enlace de invitación recibido por correo. Si te pide iniciar sesión o crear cuenta, usa el mismo correo invitado.
+        <strong className="text-[color:var(--ui-text-primary)]">Invitaciones de organización:</strong> abre el enlace de invitación recibido por correo. Si te pide iniciar sesión o crear cuenta, usa Google, magic link u OTP con el mismo correo invitado.
       </div>
     </section>
   );

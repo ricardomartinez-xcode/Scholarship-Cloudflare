@@ -6,9 +6,42 @@
     console.log("[ReCalc][WA]", ...args);
   }
 
+  const MEDIA_INSERTION_STRATEGY = "preview_first";
+
+  // Mantener un conjunto de tipos de imagen oficialmente soportados por WhatsApp.
+  // Sin embargo, para compatibilidad hacia atrás permitimos cualquier imagen
+  // salvo iconos (.ico) o equivalentes, porque el menú de adjuntos acepta
+  // prácticamente todos los formatos de foto. La lista se conserva por si
+  // el backend u otras funciones necesitan validar.
+  const SUPPORTED_WA_IMAGE_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "image/pjpeg",
+    "image/jfif",
+  ]);
+
+  function normalizeMimeType(value) {
+    return String(value || "").split(";")[0].trim().toLowerCase();
+  }
+
   function isMediaAttachment(file) {
-    const mime = String(file?.type || "").toLowerCase();
-    return mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/");
+    const mime = normalizeMimeType(file?.type);
+    // Considerar cualquier imagen como media, excepto formatos de iconos
+    // que WhatsApp no acepta como fotos. Si el tipo es uno de los
+    // oficialmente soportados, lo aceptamos directamente. Para otros
+    // tipos de imagen (por ejemplo GIF, BMP, JPG sin e), intentamos
+    // enviarlos como media; si WhatsApp los rechaza, se tratarán como
+    // documentos al nivel de la interfaz de usuario.
+    if (mime.startsWith("image/")) {
+      const unsupported = ["image/x-icon", "image/vnd.microsoft.icon"];
+      if (unsupported.includes(mime)) {
+        return false;
+      }
+      return true;
+    }
+    return mime.startsWith("video/") || mime.startsWith("audio/");
   }
 
   function splitAttachments(files) {
@@ -53,24 +86,37 @@
         code: "attachment_menu_not_found",
       });
     }
-    await textUtils.wait(300);
+    // Aumentar el tiempo de espera tras abrir el menú de adjuntos para
+    // permitir que la animación de aparición se complete. Algunos usuarios
+    // reportaron que el menú se cierra demasiado rápido cuando el delay es
+    // corto, impidiendo la selección correcta. 500 ms ofrece un margen
+    // suficiente sin degradar la experiencia.
+    await textUtils.wait(500);
   }
 
   async function chooseAttachmentOption(kind) {
+    // Para evitar depender del orden de las opciones del menú, primero intentamos
+    // localizar la opción correspondiente por palabras clave. Solo si no
+    // encontramos la opción por nombre hacemos un fallback a la posición
+    // numérica. WhatsApp ha cambiado el orden de los botones en varias
+    // versiones; apoyarnos exclusivamente en el índice puede provocar que
+    // seleccionemos la opción incorrecta (por ejemplo, Documentos en lugar de
+    // Fotos y videos). Si buscamos por nombre primero reducimos la probabilidad
+    // de fallar.
     const option = await textUtils.waitFor(() => {
       if (kind === "media") {
-        return (
-          selectors.findAttachmentOption("media") ||
-          selectors.findAttachmentOptionByPosition(1) ||
-          selectors.findAttachmentOptionByPosition(0)
-        );
+        // Buscar la opción de fotos y videos por palabras clave.
+        const foundByName = selectors.findAttachmentOption("media");
+        if (foundByName) return foundByName;
+        // Como último recurso usar la posición conocida (segunda opción). Si la
+        // posición no existe, devuelve undefined y waitFor continuará.
+        return selectors.findAttachmentOptionByPosition(1);
       }
-      return (
-        selectors.findAttachmentOption("document") ||
-        selectors.findAttachmentOptionByPosition(1) ||
-        selectors.findAttachmentOptionByPosition(0)
-      );
-    }, 4000, 150);
+      // Para documentos utilizamos la búsqueda por nombre únicamente. Buscar
+      // directamente por posición puede resultar en enviar un contacto o
+      // ubicación sin querer.
+      return selectors.findAttachmentOption("document");
+    }, 5000, 150);
     if (!option) {
       throw Object.assign(new Error("No fue posible encontrar la opción correcta de adjuntos."), {
         code: "attachment_option_not_found",
@@ -90,11 +136,17 @@
         code: "attachment_option_not_found",
       });
     }
-    await textUtils.wait(300);
+    // Dar más tiempo a la interfaz después de seleccionar la opción para
+    // asegurar que el input se genere correctamente. Un margen de 500 ms
+    // mejora la estabilidad en redes lentas o con cargas de CPU.
+    await textUtils.wait(500);
   }
 
   async function waitForPreview(pack) {
-    const preview = await textUtils.waitFor(() => selectors.findPreviewModal(pack), 6000, 200);
+    // Aumentar el timeout máximo para esperar el preview a 9 s. Algunos
+    // navegadores tardan más en renderizar el modal de adjuntos cuando
+    // existen muchas pestañas o limitaciones de red.
+    const preview = await textUtils.waitFor(() => selectors.findPreviewModal(pack), 9000, 200);
     if (!preview) {
       throw Object.assign(new Error("No se detectó un preview válido para la imagen."), {
         code: "attachment_preview_not_found",
@@ -108,24 +160,6 @@
   async function findReadyInput(kind, pack) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await openAttachmentMenu(pack);
-
-      if (kind === "media") {
-        const existingMediaInput = await textUtils.waitFor(
-          () => selectors.findAttachmentInput(kind, pack),
-          800,
-          100,
-        );
-        if (existingMediaInput) {
-          log("Input de adjunto listo.", {
-            kind,
-            accept: String(existingMediaInput.accept || ""),
-            attempt: attempt + 1,
-            source: "opened-menu",
-          });
-          return existingMediaInput;
-        }
-      }
-
       await chooseAttachmentOption(kind);
 
       const input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 5000, 200);
@@ -159,8 +193,15 @@
         continue;
       }
 
+      // Antes de escribir una nueva leyenda, limpiar explícitamente el composer
+      // del preview para evitar que textos anteriores se mezclen con el nuevo.
+      if (typeof textUtils.clearComposer === "function") {
+        textUtils.clearComposer(captionInput);
+        await textUtils.wait(250);
+      }
+
       const applied = textUtils.fillComposer(captionInput, normalized);
-      await textUtils.wait(450);
+      await textUtils.wait(650);
 
       if (applied && textUtils.composerText(captionInput) === normalized) {
         return { applied: true };
@@ -199,11 +240,6 @@
   async function primeComposerCaption(text, pack) {
     const normalized = String(text || "").trim();
     if (!normalized) return { applied: false };
-
-    const existingComposer = selectors.findMessageInput(pack);
-    if (textUtils.composerText(existingComposer) === normalized) {
-      return { applied: true, via: "existing" };
-    }
 
     const cleared = await clearComposerDraft(pack);
     if (!cleared.cleared) {
@@ -257,7 +293,9 @@
       250,
     );
     if (!previewClosed) {
-      log("El preview del adjunto no se cerró después de enviar; se continúa para evitar falso negativo.");
+      throw Object.assign(new Error("El preview del adjunto no se cerró después de intentar enviarlo."), {
+        code: "attachment_preview_not_closed",
+      });
     }
     await textUtils.wait(900);
   }
@@ -290,107 +328,158 @@
     return { ok: true, captionApplied: captionResult.applied || Boolean(normalizedCaption) };
   }
 
-  async function sendMediaAttachments(files, caption, pack) {
-    if (!files?.length) return { ok: true, captionApplied: false };
+  async function clearPreviewCaptionDraft(pack) {
+    const captionInput = selectors.findCaptionInput(pack);
+    if (!captionInput) {
+      return { cleared: true, previousText: "" };
+    }
+
+    const currentText = textUtils.composerText(captionInput);
+    if (typeof textUtils.clearComposer === "function") {
+      textUtils.clearComposer(captionInput);
+      await textUtils.wait(250);
+    }
+
+    const remainingText = textUtils.composerText(selectors.findCaptionInput(pack) || captionInput);
+    return {
+      cleared: !remainingText,
+      previousText: currentText,
+      remainingText,
+    };
+  }
+
+  async function waitForComposerConsumed(pack) {
+    return textUtils.waitFor(() => {
+      const composer = selectors.findMessageInput(pack);
+      return textUtils.composerText(composer) ? null : { cleared: true };
+    }, 5000, 250);
+  }
+
+  async function attachSingleMediaFile(file, pack) {
+    const input = await findReadyInput("media", pack);
+    assignFilesToInput(input, [file]);
+    await textUtils.wait(1800);
+    await waitForPreview(pack);
+    // Dar margen extra a WhatsApp para terminar de hidratar el modal antes de
+    // escribir caption o presionar enviar.
+    await textUtils.wait(700);
+  }
+
+  async function sendMediaPreviewFirst(files, caption, pack) {
     let captionApplied = false;
     const normalizedCaption = String(caption || "").trim();
-
-    /*
-     * WhatsApp Web tends to consume any text present in the main composer as a caption
-     * for the first media attachment you add. Previously this code attempted to write
-     * the caption into a dedicated caption field that appears in the preview. Recent
-     * changes to WhatsApp Web have made that field more difficult to target reliably,
-     * causing the fallback branch (sending the caption as a separate text message)
-     * to trigger. To keep the caption and media in the same message we now prime
-     * the main composer with the caption before picking the media file. When the
-     * file is selected, WhatsApp automatically moves the composer text into the
-     * caption field of the preview. If that fails we still fall back to the
-     * previous behaviour of writing the caption directly into the preview or
-     * keeping it in the composer.
-     */
-
-    // We will only apply the caption to the final media file if a caption was provided.
-    // This mirrors WhatsApp's behaviour of using a single caption across multiple
-    // attachments; adjust captionIndex if you want the caption on the first file instead.
     const captionIndex = normalizedCaption ? files.length - 1 : -1;
 
     for (const [index, file] of files.entries()) {
       const shouldApplyCaption = index === captionIndex && normalizedCaption;
 
-      // Clear any stray text from the composer to ensure we don't carry over
-      // unrelated drafts into the caption.
-      if (!shouldApplyCaption) {
-        const clearedComposer = await clearComposerDraft(pack);
-        if (!clearedComposer.cleared) {
-          log("No fue posible limpiar el borrador previo del composer.", clearedComposer);
-        }
+      // Variante A: limpiar caja principal, adjuntar imagen, limpiar caption
+      // del preview, escribir caption en preview y enviar desde preview.
+      const clearedComposer = await clearComposerDraft(pack);
+      if (!clearedComposer.cleared) {
+        log("No fue posible limpiar el composer antes de adjuntar media.", clearedComposer);
       }
 
-      // If this file should carry the caption, pre-fill the composer now. When the
-      // user selects the file, WhatsApp will consume the composer text as the
-      // caption for the media. We ignore whether this returns true here because
-      // the consumption happens after the file is selected.
+      log("Preparando media con estrategia preview_first.", {
+        index: index + 1,
+        total: files.length,
+        fileName: file.name,
+        strategy: MEDIA_INSERTION_STRATEGY,
+      });
+
+      await attachSingleMediaFile(file, pack);
+
+      let captionResult = { applied: false, via: "none" };
       if (shouldApplyCaption) {
-        await primeComposerCaption(normalizedCaption, pack);
-      }
-
-      log("Preparando media.", { index: index + 1, total: files.length, fileName: file.name });
-      const input = await findReadyInput("media", pack);
-      assignFilesToInput(input, [file]);
-      await textUtils.wait(1400);
-      await waitForPreview(pack);
-
-      let captionResult = { applied: false };
-
-      // After the preview appears, we try to apply the caption directly if it wasn't
-      // consumed from the composer. If it was consumed, writeCaptionIfPossible
-      // should detect that nothing needs to be done. This dual approach makes
-      // caption placement more robust across WhatsApp Web updates.
-      if (shouldApplyCaption) {
-        captionResult = await writeCaptionIfPossible(normalizedCaption, pack);
-        if (!captionResult.applied) {
-          // If the preview caption input didn't accept the text, fall back to keeping
-          // the caption in the composer. When the file is sent, WhatsApp should
-          // still merge it into the media message.
-          const composerCaptionResult = await primeComposerCaption(normalizedCaption, pack);
-          captionResult = composerCaptionResult.applied
-            ? { applied: true, via: "composer" }
-            : { applied: false };
-        } else {
-          captionResult = {
-            ...captionResult,
-            via: "preview",
-          };
-          await clearComposerDraft(pack);
+        const clearedPreview = await clearPreviewCaptionDraft(pack);
+        if (!clearedPreview.cleared) {
+          log("No fue posible limpiar el caption del preview antes de escribir.", clearedPreview);
         }
+        const previewResult = await writeCaptionIfPossible(normalizedCaption, pack);
+        captionResult = previewResult.applied
+          ? { ...previewResult, via: "preview" }
+          : { applied: false, via: "preview_failed" };
       }
-      captionApplied = captionApplied || captionResult.applied;
 
+      captionApplied = captionApplied || Boolean(captionResult.applied);
       await finalizeAttachmentSend(pack);
-
-      // When using the composer to supply the caption, ensure that the text was
-      // actually consumed by WhatsApp before moving on. If not consumed, we'll
-      // clear the applied flag so the calling code knows to trigger the fallback.
-      if (shouldApplyCaption && captionResult.via === "composer") {
-        const consumedComposerDraft = await textUtils.waitFor(() => {
-          const composer = selectors.findMessageInput(pack);
-          return textUtils.composerText(composer) ? null : { cleared: true };
-        }, 4000, 250);
-
-        if (!consumedComposerDraft) {
-          captionApplied = false;
-          log("El texto del composer no se consumió como caption; se activará fallback.", {
-            index: index + 1,
-            currentText: textUtils.composerText(selectors.findMessageInput(pack)),
-          });
-        }
-      }
-
-      log("Media enviada", { index: index + 1, total: files.length });
-      await textUtils.wait(700);
+      log("Media enviada", { index: index + 1, total: files.length, strategy: MEDIA_INSERTION_STRATEGY });
+      await textUtils.wait(900);
     }
 
     return { ok: true, captionApplied };
+  }
+
+  async function sendMediaComposerFirst(files, caption, pack) {
+    let captionApplied = false;
+    const normalizedCaption = String(caption || "").trim();
+    const captionIndex = normalizedCaption ? files.length - 1 : -1;
+
+    for (const [index, file] of files.entries()) {
+      const shouldApplyCaption = index === captionIndex && normalizedCaption;
+
+      // Variante B: limpiar caja principal, escribir texto en caja principal,
+      // adjuntar media, verificar consumo hacia preview y enviar desde preview.
+      const clearedComposer = await clearComposerDraft(pack);
+      if (!clearedComposer.cleared) {
+        log("No fue posible limpiar el composer antes de preparar media.", clearedComposer);
+      }
+
+      let captionResult = { applied: false, via: "none" };
+      if (shouldApplyCaption) {
+        const composerCaptionResult = await primeComposerCaption(normalizedCaption, pack);
+        captionResult = composerCaptionResult.applied
+          ? { applied: true, via: "composer" }
+          : { applied: false, via: "composer_failed" };
+      }
+
+      log("Preparando media con estrategia composer_first.", {
+        index: index + 1,
+        total: files.length,
+        fileName: file.name,
+        strategy: MEDIA_INSERTION_STRATEGY,
+      });
+
+      await attachSingleMediaFile(file, pack);
+
+      if (shouldApplyCaption) {
+        const consumedComposerDraft = await waitForComposerConsumed(pack);
+        if (!consumedComposerDraft) {
+          log("El composer principal no se consumió como caption. Se intentará escribir en preview.", {
+            index: index + 1,
+            currentText: textUtils.composerText(selectors.findMessageInput(pack)),
+          });
+
+          const clearedPreview = await clearPreviewCaptionDraft(pack);
+          if (!clearedPreview.cleared) {
+            log("No fue posible limpiar el caption del preview antes de fallback.", clearedPreview);
+          }
+
+          const previewResult = await writeCaptionIfPossible(normalizedCaption, pack);
+          captionResult = previewResult.applied
+            ? { ...previewResult, via: "preview_fallback" }
+            : { applied: false, via: "fallback_failed" };
+        }
+      }
+
+      captionApplied = captionApplied || Boolean(captionResult.applied);
+      await finalizeAttachmentSend(pack);
+      log("Media enviada", { index: index + 1, total: files.length, strategy: MEDIA_INSERTION_STRATEGY });
+      await textUtils.wait(900);
+    }
+
+    return { ok: true, captionApplied };
+  }
+
+  async function sendMediaAttachments(files, caption, pack) {
+    if (!files?.length) return { ok: true, captionApplied: false };
+    const normalizedCaption = String(caption || "").trim();
+
+    if (MEDIA_INSERTION_STRATEGY === "preview_first") {
+      return sendMediaPreviewFirst(files, normalizedCaption, pack);
+    }
+
+    return sendMediaComposerFirst(files, normalizedCaption, pack);
   }
 
   async function sendAttachments(files, text, pack) {
@@ -400,28 +489,20 @@
     const mediaCaption = normalizedText;
     const documentResult = await sendDocumentAttachments(documents, documentCaption, pack);
     const mediaResult = await sendMediaAttachments(media, mediaCaption, pack);
-
-    // Con media, WhatsApp suele conservar el caption aunque no siempre podamos
-    // confirmarlo de forma determinística en el DOM. Si aquí mandamos el
-    // fallback de texto por una falsa negativa, terminamos duplicando el envío:
-    // primero la imagen correcta y luego el mismo texto sin imagen. Para evitar
-    // ese ciclo, el fallback automático solo se permite cuando no hay media.
-    const shouldFallbackText = Boolean(
-      normalizedText &&
-      media.length === 0 &&
-      !documentResult.captionApplied &&
-      !mediaResult.captionApplied,
-    );
-
     return {
       ok: true,
       documentResult,
       mediaResult,
-      needsTextFallback: shouldFallbackText,
+      needsTextFallback: Boolean(
+        normalizedText &&
+        !documentResult.captionApplied &&
+        !mediaResult.captionApplied,
+      ),
     };
   }
 
   globalScope.RecalcWaAttachments = {
+    MEDIA_INSERTION_STRATEGY,
     isMediaAttachment,
     splitAttachments,
     sendDocumentAttachments,

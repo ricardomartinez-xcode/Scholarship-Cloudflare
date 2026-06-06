@@ -1,11 +1,7 @@
 (function attachRecalcCampaignRunner(globalScope) {
   const ACTIVE_RUNNER_KEY = "recalc.activeCampaignRunner";
-  const DISPATCH_LEDGER_KEY = "recalc.campaignDispatchLedger";
   const RUNNER_ALARM = "recalc.campaignRunnerTick";
   const MIN_RUNNER_DELAY_MS = 250;
-  const MAX_SAFE_DELAY_MS = 30 * 60 * 1000;
-  const DISPATCH_LEDGER_MAX_ITEMS = 1000;
-  const DISPATCH_LEDGER_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
   async function getState() {
     const data = await chrome.storage.local.get([ACTIVE_RUNNER_KEY]);
@@ -20,78 +16,11 @@
     await chrome.storage.local.remove([ACTIVE_RUNNER_KEY]);
   }
 
-  async function getDispatchLedger() {
-    const data = await chrome.storage.local.get([DISPATCH_LEDGER_KEY]);
-    const ledger = data?.[DISPATCH_LEDGER_KEY];
-    return ledger && typeof ledger === "object" && !Array.isArray(ledger) ? ledger : {};
-  }
-
-  function dispatchLedgerKey(campaignId, recipientId) {
-    return `${String(campaignId || "").trim()}::${String(recipientId || "").trim()}`;
-  }
-
-  function pruneDispatchLedger(ledger) {
-    const now = Date.now();
-    const entries = Object.entries(ledger || {})
-      .filter(([, entry]) => {
-        const timestamp = Date.parse(entry?.updatedAt || entry?.sentAt || "");
-        return !Number.isFinite(timestamp) || now - timestamp <= DISPATCH_LEDGER_MAX_AGE_MS;
-      })
-      .sort((a, b) => Date.parse(b[1]?.updatedAt || b[1]?.sentAt || 0) - Date.parse(a[1]?.updatedAt || a[1]?.sentAt || 0))
-      .slice(0, DISPATCH_LEDGER_MAX_ITEMS);
-    return Object.fromEntries(entries);
-  }
-
-  async function setDispatchLedger(ledger) {
-    await chrome.storage.local.set({ [DISPATCH_LEDGER_KEY]: pruneDispatchLedger(ledger) });
-  }
-
-  async function getDispatchLedgerEntry(working, recipient) {
-    const key = dispatchLedgerKey(working?.campaignId, recipient?.id);
-    if (!key || key === "::") return null;
-    const ledger = await getDispatchLedger();
-    return ledger[key] ?? null;
-  }
-
-  async function markDispatchLedgerEntry(working, recipient, patch) {
-    const key = dispatchLedgerKey(working?.campaignId, recipient?.id);
-    if (!key || key === "::") return;
-    const ledger = await getDispatchLedger();
-    ledger[key] = {
-      ...(ledger[key] ?? {}),
-      campaignId: String(working?.campaignId || "").trim(),
-      recipientId: String(recipient?.id || "").trim(),
-      contactValue: String(recipient?.contactValue || "").trim(),
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    };
-    await setDispatchLedger(ledger);
-  }
-
   async function schedule(delayMs) {
     await chrome.alarms.clear(RUNNER_ALARM);
     await chrome.alarms.create(RUNNER_ALARM, {
       when: Date.now() + Math.max(MIN_RUNNER_DELAY_MS, Math.round(delayMs || MIN_RUNNER_DELAY_MS)),
     });
-  }
-
-  function clampDelayMs(value, fallback = 0) {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return Math.max(0, fallback);
-    return Math.min(MAX_SAFE_DELAY_MS, Math.max(0, Math.round(parsed)));
-  }
-
-  function getCampaignMetaNumber(campaign, key, fallback = 0) {
-    const parsed = Number(campaign?.meta?.[key]);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-
-  function computeHumanizedDelayMs(baseDelayMs, campaign, { batchCompleted = false } = {}) {
-    const base = clampDelayMs(baseDelayMs, 4000);
-    const jitter = clampDelayMs(getCampaignMetaNumber(campaign, "jitterMs", 0));
-    const batchDelay = batchCompleted ? clampDelayMs(getCampaignMetaNumber(campaign, "batchDelayMs", 0)) : 0;
-    const variation = jitter > 0 ? Math.round((Math.random() * 2 - 1) * jitter) : 0;
-    return Math.max(MIN_RUNNER_DELAY_MS, base + batchDelay + variation);
   }
 
   function normalizePhone(value) {
@@ -100,22 +29,6 @@
     const hasPlus = raw.startsWith("+");
     const digits = raw.replace(/\D+/g, "");
     return hasPlus ? `+${digits}` : digits;
-  }
-
-  function isCaptionMediaAttachment(attachment) {
-    const mime = String(attachment?.type || "")
-      .split(";")[0]
-      .trim()
-      .toLowerCase();
-    return mime.startsWith("image/") || mime.startsWith("video/");
-  }
-
-  function shouldPrefillMediaCaption(text, attachments) {
-    return Boolean(
-      String(text || "").trim() &&
-      Array.isArray(attachments) &&
-      attachments.some(isCaptionMediaAttachment),
-    );
   }
 
   function normalizeRunState(input, current) {
@@ -189,41 +102,6 @@
 
   async function getCampaignStatus() {
     return getState();
-  }
-
-  async function readInterruptionState(runId) {
-    const latest = await getState();
-    if (!latest) {
-      return { latest: null, interrupted: true, reason: "missing" };
-    }
-    if (runId && latest.runId !== runId) {
-      return { latest, interrupted: true, reason: "replaced" };
-    }
-    if (!latest.enabled) {
-      return { latest, interrupted: true, reason: "stopped" };
-    }
-    if (latest.paused) {
-      return { latest, interrupted: true, reason: "paused" };
-    }
-    return { latest, interrupted: false, reason: null };
-  }
-
-  async function stopSchedulingIfInterrupted(runId) {
-    const interruption = await readInterruptionState(runId);
-    if (!interruption.interrupted) return false;
-    if (interruption.reason === "replaced" || interruption.reason === "missing") {
-      return true;
-    }
-
-    await setState({
-      ...interruption.latest,
-      busy: false,
-      currentBatch: null,
-      currentIndex: 0,
-      updatedAt: new Date().toISOString(),
-    });
-    await chrome.alarms.clear(RUNNER_ALARM);
-    return true;
   }
 
   async function processTick(deps) {
@@ -344,96 +222,54 @@
         return;
       }
 
-      if (await stopSchedulingIfInterrupted(working.runId)) {
-        return;
-      }
+      const tabId = await deps.ensureWhatsAppTab({
+        phone,
+        text: "",
+      });
+      await deps.ensureWhatsAppBridge(tabId);
 
-      const previousDispatch = await getDispatchLedgerEntry(working, recipient);
-      const alreadySent = previousDispatch?.status === "sent";
-      let sendResult = alreadySent
-        ? {
-            success: true,
-            delayMs: recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000,
-            skippedDuplicate: true,
-          }
-        : null;
+      const sendResult = await deps.sendToWhatsApp(tabId, {
+        type: "RECALC_WA_SEND_WITH_ATTACHMENTS",
+        selectorPack: working.selectorPack ?? null,
+        recipient: {
+          id: recipient.id,
+          contactName: recipient.contactName || null,
+          contactValue: phone,
+        },
+        text: messageText,
+        attachments,
+      });
 
-      if (!alreadySent) {
-        await markDispatchLedgerEntry(working, recipient, {
-          status: "sending",
-          phone,
-          hasAttachments: Boolean(attachments.length),
-          messageText,
-          error: null,
-        });
+      const campaignSnapshot = await deps.reportDispatch(working, {
+        recipientId: recipient.id,
+        status: sendResult?.success ? "sent" : "failed",
+        error: sendResult?.success ? null : (sendResult?.error || "No fue posible enviar el mensaje."),
+        step: sendResult?.step || null,
+        delayMs: sendResult?.delayMs ?? null,
+        mediaInsertionStrategy: sendResult?.mediaInsertionStrategy ?? null,
+        attachmentSummary: sendResult?.attachmentSummary ?? null,
+        metaJson: {
+          source: "chrome_extension_runner",
+          step: sendResult?.step || null,
+          mediaInsertionStrategy: sendResult?.mediaInsertionStrategy ?? null,
+          attachmentSummary: sendResult?.attachmentSummary ?? null,
+          attachmentResult: sendResult?.attachmentResult ?? null,
+        },
+      });
 
-        const tabId = await deps.ensureWhatsAppTab({
-          phone,
-          text: shouldPrefillMediaCaption(messageText, attachments) ? messageText : "",
-        });
-        await deps.ensureWhatsAppBridge(tabId);
-
-        sendResult = await deps.sendToWhatsApp(tabId, {
-          type: "RECALC_WA_SEND_WITH_ATTACHMENTS",
-          selectorPack: working.selectorPack ?? null,
-          recipient: {
-            id: recipient.id,
-            contactName: recipient.contactName || null,
-            contactValue: phone,
-          },
-          text: messageText,
-          attachments,
-        });
-
-        await markDispatchLedgerEntry(working, recipient, {
-          status: sendResult?.success ? "sent" : "failed",
-          phone,
-          hasAttachments: Boolean(attachments.length),
-          messageText,
-          sentAt: sendResult?.success ? new Date().toISOString() : null,
-          error: sendResult?.success ? null : (sendResult?.error || "No fue posible enviar el mensaje."),
-        });
-      }
-
-      let campaignSnapshot = null;
-      let reportError = null;
-      try {
-        campaignSnapshot = await deps.reportDispatch(working, {
-          recipientId: recipient.id,
-          status: sendResult?.success ? "sent" : "failed",
-          error: sendResult?.success ? null : (sendResult?.error || "No fue posible enviar el mensaje."),
-        });
-      } catch (error) {
-        reportError = error instanceof Error ? error.message : "No fue posible reportar el resultado del despacho.";
-        if (!sendResult?.success) {
-          throw new Error(reportError);
-        }
-      }
-
-      if (await stopSchedulingIfInterrupted(working.runId)) {
-        return;
-      }
-
-      const nextIndex = working.currentIndex + 1;
-      const batchCompleted = nextIndex >= (working.currentBatch?.recipients?.length ?? 0);
-      const nextDelay = computeHumanizedDelayMs(
-        sendResult?.delayMs ?? recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000,
-        working.currentBatch?.campaign,
-        { batchCompleted },
+      const nextDelay = Math.max(
+        MIN_RUNNER_DELAY_MS,
+        Number(sendResult?.delayMs ?? recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000),
       );
 
       const finalState = {
         ...working,
         busy: false,
         campaignName: campaignSnapshot?.campaignName ?? working.campaignName,
-        currentIndex: nextIndex,
+        currentIndex: working.currentIndex + 1,
         status: campaignSnapshot?.status === "completed" ? "completed" : "running",
         lastMessage: sendResult?.success
-          ? (
-              reportError
-                ? `Mensaje enviado a ${recipient.contactName || recipient.contactValue}; el reporte quedó pendiente y no se duplicará el WhatsApp.`
-                : `${sendResult.skippedDuplicate ? "Envio duplicado prevenido para" : "Mensaje enviado a"} ${recipient.contactName || recipient.contactValue}${batchCompleted ? ". Esperando el delay por reclamo antes del siguiente batch" : ""}.`
-            )
+          ? `Mensaje enviado a ${recipient.contactName || recipient.contactValue}.`
           : `Falló el envío para ${recipient.contactName || recipient.contactValue}: ${sendResult?.error || "sin detalle"}.`,
         lastRecipientId: recipient.id,
         lastRecipientPhone: phone,
@@ -467,8 +303,6 @@
     getState,
     setState,
     clearState,
-    getDispatchLedger,
-    getDispatchLedgerEntry,
     schedule,
     runCampaign,
     pauseCampaign,

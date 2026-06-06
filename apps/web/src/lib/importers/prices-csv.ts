@@ -92,16 +92,6 @@ type ParsedPriceRow = {
   notes: string | null;
 };
 
-type PriceImportDbClient = Pick<Prisma.TransactionClient, "adminPriceOverride">;
-
-type ExistingPriceOverride = {
-  id: string;
-  newPrice: number;
-  subjectPrice: number | null;
-  isActive: boolean;
-  notes: string | null;
-};
-
 const HEADER_ALIASES = {
   region: ["region", "región"],
   programaKey: ["programakey", "programa", "programa_key"],
@@ -283,7 +273,12 @@ function buildPriceScopeKey(input: {
 }
 
 function hasPriceValueChanged(
-  existing: ExistingPriceOverride,
+  existing: {
+    newPrice: number;
+    subjectPrice: number | null;
+    isActive: boolean;
+    notes: string | null;
+  },
   row: ParsedPriceRow,
 ) {
   return (
@@ -294,10 +289,8 @@ function hasPriceValueChanged(
   );
 }
 
-async function buildExistingPriceOverridesByScopeKey(
-  client: PriceImportDbClient = prisma,
-) {
-  const rows = await client.adminPriceOverride.findMany({
+async function buildExistingPriceOverridesByScopeKey() {
+  const rows = await prisma.adminPriceOverride.findMany({
     where: { scope: "base_price" },
     select: {
       id: true,
@@ -308,7 +301,16 @@ async function buildExistingPriceOverridesByScopeKey(
     },
   });
 
-  const map = new Map<string, ExistingPriceOverride[]>();
+  const map = new Map<
+    string,
+    Array<{
+      id: string;
+      newPrice: number;
+      subjectPrice: number | null;
+      isActive: boolean;
+      notes: string | null;
+    }>
+  >();
   for (const row of rows) {
     const target =
       row.targetKeys && typeof row.targetKeys === "object"
@@ -345,29 +347,6 @@ async function buildExistingPriceOverridesByScopeKey(
     current.push(entry);
   }
   return map;
-}
-
-function buildPriceTargetKeys(row: PreparedPricesImportPayloadRow) {
-  const targetKeys: Record<string, string | number> = {
-    ...(row.programaKey ? { programa_key: row.programaKey } : {}),
-    nivel_key: row.nivelKey,
-    modalidad_key: row.modalidadKey,
-    plan: row.plan,
-    modulo: row.module,
-  };
-  if (row.subjectPrice !== null) {
-    targetKeys.subject_price_mxn = row.subjectPrice;
-  }
-  if (row.tier) {
-    targetKeys.tier = row.tier;
-  }
-  if (row.plantel) {
-    targetKeys.plantel = row.plantel;
-  }
-  if (row.region) {
-    targetKeys.region = row.region;
-  }
-  return targetKeys;
 }
 
 export async function preparePricesCsvImport(
@@ -601,26 +580,39 @@ export async function applyPreparedPricesImport(params: {
   let unchanged = 0;
 
   await prisma.$transaction(async (tx) => {
-    const existingByScope = await buildExistingPriceOverridesByScopeKey(tx);
-
     for (const row of rows) {
-      const targetKeys = buildPriceTargetKeys(row);
-      const matches = existingByScope.get(row.key) ?? [];
-      const naturalMatch = matches[0] ?? null;
-      let existingId = naturalMatch?.id ?? null;
-
-      if (!existingId && row.existingId) {
-        const exists = await tx.adminPriceOverride.findUnique({
-          where: { id: row.existingId },
-          select: { id: true },
-        });
-        if (exists?.id) {
-          existingId = String(exists.id);
-        }
+      if (row.action === "noop") {
+        unchanged += 1;
+        continue;
       }
 
+      const targetKeys: Record<string, string | number> = {
+        ...(row.programaKey ? { programa_key: row.programaKey } : {}),
+        nivel_key: row.nivelKey,
+        modalidad_key: row.modalidadKey,
+        plan: row.plan,
+        modulo: row.module,
+      };
+      if (row.subjectPrice !== null) {
+        targetKeys.subject_price_mxn = row.subjectPrice;
+      }
+      if (row.tier) {
+        targetKeys.tier = row.tier;
+      }
+      if (row.plantel) {
+        targetKeys.plantel = row.plantel;
+      }
+      if (row.region) {
+        targetKeys.region = row.region;
+      }
+
+      let existingId = row.existingId ?? null;
       if (existingId) {
-        if (!naturalMatch || hasPriceValueChanged(naturalMatch, row)) {
+        const exists = await tx.adminPriceOverride.findUnique({
+          where: { id: existingId },
+          select: { id: true },
+        });
+        if (exists) {
           await tx.adminPriceOverride.update({
             where: { id: existingId },
             data: {
@@ -632,17 +624,9 @@ export async function applyPreparedPricesImport(params: {
             },
           });
           updated += 1;
-        } else {
-          unchanged += 1;
+          continue;
         }
-
-        const duplicateIds = matches.map((match) => match.id).filter((id) => id !== existingId);
-        if (duplicateIds.length) {
-          await tx.adminPriceOverride.deleteMany({
-            where: { id: { in: duplicateIds } },
-          });
-        }
-        continue;
+        existingId = null;
       }
 
       await tx.adminPriceOverride.create({

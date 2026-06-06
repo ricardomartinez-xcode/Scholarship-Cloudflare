@@ -11,10 +11,8 @@ import {
 } from "@/lib/extension-session-tokens";
 import { getPublicBaseUrl } from "@/lib/public-base-url";
 import {
-  getRecalcPublicApiOpenApiSchemaLinks,
-  RECALC_PUBLIC_API_MAX_TTL_HOURS,
+  clampRecalcPublicApiTtlMs,
   RECALC_PUBLIC_API_SCOPE,
-  resolveRecalcPublicApiTokenTtl,
 } from "@/lib/recalc-public-control-api";
 
 export const runtime = "nodejs";
@@ -22,36 +20,13 @@ export const dynamic = "force-dynamic";
 
 const tokenRequestSchema = z.object({
   client: z.string().trim().min(1).max(80).default("gpt-actions"),
-  ttlHours: z.coerce.number().min(0.083).max(RECALC_PUBLIC_API_MAX_TTL_HOURS).optional(),
-  ttlPreset: z.enum(["24h", "7d", "30d", "365d", "never"]).optional(),
+  ttlHours: z.coerce.number().min(0.083).max(24).default(24),
 });
-
-type OpenApiSchemaLink = {
-  id: string;
-  label: string;
-  url: string;
-  actionCount: number;
-  maxActions: number;
-};
 
 function publicOrigin(request: Request) {
   const configured = getPublicBaseUrl();
   if (configured) return configured;
   return new URL(request.url).origin.replace(/\/+$/, "");
-}
-
-function getRecalcPublicApiSchemaLinks(origin: string): OpenApiSchemaLink[] {
-  const existingLinks = getRecalcPublicApiOpenApiSchemaLinks(origin) as OpenApiSchemaLink[];
-  const mainSchemaUrl = `${origin}/api/public/recalc/openapi/gpt-main.json`;
-  const mainSchemaLink: OpenApiSchemaLink = {
-    id: "gpt-main",
-    label: "GPT Actions Main",
-    url: mainSchemaUrl,
-    actionCount: 30,
-    maxActions: 30,
-  };
-
-  return [mainSchemaLink, ...existingLinks.filter((schema) => schema.id !== mainSchemaLink.id)];
 }
 
 function serializeTokenRow(row: Awaited<ReturnType<typeof listIssuedExtensionSessions>>[number]) {
@@ -89,9 +64,8 @@ async function buildTokenPayload(request: Request, userId: string) {
       tokenType: "Bearer",
       authHeader: "Authorization: Bearer <token>",
       openApiUrl: `${origin}/api/public/recalc/openapi.json`,
-      openApiSchemas: getRecalcPublicApiSchemaLinks(origin),
       serverUrl: origin,
-      maxTtlHours: RECALC_PUBLIC_API_MAX_TTL_HOURS,
+      maxTtlHours: 24,
       clients: ["gpt-actions", "intranet-api"],
       actionsReady: true,
     },
@@ -135,14 +109,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const ttl = resolveRecalcPublicApiTokenTtl(parsed.data);
     const issued = await issueExtensionSessionToken({
       userId: auth.admin.id,
       scope: RECALC_PUBLIC_API_SCOPE,
       client: parsed.data.client,
       userAgent: request.headers.get("user-agent"),
-      ttlMs: ttl.ttlMs,
-      ttlPreset: ttl.ttlPreset,
+      ttlMs: clampRecalcPublicApiTtlMs(parsed.data.ttlHours),
     });
 
     await writeBusinessEventSafe({
@@ -155,7 +127,6 @@ export async function POST(request: Request) {
         scope: RECALC_PUBLIC_API_SCOPE,
         tokenType: "bearer",
         expiresAt: issued.expiresAt.toISOString(),
-        ttlPreset: issued.ttlPreset,
       },
     });
 
@@ -170,7 +141,6 @@ export async function POST(request: Request) {
         client: parsed.data.client,
         scope: RECALC_PUBLIC_API_SCOPE,
         expiresAt: issued.expiresAt.toISOString(),
-        ttlPreset: issued.ttlPreset,
       },
       message: `Token API Recalc emitido para ${parsed.data.client}.`,
     });

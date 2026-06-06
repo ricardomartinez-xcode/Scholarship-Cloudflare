@@ -38,7 +38,7 @@ export default function AdminDialogShell({
           aria-describedby={descriptionId}
           className={[
             "fixed left-1/2 top-1/2 z-50 flex w-[94vw] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-white/8 bg-[linear-gradient(180deg,rgba(11,61,92,0.98),rgba(13,45,86,1))] p-4 shadow-2xl outline-none sm:p-5",
-            "max-h-[calc(100dvh-1.5rem)]",
+            "max-h-[calc(100dvh-1rem)]",
             sizeClassName[size],
           ].join(" ")}
         >

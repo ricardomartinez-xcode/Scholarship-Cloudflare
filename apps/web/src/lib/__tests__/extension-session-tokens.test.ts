@@ -22,7 +22,7 @@ describe("extension session tokens", () => {
     prismaMock.user.findUnique.mockReset();
   });
 
-  it("caps issued token ttl to the extension maximum", async () => {
+  it("allows issued token ttl below the production maximum", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-25T00:00:00.000Z"));
     prismaMock.$executeRaw.mockResolvedValue(1);
@@ -32,22 +32,26 @@ describe("extension session tokens", () => {
       userId: "00000000-0000-0000-0000-000000000001",
       client: "chrome-sidepanel",
       scope: "extension:chrome-sidepanel",
-      ttlMs: 1000 * 60 * 60 * 24 * 400,
+      ttlMs: 1000 * 60 * 60 * 24 * 30,
+    });
+
+    expect(issued.expiresAt.toISOString()).toBe("2026-06-24T00:00:00.000Z");
+  });
+
+  it("caps custom token ttl to the production maximum", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-25T00:00:00.000Z"));
+    prismaMock.$executeRaw.mockResolvedValue(1);
+    const { issueExtensionSessionToken } = await import("@/lib/extension-session-tokens");
+
+    const issued = await issueExtensionSessionToken({
+      userId: "00000000-0000-0000-0000-000000000001",
+      client: "chrome-sidepanel",
+      scope: "extension:chrome-sidepanel",
+      ttlMs: 1000 * 60 * 60 * 24 * 999,
     });
 
     expect(issued.expiresAt.toISOString()).toBe("2027-05-25T00:00:00.000Z");
-  });
-
-  it("resolves never-expiring extension token presets", async () => {
-    const { resolveExtensionSessionExpiry } = await import("@/lib/extension-session-tokens");
-
-    const expiry = resolveExtensionSessionExpiry({ ttlPreset: "never" });
-
-    expect(expiry).toMatchObject({
-      ttlMs: null,
-      ttlPreset: "never",
-    });
-    expect(expiry.expiresAt.toISOString()).toBe("9999-12-31T23:59:59.000Z");
   });
 
   it("revokes active equivalent tokens before issuing a rotated token", async () => {

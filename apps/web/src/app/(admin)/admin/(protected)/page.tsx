@@ -21,8 +21,8 @@ type SummarySection = {
 
 const SUMMARY_SECTIONS: SummarySection[] = [
   {
-    title: "Operación",
-    description: "Usuarios, organizaciones, accesos y sincronización operativa.",
+    title: "Accesos",
+    description: "Usuarios, invitaciones, organizaciones y sincronización de identidad.",
     cards: [
       {
         title: "Usuarios",
@@ -32,18 +32,18 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         capability: [AdminCapability.view_users, AdminCapability.manage_users],
       },
       {
-        title: "Organizaciones",
-        description: "Membresías por organización y estructura multiempresa.",
-        href: "/admin/organizations",
-        eyebrow: "Acceso",
-        capability: [AdminCapability.view_org_members, AdminCapability.manage_org_members],
-      },
-      {
         title: "Invitaciones",
         description: "Altas, reenvíos, estados y consumo explícito de tokens.",
         href: "/admin/invitations",
         eyebrow: "Acceso",
         capability: [AdminCapability.view_invites, AdminCapability.manage_invites],
+      },
+      {
+        title: "Organizaciones",
+        description: "Membresías por organización y estructura multiempresa.",
+        href: "/admin/organizations",
+        eyebrow: "Acceso",
+        capability: [AdminCapability.view_org_members, AdminCapability.manage_org_members],
       },
       {
         title: "Auth sync",
@@ -52,33 +52,12 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         eyebrow: "Sistema",
         capability: AdminCapability.view_admin_operations,
       },
-      {
-        title: "Tokens API Recalc",
-        description: "Emisión, revocación y OpenAPI para GPT Actions e intranet.",
-        href: "/admin/integrations/recalc-api",
-        eyebrow: "API",
-        capability: AdminCapability.view_admin_operations,
-      },
     ],
   },
   {
-    title: "Oferta académica",
-    description: "Catálogos, beneficios, precios, simulador y programas.",
+    title: "Oferta y precios",
+    description: "Oferta por planteles, programas, precios, beneficios y simulador.",
     cards: [
-      {
-        title: "Beneficios",
-        description: "Reglas de beneficios adicionales, primer pago y vigencias.",
-        href: "/admin/benefits",
-        eyebrow: "Draft / publish",
-        capability: AdminCapability.manage_benefits,
-      },
-      {
-        title: "Precios",
-        description: "Overrides, costos académicos y ajustes que afectan cotización.",
-        href: "/admin/prices",
-        eyebrow: "Catálogo",
-        capability: AdminCapability.manage_prices,
-      },
       {
         title: "Oferta por planteles",
         description: "Carga, previsualización y publicación de oferta por ciclo.",
@@ -94,11 +73,59 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         capability: AdminCapability.manage_offers,
       },
       {
+        title: "Precios",
+        description: "Overrides, costos académicos y ajustes que afectan cotización.",
+        href: "/admin/prices",
+        eyebrow: "Catálogo",
+        capability: AdminCapability.manage_prices,
+      },
+      {
+        title: "Beneficios",
+        description: "Reglas de beneficios adicionales, primer pago y vigencias.",
+        href: "/admin/benefits",
+        eyebrow: "Draft / publish",
+        capability: AdminCapability.manage_benefits,
+      },
+      {
+        title: "Costos académicos",
+        description: "Costos por plantel, tier y modalidad para cotización.",
+        href: "/admin/unidep/fees",
+        eyebrow: "Catálogo",
+        capability: AdminCapability.manage_prices,
+      },
+      {
         title: "Simulador",
         description: "Sesiones, escenarios guardados, CTAs y monitoreo lateral.",
         href: "/admin/unidep/simulador",
         eyebrow: "UNIDEP",
         capability: [AdminCapability.manage_prices, AdminCapability.manage_offers],
+      },
+      {
+        title: "Formatos",
+        description: "Formatos públicos y recursos de consulta para programas.",
+        href: "/admin/unidep/formatos",
+        eyebrow: "Contenido",
+        capability: AdminCapability.manage_offers,
+      },
+      {
+        title: "Archivos R2",
+        description: "Assets, PDFs e imágenes vinculadas a oferta y programas.",
+        href: "/admin/files",
+        eyebrow: "Assets",
+        capability: AdminCapability.manage_offers,
+      },
+    ],
+  },
+  {
+    title: "Catálogos UNIDEP",
+    description: "Planteles, directorio y aliases canónicos para cotización.",
+    cards: [
+      {
+        title: "Planteles",
+        description: "Catálogo de campus y estado operativo por sede.",
+        href: "/admin/unidep/campuses",
+        eyebrow: "Catálogo",
+        capability: AdminCapability.manage_directory,
       },
       {
         title: "Directorio",
@@ -107,11 +134,18 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         eyebrow: "Directorio",
         capability: AdminCapability.manage_directory,
       },
+      {
+        title: "Aliases",
+        description: "Equivalencias entre importaciones, planteles y datos canónicos.",
+        href: "/admin/aliases",
+        eyebrow: "Catálogo",
+        capability: [AdminCapability.manage_prices, AdminCapability.manage_offers, AdminCapability.manage_benefits],
+      },
     ],
   },
   {
-    title: "Contenido y comunicación",
-    description: "Mensajes, CTAs, WhatsApp, extensión y contenido público.",
+    title: "Comunicación",
+    description: "Mensajes, CTAs, WhatsApp y extensión Chrome.",
     cards: [
       {
         title: "Comunicados",
@@ -135,32 +169,25 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         capability: AdminCapability.manage_ctas,
       },
       {
+        title: "Templates WhatsApp",
+        description: "Plantillas oficiales y variables usadas en mensajes.",
+        href: "/admin/whatsapp-templates",
+        eyebrow: "Contenido",
+        capability: AdminCapability.manage_ctas,
+      },
+      {
         title: "Extensión Chrome",
         description: "Runtime, selector pack, handoff a WhatsApp Web y métricas.",
         href: "/admin/extension-panel",
         eyebrow: "Integración",
         capability: [AdminCapability.manage_ctas, AdminCapability.view_admin_operations],
       },
-      {
-        title: "Información pública",
-        description: "Contacto y orientación del rail público del home.",
-        href: "/admin/sidebar",
-        eyebrow: "Contenido",
-        capability: AdminCapability.manage_sidebar,
-      },
     ],
   },
   {
-    title: "Auditoría y publicación",
-    description: "Estado del sistema, importaciones, actividad y trazabilidad.",
+    title: "Sistema",
+    description: "Importaciones, auditoría, monitoreo, API y configuración pública.",
     cards: [
-      {
-        title: "Reporte operativo",
-        description: "Actividad, estado general y señales de seguimiento.",
-        href: "/admin/reporting",
-        eyebrow: "Monitoreo",
-        capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
-      },
       {
         title: "Importaciones",
         description: "Historial, previews, aplicaciones y rollbacks de archivos.",
@@ -169,11 +196,25 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         capability: AdminCapability.view_admin_operations,
       },
       {
+        title: "Reporte operativo",
+        description: "Actividad, estado general y señales de seguimiento.",
+        href: "/admin/reporting",
+        eyebrow: "Monitoreo",
+        capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
+      },
+      {
         title: "Auditoría",
         description: "Eventos y trazas de cambios relevantes dentro del sistema.",
         href: "/admin/audit",
         eyebrow: "Auditoría",
         capability: [AdminCapability.view_admin_operations, AdminCapability.view_reports],
+      },
+      {
+        title: "Tokens API Recalc",
+        description: "Emisión, revocación y OpenAPI para GPT Actions e intranet.",
+        href: "/admin/integrations/recalc-api",
+        eyebrow: "API",
+        capability: AdminCapability.view_admin_operations,
       },
       {
         title: "Capacitación",
@@ -186,6 +227,13 @@ const SUMMARY_SECTIONS: SummarySection[] = [
           AdminCapability.view_org_members,
           AdminCapability.manage_org_members,
         ],
+      },
+      {
+        title: "Información pública",
+        description: "Contacto y orientación del rail público del home.",
+        href: "/admin/sidebar",
+        eyebrow: "Contenido",
+        capability: AdminCapability.manage_sidebar,
       },
     ],
   },

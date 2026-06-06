@@ -258,10 +258,19 @@
         return imageInputsByDom[1];
       }
 
-      return sorted.find(({ input }) => {
+      const imageFallback = sorted.find(({ input }) => {
         const accept = String(input?.accept || "").toLowerCase().trim();
         return accept.includes("image") && !accept.includes("audio");
       })?.input || null;
+      const fallbackAccept = String(imageFallback?.accept || "").toLowerCase().trim();
+      const fallbackMultiple = Boolean(imageFallback?.multiple);
+      const hasMediaMenuOption = Boolean(findAttachmentOption("media") || findAttachmentOptionByPosition(1));
+
+      if (fallbackAccept === "image/*" && !fallbackMultiple && !hasMediaMenuOption) {
+        return null;
+      }
+
+      return imageFallback;
     }
 
     return sorted[0]?.input || null;

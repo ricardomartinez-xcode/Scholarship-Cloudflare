@@ -36,7 +36,7 @@ function findByKey(value: unknown, keys: Set<string>, depth = 0): string | null 
 }
 
 function eventName(payload: Record<string, unknown>) {
-  return text(payload.event) ?? text(payload.type) ?? "unknown";
+  return text(payload.event) ?? text(payload.type) ?? text(payload.event_type) ?? "unknown";
 }
 
 function publicBaseUrl() {
@@ -85,11 +85,11 @@ async function deliverAuthEmail(event: string, payload: Record<string, unknown>)
     if (!otp) throw new Error("delivery_otp_missing");
     await sendMail({
       to,
-      subject: "Tu código de acceso a ReCalc",
-      text: `Tu código de acceso es: ${otp}\n\nSi no solicitaste este código, ignora este correo.`,
+      subject: "Tu codigo de acceso a ReCalc",
+      text: `Tu codigo de acceso es: ${otp}\n\nSi no solicitaste este codigo, ignora este correo.`,
       html: emailLayout(
-        "Tu código de acceso a ReCalc",
-        "Usa este código para continuar con tu autenticación.",
+        "Tu codigo de acceso a ReCalc",
+        "Usa este codigo para continuar con tu autenticacion.",
         `<div style="display:inline-block;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px 22px;color:#065f46;font-size:28px;font-weight:800;letter-spacing:.18em">${escapeHtml(otp)}</div>`,
       ),
     });
@@ -102,10 +102,10 @@ async function deliverAuthEmail(event: string, payload: Record<string, unknown>)
   await sendMail({
     to,
     subject: "Tu enlace de acceso a ReCalc",
-    text: `Abre este enlace para continuar con tu autenticación en ReCalc:\n${href}\n\nSi no solicitaste este enlace, ignora este correo.`,
+    text: `Abre este enlace para continuar con tu autenticacion en ReCalc:\n${href}\n\nSi no solicitaste este enlace, ignora este correo.`,
     html: emailLayout(
       "Tu enlace de acceso a ReCalc",
-      "Abre este enlace para continuar con tu autenticación.",
+      "Abre este enlace para continuar con tu autenticacion.",
       `<a href="${escapeHtml(href)}" style="display:inline-block;background:#059669;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 24px;border-radius:10px">Entrar a ReCalc</a><p style="margin-top:18px;color:#64748b;font-size:12px;line-height:1.6;word-break:break-all">${escapeHtml(href)}</p>`,
     ),
   });
@@ -139,19 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (DELIVERY_EVENTS.has(event)) {
-      try {
-        delivered = await deliverAuthEmail(event, payload);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Invalid Neon Auth delivery webhook request.";
-        recordNeonAuthEvent({ event, payload, forwarded: false, ok: false, error: message });
-        return NextResponse.json({
-          ok: true,
-          event,
-          delivered: false,
-          deliveryError: message,
-          mode: "legacy_invitation_neon_auth_only",
-        });
-      }
+      delivered = await deliverAuthEmail(event, payload);
     }
 
     recordNeonAuthEvent({ event, payload, forwarded: false, ok: true });

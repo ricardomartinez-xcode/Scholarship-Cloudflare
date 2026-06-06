@@ -16,6 +16,27 @@ body :is(a, button, input, select, textarea, [role="button"], [role="link"], [ro
   border-color: var(--recalc-focus-border) !important;
 }
 
+.ui-skip-link {
+  position: fixed;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 1000;
+  transform: translateY(calc(-100% - 1rem));
+  border: 1px solid #b9ccd9;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f3c55;
+  padding: 0.6rem 0.9rem;
+  font-weight: 850;
+  text-decoration: none;
+  box-shadow: 0 18px 45px rgb(15 41 61 / 0.18);
+  transition: transform 160ms ease;
+}
+
+.ui-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
 body :is(a, button, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="combobox"], summary):focus:not(:focus-visible) {
   outline: none;
 }
@@ -69,7 +90,7 @@ body :is(.ui-scrollbar, .ui-shell-drawer, [class*="overflow-y-auto"], [class*="o
 }
 
 /* Dialogs/drawers/popovers stay usable on small screens */
-body :is([role="dialog"], .ui-shell-drawer, .ui-modal, .ui-popover) {
+body :is([role="dialog"], .ui-shell-drawer, .ui-modal, .ui-popover, [data-radix-popper-content-wrapper] > *) {
   max-width: min(100vw - 1rem, 42rem);
   max-height: calc(100dvh - 1rem);
 }
@@ -79,7 +100,7 @@ body .ui-shell-drawer {
   max-width: min(82vw, 320px) !important;
 }
 
-body :is([role="dialog"], .ui-modal, .ui-popover) {
+body :is([role="dialog"], .ui-modal, .ui-popover, [data-radix-popper-content-wrapper] > *) {
   overflow: auto;
 }
 
