@@ -58,7 +58,7 @@ describe("workflow regressions", () => {
     expect(source).toContain("MODULE_OPTIONS_BY_CYCLE");
     expect(source).toContain("ACADEMIC_MODULES");
     expect(read("apps/web/src/lib/academic-modules.ts")).toContain(
-      "[\"M1\", \"M2\", \"M3\", \"Longitudinal\"]",
+      "[\"M1\", \"M2\", \"M3\", \"Longitudinal\", \"Modular\"]",
     );
     expect(source).toContain("setSelectedStartModule");
     expect(source).toContain("Módulo de inicio");
