@@ -1,0 +1,53 @@
+name: Insert payment plan image handler
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Optional note"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Insert handler
+        shell: bash
+        run: |
+          cat > /tmp/insert_handler.py <<'PY'
+          from pathlib import Path
+          path = Path("apps/web/src/components/ScholarshipCalculator.tsx")
+          s = path.read_text()
+          if "const handleCopyPaymentPlanImage = useCallback" not in s:
+              marker = "const handleCopyQuoteImage = useCallback"
+              idx = s.find(marker)
+              if idx == -1:
+                  raise SystemExit("marker not found")
+              s = s[idx:]
+              # re-read original to avoid bad slicing mistake
+              original = path.read_text()
+              handler = 'const handleCopyPaymentPlanImage = useCallback(async (sectionTitle?: string) => {\n    const sections = sectionTitle\n      ? paymentPlanSections.filter((section) => section.title === sectionTitle)\n      : paymentPlanSections;\n\n    if (!sections.length) {\n      setCopyQuoteImageStatus("No hay plan de pagos para exportar.");\n      return;\n    }\n\n    setCopyQuoteImagePending(true);\n    setCopyQuoteImageStatus(null);\n\n    try {\n      const width = 720;\n      const padding = 32;\n      const scale = Math.max(3, window.devicePixelRatio || 3);\n      const fontFamily = "Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";\n      const rowHeight = 44;\n      const cardGap = 22;\n      const sectionHeaderHeight = 62;\n      const cardPadding = 24;\n      const contentWidth = width - padding * 2;\n      const sectionsHeight = sections.reduce(\n        (total, section) => total + sectionHeaderHeight + section.rows.length * rowHeight + cardGap,\n        0,\n      );\n      const height = padding * 2 + 78 + sectionsHeight;\n\n      const canvas = document.createElement("canvas");\n      canvas.width = width * scale;\n      canvas.height = height * scale;\n      canvas.style.width = `${width}px`;\n      canvas.style.height = `${height}px`;\n\n      const ctx = canvas.getContext("2d");\n      if (!ctx) throw new Error("No fue posible preparar la imagen.");\n\n      ctx.scale(scale, scale);\n      drawRoundedRect(ctx, 0.5, 0.5, width - 1, height - 1, 18, "#ffffff", "#c8d5df");\n\n      ctx.fillStyle = "#55728b";\n      ctx.font = `800 14px ${fontFamily}`;\n      ctx.fillText("PLAN DE PAGOS", padding, padding + 16);\n\n      ctx.fillStyle = "#17385f";\n      ctx.font = `800 36px ${fontFamily}`;\n      ctx.fillText(sectionTitle ?? "Todos los cuatrimestres", padding, padding + 60);\n\n      let y = padding + 93;\n      for (const section of sections) {\n        const sectionTotal = round2(section.rows.reduce((total, row) => total + row.amount, 0));\n        const cardHeight = sectionHeaderHeight + section.rows.length * rowHeight;\n        drawRoundedRect(ctx, padding, y, contentWidth, cardHeight, 18, "#eef5f9", "#cbdce8");\n\n        ctx.fillStyle = "#55728b";\n        ctx.font = `800 14px ${fontFamily}`;\n        ctx.fillText(section.title.toUpperCase(), padding + cardPadding, y + 34);\n\n        ctx.textAlign = "right";\n        ctx.fillStyle = "#17385f";\n        ctx.font = `800 22px ${fontFamily}`;\n        ctx.fillText(formatMoney(sectionTotal), width - padding - cardPadding, y + 34);\n        ctx.textAlign = "left";\n\n        let rowY = y + sectionHeaderHeight;\n        for (const row of section.rows) {\n          ctx.fillStyle = "#17385f";\n          ctx.font = `700 16px ${fontFamily}`;\n          ctx.fillText(row.label, padding + cardPadding, rowY + 10);\n          ctx.fillStyle = "#668097";\n          ctx.font = `13px ${fontFamily}`;\n          ctx.fillText(row.detail, padding + cardPadding, rowY + 28);\n          ctx.textAlign = "right";\n          ctx.fillStyle = "#17385f";\n          ctx.font = `800 16px ${fontFamily}`;\n          ctx.fillText(formatMoney(row.amount), width - padding - cardPadding, rowY + 10);\n          ctx.textAlign = "left";\n          rowY += rowHeight;\n        }\n\n        y += cardHeight + cardGap;\n      }\n\n      const blob = await new Promise<Blob | null>((resolve) =>\n        canvas.toBlob((value) => resolve(value), "image/png", 0.98),\n      );\n      if (!blob) throw new Error("No fue posible generar la imagen.");\n\n      if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {\n        await navigator.clipboard.write([\n          new ClipboardItem({ [blob.type || "image/png"]: blob }),\n        ]);\n        setCopyQuoteImageStatus(\n          sectionTitle\n            ? "El cuatrimestre se copió como imagen."\n            : "Los planes de pago se copiaron como imagen.",\n        );\n        return;\n      }\n\n      const url = URL.createObjectURL(blob);\n      const link = document.createElement("a");\n      link.href = url;\n      link.download = sectionTitle\n        ? `plan-pago-${sectionTitle}.png`\n        : `planes-pago-${Date.now()}.png`;\n      link.click();\n      URL.revokeObjectURL(url);\n      setCopyQuoteImageStatus(\n        "Tu navegador no permitió copiar la imagen directo. Se descargó un PNG.",\n      );\n    } catch (error) {\n      setCopyQuoteImageStatus(\n        error instanceof Error\n          ? error.message\n          : "No fue posible exportar el plan de pagos como imagen.",\n      );\n    } finally {\n      setCopyQuoteImagePending(false);\n    }\n  }, [paymentPlanSections]);'
+              s = original[:idx] + handler + " " + original[idx:]
+              path.write_text(s)
+              print("inserted handler")
+          else:
+              print("handler already exists")
+          PY
+          python /tmp/insert_handler.py
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config user.name "Ricardo Martínez Hernández"
+          git config user.email "ricardomartinez19b@icloud.com"
+          git add apps/web/src/components/ScholarshipCalculator.tsx
+          git diff --cached --quiet || git commit -m "Add payment plan image export handler"
+          git push
