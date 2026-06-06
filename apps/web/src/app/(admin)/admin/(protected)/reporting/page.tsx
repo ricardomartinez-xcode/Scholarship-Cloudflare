@@ -1,5 +1,6 @@
 import { AdminCapability } from "@prisma/client";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import AdminDataTable from "@/components/admin/AdminDataTable";
 import AssetHealthRunButton from "@/components/admin/AssetHealthRunButton";
@@ -8,8 +9,9 @@ import { requireAdminCapabilityUser } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
-type ReportingSnapshot = Awaited<ReturnType<typeof getProductReportingSnapshot>>;
+const GITHUB_REPO_URL = "https://github.com/ricardomartinez-xcode/Scholarship";
 
+type ReportingSnapshot = Awaited<ReturnType<typeof getProductReportingSnapshot>>;
 type CountItem = { label: string; count: number };
 
 function formatDate(value: string | Date | null | undefined) {
@@ -17,8 +19,8 @@ function formatDate(value: string | Date | null | undefined) {
   return new Date(value).toLocaleString("es-MX");
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("es-MX").format(value);
+function formatNumber(value: number | null | undefined) {
+  return new Intl.NumberFormat("es-MX").format(value ?? 0);
 }
 
 function MetricCard({
@@ -52,7 +54,7 @@ function SectionCard({
   kicker: string;
   title: string;
   description?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-5 shadow-[0_16px_50px_rgb(16_32_42/0.06)]">
@@ -114,9 +116,7 @@ function TopList({
               key={item.label}
               className="flex items-center justify-between gap-3 rounded-[18px] border border-[#d8e4ec] bg-[#f7fafc] px-3 py-2 text-sm"
             >
-              <div className="min-w-0 truncate font-semibold text-[#163247]">
-                {item.label}
-              </div>
+              <div className="min-w-0 truncate font-semibold text-[#163247]">{item.label}</div>
               <div className="rounded-full border border-[#0f4c6b]/20 bg-[#0f4c6b]/10 px-2.5 py-1 text-xs font-extrabold text-[#0f4c6b]">
                 {formatNumber(item.count)}
               </div>
@@ -132,7 +132,15 @@ function TopList({
   );
 }
 
-function AssetStat({ label, value, tone = "neutral" }: { label: string; value: number; tone?: "neutral" | "success" | "warning" | "danger" }) {
+function AssetStat({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "success" | "warning" | "danger";
+}) {
   const toneClass =
     tone === "success"
       ? "text-[#0c5f3a]"
@@ -150,7 +158,79 @@ function AssetStat({ label, value, tone = "neutral" }: { label: string; value: n
   );
 }
 
-function DailyTrend({ snapshot, maxDailyCount }: { snapshot: ReportingSnapshot; maxDailyCount: number }) {
+function GithubRepairMenu() {
+  const items = [
+    {
+      label: "Pull requests",
+      description: "Revisar cambios pendientes, ramas de reparación y previews.",
+      href: `${GITHUB_REPO_URL}/pulls`,
+    },
+    {
+      label: "Nuevo issue",
+      description: "Abrir un reporte técnico desde un hallazgo del autoreparador.",
+      href: `${GITHUB_REPO_URL}/issues/new`,
+    },
+    {
+      label: "Issues",
+      description: "Consultar bugs, deuda técnica y seguimiento operativo.",
+      href: `${GITHUB_REPO_URL}/issues`,
+    },
+    {
+      label: "Actions",
+      description: "Ver CI/CD, workflows manuales y ejecuciones recientes.",
+      href: `${GITHUB_REPO_URL}/actions`,
+    },
+  ];
+
+  return (
+    <div className="mb-5 rounded-[22px] border border-[#c8d6e2] bg-[#f7fafc] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#536a7c]">
+            GitHub
+          </div>
+          <h3 className="mt-1 text-base font-black text-[#102838]">
+            PRs, issues y automatizaciones
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#536a7c]">
+            Accesos directos para convertir hallazgos del autoreparador en seguimiento técnico.
+          </p>
+        </div>
+        <a
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-9 items-center justify-center rounded-full border border-[#0f4c6b] bg-white px-3 text-xs font-extrabold text-[#0f4c6b] transition hover:bg-[#0f4c6b] hover:text-white"
+        >
+          Abrir repo
+        </a>
+      </div>
+
+      <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-[18px] border border-[#d8e4ec] bg-white px-3 py-3 text-sm transition hover:border-[#0f4c6b] hover:shadow-[0_10px_24px_rgb(16_32_42/0.08)]"
+          >
+            <div className="font-extrabold text-[#102838]">{item.label}</div>
+            <div className="mt-1 text-xs leading-5 text-[#536a7c]">{item.description}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DailyTrend({
+  snapshot,
+  maxDailyCount,
+}: {
+  snapshot: ReportingSnapshot;
+  maxDailyCount: number;
+}) {
   return (
     <SectionCard
       kicker="Simulaciones por día"
@@ -191,10 +271,7 @@ export default async function ReportingPage() {
   await requireAdminCapabilityUser(AdminCapability.view_reports);
 
   const snapshot: ReportingSnapshot = await getProductReportingSnapshot();
-  const maxDailyCount = Math.max(
-    ...snapshot.simulationsByDay.map((item) => item.count),
-    1,
-  );
+  const maxDailyCount = Math.max(...snapshot.simulationsByDay.map((item) => item.count), 1);
   const activeAssetAlerts =
     snapshot.assetSummary.counts.broken +
     snapshot.assetSummary.counts.timeout +
@@ -212,9 +289,9 @@ export default async function ReportingPage() {
               Producto comercial, monitoreo y señales de operación.
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[#536a7c]">
-              Dashboard de los últimos {snapshot.windowDays} días con simulaciones,
-              escenarios guardados, CTAs, beneficios, importaciones, auth sync y
-              salud de assets.
+              Dashboard de los últimos {snapshot.windowDays} días con simulaciones, escenarios
+              guardados, CTAs, beneficios, importaciones, auth sync, salud de assets y accesos de
+              reparación con GitHub.
             </p>
           </div>
           <Link
@@ -247,6 +324,8 @@ export default async function ReportingPage() {
             {snapshot.syncHealth.neonAuthWarning}
           </div>
         ) : null}
+
+        <GithubRepairMenu />
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div>
@@ -312,9 +391,9 @@ export default async function ReportingPage() {
       <DailyTrend snapshot={snapshot} maxDailyCount={maxDailyCount} />
 
       <section className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
-        <TopList title="Campus más consultados" items={snapshot.topCampuses} emptyLabel="Sin campus consultados." />
+        <TopList title="Campus más consultados" items={snapshot.topCampus} emptyLabel="Sin campus consultados." />
         <TopList title="Programas más cotizados" items={snapshot.topPrograms} emptyLabel="Sin programas cotizados." />
-        <TopList title="CTAs con más clicks" items={snapshot.topCtas} emptyLabel="Sin clicks de CTA." />
+        <TopList title="CTAs con más clicks" items={snapshot.topCta} emptyLabel="Sin clicks de CTA." />
         <TopList title="Beneficios más usados" items={snapshot.topBenefits} emptyLabel="Sin beneficios aplicados." />
       </section>
 
@@ -417,7 +496,8 @@ export default async function ReportingPage() {
                 <tr>
                   <td colSpan={5}>
                     <div className="rounded-[18px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">
-                      No hay assets en estado broken, timeout o unauthorized.
+                      No hay assets en estado broken, timeout o
+                      unauthorized.
                     </div>
                   </td>
                 </tr>
