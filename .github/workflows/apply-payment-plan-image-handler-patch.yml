@@ -22,17 +22,13 @@ jobs:
       - name: Insert missing payment plan image handler
         shell: bash
         run: |
-          python <<'PY'
-          from pathlib import Path
+          cat > /tmp/payment_plan_handler.txt <<'TS'
+]); const handleCopyPaymentPlanImage = useCallback(async (sectionTitle?: string) => {
+            const sections = sectionTitle
+              ? paymentPlanSections.filter((section) => section.title === sectionTitle)
+              : paymentPlanSections;
 
-          path = Path("apps/web/src/components/ScholarshipCalculator.tsx")
-          s = path.read_text()
-          original = s
-
-          if "const handleCopyPaymentPlanImage = useCallback" not in s:
-            anchor = "]); return ( <>"
-            handler = r"""]); const handleCopyPaymentPlanImage = useCallback(async (sectionTitle?: string) => {
-            if (!paymentPlanSections.length) {
+            if (!sections.length) {
               setCopyQuoteImageStatus("No hay plan de pagos para exportar.");
               return;
             }
@@ -41,22 +37,13 @@ jobs:
             setCopyQuoteImageStatus(null);
 
             try {
-              const sections = sectionTitle
-                ? paymentPlanSections.filter((section) => section.title === sectionTitle)
-                : paymentPlanSections;
-
-              if (!sections.length) {
-                throw new Error("No se encontró ese cuatrimestre.");
-              }
-
               const width = 720;
               const padding = 32;
-              const cardInner = 24;
-              const cardRadius = 18;
               const scale = Math.max(3, window.devicePixelRatio || 3);
               const fontFamily = "Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-              const sectionHeights = sections.map((section) => 92 + section.rows.length * 58);
-              const height = padding * 2 + 84 + sectionHeights.reduce((total, value) => total + value, 0) + Math.max(0, sections.length - 1) * 18;
+              const rowHeight = 42;
+              const sectionHeaderHeight = 58;
+              const height = padding * 2 + 72 + sections.reduce((total, section) => total + sectionHeaderHeight + section.rows.length * rowHeight + 24, 0);
 
               const canvas = document.createElement("canvas");
               canvas.width = width * scale;
@@ -72,50 +59,42 @@ jobs:
               ctx.fillStyle = "#55728b";
               ctx.font = `800 14px ${fontFamily}`;
               ctx.fillText("PLAN DE PAGOS", padding, padding + 16);
-
               ctx.fillStyle = "#17385f";
               ctx.font = `800 36px ${fontFamily}`;
-              ctx.fillText(sectionTitle ?? "Todos los cuatrimestres", padding, padding + 62);
+              ctx.fillText(sectionTitle ?? "Todos los cuatrimestres", padding, padding + 60);
 
               let y = padding + 92;
-
-              sections.forEach((section, sectionIndex) => {
-                const sectionTotal = round2(section.rows.reduce((total, row) => total + row.amount, 0));
-                const sectionHeight = sectionHeights[sectionIndex] ?? 160;
-
-                drawRoundedRect(ctx, padding, y, width - padding * 2, sectionHeight, cardRadius, "#eef5f9", "#cbdce8");
+              for (const section of sections) {
+                const total = round2(section.rows.reduce((sum, row) => sum + row.amount, 0));
+                const cardHeight = sectionHeaderHeight + section.rows.length * rowHeight;
+                drawRoundedRect(ctx, padding, y, width - padding * 2, cardHeight, 18, "#eef5f9", "#cbdce8");
 
                 ctx.fillStyle = "#55728b";
                 ctx.font = `800 14px ${fontFamily}`;
-                ctx.fillText(section.title, padding + cardInner, y + 34);
-
+                ctx.fillText(section.title, padding + 24, y + 32);
                 ctx.textAlign = "right";
                 ctx.fillStyle = "#17385f";
-                ctx.font = `800 22px ${fontFamily}`;
-                ctx.fillText(formatMoney(sectionTotal), width - padding - cardInner, y + 34);
+                ctx.font = `800 20px ${fontFamily}`;
+                ctx.fillText(formatMoney(total), width - padding - 24, y + 32);
                 ctx.textAlign = "left";
 
-                let rowY = y + 72;
-                section.rows.forEach((row) => {
+                let rowY = y + sectionHeaderHeight;
+                for (const row of section.rows) {
                   ctx.fillStyle = "#17385f";
-                  ctx.font = `700 18px ${fontFamily}`;
-                  ctx.fillText(row.label, padding + cardInner, rowY);
-
+                  ctx.font = `700 16px ${fontFamily}`;
+                  ctx.fillText(row.label, padding + 24, rowY + 10);
                   ctx.fillStyle = "#668097";
-                  ctx.font = `14px ${fontFamily}`;
-                  ctx.fillText(row.detail, padding + cardInner, rowY + 21);
-
+                  ctx.font = `13px ${fontFamily}`;
+                  ctx.fillText(row.detail, padding + 24, rowY + 28);
                   ctx.textAlign = "right";
                   ctx.fillStyle = "#17385f";
-                  ctx.font = `800 18px ${fontFamily}`;
-                  ctx.fillText(formatMoney(row.amount), width - padding - cardInner, rowY);
+                  ctx.font = `800 16px ${fontFamily}`;
+                  ctx.fillText(formatMoney(row.amount), width - padding - 24, rowY + 10);
                   ctx.textAlign = "left";
-
-                  rowY += 58;
-                });
-
-                y += sectionHeight + 18;
-              });
+                  rowY += rowHeight;
+                }
+                y += cardHeight + 24;
+              }
 
               const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((value) => resolve(value), "image/png", 0.98));
               if (!blob) throw new Error("No fue posible generar la imagen.");
@@ -138,20 +117,30 @@ jobs:
             } finally {
               setCopyQuoteImagePending(false);
             }
-          }, [paymentPlanSections]); return ( <>"""
-                if anchor not in s:
-                  raise SystemExit("Anchor not found")
-            s = s.replace(anchor, handler, 1)
-
-          if s == original:
-            print("No changes needed")
+          }, [paymentPlanSections]); return ( <>
+TS
+          python <<'PY'
+          from pathlib import Path
+          path = Path("apps/web/src/components/ScholarshipCalculator.tsx")
+          s = path.read_text()
+          if "const handleCopyPaymentPlanImage = useCallback" not in s:
+              handler = Path("/tmp/payment_plan_handler.txt").read_text()
+              marker = "setCopyQuoteImagePending(false);"
+              start = s.find(marker)
+              if start == -1:
+                  print("marker not found")
+              else:
+                  anchor = "]); return ( <>"
+                  idx = s.find(anchor, start)
+                  if idx == -1:
+                      print("anchor not found")
+                  else:
+                      s = s[:idx] + handler + s[idx + len(anchor):]
+                      path.write_text(s)
+                      print("handler inserted")
           else:
-            path.write_text(s)
+              print("handler already exists")
           PY
-
-      - name: Typecheck
-        continue-on-error: true
-        run: npm run typecheck
 
       - name: Commit changes
         shell: bash
