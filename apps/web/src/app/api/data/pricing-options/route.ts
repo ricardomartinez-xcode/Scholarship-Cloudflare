@@ -8,7 +8,10 @@ import {
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
 import { buildQuotePricingOptions, type QuotePricingOption } from "@/lib/pricing-options";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
-import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
+import {
+  academicModulesForConfiguredTrack,
+  type AcademicModule,
+} from "@/lib/academic-modules";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
   ENROLLMENT_TYPES,
@@ -58,7 +61,9 @@ function buildPriceOnlyKey(option: {
   module?: string | null;
   programKey?: string | null;
 }) {
-  return `${option.businessLine}|${option.modality}|${option.plan}|${option.module ?? "Longitudinal"}|${option.programKey ?? ""}`;
+  return `${option.businessLine}|${option.modality}|${option.plan}|${option.module ?? "Longitudinal"}|${
+    option.programKey ?? ""
+  }`;
 }
 
 function targetRecord(targetKeys: unknown) {
@@ -191,6 +196,7 @@ function buildConfiguredOfferingPricingOptions(
   offerings: Array<{
     pricingPlans: number[];
     track: string | null;
+    moduleCount: number | null;
     delivery: string;
     escolarizado: boolean;
     ejecutivo: boolean;
@@ -225,29 +231,33 @@ function buildConfiguredOfferingPricingOptions(
     );
     if (!studyProgram) continue;
 
+    const modules = academicModulesForConfiguredTrack(offering.track, offering.moduleCount);
+
     for (const modality of getOfferingModalities(offering)) {
       for (const plan of plans) {
-        for (const enrollmentType of ENROLLMENT_TYPES) {
-          const option: QuotePricingOption = {
-            enrollmentType,
-            businessLine: studyProgram.businessLine,
-            modality,
-            plan,
-            module: academicModuleOrDefault(offering.track),
-            programKey: studyProgram.id,
-            source: "offering",
-          };
-          options.set(
-            [
-              option.enrollmentType,
-              option.businessLine,
-              option.modality,
-              option.plan,
-              option.module,
-              option.programKey ?? "",
-            ].join("|"),
-            option,
-          );
+        for (const module of modules) {
+          for (const enrollmentType of ENROLLMENT_TYPES) {
+            const option: QuotePricingOption = {
+              enrollmentType,
+              businessLine: studyProgram.businessLine,
+              modality,
+              plan,
+              module,
+              programKey: studyProgram.id,
+              source: "offering",
+            };
+            options.set(
+              [
+                option.enrollmentType,
+                option.businessLine,
+                option.modality,
+                option.plan,
+                option.module,
+                option.programKey ?? "",
+              ].join("|"),
+              option,
+            );
+          }
         }
       }
     }
@@ -325,6 +335,8 @@ export async function GET() {
         campusId: true,
         pricingPlans: true,
         track: true,
+        moduleCount: true,
+        subjectsByModule: true,
         delivery: true,
         escolarizado: true,
         ejecutivo: true,
@@ -348,6 +360,7 @@ export async function GET() {
   ]);
 
   const academicOfferByCampus = new Map<string, typeof activeOfferings>();
+
   const r2Assignments = await listFileAssetAssignmentsForTargets(
     "program",
     Array.from(
@@ -357,10 +370,12 @@ export async function GET() {
       ]),
     ),
   );
+
   const pricingOptions = [
     ...buildQuotePricingOptions(rules, priceOverrides),
     ...buildConfiguredOfferingPricingOptions(activeOfferings, r2Assignments),
   ];
+
   const priceOverrideSnapshots = priceOverrides.map(
     (override): PriceOverrideSnapshot => ({
       id: override.id,
@@ -384,6 +399,7 @@ export async function GET() {
       const academicOffer = academicOfferByCampus.get(campus.id) ?? [];
       const runtimeTier =
         campus.code === "ONLINE" ? "ANY" : normalizeTier(campus.tier ?? null);
+
       const campusPricingOptions = Array.from(
         new Map(
           pricingOptions
@@ -455,6 +471,7 @@ export async function GET() {
             .map((option) => [buildPriceOnlyKey(option), option]),
         ).values(),
       );
+
       const campusPricingByKey = new Map(
         campusPricingOptions.map((option) => [buildPriceOnlyKey(option), option]),
       );
@@ -494,6 +511,10 @@ export async function GET() {
         studyPrograms.set(studyProgram.id, studyProgram);
 
         const configuredPlans = normalizeAcademicPricingPlans(offering.pricingPlans);
+        const configuredModules = academicModulesForConfiguredTrack(
+          offering.track,
+          offering.moduleCount,
+        );
 
         for (const modality of getOfferingModalities(offering)) {
           offeredOptions.set(`${studyProgram.businessLine}|${modality}`, {
@@ -505,7 +526,7 @@ export async function GET() {
               option.businessLine !== studyProgram.businessLine ||
               option.modality !== modality ||
               (configuredPlans.length > 0 && !configuredPlans.includes(option.plan)) ||
-              option.module !== academicModuleOrDefault(offering.track) ||
+              !configuredModules.includes(option.module) ||
               !programMatchesPricingOption(studyProgram, option)
             ) {
               continue;
