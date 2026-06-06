@@ -235,6 +235,7 @@ export async function getProductReportingSnapshot() {
     topCampus: topEntries(campuses),
     topCampuses: topEntries(campuses),
     topPrograms: topEntries(programs),
+    topCta: topEntries(ctas),
     topCtas: topEntries(ctas),
     topBenefits: topEntries(benefits),
     importErrors,
