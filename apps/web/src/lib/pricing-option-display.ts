@@ -1,3 +1,4 @@
+import type { AcademicModule } from "@/lib/academic-modules";
 import {
   normalizeBusinessLine,
   normalizeCanonicalModality,
@@ -19,6 +20,7 @@ export type QuoteCampusOption = {
     businessLine: string;
     modality: string;
     plan: number;
+    module: AcademicModule;
     programId?: string;
   }>;
 };
@@ -29,6 +31,14 @@ const MODALITY_ORDER: Record<CanonicalModalityValue, number> = {
   presencial: 0,
   mixta: 1,
   online: 2,
+};
+
+const MODULE_ORDER: Record<AcademicModule, number> = {
+  M1: 0,
+  M2: 1,
+  M3: 2,
+  Longitudinal: 3,
+  Modular: 9,
 };
 
 const VISIBLE_MODALITIES_BY_BUSINESS_LINE: Record<
@@ -46,6 +56,12 @@ function sortModalities<T extends string>(modalities: T[]) {
     (left, right) =>
       (MODALITY_ORDER[left as CanonicalModalityValue] ?? 9) -
       (MODALITY_ORDER[right as CanonicalModalityValue] ?? 9),
+  );
+}
+
+function sortModules<T extends AcademicModule>(modules: T[]) {
+  return [...modules].sort(
+    (left, right) => (MODULE_ORDER[left] ?? 9) - (MODULE_ORDER[right] ?? 9),
   );
 }
 
@@ -140,4 +156,34 @@ export function visibleQuoteCampuses(
       );
     })
     .sort((left, right) => left.label.localeCompare(right.label, "es"));
+}
+
+export function visibleQuoteModules(
+  campus: QuoteCampusOption | null | undefined,
+  params: {
+    businessLine?: string;
+    modality?: string;
+    plan?: number | null;
+    programId?: string | null;
+  },
+): AcademicModule[] {
+  const normalizedBusinessLine = normalizeBusinessLine(params.businessLine) ?? params.businessLine;
+  const normalizedModality = normalizeCanonicalModality(params.modality) ?? params.modality;
+
+  if (!campus?.pricingOptions?.length) {
+    return [];
+  }
+
+  const modules = campus.pricingOptions
+    .filter(
+      (option) =>
+        (!normalizedBusinessLine || option.businessLine === normalizedBusinessLine) &&
+        (!normalizedModality || option.modality === normalizedModality) &&
+        (!params.plan || option.plan === params.plan) &&
+        (!params.programId || option.programId === params.programId),
+    )
+    .map((option) => option.module)
+    .filter((module): module is AcademicModule => Boolean(module));
+
+  return sortModules(Array.from(new Set(modules)));
 }
