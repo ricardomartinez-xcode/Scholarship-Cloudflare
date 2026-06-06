@@ -89,6 +89,24 @@ export function academicModuleOrBlank(value: unknown): AcademicModuleSelection {
   return normalizeAcademicModule(value) ?? "";
 }
 
+export function academicModulesForConfiguredTrack(
+  track: unknown,
+  moduleCount?: number | null,
+): AcademicModule[] {
+  const normalizedModule = normalizeAcademicModule(track);
+
+  if (normalizedModule === "Modular") {
+    const parsedCount = Number(moduleCount);
+    const safeCount = Number.isFinite(parsedCount)
+      ? Math.max(1, Math.min(ACADEMIC_MODULE_PARTS.length, Math.trunc(parsedCount)))
+      : ACADEMIC_MODULE_PARTS.length;
+
+    return ACADEMIC_MODULE_PARTS.slice(0, safeCount);
+  }
+
+  return [normalizedModule ?? "Longitudinal"];
+}
+
 export function academicModuleMatches(
   configured: unknown,
   requested: unknown,
