@@ -232,6 +232,7 @@ export async function getProductReportingSnapshot() {
     simulationsByDay: [...simulationsByDay.entries()]
       .sort((left, right) => left[0].localeCompare(right[0]))
       .map(([date, count]) => ({ date, count })),
+    topCampus: topEntries(campuses),
     topCampuses: topEntries(campuses),
     topPrograms: topEntries(programs),
     topCtas: topEntries(ctas),
