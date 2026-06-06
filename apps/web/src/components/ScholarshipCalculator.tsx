@@ -1657,7 +1657,128 @@ export default function ScholarshipCalculator({
       },
     });
 
-  const handleCopyQuoteImage = useCallback(async () => {
+  const handleCopyPaymentPlanImage = useCallback(async (sectionTitle?: string) => {
+    const sections = sectionTitle
+      ? paymentPlanSections.filter((section) => section.title === sectionTitle)
+      : paymentPlanSections;
+
+    if (!sections.length) {
+      setCopyQuoteImageStatus("No hay plan de pagos para exportar.");
+      return;
+    }
+
+    setCopyQuoteImagePending(true);
+    setCopyQuoteImageStatus(null);
+
+    try {
+      const width = 720;
+      const padding = 32;
+      const scale = Math.max(3, window.devicePixelRatio || 3);
+      const fontFamily = "Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+      const rowHeight = 44;
+      const cardGap = 22;
+      const sectionHeaderHeight = 62;
+      const cardPadding = 24;
+      const contentWidth = width - padding * 2;
+      const sectionsHeight = sections.reduce(
+        (total, section) => total + sectionHeaderHeight + section.rows.length * rowHeight + cardGap,
+        0,
+      );
+      const height = padding * 2 + 78 + sectionsHeight;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("No fue posible preparar la imagen.");
+
+      ctx.scale(scale, scale);
+      drawRoundedRect(ctx, 0.5, 0.5, width - 1, height - 1, 18, "#ffffff", "#c8d5df");
+
+      ctx.fillStyle = "#55728b";
+      ctx.font = `800 14px ${fontFamily}`;
+      ctx.fillText("PLAN DE PAGOS", padding, padding + 16);
+
+      ctx.fillStyle = "#17385f";
+      ctx.font = `800 36px ${fontFamily}`;
+      ctx.fillText(sectionTitle ?? "Todos los cuatrimestres", padding, padding + 60);
+
+      let y = padding + 93;
+      for (const section of sections) {
+        const sectionTotal = round2(section.rows.reduce((total, row) => total + row.amount, 0));
+        const cardHeight = sectionHeaderHeight + section.rows.length * rowHeight;
+        drawRoundedRect(ctx, padding, y, contentWidth, cardHeight, 18, "#eef5f9", "#cbdce8");
+
+        ctx.fillStyle = "#55728b";
+        ctx.font = `800 14px ${fontFamily}`;
+        ctx.fillText(section.title.toUpperCase(), padding + cardPadding, y + 34);
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#17385f";
+        ctx.font = `800 22px ${fontFamily}`;
+        ctx.fillText(formatMoney(sectionTotal), width - padding - cardPadding, y + 34);
+        ctx.textAlign = "left";
+
+        let rowY = y + sectionHeaderHeight;
+        for (const row of section.rows) {
+          ctx.fillStyle = "#17385f";
+          ctx.font = `700 16px ${fontFamily}`;
+          ctx.fillText(row.label, padding + cardPadding, rowY + 10);
+          ctx.fillStyle = "#668097";
+          ctx.font = `13px ${fontFamily}`;
+          ctx.fillText(row.detail, padding + cardPadding, rowY + 28);
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#17385f";
+          ctx.font = `800 16px ${fontFamily}`;
+          ctx.fillText(formatMoney(row.amount), width - padding - cardPadding, rowY + 10);
+          ctx.textAlign = "left";
+          rowY += rowHeight;
+        }
+
+        y += cardHeight + cardGap;
+      }
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((value) => resolve(value), "image/png", 0.98),
+      );
+      if (!blob) throw new Error("No fue posible generar la imagen.");
+
+      if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type || "image/png"]: blob }),
+        ]);
+        setCopyQuoteImageStatus(
+          sectionTitle
+            ? "El cuatrimestre se copió como imagen."
+            : "Los planes de pago se copiaron como imagen.",
+        );
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = sectionTitle
+        ? `plan-pago-${sectionTitle}.png`
+        : `planes-pago-${Date.now()}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setCopyQuoteImageStatus(
+        "Tu navegador no permitió copiar la imagen directo. Se descargó un PNG.",
+      );
+    } catch (error) {
+      setCopyQuoteImageStatus(
+        error instanceof Error
+          ? error.message
+          : "No fue posible exportar el plan de pagos como imagen.",
+      );
+    } finally {
+      setCopyQuoteImagePending(false);
+    }
+  }, [paymentPlanSections]); const handleCopyQuoteImage = useCallback(async () => {
     if (!resultPanelSnapshot) {
       setCopyQuoteImageStatus("No hay cotización actual para exportar.");
       return;
