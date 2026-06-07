@@ -73,21 +73,25 @@ export default function SalesRoleplayBotPanel({
       return;
     }
 
+    const lastMessageId = lastMessage.id;
+    const lastMessageContent = lastMessage.content;
+    const lastMessageSenderUserId = lastMessage.sender.userId;
+
     const baseline = autoReplyBaselineByChatRef.current[activeChatId];
     if (baseline === undefined) {
-      autoReplyBaselineByChatRef.current[activeChatId] = lastMessage.id;
+      autoReplyBaselineByChatRef.current[activeChatId] = lastMessageId;
       return;
     }
 
     if (!autoRespond || !canUseComposer || !viewerUserId) return;
-    if (lastMessage.id === baseline || lastMessage.sender.userId !== viewerUserId) {
-      autoReplyBaselineByChatRef.current[activeChatId] = lastMessage.id;
+    if (lastMessageId === baseline || lastMessageSenderUserId !== viewerUserId) {
+      autoReplyBaselineByChatRef.current[activeChatId] = lastMessageId;
       return;
     }
-    if (lastAutoReplyMessageIdRef.current === lastMessage.id) return;
+    if (lastAutoReplyMessageIdRef.current === lastMessageId) return;
 
-    lastAutoReplyMessageIdRef.current = lastMessage.id;
-    autoReplyBaselineByChatRef.current[activeChatId] = lastMessage.id;
+    lastAutoReplyMessageIdRef.current = lastMessageId;
+    autoReplyBaselineByChatRef.current[activeChatId] = lastMessageId;
     let cancelled = false;
 
     async function sendAutomaticBotReply() {
@@ -100,14 +104,14 @@ export default function SalesRoleplayBotPanel({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               botId: selectedBotId,
-              advisorMessage: lastMessage.content,
+              advisorMessage: lastMessageContent,
               extraKnowledge,
             }),
           },
         );
         if (cancelled) return;
         setReplyState({
-          signature: [draftKey, selectedBotId, lastMessage.content, extraKnowledge, messages.length].join("::"),
+          signature: [draftKey, selectedBotId, lastMessageContent, extraKnowledge, messages.length].join("::"),
           reply: payload.reply,
         });
         setRequestState({ kind: "success", message: "Respuesta automática enviada por el bot." });
