@@ -512,7 +512,7 @@ function applyConfigsToPayload(
 
     const deduped = new Map<string, ParsedOfferRowLike>();
     for (const row of nextRows) deduped.set(rowKey(row), row);
-    campus.rows = Array.from(deduped.values());
+    campus.rows = Array.from(deduped.values()) as typeof campus.rows;
   }
 
   return appliedRows;
