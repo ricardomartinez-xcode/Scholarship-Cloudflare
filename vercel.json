@@ -1,8 +1,20 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "apps/web/.next",
   "installCommand": "npm install",
+  "git": {
+    "deploymentEnabled": {
+      "fix/*": false,
+      "chore/*": false,
+      "docs/*": false,
+      "refactor/*": false,
+      "test/*": false,
+      "wip/*": false,
+      "internal-*": false
+    }
+  },
   "functions": {
     "src/app/api/admin/**/*": {
       "maxDuration": 30
