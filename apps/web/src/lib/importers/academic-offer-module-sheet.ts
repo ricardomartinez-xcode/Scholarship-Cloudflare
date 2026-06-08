@@ -408,7 +408,7 @@ function campusMatches(config: ModuleConfig, campus: CampusParseResultLike) {
     (candidate) =>
       candidate === config.campusKey ||
       (candidate.length >= 4 && config.campusKey?.includes(candidate)) ||
-      (config.campusKey.length >= 4 && candidate.includes(config.campusKey)),
+      (config.campusKey != null && config.campusKey.length >= 4 && candidate.includes(config.campusKey)),
   );
 }
 
@@ -531,7 +531,7 @@ function previewMatchesConfig(config: ModuleConfig, row: AcademicOfferPreviewRow
     (candidate) =>
       candidate === config.campusKey ||
       (candidate.length >= 4 && config.campusKey?.includes(candidate)) ||
-      (config.campusKey.length >= 4 && candidate.includes(config.campusKey)),
+      (config.campusKey != null && config.campusKey.length >= 4 && candidate.includes(config.campusKey)),
   );
   return programMatch && campusMatch;
 }
