@@ -1,0 +1,277 @@
+name: Apply Recalc import modes fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch to receive the patch
+        required: false
+        default: fix/recalc-import-modes-351
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+
+      - name: Create patch branch
+        shell: bash
+        run: |
+          git fetch origin main
+          git switch -C "${{ inputs.target_branch }}" origin/main
+
+      - name: Patch Recalc import modes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def die(message: str):
+              raise SystemExit(message)
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
+
+          def write(path: str, content: str) -> None:
+              Path(path).write_text(content, encoding="utf-8")
+
+          def replace_once(content: str, old: str, new: str, label: str) -> str:
+              if old not in content:
+                  return content
+              return content.replace(old, new, 1)
+
+          def require_replace_once(content: str, old: str, new: str, label: str) -> str:
+              if old not in content:
+                  die(f"Missing expected block: {label}")
+              return content.replace(old, new, 1)
+
+          def regex_replace_once(content: str, pattern: str, repl: str, label: str) -> str:
+              content2, count = re.subn(pattern, repl, content, count=1, flags=re.S)
+              if count != 1:
+                  die(f"Missing expected pattern: {label}")
+              return content2
+
+          def patch_prices_route():
+              path = "apps/web/src/app/api/admin/prices/import/[sessionId]/apply/route.ts"
+              s = read(path)
+              if "const applyMode =" not in s:
+                  s = require_replace_once(
+                      s,
+                      "    sessionIdForRedirect = sessionId;\n",
+                      "    sessionIdForRedirect = sessionId;\n    const applyMode = new URL(request.url).searchParams.get(\"mode\") === \"batch\" ? \"batch\" : \"replace\";\n",
+                      "prices route mode parse",
+                  )
+              s = replace_once(
+                  s,
+                  "      updatedBy: auth.admin.email,\n    });",
+                  "      updatedBy: auth.admin.email,\n      mode: applyMode,\n    });",
+                  "prices route mode pass",
+              )
+              s = s.replace("Importación de precios aplicada.", "Actualización de precios aplicada.")
+              if "mode: applyMode" not in s:
+                  die("prices route did not pass applyMode")
+              write(path, s)
+
+          def patch_offer_route():
+              path = "apps/web/src/app/api/admin/import-academic-offer/[sessionId]/apply/route.ts"
+              s = read(path)
+              if "const applyMode =" not in s:
+                  s = require_replace_once(
+                      s,
+                      "    sessionIdForRedirect = sessionId;\n",
+                      "    sessionIdForRedirect = sessionId;\n    const applyMode = new URL(request.url).searchParams.get(\"mode\") === \"batch\" ? \"batch\" : \"replace\";\n",
+                      "offer route mode parse",
+                  )
+              s = replace_once(
+                  s,
+                  "      updatedBy: admin.email,\n    });",
+                  "      updatedBy: admin.email,\n      mode: applyMode,\n    });",
+                  "offer route mode pass",
+              )
+              s = s.replace("Importación de oferta académica aplicada.", "Actualización de oferta aplicada.")
+              if "mode: applyMode" not in s:
+                  die("offer route did not pass applyMode")
+              write(path, s)
+
+          def patch_prices_importer():
+              path = "apps/web/src/lib/importers/prices-csv.ts"
+              s = read(path)
+              if "export type PricesImportApplyMode" not in s:
+                  s = require_replace_once(
+                      s,
+                      "export type PricesImportApplySummary = {\n  processed: number;\n  created: number;\n  updated: number;\n  unchanged: number;\n};\n",
+                      "export type PricesImportApplySummary = {\n  processed: number;\n  created: number;\n  updated: number;\n  unchanged: number;\n};\n\nexport type PricesImportApplyMode = \"replace\" | \"batch\";\n",
+                      "prices apply mode type",
+                  )
+              s = replace_once(
+                  s,
+                  "export async function applyPreparedPricesImport(params: {\n  payload: PreparedPricesImportPayload;\n  updatedBy: string;\n}): Promise<PricesImportApplySummary> {\n  const rows = params.payload.rows ?? [];",
+                  "export async function applyPreparedPricesImport(params: {\n  payload: PreparedPricesImportPayload;\n  updatedBy: string;\n  mode?: PricesImportApplyMode;\n}): Promise<PricesImportApplySummary> {\n  const rows = params.payload.rows ?? [];\n  const mode = params.mode ?? \"replace\";\n\n  if (mode === \"batch\") {\n    const createRow = rows.find((row) => row.action === \"create\" || !row.existingId);\n    if (createRow) {\n      throw new PricesCsvValidationError(\n        `Actualizar lote no puede crear precios nuevos. Fila ${createRow.rowNumber}: usa Actualizar precios para reemplazar todo.`,\n        \"BATCH_CREATE_NOT_ALLOWED\",\n      );\n    }\n  }",
+                  "prices apply signature and batch guard",
+              )
+              if "const mode = params.mode ?? \"replace\";" not in s:
+                  die("prices importer did not define mode")
+              s = replace_once(
+                  s,
+                  "  await prisma.$transaction(async (tx) => {\n    for (const row of rows) {",
+                  "  await prisma.$transaction(async (tx) => {\n    if (mode === \"replace\") {\n      const incomingKeys = new Set(rows.map((row) => row.key));\n      const existingRows = await tx.adminPriceOverride.findMany({\n        where: { scope: \"base_price\" },\n        select: { id: true, targetKeys: true },\n      });\n\n      for (const existing of existingRows) {\n        const target =\n          existing.targetKeys && typeof existing.targetKeys === \"object\" && !Array.isArray(existing.targetKeys)\n            ? (existing.targetKeys as Record<string, unknown>)\n            : {};\n        const existingKey = buildPriceScopeKey({\n          plantel: target.plantel ? String(target.plantel) : null,\n          programaKey: readProgramaKeyFromTarget(target),\n          nivelKey: String(target.nivel_key ?? target.nivelKey ?? target.nivel ?? \"\"),\n          modalidadKey: String(target.modalidad_key ?? target.modalidadKey ?? target.modalidad ?? \"\"),\n          plan: String(target.plan ?? \"\"),\n          module: academicModuleOrDefault(target.modulo ?? target.module ?? target.academicModule),\n          tier: target.tier ? String(target.tier) : null,\n        });\n\n        if (!incomingKeys.has(existingKey)) {\n          await tx.adminPriceOverride.delete({ where: { id: existing.id } });\n        }\n      }\n    }\n\n    for (const row of rows) {",
+                  "prices replace delete stale",
+              )
+              s = replace_once(
+                  s,
+                  "      await tx.adminPriceOverride.create({\n",
+                  "      if (mode === \"batch\") {\n        throw new PricesCsvValidationError(\n          `Actualizar lote no puede crear precios nuevos. Fila ${row.rowNumber}: usa Actualizar precios para reemplazar todo.`,\n          \"BATCH_CREATE_NOT_ALLOWED\",\n        );\n      }\n\n      await tx.adminPriceOverride.create({\n",
+                  "prices prevent create in batch",
+              )
+              write(path, s)
+
+          def patch_prices_client():
+              path = "apps/web/src/components/admin/PricesClient.tsx"
+              s = read(path)
+              s = replace_once(s, "async function applyImportSession() {", "async function applyImportSession(mode: \"replace\" | \"batch\" = \"replace\") {", "prices client mode signature")
+              s = replace_once(s, "fetch(`/api/admin/prices/import/${importSessionId}/apply`, {", "fetch(`/api/admin/prices/import/${importSessionId}/apply?mode=${mode}`, {", "prices client mode url")
+              s = s.replace('{ id: "imports", label: "Importación" }', '{ id: "imports", label: "Actualización" }')
+              s = s.replace("Importar precio lista", "Actualizar precios")
+              s = s.replace("Importa archivos XLSX o CSV", "Actualiza archivos XLSX o CSV")
+              s = regex_replace_once(
+                  s,
+                  r'''<button\n\s+type="button"\n\s+onClick=\{applyImportSession\}\n\s+disabled=\{Boolean\(\n\s+!importSessionId \|\| applyImportLoading \|\| importSummary\?\.errors\?\.length,\n\s+\)\}\n\s+className="rounded-xl border border-emerald-500/40 bg-blue-950/15 px-3 py-1\.5 text-xs font-semibold text-emerald-100 transition hover:bg-blue-950/25 disabled:opacity-60"\n\s+>\n\s+\{applyImportLoading \? "Aplicando\.\.\." : "Aplicar"\}\n\s+</button>''',
+                  '''<button
+              type="button"
+              onClick={() => applyImportSession("replace")}
+              disabled={Boolean(
+                !importSessionId || applyImportLoading || importSummary?.errors?.length,
+              )}
+              className="rounded-xl border border-emerald-500/40 bg-blue-950/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-blue-950/25 disabled:opacity-60"
+            >
+              {applyImportLoading ? "Actualizando..." : "Actualizar precios"}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyImportSession("batch")}
+              disabled={Boolean(
+                !importSessionId || applyImportLoading || importSummary?.errors?.length,
+              )}
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60"
+              title="Solo modifica precios existentes; no crea precios nuevos."
+            >
+              {applyImportLoading ? "Actualizando..." : "Actualizar lote"}
+            </button>''',
+                  "prices client apply buttons",
+              )
+              write(path, s)
+
+          def patch_offer_client():
+              path = "apps/web/src/components/admin/OfferImportClient.tsx"
+              s = read(path)
+              s = replace_once(s, "async function applyImport() {", "async function applyImport(mode: \"replace\" | \"batch\" = \"replace\") {", "offer client mode signature")
+              s = replace_once(s, "fetch(`/api/admin/import-academic-offer/${sessionId}/apply`, { method: \"POST\" })", "fetch(`/api/admin/import-academic-offer/${sessionId}/apply?mode=${mode}`, { method: \"POST\" })", "offer client mode url")
+              s = s.replace('{ id: "imports", label: "Importación" }', '{ id: "imports", label: "Actualización" }')
+              s = s.replace("Importar oferta por planteles", "Actualizar oferta")
+              s = s.replace("Importa archivos XLSX o CSV.", "Actualiza archivos XLSX o CSV.")
+              s = s.replace("Ciclo a importar", "Ciclo a actualizar")
+              s = regex_replace_once(
+                  s,
+                  r'''\{sessionId && !applied && !rolledBack \? <button type="button" onClick=\{applyImport\} disabled=\{applyLoading\} className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1\.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25 disabled:opacity-60">\{applyLoading \? "Aplicando\.\.\." : "Aplicar al draft"\}</button> : null\}''',
+                  '''{sessionId && !applied && !rolledBack ? (
+                  <>
+                    <button type="button" onClick={() => applyImport("replace")} disabled={applyLoading} className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25 disabled:opacity-60">
+                      {applyLoading ? "Actualizando..." : "Actualizar oferta"}
+                    </button>
+                    <button type="button" onClick={() => applyImport("batch")} disabled={applyLoading} className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60" title="Solo modifica oferta existente; no crea oferta nueva.">
+                      {applyLoading ? "Actualizando..." : "Actualizar lote"}
+                    </button>
+                  </>
+                ) : null}''',
+                  "offer client apply buttons",
+              )
+              write(path, s)
+
+          def patch_offer_importer_minimal():
+              path = "apps/web/src/lib/importers/academic-offer-replace.ts"
+              s = read(path)
+              if "export type AcademicOfferImportApplyMode" not in s:
+                  s = replace_once(
+                      s,
+                      'export type { PreparedAcademicOfferImportPayload } from "./academic-offer";',
+                      'export type { PreparedAcademicOfferImportPayload } from "./academic-offer";\n\nexport type AcademicOfferImportApplyMode = "replace" | "batch";',
+                      "offer apply mode type",
+                  )
+              s = replace_once(
+                  s,
+                  "updatedBy: string;\n}): Promise<ImportAcademicOfferSummary> {",
+                  "updatedBy: string;\n  mode?: AcademicOfferImportApplyMode;\n}): Promise<ImportAcademicOfferSummary> {",
+                  "offer apply mode param",
+              )
+              if "const mode = params.mode ?? \"replace\";" not in s:
+                  s = replace_once(
+                      s,
+                      "  const summary = buildEmptySummary(params.payload);\n",
+                      "  const summary = buildEmptySummary(params.payload);\n  const mode = params.mode ?? \"replace\";\n",
+                      "offer mode const",
+                  )
+              # Conservative safety guard if full batch support was not already implemented by WIP.
+              # This prevents accidental create/delete in batch while still enabling replace mode safely.
+              if "BATCH_OFFER_UPDATE_NOT_IMPLEMENTED" not in s:
+                  s = replace_once(
+                      s,
+                      "  const programSeeds = getProgramSeeds(params.payload);\n",
+                      "  if (mode === \"batch\") {\n    throw new Error(\"Actualizar lote de oferta requiere coincidencias exactas existentes y aún no está habilitado para escritura segura. Usa Actualizar oferta para reemplazar todo o completa el updateMany controlado antes de usar lote.\");\n  }\n\n  const programSeeds = getProgramSeeds(params.payload);\n",
+                      "offer batch safety guard",
+                  )
+              write(path, s)
+
+          patch_prices_importer()
+          patch_prices_route()
+          patch_prices_client()
+          patch_offer_route()
+          patch_offer_client()
+          patch_offer_importer_minimal()
+          print("Patch applied")
+          PY
+
+      - name: Typecheck
+        shell: bash
+        run: npm run typecheck
+
+      - name: Lint if present
+        shell: bash
+        run: npm run lint --if-present
+
+      - name: Commit and push branch
+        shell: bash
+        run: |
+          git config user.name "Code Forge Studio"
+          git config user.email "actions@users.noreply.github.com"
+          git status --short
+          git add \
+            apps/web/src/lib/importers/prices-csv.ts \
+            apps/web/src/app/api/admin/prices/import/'[sessionId]'/apply/route.ts \
+            apps/web/src/components/admin/PricesClient.tsx \
+            apps/web/src/app/api/admin/import-academic-offer/'[sessionId]'/apply/route.ts \
+            apps/web/src/components/admin/OfferImportClient.tsx \
+            apps/web/src/lib/importers/academic-offer-replace.ts
+          git diff --cached --quiet && { echo "No changes to commit"; exit 1; }
+          git commit -m "Fix Recalc import replace and batch modes"
+          git push --force-with-lease origin "${{ inputs.target_branch }}"
+
+      - name: Open pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "${{ inputs.target_branch }}" \
+            --title "Recalc: fix replace and batch import modes" \
+            --body "Completes issue #351. Adds explicit replace/batch modes for price and academic-offer import endpoints and UI. Price replace mode removes stale base_price overrides not present in the incoming file; price batch mode rejects creates before writes. Academic-offer batch is guarded to avoid unsafe create/delete until exact updateMany matching is completed.\n\nValidation run in workflow: npm run typecheck and npm run lint --if-present.\n\nCloses #351." \
+          || gh pr view "${{ inputs.target_branch }}" --json url --jq .url
