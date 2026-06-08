@@ -44,8 +44,18 @@ function assertNoAuthError(result: AuthResult, fallback: string) {
   if (error) throw new Error(fallback);
 }
 
-function safeCallback(callbackURL: string) {
-  return callbackURL.startsWith("/") ? callbackURL : "/unidep";
+function safeNextPath(callbackURL: string) {
+  const fallback = "/unidep";
+  const raw = callbackURL.trim() || fallback;
+
+  try {
+    const parsed = new URL(raw, typeof window === "undefined" ? "https://recalc.relead.com.mx" : window.location.origin);
+    const path = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/auth/after-login")) return fallback;
+    return path;
+  } catch {
+    return fallback;
+  }
 }
 
 function absoluteUrl(path: string) {
@@ -54,10 +64,22 @@ function absoluteUrl(path: string) {
 }
 
 function addQuery(path: string, params: Record<string, string>) {
-  if (typeof window === "undefined") return path;
-  const url = new URL(path, window.location.origin);
+  const url = new URL(path, typeof window === "undefined" ? "https://recalc.relead.com.mx" : window.location.origin);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function buildAfterLoginCallback(nextPath: string, extra: Record<string, string> = {}) {
+  return absoluteUrl(addQuery("/auth/after-login", { next: nextPath, ...extra }));
+}
+
+function buildAuthErrorCallback(mode: AuthMethodsMode, nextPath: string, message: string) {
+  return absoluteUrl(
+    addQuery(`/auth/${mode === "sign-up" ? "sign-up" : "sign-in"}`, {
+      error: message,
+      next: nextPath,
+    }),
+  );
 }
 
 function emailFrom(value: string) {
@@ -118,7 +140,7 @@ export default function NeonUserAuthMethods({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const redirect = useMemo(() => safeCallback(callbackURL), [callbackURL]);
+  const nextPath = useMemo(() => safeNextPath(callbackURL), [callbackURL]);
   const copy = modeCopy(mode);
 
   function handleEmailChange(value: string) {
@@ -147,9 +169,9 @@ export default function NeonUserAuthMethods({
       const client = authClient as AuthClientWithPasswordless;
       const result = await client.signIn.magicLink({
         email: cleanEmail,
-        callbackURL: redirect,
-        newUserCallbackURL: addQuery(redirect, { newUser: "1" }),
-        errorCallbackURL: `/auth/${mode === "sign-up" ? "sign-up" : "sign-in"}?error=${encodeURIComponent("No se pudo validar el enlace mágico.")}`,
+        callbackURL: buildAfterLoginCallback(nextPath),
+        newUserCallbackURL: buildAfterLoginCallback(nextPath, { newUser: "1" }),
+        errorCallbackURL: buildAuthErrorCallback(mode, nextPath, "No se pudo validar el enlace mágico."),
       });
       assertNoAuthError(result, "No se pudo enviar el enlace mágico.");
       setNotice(copy.magicSuccess);
@@ -202,7 +224,7 @@ export default function NeonUserAuthMethods({
         ...(mode === "sign-up" ? { name: displayNameFromEmail(cleanEmail) } : {}),
       });
       assertNoAuthError(result, "No se pudo validar el código OTP.");
-      window.location.assign(absoluteUrl(redirect));
+      window.location.assign(buildAfterLoginCallback(nextPath, mode === "sign-up" ? { newUser: "1" } : {}));
     } catch (err) {
       setError(getErrorMessage(err, "Código inválido o expirado."));
     } finally {
