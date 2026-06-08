@@ -591,7 +591,7 @@ export async function enrichAcademicOfferImportWithModuleSheet<TPrepared extends
   params.prepared.payload.detectedColumns = {
     ...(params.prepared.payload.detectedColumns ?? {}),
     modules: detection.columns,
-  };
+  } as typeof params.prepared.payload.detectedColumns;
 
   const warning = `Configuración de módulos detectada en "${detection.sheet.name}": ${configs.length} filas leídas, ${appliedRows} ofertas enriquecidas para mostrar M1, M2, M3 o Longitudinal según contenido.`;
   pushUniqueWarning(params.prepared.summary.warnings, warning);
