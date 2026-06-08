@@ -48,7 +48,7 @@ describe("visibleQuoteCampuses", () => {
           {
             value: "online",
             label: "Online",
-            pricingOptions: [{ businessLine: "prepa", modality: "online", plan: 6 }],
+            pricingOptions: [{ businessLine: "prepa", modality: "online", plan: 6, module: "Longitudinal" }],
           },
         ],
         "online",
@@ -59,7 +59,7 @@ describe("visibleQuoteCampuses", () => {
       {
         value: "ONLINE",
         label: "Online",
-        pricingOptions: [{ businessLine: "prepa", modality: "online", plan: 6 }],
+        pricingOptions: [{ businessLine: "prepa", modality: "online", plan: 6, module: "Longitudinal" }],
       },
     ]);
   });
@@ -85,14 +85,14 @@ describe("visibleQuoteCampuses", () => {
             label: "Chihuahua",
             businessLines: ["prepa", "licenciatura"],
             modalities: ["presencial"],
-            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
+            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6, module: "Longitudinal" }],
           },
           {
             value: "TJN",
             label: "Tijuana",
             businessLines: ["licenciatura"],
             modalities: ["presencial"],
-            pricingOptions: [{ businessLine: "licenciatura", modality: "presencial", plan: 6 }],
+            pricingOptions: [{ businessLine: "licenciatura", modality: "presencial", plan: 6, module: "Longitudinal" }],
           },
         ],
         "presencial",
@@ -104,7 +104,7 @@ describe("visibleQuoteCampuses", () => {
         label: "Chihuahua",
         businessLines: ["prepa", "licenciatura"],
         modalities: ["presencial"],
-        pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
+        pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6, module: "Longitudinal" }],
       },
     ]);
   });
@@ -118,14 +118,14 @@ describe("visibleQuoteCampuses", () => {
             label: "Chihuahua",
             businessLines: ["prepa"],
             modalities: ["presencial"],
-            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
+            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6, module: "Longitudinal" }],
           },
           {
             value: "TJN",
             label: "Tijuana",
             businessLines: ["prepa"],
             modalities: ["presencial"],
-            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 9 }],
+            pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 9, module: "Longitudinal" }],
           },
         ],
         "presencial",
@@ -138,7 +138,7 @@ describe("visibleQuoteCampuses", () => {
         label: "Chihuahua",
         businessLines: ["prepa"],
         modalities: ["presencial"],
-        pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6 }],
+        pricingOptions: [{ businessLine: "prepa", modality: "presencial", plan: 6, module: "Longitudinal" }],
       },
     ]);
   });
@@ -157,6 +157,7 @@ describe("visibleQuoteCampuses", () => {
                 businessLine: "prepa",
                 modality: "presencial",
                 plan: 6,
+                module: "Longitudinal",
                 programId: "program_prepa",
               },
             ],
@@ -171,6 +172,7 @@ describe("visibleQuoteCampuses", () => {
                 businessLine: "prepa",
                 modality: "presencial",
                 plan: 6,
+                module: "Longitudinal",
                 programId: "other_program",
               },
             ],
@@ -192,6 +194,7 @@ describe("visibleQuoteCampuses", () => {
             businessLine: "prepa",
             modality: "presencial",
             plan: 6,
+            module: "Longitudinal",
             programId: "program_prepa",
           },
         ],

@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-
 import ExcelJS from "exceljs";
 
 import { normalizeKey } from "@/lib/text-normalize";
@@ -359,8 +357,10 @@ function parseModuleConfigs(detection: HeaderDetection): ModuleConfig[] {
     const modules = new Set<ModuleSelection>();
 
     if (columns.module) {
-      for (const module of parseModulesFromText(row.getCell(columns.module).value)) {
-        modules.add(module);
+      for (const moduleSelection of parseModulesFromText(
+        row.getCell(columns.module).value,
+      )) {
+        modules.add(moduleSelection);
       }
     }
 
@@ -368,8 +368,8 @@ function parseModuleConfigs(detection: HeaderDetection): ModuleConfig[] {
       const count = parseModuleCount(row.getCell(columns.moduleCount).value);
       if (count) {
         for (let index = 1; index <= count; index += 1) {
-          const module = modulePartFromNumber(index);
-          if (module) modules.add(module);
+          const moduleSelection = modulePartFromNumber(index);
+          if (moduleSelection) modules.add(moduleSelection);
         }
       }
     }
@@ -381,7 +381,9 @@ function parseModuleConfigs(detection: HeaderDetection): ModuleConfig[] {
     }
 
     if (!modules.size) {
-      for (const module of parseModulesFromText(rowText)) modules.add(module);
+      for (const moduleSelection of parseModulesFromText(rowText)) {
+        modules.add(moduleSelection);
+      }
     }
 
     if (!modules.size) continue;
@@ -434,7 +436,7 @@ function mergeConfigs(configs: ModuleConfig[]): { modules: Set<ModuleSelection>;
   const subjectNotes: string[] = [];
 
   for (const config of configs) {
-    for (const module of config.modules) modules.add(module);
+    for (const moduleSelection of config.modules) modules.add(moduleSelection);
     if (config.subjectsByModule) subjectNotes.push(config.subjectsByModule);
   }
 
@@ -446,12 +448,14 @@ function mergeConfigs(configs: ModuleConfig[]): { modules: Set<ModuleSelection>;
 
 function modulesToVariants(modules: Set<ModuleSelection>, subjectsByModule: string | null) {
   const variants: Array<{ module: ModuleValue; moduleCount: number | null; subjectsByModule: string | null }> = [];
-  const moduleParts = MODULE_PARTS.filter((module) => modules.has(module));
+  const moduleParts = MODULE_PARTS.filter((moduleSelection) => modules.has(moduleSelection));
 
   if (moduleParts.length === 1) {
     variants.push({ module: moduleParts[0], moduleCount: null, subjectsByModule });
   } else if (moduleParts.length > 1) {
-    const maxModule = Math.max(...moduleParts.map((module) => Number(module.replace("M", ""))));
+    const maxModule = Math.max(
+      ...moduleParts.map((moduleSelection) => Number(moduleSelection.replace("M", ""))),
+    );
     variants.push({ module: "Modular", moduleCount: maxModule, subjectsByModule });
   }
 

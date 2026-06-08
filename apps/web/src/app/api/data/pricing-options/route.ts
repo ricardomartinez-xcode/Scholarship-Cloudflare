@@ -235,14 +235,14 @@ function buildConfiguredOfferingPricingOptions(
 
     for (const modality of getOfferingModalities(offering)) {
       for (const plan of plans) {
-        for (const module of modules) {
+        for (const academicModule of modules) {
           for (const enrollmentType of ENROLLMENT_TYPES) {
             const option: QuotePricingOption = {
               enrollmentType,
               businessLine: studyProgram.businessLine,
               modality,
               plan,
-              module,
+              module: academicModule,
               programKey: studyProgram.id,
               source: "offering",
             };
