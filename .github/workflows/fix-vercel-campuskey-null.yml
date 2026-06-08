@@ -1,0 +1,61 @@
+name: Fix Vercel campusKey null check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch unsafe campusKey matcher
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "config.campusKey.length >= 4 && candidate.includes(config.campusKey)": (
+                  "config.campusKey != null && config.campusKey.length >= 4 && candidate.includes(config.campusKey)"
+              ),
+          }
+
+          touched = []
+          for root in ("apps", "packages"):
+              base = Path(root)
+              if not base.exists():
+                  continue
+              for path in base.rglob("*"):
+                  if path.suffix not in {".ts", ".tsx", ".mts", ".cts"} or not path.is_file():
+                      continue
+                  text = path.read_text(encoding="utf-8")
+                  updated = text
+                  for before, after in replacements.items():
+                      updated = updated.replace(before, after)
+                  if updated != text:
+                      path.write_text(updated, encoding="utf-8")
+                      touched.append(str(path))
+
+          if not touched:
+              raise SystemExit("No matching unsafe campusKey pattern found.")
+
+          print("Patched files:")
+          for item in touched:
+              print(f"- {item}")
+          PY
+
+      - name: Remove one-off workflow and commit
+        shell: bash
+        run: |
+          git config user.name "Code Forge Studio"
+          git config user.email "actions@github.com"
+          git rm .github/workflows/fix-vercel-campuskey-null.yml
+          git add apps packages
+          git commit -m "Fix campusKey null check in Vercel build"
+          git push
