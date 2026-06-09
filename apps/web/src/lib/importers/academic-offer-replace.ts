@@ -8,6 +8,8 @@ import type {
 
 export type { PreparedAcademicOfferImportPayload } from "./academic-offer";
 
+export type AcademicOfferImportApplyMode = "replace" | "update-only";
+
 type ParsedCampus = PreparedAcademicOfferImportPayload["parsed"][number];
 type ParsedOfferRow = ParsedCampus["rows"][number];
 
@@ -59,6 +61,7 @@ function getProgramSeeds(payload: PreparedAcademicOfferImportPayload) {
 async function upsertProgramsForImport(
   seeds: Map<string, ProgramSeed>,
   summary: ImportAcademicOfferSummary,
+  options?: { allowCreate?: boolean },
 ): Promise<ProgramIdByNormalizedName> {
   const programIds = new Map<string, string>();
 
@@ -69,6 +72,10 @@ async function upsertProgramsForImport(
     });
 
     if (!existing) {
+      if (options?.allowCreate === false) {
+        throw new Error(`Actualizar lote no puede crear programas nuevos: ${program.name}.`);
+      }
+
       const created = await prisma.program.create({
         data: {
           name: program.name,
@@ -191,6 +198,7 @@ function buildReplacementOfferRows(
 export async function applyPreparedAcademicOfferImport(params: {
   payload: PreparedAcademicOfferImportPayload;
   updatedBy: string;
+  mode?: AcademicOfferImportApplyMode;
 }): Promise<ImportAcademicOfferSummary> {
   const summary: ImportAcademicOfferSummary = {
     ok: true,
@@ -204,8 +212,11 @@ export async function applyPreparedAcademicOfferImport(params: {
     perCampus: [],
   };
 
+  const mode = params.mode ?? "replace";
   const programSeeds = getProgramSeeds(params.payload);
-  const programIds = await upsertProgramsForImport(programSeeds, summary);
+  const programIds = await upsertProgramsForImport(programSeeds, summary, {
+    allowCreate: mode !== "update-only",
+  });
   const replacementRows = buildReplacementOfferRows(params.payload, programIds);
 
   await prisma.$transaction(async (tx) => {
@@ -227,6 +238,71 @@ export async function applyPreparedAcademicOfferImport(params: {
           data: { name: campus.campusNameFromExcel },
         });
       }
+    }
+
+    if (mode === "update-only") {
+      const updatedByCampus = new Map<string, number>();
+
+      for (const item of replacementRows) {
+        const existing = await tx.programOffering.findFirst({
+          where: {
+            cycle: params.payload.cycle,
+            campusId: item.campusId,
+            programId: item.programId,
+            track: item.row.module,
+          },
+          select: { id: true },
+        });
+
+        if (!existing) {
+          throw new Error(
+            `Actualizar lote no puede crear oferta nueva: ${item.campusName} - ${item.row.programName} - ${item.row.module}.`,
+          );
+        }
+
+        const isOnline = item.row.delivery === "ONLINE";
+        await tx.programOffering.update({
+          where: { id: existing.id },
+          data: {
+            delivery: isOnline
+              ? ProgramOfferingDelivery.ONLINE
+              : ProgramOfferingDelivery.CAMPUS,
+            escolarizado: isOnline ? false : item.row.escolarizado,
+            ejecutivo: isOnline ? false : item.row.ejecutivo,
+            escolarizadoSchedule: isOnline ? null : item.row.escolarizadoSchedule,
+            ejecutivoSchedule: isOnline ? null : item.row.ejecutivoSchedule,
+            lineOfBusiness: item.row.lineOfBusiness,
+            pricingPlans: item.row.pricingPlans ?? [],
+            track: item.row.module,
+            moduleCount: item.row.moduleCount,
+            subjectsByModule: item.row.subjectsByModule,
+            isActive: true,
+            archivedAt: null,
+            archivedReason: null,
+            updatedBy: params.updatedBy,
+          },
+        });
+
+        summary.offerings.updated += 1;
+        updatedByCampus.set(item.campusId, (updatedByCampus.get(item.campusId) ?? 0) + 1);
+      }
+
+      summary.campusesProcessed = params.payload.parsed.length;
+      for (const campus of params.payload.parsed) {
+        summary.perCampus.push({
+          campusCode: campus.campusCode,
+          campusName: campus.campusNameFromExcel ?? campus.campusCode,
+          sheetName: campus.sheetName,
+          source: campus.source,
+          rows: campus.rows.length,
+          offeringsCreated: 0,
+          offeringsUpdated: updatedByCampus.get(campus.campusId) ?? 0,
+          offeringsReactivated: 0,
+          offeringsDeactivated: 0,
+        });
+      }
+
+      return;
     }
 
     const deleted = await tx.programOffering.deleteMany({

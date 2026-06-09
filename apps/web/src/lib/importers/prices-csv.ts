@@ -74,6 +74,8 @@ export type PricesImportApplySummary = {
   unchanged: number;
 };
 
+export type PricesImportApplyMode = "replace" | "update-only";
+
 type ParsedPriceRow = {
   rowNumber: number;
   region: string | null;
@@ -573,15 +575,28 @@ export async function preparePricesCsvImport(
 export async function applyPreparedPricesImport(params: {
   payload: PreparedPricesImportPayload;
   updatedBy: string;
+  mode?: PricesImportApplyMode;
 }): Promise<PricesImportApplySummary> {
   const rows = params.payload.rows ?? [];
+  const mode = params.mode ?? "replace";
   let created = 0;
   let updated = 0;
   let unchanged = 0;
 
   await prisma.$transaction(async (tx) => {
+    if (mode === "replace") {
+      await tx.adminPriceOverride.deleteMany({ where: { scope: "base_price" } });
+    }
+
     for (const row of rows) {
-      if (row.action === "noop") {
+      if (mode === "update-only" && row.action === "create") {
+        throw new PricesCsvValidationError(
+          `Actualizar lote no puede crear precios nuevos. Revisa la fila ${row.rowNumber}.`,
+          "UPDATE_ONLY_CANNOT_CREATE_PRICE",
+        );
+      }
+
+      if (row.action === "noop" && mode !== "replace") {
         unchanged += 1;
         continue;
       }
@@ -606,7 +621,7 @@ export async function applyPreparedPricesImport(params: {
         targetKeys.region = row.region;
       }
 
-      let existingId = row.existingId ?? null;
+      let existingId = mode === "replace" ? null : row.existingId ?? null;
       if (existingId) {
         const exists = await tx.adminPriceOverride.findUnique({
           where: { id: existingId },

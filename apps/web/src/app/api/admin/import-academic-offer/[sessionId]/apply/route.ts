@@ -108,9 +108,11 @@ export async function POST(
       );
     }
 
+    const applyMode = new URL(request.url).searchParams.get("mode") === "update-only" ? "update-only" : "replace";
     const summary = await applyPreparedAcademicOfferImport({
       payload: session.payload as unknown as PreparedAcademicOfferImportPayload,
       updatedBy: admin.email,
+      mode: applyMode,
     });
 
     await markAdminImportSessionApplied({
@@ -147,7 +149,8 @@ export async function POST(
         cycle: summary.cycle,
         campusesProcessed: summary.campusesProcessed,
         offerings: summary.offerings,
-        replacementMode: true,
+        replacementMode: applyMode === "replace",
+        applyMode,
       },
     });
 

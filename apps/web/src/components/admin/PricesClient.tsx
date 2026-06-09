@@ -99,6 +99,7 @@ type PriceImportSummary = {
 type ApiError = { ok: false; error: string };
 
 type PricePanel = "list" | "imports";
+type PriceImportApplyMode = "replace" | "update-only";
 
 const PAGE_SIZE = 20;
 
@@ -470,12 +471,12 @@ export default function PricesClient({
     }
   }
 
-  async function applyImportSession() {
+  async function applyImportSession(mode: PriceImportApplyMode = "replace") {
     if (!importSessionId) return;
     setApplyImportLoading(true);
     setImportError(null);
     try {
-      const response = await fetch(`/api/admin/prices/import/${importSessionId}/apply`, {
+      const response = await fetch(`/api/admin/prices/import/${importSessionId}/apply?mode=${mode}`, {
         method: "POST",
       });
       const payload = (await response.json()) as PriceImportSummary | ApiError;
@@ -555,7 +556,7 @@ export default function PricesClient({
           onChange={(panel) => setActivePanel(panel as PricePanel)}
           items={[
           { id: "list", label: `Listado (${filtered.length})` },
-          { id: "imports", label: "Importación" },
+          { id: "imports", label: "Actualizacion" },
           ]}
         />
       </div>
@@ -565,7 +566,7 @@ export default function PricesClient({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
-              Importar precio lista
+              Actualizar precios
             </div>
             <p className="mt-1 text-sm text-slate-300">
               Importa archivos XLSX o CSV con el orden canónico de precio. Se genera preview
@@ -583,13 +584,23 @@ export default function PricesClient({
             </button>
             <button
               type="button"
-              onClick={applyImportSession}
+              onClick={() => void applyImportSession("replace")}
               disabled={Boolean(
                 !importSessionId || applyImportLoading || importSummary?.errors?.length,
               )}
               className="rounded-xl border border-emerald-500/40 bg-blue-950/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-blue-950/25 disabled:opacity-60"
             >
-              {applyImportLoading ? "Aplicando..." : "Aplicar"}
+              {applyImportLoading ? "Actualizando..." : "Actualizar precios"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void applyImportSession("update-only")}
+              disabled={Boolean(
+                !importSessionId || applyImportLoading || importSummary?.errors?.length,
+              )}
+              className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60"
+            >
+              {applyImportLoading ? "Actualizando..." : "Actualizar lote"}
             </button>
             <button
               type="button"

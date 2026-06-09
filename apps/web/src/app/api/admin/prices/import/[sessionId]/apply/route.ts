@@ -139,9 +139,11 @@ export async function POST(
       });
     }
 
+    const applyMode = new URL(request.url).searchParams.get("mode") === "update-only" ? "update-only" : "replace";
     const summary = await applyPreparedPricesImport({
       payload: session.payload as PreparedPricesImportPayload,
       updatedBy: auth.admin.email,
+      mode: applyMode,
     });
 
     await markAdminImportSessionApplied({

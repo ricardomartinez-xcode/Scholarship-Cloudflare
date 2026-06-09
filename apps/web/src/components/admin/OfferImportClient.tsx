@@ -122,6 +122,7 @@ type ManualOfferDraft = {
 
 type ApiError = { ok: false; error: string };
 type OfferPanel = "list" | "imports";
+type OfferImportApplyMode = "replace" | "update-only";
 
 const PREVIEW_PAGE_SIZE = 20;
 
@@ -323,12 +324,12 @@ export default function OfferImportClient({
     }
   }
 
-  async function applyImport() {
+  async function applyImport(mode: OfferImportApplyMode = "replace") {
     if (!sessionId) return;
     setApplyLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/import-academic-offer/${sessionId}/apply`, { method: "POST" });
+      const res = await fetch(`/api/admin/import-academic-offer/${sessionId}/apply?mode=${mode}`, { method: "POST" });
       const data = (await res.json()) as Summary | ApiError;
       if (!res.ok || !("ok" in data) || data.ok === false) {
         throw new Error((data as ApiError)?.error || "Error al aplicar la sesión.");
@@ -515,7 +516,7 @@ export default function OfferImportClient({
           <h1 className="mt-1 text-lg font-semibold">Oferta por planteles</h1>
           <p className="mt-1 text-sm text-slate-300">
             Oferta activa de la calculadora. Usa <strong className="text-slate-100">Editar</strong> para crear o actualizar
-            una oferta por plantel, o importa cambios masivos por XLSX/CSV.
+            una oferta por plantel, o actualiza oferta por reemplazo o lote desde XLSX/CSV.
           </p>
         </div>
         <button
@@ -534,7 +535,7 @@ export default function OfferImportClient({
           onChange={(panel) => setActivePanel(panel as OfferPanel)}
           items={[
             { id: "list", label: `Listado (${filteredPreviewRows.length})` },
-            { id: "imports", label: "Importación" },
+            { id: "imports", label: "Actualizacion" },
           ]}
         />
       </div>
@@ -747,7 +748,7 @@ export default function OfferImportClient({
           <section className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Importar oferta por planteles</div>
+                <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Actualizar oferta por planteles</div>
                 <p className="mt-1 text-sm text-slate-300">
                   Importa archivos XLSX o CSV. La sesión primero valida y previsualiza; después puedes aplicar al draft y publicar cuando el diff esté aprobado.
                 </p>
@@ -756,7 +757,16 @@ export default function OfferImportClient({
                 <button type="button" onClick={runImport} disabled={loading} className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60">
                   {loading ? "Validando..." : "Validar archivo"}
                 </button>
-                {sessionId && !applied && !rolledBack ? <button type="button" onClick={applyImport} disabled={applyLoading} className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25 disabled:opacity-60">{applyLoading ? "Aplicando..." : "Aplicar al draft"}</button> : null}
+                {sessionId && !applied && !rolledBack ? (
+                  <>
+                    <button type="button" onClick={() => void applyImport("replace")} disabled={applyLoading} className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25 disabled:opacity-60">
+                      {applyLoading ? "Actualizando..." : "Actualizar oferta"}
+                    </button>
+                    <button type="button" onClick={() => void applyImport("update-only")} disabled={applyLoading} className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60">
+                      {applyLoading ? "Actualizando..." : "Actualizar lote"}
+                    </button>
+                  </>
+                ) : null}
                 {sessionId && applied && !rolledBack ? <button type="button" onClick={rollbackImport} disabled={rollbackLoading} className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60">{rollbackLoading ? "Revirtiendo..." : "Rollback"}</button> : null}
               </div>
             </div>
@@ -767,7 +777,7 @@ export default function OfferImportClient({
                 <span className="text-xs text-slate-400">Si no seleccionas archivo, en desarrollo se intentará usar el Excel por defecto en <code className="mx-1 rounded bg-black/30 px-1">/docs</code>.</span>
               </label>
               <label className="grid gap-2 text-sm">
-                Ciclo a importar
+                Ciclo a actualizar
                 <select value={cycle} onChange={(event) => setCycle(event.target.value as AcademicOfferCycle)} className="ui-control">
                   {ACADEMIC_OFFER_CYCLES.map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
@@ -810,7 +820,7 @@ export default function OfferImportClient({
           {sessionId ? (
             <div className="rounded-xl border border-white/10 bg-slate-950/25 px-4 py-3 text-sm text-slate-300">
               Sesión: <span className="font-semibold text-slate-100">{sessionId.slice(0, 8)}</span>
-              {applied ? <span className="ml-2 text-emerald-300">· aplicada al draft</span> : null}
+              {applied ? <span className="ml-2 text-emerald-300">· actualizada</span> : null}
               {rolledBack ? <span className="ml-2 text-amber-300">· rollback ejecutado</span> : null}
             </div>
           ) : null}
