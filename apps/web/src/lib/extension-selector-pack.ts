@@ -13,7 +13,7 @@ export type ExtensionSelectorPack = {
 };
 
 export const DEFAULT_EXTENSION_SELECTOR_PACK: ExtensionSelectorPack = {
-  version: "waweb-2026.03.25-automation-01",
+  version: "waweb-2026.06.09-media-caption-02",
   channel: "compatible",
   selectors: {
     searchBox:
@@ -25,9 +25,9 @@ export const DEFAULT_EXTENSION_SELECTOR_PACK: ExtensionSelectorPack = {
     attachButton:
       "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus'], span[data-icon='plus-rounded']",
     fileInput:
-      "input[type='file'][accept*='image'], input[type='file'][accept*='video'], input[type='file']",
+      "input[type='file'][accept*='video'], input[type='file'][accept*='image'][multiple], input[type='file'][accept*='image'], input[type='file']",
     mediaCaptionInput:
-      "div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], div[contenteditable='true'][role='textbox']",
+      "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], div[contenteditable='true'][role='textbox']",
     conversationReady:
       "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
   },

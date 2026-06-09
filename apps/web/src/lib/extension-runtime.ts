@@ -3,6 +3,8 @@ import { type Role } from "@prisma/client";
 import { getExtensionPanelConfig } from "@/lib/extension-panel-config";
 import { getQuoteMode } from "@/lib/runtime-modes";
 
+const EXTENSION_RUNTIME_VERSION = "2026-06-09.media-caption-v2";
+
 export async function buildExtensionBootstrap(params: {
   user: {
     id: string;
@@ -15,6 +17,7 @@ export async function buildExtensionBootstrap(params: {
 
   return {
     ok: true as const,
+    runtimeVersion: EXTENSION_RUNTIME_VERSION,
     user: {
       id: params.user.id,
       email: params.user.email,
@@ -44,8 +47,24 @@ export async function buildExtensionBootstrap(params: {
       campaignPauseControl: true,
       campaignDeleteControl: true,
       campaignMediaUpload: true,
+      campaignMediaCaptionCompose: true,
+      campaignMediaStickerGuard: true,
       contactsDirectory: false,
       contactsHybridSheets: false,
+    },
+    mediaCaptionPolicy: {
+      version: EXTENSION_RUNTIME_VERSION,
+      requiredExtensionVersion: "6.2.2",
+      attachmentMenu: "photos_videos",
+      mode: "compose_caption",
+      captionSource: "messageTemplate",
+      stickerFallback: "blocked",
+      documentFallbackText: "only_when_no_media",
+      summary:
+        "Las campañas con mediaUrl deben seleccionar Fotos y videos y enviar el texto como caption del adjunto; no se permite caer al flujo de stickers.",
+    },
+    docs: {
+      mediaCaption: "/extension/campaign-media-caption",
     },
     automationApi: {
       campaigns: "/api/ext/campaigns",
