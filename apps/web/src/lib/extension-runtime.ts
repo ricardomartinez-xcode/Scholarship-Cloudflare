@@ -55,7 +55,9 @@ export async function buildExtensionBootstrap(params: {
     },
     mediaCaptionPolicy: {
       version: EXTENSION_RUNTIME_VERSION,
-      requiredExtensionVersion: "6.2.2",
+      requiredExtensionVersion: REQUIRED_EXTENSION_VERSION,
+      patchInjection: "manifest_main_world",
+      expectedPatchVersion: EXTENSION_RUNTIME_VERSION,
       attachmentMenu: "photos_videos",
       mode: "compose_caption",
       captionSource: "messageTemplate",
