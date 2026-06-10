@@ -1,0 +1,144 @@
+name: Fix Vercel campus catalog build
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Optional note"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-vercel-campus-catalog-build
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://user:pass@localhost:5432/recalc
+      DIRECT_URL: postgresql://user:pass@localhost:5432/recalc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch campus catalog and Vercel build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/fix_vercel_campus_catalog.py <<'PY'
+          from pathlib import Path
+
+          def patch_campus_catalog() -> list[Path]:
+              patched: list[Path] = []
+              candidates: list[Path] = []
+              for root in (Path("apps"), Path("packages")):
+                  if not root.exists():
+                      continue
+                  for suffix in ("*.ts", "*.tsx"):
+                      for path in root.rgb(suffix):
+                          ignored_parts = {"node_modules", ".next", "dist", "build", "coverage"}
+                          if ignored_parts.intersection(path.parts):
+                              continue
+                          try:
+                              source = path.read_text(encoding="utf-8")
+                          except UnicodeDecodeError:
+                              continue
+                          if "listCampusCatalog" in source and "client: CampusClient = prisma" in source:
+                              candidates.append(path)
+
+              for path in candidates:
+                  source = path.read_text(encoding="utf-8")
+                  updated = source.replace(
+                      "client: CampusClient = prisma,",
+                      "client?: CampusClient,",
+                      1,
+                  )
+
+                  signature_block = "): Promise<CampusIdentity[]> {\n"
+                  db_line = "  const db = client ?? prisma;\n\n"
+                  if "const db = client ?? prisma;" not in updated:
+                      if signature_block in updated:
+                          updated = updated.replace(signature_block, signature_block + db_line, 1)
+                      else:
+                          updated = updated.replace(
+                              "  const campuses = await client.campus.findMany({",
+                              db_line + "  const campuses = await client.campus.findMany({",
+                              1,
+                          )
+
+                  updated = updated.replace(
+                      "  const campuses = await client.campus.findMany({",
+                      "  const campuses = await db.campus.findMany({",
+                      1,
+                  )
+
+                  if updated != source:
+                      path.write_text(updated, encoding="utf-8")
+                      patched.append(path)
+
+              return patched
+
+          def patch_vercel_build() -> bool:
+              path = Path("scripts/vercel-build.sh")
+              if not path.exists():
+                  print("[fix] scripts/vercel-build.sh not found; skipping Prisma generate insertion.")
+                  return False
+
+              source = path.read_text(encoding="utf-8")
+              marker = 'echo "[vercel-build] Running: npm --workspace @relead/web run build"\n'
+              generate_block = (
+                  'echo "[vercel-build] Running: prisma generate --schema packages/db/prisma/schema.prisma"\n'
+                  "prisma generate --schema packages/db/prisma/schema.prisma\n\n"
+              )
+
+              if generate_block in source:
+                  print("[fix] Prisma generate step already present in vercel-build.sh.")
+                  return False
+
+              if marker not in source:
+                  raise SystemExit("[fix] Could not find web build marker in scripts/vercel-build.sh")
+
+              updated = source.replace(marker, generate_block + marker, 1)
+              path.write_text(updated, encoding="utf-8")
+              return True
+
+          patched_catalogs = patch_campus_catalog()
+          if patched_catalogs:
+              for path in patched_catalogs:
+                  print(f"[fix] Patched campus catalog default client in {path}")
+          else:
+              print("[fix] No listCampusCatalog default Prisma client pattern found; continuing.")
+
+          if patch_vercel_build():
+              print("[fix] Added explicit Prisma client generation before Next build.")
+          PY
+
+          python /tmp/fix_vercel_campus_catalog.py
+
+      - name: Typecheck after Prisma generate (best effort)
+        continue-on-error: true
+        shell: bash
+        run: |
+          npm ci
+          npm run db:generate
+          npm run typecheck
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Code Forge Studio"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps packages scripts/vercel-build.sh
+          if git diff --cached --quiet; then
+            echo "[fix] No changes to commit."
+            exit 0
+          fi
+          git commit -m "Fix Vercel campus catalog build"
+          git push
