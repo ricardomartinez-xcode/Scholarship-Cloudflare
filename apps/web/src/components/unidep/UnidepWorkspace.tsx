@@ -19,7 +19,7 @@ import SmartSelect from "@/components/SmartSelect";
 import { useAppContext } from "@/components/app/AppChrome";
 import type { AcademicOfferCycle } from "@/config/academicOffer";
 import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
-import type { WhatsappTemplateCollection } from "@/lib/whatsapp-templates";
+import type { WhatsappTemplateCollection } from "@/lib/whatsapp-templates.shared";
 import { type WorkspaceSectionKey } from "@/lib/unidep-navigation";
 
 type Campus = {

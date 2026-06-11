@@ -34,7 +34,7 @@ import {
 import type {
   WhatsappTemplateCollection,
   WhatsappTemplatePreviewData,
-} from "@/lib/whatsapp-templates";
+} from "@/lib/whatsapp-templates.shared";
 import type { AcademicOfferCycle } from "@/config/academicOffer";
 
 const QUOTE_DEBOUNCE_MS = 300;

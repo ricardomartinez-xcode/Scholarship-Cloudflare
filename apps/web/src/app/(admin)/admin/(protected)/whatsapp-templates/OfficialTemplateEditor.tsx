@@ -6,7 +6,7 @@ import WhatsappVariableCatalog from "@/components/whatsapp/WhatsappVariableCatal
 import {
   WHATSAPP_TEMPLATE_KINDS,
   type AdminOfficialWhatsappTemplateItem,
-} from "@/lib/whatsapp-templates";
+} from "@/lib/whatsapp-templates.shared";
 
 type EditableOfficialTemplate = Pick<
   AdminOfficialWhatsappTemplateItem,

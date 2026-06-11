@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { DashboardIcon, type DashboardIconName } from "@/components/layout/DashboardIcons";
-import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets";
+import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets.shared";
 import type { ContentBucketObject } from "@/lib/r2-content-bucket";
 import { syncContentBucketFilesAction } from "./actions";
 

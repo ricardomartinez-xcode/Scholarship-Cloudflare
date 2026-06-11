@@ -1,6 +1,6 @@
 "use client";
 
-import { WHATSAPP_TEMPLATE_POSITIONAL_CATALOG } from "@/lib/whatsapp-templates";
+import { WHATSAPP_TEMPLATE_POSITIONAL_CATALOG } from "@/lib/whatsapp-templates.shared";
 
 type WhatsappVariableCatalogProps = {
   onInsert: (position: number) => void;

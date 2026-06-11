@@ -19,7 +19,7 @@ import {
   resolveDashboardBreadcrumbs,
   resolveDashboardTitle,
 } from "@/config/dashboard-navigation";
-import { SYSTEM_ROLES, getSystemRoleMeta } from "@/lib/system-roles";
+import { SYSTEM_ROLES, getSystemRoleMeta } from "@/lib/system-roles.shared";
 
 import styles from "./AdminChrome.module.css";
 

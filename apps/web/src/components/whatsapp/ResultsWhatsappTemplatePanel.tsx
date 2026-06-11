@@ -6,7 +6,7 @@ import {
   buildWhatsappTemplatePreview,
   type WhatsappTemplateCollection,
   type WhatsappTemplatePreviewData,
-} from "@/lib/whatsapp-templates";
+} from "@/lib/whatsapp-templates.shared";
 
 type Feedback = {
   tone: "success" | "error";
