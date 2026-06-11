@@ -20,6 +20,50 @@
       fileInput: "input[type='file']",
     },
   };
+  const DOCUMENT_ATTACHMENT_NEEDLES = ["document", "documento", "archivo", "file"];
+  const MEDIA_ATTACHMENT_NEEDLES = [
+    "photos & videos",
+    "photos and videos",
+    "photo & video",
+    "photo and video",
+    "fotos y videos",
+    "foto y video",
+    "fotos",
+    "foto",
+    "photos",
+    "photo",
+    "videos",
+    "video",
+    "imagen",
+    "imágenes",
+    "imagenes",
+    "image",
+    "images",
+    "picture",
+    "pictures",
+    "galería",
+    "galeria",
+    "gallery",
+  ];
+  const PRIMARY_MEDIA_ATTACHMENT_NEEDLES = [
+    "photos & videos",
+    "photos and videos",
+    "photo & video",
+    "photo and video",
+    "fotos y videos",
+    "foto y video",
+  ];
+  const STICKER_ATTACHMENT_NEEDLES = [
+    "sticker",
+    "stickers",
+    "sticker maker",
+    "pegatina",
+    "pegatinas",
+    "calcomanía",
+    "calcomanías",
+    "calcomania",
+    "calcomanias",
+  ];
 
   function normalizeSelectorPack(pack) {
     const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
@@ -106,6 +150,30 @@
     const haystack = accessibleText(node);
 
     return needles.some((needle) => haystack.includes(String(needle).trim().toLowerCase()));
+  }
+
+  function isStickerLikeAttachmentOption(node) {
+    return matchAnyText(node, STICKER_ATTACHMENT_NEEDLES);
+  }
+
+  function scoreMediaAttachmentOption(node) {
+    if (isStickerLikeAttachmentOption(node) || !matchAnyText(node, MEDIA_ATTACHMENT_NEEDLES)) {
+      return 0;
+    }
+
+    const haystack = accessibleText(node);
+    let score = 1;
+    if (PRIMARY_MEDIA_ATTACHMENT_NEEDLES.some((needle) => haystack.includes(needle))) score += 20;
+    if (haystack.includes("video")) score += 4;
+    if (
+      haystack.includes("foto") ||
+      haystack.includes("photo") ||
+      haystack.includes("imagen") ||
+      haystack.includes("image")
+    ) {
+      score += 3;
+    }
+    return score;
   }
 
   function firstVisibleWithin(root, selectors) {
@@ -277,15 +345,18 @@
   }
 
   function findAttachmentOption(kind) {
-    const needles = kind === "document"
-      ? ["document", "documento", "archivo", "file"]
-      : ["photos & videos", "photos and videos", "fotos y videos", "photos", "videos", "fotos"];
-
     const candidates = Array.from(
       document.querySelectorAll("[role='menuitem'], [role='button'], button, li, div[aria-label], div[title]"),
     ).filter((node) => isVisible(node));
 
-    return candidates.find((node) => isVisible(node) && matchAnyText(node, needles)) || null;
+    if (kind === "media") {
+      return candidates
+        .map((node, index) => ({ node, index, score: scoreMediaAttachmentOption(node) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score || a.index - b.index)[0]?.node || null;
+    }
+
+    return candidates.find((node) => matchAnyText(node, DOCUMENT_ATTACHMENT_NEEDLES)) || null;
   }
 
   function findAttachmentMenuOptions() {

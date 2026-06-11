@@ -9,7 +9,7 @@ const selectorsSource = fs.readFileSync(
   "utf8",
 );
 
-function createContextWithInputs(inputs) {
+function createContextWithInputs(inputs, menuOptions = []) {
   class Element {
     constructor() {
       this.disabled = false;
@@ -31,12 +31,17 @@ function createContextWithInputs(inputs) {
   }
 
   const inputNodes = inputs.map((input) => new HTMLInputElement(input));
+  const optionNodes = menuOptions.map(() => new Element());
   const context = {
     Element,
     HTMLInputElement,
     document: {
       querySelectorAll(selector) {
-        return selector === "input[type='file']" ? inputNodes : [];
+        if (selector === "input[type='file']") return inputNodes;
+        if (selector.includes("[role='menuitem']") || selector.includes("[data-animate-dropdown-item")) {
+          return optionNodes;
+        }
+        return [];
       },
     },
     getComputedStyle() {
@@ -49,10 +54,22 @@ function createContextWithInputs(inputs) {
   return { context, inputNodes };
 }
 
-test("uses WhatsApp single image input as media fallback", () => {
+test("does not use a lone single-image input without a real media menu option", () => {
   const { context, inputNodes } = createContextWithInputs([
     { accept: "image/*", multiple: false },
   ]);
+
+  const selected = context.RecalcWaSelectors.findAttachmentInput("media");
+
+  assert.equal(selected, null);
+  assert.equal(inputNodes.length, 1);
+});
+
+test("uses WhatsApp single image input after a real media menu option exists", () => {
+  const { context, inputNodes } = createContextWithInputs(
+    [{ accept: "image/*", multiple: false }],
+    [{}, {}],
+  );
 
   const selected = context.RecalcWaSelectors.findAttachmentInput("media");
 

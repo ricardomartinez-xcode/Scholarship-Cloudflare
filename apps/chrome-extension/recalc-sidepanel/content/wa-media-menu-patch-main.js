@@ -1,5 +1,5 @@
 (function attachRecalcWaMediaMenuPatch(globalScope) {
-  const PATCH_VERSION = "2026-06-09.media-caption-v2";
+  const PATCH_VERSION = "2026-06-10.no-stickers-v4-prod";
   const TIMER_KEY = "__RECALC_WA_MEDIA_MENU_PATCH_TIMER__";
 
   function mediaNeedles() {
@@ -139,10 +139,11 @@
 
     selectors.findAttachmentOption = function findAttachmentOptionPatched(kind) {
       if (kind === "media") {
+        const originalOption = originalFindAttachmentOption.call(selectors, kind);
         return (
           byText("media") ||
           bySafeMediaPosition() ||
-          originalFindAttachmentOption.call(selectors, kind) ||
+          (originalOption && !isStickerLike(originalOption) ? originalOption : null) ||
           null
         );
       }

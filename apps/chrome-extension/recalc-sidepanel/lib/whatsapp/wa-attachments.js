@@ -6,6 +6,74 @@
     console.log("[ReCalc][WA]", ...args);
   }
 
+  const STICKER_ATTACHMENT_NEEDLES = [
+    "sticker",
+    "stickers",
+    "sticker maker",
+    "pegatina",
+    "pegatinas",
+    "calcomanía",
+    "calcomanías",
+    "calcomania",
+    "calcomanias",
+  ];
+
+  function accessibleText(node) {
+    if (!(node instanceof Element)) return "";
+    const parts = [
+      node.getAttribute?.("aria-label"),
+      node.getAttribute?.("title"),
+      node.getAttribute?.("data-icon"),
+      node.textContent,
+      node.innerText,
+    ];
+
+    try {
+      node.querySelectorAll?.("[aria-label], [title], [data-icon], title")?.forEach((child) => {
+        parts.push(
+          child.getAttribute?.("aria-label"),
+          child.getAttribute?.("title"),
+          child.getAttribute?.("data-icon"),
+          child.textContent,
+          child.innerText,
+        );
+      });
+    } catch {
+      // WhatsApp can redraw the menu while it is being inspected.
+    }
+
+    return parts
+      .map((value) => String(value || "").trim().toLowerCase())
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function isStickerLikeAttachmentOption(node) {
+    if (typeof selectors?.matchAnyText === "function") {
+      return selectors.matchAnyText(node, STICKER_ATTACHMENT_NEEDLES);
+    }
+
+    const haystack = accessibleText(node);
+    return STICKER_ATTACHMENT_NEEDLES.some((needle) => haystack.includes(needle));
+  }
+
+  function findSafeMediaAttachmentOptionByPosition() {
+    if (typeof selectors?.findAttachmentOptionByPosition !== "function") return null;
+
+    for (const position of [1, 2, 3, 0]) {
+      const option = selectors.findAttachmentOptionByPosition(position);
+      if (option && !isStickerLikeAttachmentOption(option)) return option;
+    }
+
+    return null;
+  }
+
+  function findMediaAttachmentOption() {
+    const option = selectors.findAttachmentOption("media");
+    if (option && !isStickerLikeAttachmentOption(option)) return option;
+    return findSafeMediaAttachmentOptionByPosition();
+  }
+
   function isMediaAttachment(file) {
     const mime = String(file?.type || "").toLowerCase();
     return mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/");
@@ -60,9 +128,7 @@
     const option = await textUtils.waitFor(() => {
       if (kind === "media") {
         return (
-          selectors.findAttachmentOption("media") ||
-          selectors.findAttachmentOptionByPosition(1) ||
-          selectors.findAttachmentOptionByPosition(0)
+          findMediaAttachmentOption()
         );
       }
       return (
@@ -110,10 +176,7 @@
       await openAttachmentMenu(pack);
 
       if (kind === "media") {
-        const mediaOption =
-          selectors.findAttachmentOption("media") ||
-          selectors.findAttachmentOptionByPosition(1) ||
-          selectors.findAttachmentOptionByPosition(0);
+        const mediaOption = findMediaAttachmentOption();
 
         if (mediaOption) {
           await chooseAttachmentOption(kind);

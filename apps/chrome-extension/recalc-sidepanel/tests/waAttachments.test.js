@@ -124,7 +124,7 @@ function createMediaHarness() {
   };
 }
 
-function createMenuPositionHarness() {
+function createMenuPositionHarness(optionLabels = ["Document", "Photos & videos"]) {
   let menuOpened = false;
   let selectedPosition = null;
   let previewVisible = false;
@@ -144,12 +144,21 @@ function createMenuPositionHarness() {
       }
       return true;
     }
+
+    querySelectorAll() {
+      return [];
+    }
   }
 
   class HTMLElement extends Element {
-    constructor(name, position = null) {
+    constructor(name, position = null, label = "") {
       super(name);
       this.position = position;
+      this.label = label;
+    }
+
+    getAttribute(name) {
+      return name === "aria-label" || name === "title" ? this.label : null;
     }
 
     click() {
@@ -174,10 +183,7 @@ function createMenuPositionHarness() {
   const input = new Element("media-input");
   input.accept = "image/*";
   const attachButton = new HTMLElement("attach");
-  const options = [
-    new HTMLElement("position-0", 0),
-    new HTMLElement("position-1", 1),
-  ];
+  const options = optionLabels.map((label, position) => new HTMLElement(`position-${position}`, position, label));
   const sendButton = new HTMLElement("send");
   const preview = new Element("preview");
 
@@ -273,6 +279,19 @@ test("prefers WhatsApp photos and videos menu position before the sticker positi
 
   assert.equal(result.ok, true);
   assert.equal(state.selectedPosition, 1);
+  assert.equal(state.sent, true);
+  assert.deepEqual(state.assignedFiles, [file]);
+});
+
+test("skips sticker-like menu positions when using media fallback", async () => {
+  const harness = createMenuPositionHarness(["Document", "Sticker", "Photos & videos"]);
+  const file = { name: "campaign.jpg", type: "image/jpeg" };
+
+  const result = await harness.context.RecalcWaAttachments.sendMediaAttachments([file], "", {});
+  const state = harness.state;
+
+  assert.equal(result.ok, true);
+  assert.equal(state.selectedPosition, 2);
   assert.equal(state.sent, true);
   assert.deepEqual(state.assignedFiles, [file]);
 });
