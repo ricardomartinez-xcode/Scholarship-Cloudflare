@@ -22,6 +22,14 @@ import {
   type ProspectSheetValue,
   type ProspectTrackingSheetName,
 } from "@/lib/prospect-tracking-sheets";
+import {
+  MATRICULA_CONTACT_AUDIT_HEADERS,
+  MATRICULA_CONTACT_HEADERS,
+  buildMatriculaContactAuditRow,
+  buildMatriculaContactRow,
+  findMatriculaContactRowIndex,
+  type MatriculaContactSheetInput,
+} from "@/lib/matricula-contact-sheets";
 
 const GOOGLE_AUTH_BASE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -40,6 +48,8 @@ const GOOGLE_DEFAULT_SCOPES = [
   "profile",
 ];
 const GOOGLE_STATE_TTL_MS = 15 * 60 * 1000;
+const MATRICULA_CONTACT_CREATION_SHEET_NAME = "Creacion de contacto";
+const MATRICULA_CONTACT_UPDATE_SHEET_NAME = "Actualizacion de contacto";
 
 const GOOGLE_TASKS_SCOPES = ["https://www.googleapis.com/auth/tasks"];
 const GOOGLE_CALENDAR_SCOPES = [
@@ -87,6 +97,24 @@ type GoogleConnectionRecord = Awaited<
 export const GOOGLE_CONTACTS_SHEET_NAME = PROSPECT_CONTACTS_SHEET_NAME;
 
 export type GoogleContactsSyncRow = ProspectContactSyncRow;
+
+export type MatriculaContactSheetSyncResult =
+  | {
+      ok: true;
+      action: "created" | "updated";
+      spreadsheetId: string;
+      sheetName: string;
+      matchedBy?: "matricula" | "fullName" | "email" | "phone";
+    }
+  | {
+      ok: false;
+      skipped:
+        | "dry_run"
+        | "unauthenticated"
+        | "google_not_connected"
+        | "sheets_not_connected"
+        | "sheets_sync_disabled";
+    };
 
 export type GoogleTasklistSummary = {
   id: string;
@@ -1520,6 +1548,88 @@ async function replaceGoogleSheetValues(params: {
   );
 }
 
+function googleSheetRange(sheetName: string, range: string) {
+  return `'${sheetName.replace(/'/g, "''")}'!${range}`;
+}
+
+async function getGoogleSheetValues(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheetName: string;
+  range?: string;
+}) {
+  const response = await googleApiFetch(
+    `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}/values/${encodeURIComponent(
+      googleSheetRange(params.sheetName, params.range ?? "A:Z"),
+    )}`,
+    { method: "GET" },
+    params.connection,
+  );
+  const result = (await response.json()) as { values?: ProspectSheetValue[][] };
+  return result.values ?? [];
+}
+
+async function putGoogleSheetValues(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheetName: string;
+  range: string;
+  values: ProspectSheetValue[][];
+}) {
+  await googleApiFetch(
+    `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}/values/${encodeURIComponent(
+      googleSheetRange(params.sheetName, params.range),
+    )}?valueInputOption=USER_ENTERED`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ values: params.values }),
+    },
+    params.connection,
+  );
+}
+
+async function appendGoogleSheetRow(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheetName: string;
+  values: ProspectSheetValue[];
+}) {
+  await googleApiFetch(
+    `/sheets/v4/spreadsheets/${encodeURIComponent(params.spreadsheetId)}/values/${encodeURIComponent(
+      googleSheetRange(params.sheetName, "A1"),
+    )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: "POST",
+      body: JSON.stringify({ values: [params.values] }),
+    },
+    params.connection,
+  );
+}
+
+async function ensureGoogleSheetHeaders(params: {
+  connection: NonNullable<GoogleConnectionRecord>;
+  spreadsheetId: string;
+  sheetName: string;
+  headers: readonly ProspectSheetValue[];
+}) {
+  const values = await getGoogleSheetValues({
+    connection: params.connection,
+    spreadsheetId: params.spreadsheetId,
+    sheetName: params.sheetName,
+    range: "A1:Z1",
+  });
+
+  if (values[0]?.some((value) => String(value ?? "").trim())) return;
+
+  await putGoogleSheetValues({
+    connection: params.connection,
+    spreadsheetId: params.spreadsheetId,
+    sheetName: params.sheetName,
+    range: "A1",
+    values: [[...params.headers]],
+  });
+}
+
 function prospectSheetId(sheetName: ProspectTrackingSheetName) {
   const definition = PROSPECT_TRACKING_SHEETS.find((sheet) => sheet.sheetName === sheetName);
   const sheetId = Number(definition?.gid);
@@ -2085,6 +2195,158 @@ export async function removeAgendaItemFromGoogle(params: {
     ok: true as const,
     removedCount: syncRows.length,
   };
+}
+
+export async function syncMatriculaContactToGoogleSheet(params: {
+  userId: string;
+  contact: MatriculaContactSheetInput;
+}): Promise<MatriculaContactSheetSyncResult> {
+  const [connection, preference] = await Promise.all([
+    prisma.userGoogleConnection.findUnique({ where: { userId: params.userId } }),
+    prisma.agendaSyncPreference.findUnique({ where: { userId: params.userId } }),
+  ]);
+
+  if (!connection || connection.status !== "connected") {
+    return { ok: false as const, skipped: "google_not_connected" };
+  }
+
+  const scopes = Array.isArray(connection.scopes)
+    ? connection.scopes.map((scope) => String(scope ?? "").trim()).filter(Boolean)
+    : [];
+
+  if (!connection.sheetsConnected && !scopeListIncludes(scopes, GOOGLE_SHEETS_SCOPES)) {
+    return { ok: false as const, skipped: "sheets_not_connected" };
+  }
+
+  if (!preference?.syncSheetsEnabled) {
+    return { ok: false as const, skipped: "sheets_sync_disabled" };
+  }
+
+  try {
+    const { spreadsheetId } = await ensureGoogleSpreadsheetTarget({
+      userId: params.userId,
+      connection,
+      preference,
+      title: PROSPECT_TRACKING_SPREADSHEET_TITLE,
+      initialSheets: buildProspectInitialSheets(),
+    });
+
+    await ensureGoogleWorksheet({
+      connection,
+      spreadsheetId,
+      sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+      sheetId: prospectSheetId(GOOGLE_CONTACTS_SHEET_NAME),
+    });
+    await ensureGoogleWorksheet({
+      connection,
+      spreadsheetId,
+      sheetName: MATRICULA_CONTACT_CREATION_SHEET_NAME,
+    });
+    await ensureGoogleWorksheet({
+      connection,
+      spreadsheetId,
+      sheetName: MATRICULA_CONTACT_UPDATE_SHEET_NAME,
+    });
+
+    await ensureGoogleSheetHeaders({
+      connection,
+      spreadsheetId,
+      sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+      headers: MATRICULA_CONTACT_HEADERS,
+    });
+    await ensureGoogleSheetHeaders({
+      connection,
+      spreadsheetId,
+      sheetName: MATRICULA_CONTACT_CREATION_SHEET_NAME,
+      headers: MATRICULA_CONTACT_AUDIT_HEADERS,
+    });
+    await ensureGoogleSheetHeaders({
+      connection,
+      spreadsheetId,
+      sheetName: MATRICULA_CONTACT_UPDATE_SHEET_NAME,
+      headers: MATRICULA_CONTACT_AUDIT_HEADERS,
+    });
+
+    const contactValues = await getGoogleSheetValues({
+      connection,
+      spreadsheetId,
+      sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+    });
+    const match = findMatriculaContactRowIndex(contactValues, params.contact);
+    const contactRow = buildMatriculaContactRow(params.contact);
+
+    if (match) {
+      await putGoogleSheetValues({
+        connection,
+        spreadsheetId,
+        sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+        range: `A${match.rowIndex}`,
+        values: [contactRow],
+      });
+      await appendGoogleSheetRow({
+        connection,
+        spreadsheetId,
+        sheetName: MATRICULA_CONTACT_UPDATE_SHEET_NAME,
+        values: buildMatriculaContactAuditRow("updated", params.contact),
+      });
+      await prisma.userGoogleConnection.update({
+        where: { userId: params.userId },
+        data: { lastSyncError: null },
+      });
+      await prisma.agendaSyncPreference.update({
+        where: { userId: params.userId },
+        data: { lastSyncedAt: new Date() },
+      });
+
+      return {
+        ok: true as const,
+        action: "updated",
+        spreadsheetId,
+        sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+        matchedBy: match.matchedBy,
+      };
+    }
+
+    await appendGoogleSheetRow({
+      connection,
+      spreadsheetId,
+      sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+      values: contactRow,
+    });
+    await appendGoogleSheetRow({
+      connection,
+      spreadsheetId,
+      sheetName: MATRICULA_CONTACT_CREATION_SHEET_NAME,
+      values: buildMatriculaContactAuditRow("created", params.contact),
+    });
+    await prisma.userGoogleConnection.update({
+      where: { userId: params.userId },
+      data: { lastSyncError: null },
+    });
+    await prisma.agendaSyncPreference.update({
+      where: { userId: params.userId },
+      data: { lastSyncedAt: new Date() },
+    });
+
+    return {
+      ok: true as const,
+      action: "created",
+      spreadsheetId,
+      sheetName: GOOGLE_CONTACTS_SHEET_NAME,
+    };
+  } catch (error) {
+    await prisma.userGoogleConnection.update({
+      where: { userId: params.userId },
+      data: {
+        lastSyncError:
+          error instanceof Error
+            ? error.message.slice(0, 500)
+            : "No se pudo sincronizar la matrícula con Google Sheets.",
+      },
+    });
+
+    throw error;
+  }
 }
 
 export async function syncContactsSnapshotToGoogle(params: {

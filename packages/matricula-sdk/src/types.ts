@@ -25,9 +25,11 @@ export type MatriculaStudent = {
 export type MatriculaAcademicProgram = {
   campus?: string;
   campusCode?: string;
+  region?: string;
   program?: string;
   programCode?: string;
   modality?: string;
+  module?: string;
   plan?: number | string;
   cycle?: string;
   businessLine?: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
@@ -335,6 +336,12 @@ export default function DirectoryClient({
                 .
               </div>
             </div>
+            <Link
+              href="/admin/importaciones"
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:bg-white/10"
+            >
+              Ver validador
+            </Link>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-slate-950/25 p-4 text-xs text-slate-400">

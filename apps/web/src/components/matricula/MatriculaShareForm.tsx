@@ -49,6 +49,7 @@ export default function MatriculaShareForm() {
     setState({ status: "loading" });
 
     try {
+      const sourceRecordId = optionalValue(formValue(formData, "sourceRecordId"));
       const response = await fetch("/api/integrations/matricula/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,12 +59,14 @@ export default function MatriculaShareForm() {
             fullName: optionalValue(formValue(formData, "fullName")),
             email: optionalValue(formValue(formData, "email")),
             phone: optionalValue(formValue(formData, "phone")),
-            externalId: optionalValue(formValue(formData, "studentExternalId")),
+            externalId: sourceRecordId,
           },
           academic: {
             campus: optionalValue(formValue(formData, "campus")),
+            region: optionalValue(formValue(formData, "region")),
             program: optionalValue(formValue(formData, "program")),
             modality: optionalValue(formValue(formData, "modality")),
+            module: optionalValue(formValue(formData, "module")),
             cycle: optionalValue(formValue(formData, "cycle")),
           },
           scholarship: {
@@ -72,7 +75,7 @@ export default function MatriculaShareForm() {
             scholarshipPercent: Number(formValue(formData, "scholarshipPercent")) || undefined,
           },
           metadata: {
-            sourceRecordId: optionalValue(formValue(formData, "sourceRecordId")),
+            sourceRecordId,
             submittedFrom: "matricula-share-cta",
           },
         }),
@@ -139,6 +142,11 @@ export default function MatriculaShareForm() {
         </label>
 
         <label className="grid gap-2 text-sm font-semibold">
+          Región
+          <input name="region" placeholder="Ej. Noroeste" className={inputClass} />
+        </label>
+
+        <label className="grid gap-2 text-sm font-semibold">
           Programa
           <input name="program" placeholder="Ej. Licenciatura" className={inputClass} />
         </label>
@@ -146,6 +154,11 @@ export default function MatriculaShareForm() {
         <label className="grid gap-2 text-sm font-semibold">
           Modalidad
           <input name="modality" placeholder="Presencial, online, mixta" className={inputClass} />
+        </label>
+
+        <label className="grid gap-2 text-sm font-semibold">
+          Módulo
+          <input name="module" placeholder="Ej. M1" className={inputClass} />
         </label>
 
         <label className="grid gap-2 text-sm font-semibold">

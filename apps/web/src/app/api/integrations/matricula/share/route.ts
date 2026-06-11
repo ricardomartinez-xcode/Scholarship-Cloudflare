@@ -5,6 +5,12 @@ import {
   shareMatriculaFromScholarship,
   type ShareMatriculaPayload,
 } from "@/lib/integrations/matricula";
+import { getSessionUser } from "@/lib/authz";
+import {
+  syncMatriculaContactToGoogleSheet,
+  type MatriculaContactSheetSyncResult,
+} from "@/lib/google-integration";
+import type { MatriculaContactSheetInput } from "@/lib/matricula-contact-sheets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,9 +49,11 @@ function buildSharePayload(payload: JsonRecord, matricula: string): ShareMatricu
     ? {
         campus: readString(payload.academic.campus),
         campusCode: readString(payload.academic.campusCode),
+        region: readString(payload.academic.region),
         program: readString(payload.academic.program),
         programCode: readString(payload.academic.programCode),
         modality: readString(payload.academic.modality),
+        module: readString(payload.academic.module),
         plan: readString(payload.academic.plan) ?? readNumber(payload.academic.plan),
         cycle: readString(payload.academic.cycle),
         businessLine: readString(payload.academic.businessLine),
@@ -69,6 +77,30 @@ function buildSharePayload(payload: JsonRecord, matricula: string): ShareMatricu
     academic,
     scholarship,
     metadata,
+  };
+}
+
+function buildMatriculaContactInput(
+  sharePayload: ShareMatriculaPayload,
+): MatriculaContactSheetInput {
+  return {
+    matricula: sharePayload.matricula,
+    fullName: sharePayload.student?.fullName,
+    email: sharePayload.student?.email,
+    phone: sharePayload.student?.phone,
+    externalId: sharePayload.student?.externalId,
+    campus: sharePayload.academic?.campus,
+    campusCode: sharePayload.academic?.campusCode,
+    region: sharePayload.academic?.region,
+    modality: sharePayload.academic?.modality,
+    program: sharePayload.academic?.program,
+    programCode: sharePayload.academic?.programCode,
+    module: sharePayload.academic?.module,
+    cycle: sharePayload.academic?.cycle,
+    businessLine: sharePayload.academic?.businessLine,
+    enrollmentType: sharePayload.scholarship?.enrollmentType,
+    scholarshipPercent: sharePayload.scholarship?.scholarshipPercent,
+    submittedAt: new Date().toISOString(),
   };
 }
 
@@ -115,13 +147,47 @@ export async function POST(request: Request) {
     );
   }
 
+  const sharePayload = buildSharePayload(payload, matricula);
+  let sheetSync: MatriculaContactSheetSyncResult = {
+    ok: false,
+    skipped: payload.dryRun === true ? "dry_run" : "unauthenticated",
+  };
+
   try {
-    const result = await shareMatriculaFromScholarship(buildSharePayload(payload, matricula), {
+    if (payload.dryRun !== true) {
+      const session = await getSessionUser().catch(() => ({
+        status: "unauthenticated" as const,
+        user: null,
+        email: null,
+      }));
+
+      if (session.status === "ok") {
+        try {
+          sheetSync = await syncMatriculaContactToGoogleSheet({
+            userId: session.user.id,
+            contact: buildMatriculaContactInput(sharePayload),
+          });
+        } catch (error) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "No fue posible sincronizar el contacto con Google Sheets.",
+            },
+            { status: 502 },
+          );
+        }
+      }
+    }
+
+    const result = await shareMatriculaFromScholarship(sharePayload, {
       idempotencyKey: buildIdempotencyKey(payload, matricula),
       dryRun: payload.dryRun === true,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, sheetSync });
   } catch (error) {
     return NextResponse.json(
       {

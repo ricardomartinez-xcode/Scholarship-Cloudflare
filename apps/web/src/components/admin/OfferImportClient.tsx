@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import AdminRowActions from "@/components/admin/AdminRowActions";
@@ -754,6 +755,9 @@ export default function OfferImportClient({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Link href="/admin/importaciones" className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10">
+                  Ver validador
+                </Link>
                 <button type="button" onClick={runImport} disabled={loading} className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60">
                   {loading ? "Validando..." : "Validar archivo"}
                 </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { updateCampusContactAction, importCampusesCsvAction } from "./actions";
 
 type Campus = {
@@ -89,7 +90,15 @@ export default function CampusesClient({ campuses }: { campuses: Campus[] }) {
     <div className="grid gap-8">
       {/* CSV Import */}
     <div id="importacion" className="ui-card ui-card-pad scroll-mt-24">
-        <h3 className="font-semibold">Importar planteles desde archivo CSV o XLSX</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h3 className="font-semibold">Importar planteles desde archivo CSV o XLSX</h3>
+          <Link
+            href="/admin/importaciones"
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:bg-white/10"
+          >
+            Ver validador
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-slate-300">
           El orden de columnas debe ser: <code className="rounded bg-black/30 px-1">Plantel</code>,{" "}
           <code className="rounded bg-black/30 px-1">Direccion</code>,{" "}

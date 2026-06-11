@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useTransition, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
@@ -356,6 +357,12 @@ export default function PricesClient({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/importaciones"
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+            >
+              Ver validador
+            </Link>
             <button
               type="button"
               onClick={validateImportCsv}
@@ -742,138 +749,120 @@ export default function PricesClient({
         ) : null}
 
         <form onSubmit={handleSubmit} className="grid gap-4">
-              {editingRule?.id === "new:program-price" ? (
-                <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2">
-                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 sm:col-span-2">
-                    Alcance del precio
-                    <select
-                      name="priceScopePreset"
-                      value={newPriceScopePreset}
-                      onChange={(event) =>
-                        setNewPriceScopePreset(event.target.value as AdminPriceScopePreset)
-                      }
-                      className="ui-control text-sm normal-case tracking-normal"
-                    >
-                      {PRICE_SCOPE_PRESETS.map((preset) => (
-                        <option key={preset.value} value={preset.value}>
-                          {preset.label}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="text-[11px] normal-case tracking-normal text-slate-300">
-                      {describeAdminPriceScopePreset(newPriceScopePreset)}
-                    </span>
-                  </label>
-                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Línea
-                    <input
-                      name="nivel_key"
-                      defaultValue={editingRule.nivel_key}
-                      className="ui-control text-sm normal-case tracking-normal"
-                      placeholder="salud, licenciatura, posgrado..."
-                      required
-                    />
-                  </label>
-                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Modalidad
-                    <input
-                      name="modalidad_key"
-                      defaultValue={editingRule.modalidad_key}
-                      className="ui-control text-sm normal-case tracking-normal"
-                      placeholder="presencial, mixta u online"
-                      required
-                    />
-                  </label>
-                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Plan / duración
-                    <input
-                      name="plan"
-                      defaultValue={editingRule.plan}
-                      className="ui-control text-sm normal-case tracking-normal"
-                      placeholder="9, 11, 4..."
-                      required
-                    />
-                  </label>
-                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Módulo
-                    <select
-                      name="module"
-                      defaultValue={editingRule.module}
-                      className="ui-control text-sm normal-case tracking-normal"
-                      required
-                    >
-                      {ACADEMIC_MODULES.map((module) => (
-                        <option key={module} value={module}>
-                          {module}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {showProgramInput ? (
-                    <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Programa
-                      <input
-                        name="programa_key"
-                        defaultValue={editingRule.programa_key ?? ""}
-                        className="ui-control text-sm normal-case tracking-normal"
-                        placeholder="psicologia"
-                        required
-                      />
-                    </label>
-                  ) : null}
-                  {showPlantelInput ? (
-                    <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Plantel
-                      <input
-                        name="plantel"
-                        defaultValue={editingRule.plantel ?? ""}
-                        className="ui-control text-sm normal-case tracking-normal"
-                        placeholder="Hermosillo"
-                        required
-                      />
-                    </label>
-                  ) : null}
-                  {showTierInput ? (
-                    <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Tier
-                      <input
-                        name="tier"
-                        defaultValue={editingRule.tier ?? ""}
-                        className="ui-control text-sm normal-case tracking-normal"
-                        placeholder="T3"
-                        required
-                      />
-                    </label>
-                  ) : null}
-                  {showPlantelInput ? (
-                    <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 sm:col-span-2">
-                      Región
-                      <input
-                        name="region"
-                        defaultValue={editingRule.region ?? ""}
-                        className="ui-control text-sm normal-case tracking-normal"
-                        placeholder="Opcional"
-                      />
-                    </label>
-                  ) : null}
-                </div>
-              ) : (
-                <>
-                  <input type="hidden" name="priceScopePreset" value={editingRule ? priceScopePresetForRow(editingRule) : "general"} />
-                  <input type="hidden" name="programa_key" value={editingRule?.programa_key ?? ""} />
-                  <input type="hidden" name="region" value={editingRule?.region ?? ""} />
-                  <input type="hidden" name="plantel" value={editingRule?.plantel ?? ""} />
-                  <input type="hidden" name="nivel_key" value={editingRule?.nivel_key ?? ""} />
+              <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2">
+                <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 sm:col-span-2">
+                  Alcance del precio
+                  <select
+                    name="priceScopePreset"
+                    value={newPriceScopePreset}
+                    onChange={(event) =>
+                      setNewPriceScopePreset(event.target.value as AdminPriceScopePreset)
+                    }
+                    className="ui-control text-sm normal-case tracking-normal"
+                  >
+                    {PRICE_SCOPE_PRESETS.map((preset) => (
+                      <option key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[11px] normal-case tracking-normal text-slate-300">
+                    {describeAdminPriceScopePreset(newPriceScopePreset)}
+                  </span>
+                </label>
+                <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Línea
                   <input
-                    type="hidden"
-                    name="modalidad_key"
-                    value={editingRule?.modalidad_key ?? ""}
+                    name="nivel_key"
+                    defaultValue={editingRule?.nivel_key ?? ""}
+                    className="ui-control text-sm normal-case tracking-normal"
+                    placeholder="salud, licenciatura, posgrado..."
+                    required
                   />
-                  <input type="hidden" name="plan" value={editingRule?.plan ?? ""} />
-                  <input type="hidden" name="module" value={editingRule?.module ?? "Longitudinal"} />
-                  <input type="hidden" name="tier" value={editingRule?.tier ?? ""} />
-                </>
-              )}
+                </label>
+                <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Modalidad
+                  <input
+                    name="modalidad_key"
+                    defaultValue={editingRule?.modalidad_key ?? ""}
+                    className="ui-control text-sm normal-case tracking-normal"
+                    placeholder="presencial, mixta u online"
+                    required
+                  />
+                </label>
+                <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Plan / duración
+                  <input
+                    name="plan"
+                    defaultValue={editingRule?.plan ?? ""}
+                    className="ui-control text-sm normal-case tracking-normal"
+                    placeholder="9, 11, 4..."
+                    required
+                  />
+                </label>
+                <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Módulo
+                  <select
+                    name="module"
+                    defaultValue={editingRule?.module ?? "Longitudinal"}
+                    className="ui-control text-sm normal-case tracking-normal"
+                    required
+                  >
+                    {ACADEMIC_MODULES.map((module) => (
+                      <option key={module} value={module}>
+                        {module}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {showProgramInput ? (
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Programa
+                    <input
+                      name="programa_key"
+                      defaultValue={editingRule?.programa_key ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="psicologia"
+                      required
+                    />
+                  </label>
+                ) : null}
+                {showPlantelInput ? (
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Plantel
+                    <input
+                      name="plantel"
+                      defaultValue={editingRule?.plantel ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="Hermosillo"
+                      required
+                    />
+                  </label>
+                ) : null}
+                {showTierInput ? (
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Tier
+                    <input
+                      name="tier"
+                      defaultValue={editingRule?.tier ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="T3"
+                      required
+                    />
+                  </label>
+                ) : null}
+                {showPlantelInput ? (
+                  <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 sm:col-span-2">
+                    Región
+                    <input
+                      name="region"
+                      defaultValue={editingRule?.region ?? ""}
+                      className="ui-control text-sm normal-case tracking-normal"
+                      placeholder="Opcional"
+                    />
+                  </label>
+                ) : null}
+              </div>
               <input type="hidden" name="existingId" value={editingOverride?.id ?? ""} />
 
               <label className="grid gap-2 text-sm">

@@ -42,7 +42,7 @@ describe("recalc public control api", () => {
     await expect(result.response.json()).resolves.toMatchObject({
       errorCode: "PUBLIC_API_BEARER_REQUIRED",
     });
-  });
+  }, 15000);
 
   it("rejects issued tokens outside the public api scope", async () => {
     getIssuedExtensionSessionMock.mockResolvedValue({

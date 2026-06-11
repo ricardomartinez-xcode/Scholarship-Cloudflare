@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
@@ -793,6 +794,12 @@ export default function BenefitsClient({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/importaciones"
+              className="ui-button-secondary min-h-[34px] px-3 text-xs"
+            >
+              Ver validador
+            </Link>
             <button
               type="button"
               onClick={validateImportCsv}

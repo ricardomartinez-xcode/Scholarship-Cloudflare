@@ -83,8 +83,8 @@ export default async function EnrollmentFormatsAdminPage() {
         </div>
         <h1 className="mt-1 text-xl font-semibold text-slate-100">Formatos</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          Administra documentos útiles para inscripción. Puedes subir PDF o Word
-          a R2, seleccionar un asset R2 existente o registrar un link externo.
+          Administra documentos útiles para inscripción. Selecciona un asset R2 existente
+          o registra un link externo.
         </p>
       </section>
 
@@ -130,15 +130,6 @@ export default async function EnrollmentFormatsAdminPage() {
           </label>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm">
-              Subir a R2 PDF/Word
-              <input
-                name="file"
-                type="file"
-                className="ui-control"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              />
-            </label>
-            <label className="grid gap-2 text-sm">
               Asset R2 existente
               <select name="fileAssetId" className="ui-control" defaultValue="">
                 <option value="">Sin seleccionar</option>
@@ -159,7 +150,7 @@ export default async function EnrollmentFormatsAdminPage() {
             />
           </label>
           <div className="text-xs leading-5 text-slate-400">
-            Prioridad al guardar: archivo nuevo en R2, asset R2 existente y después link externo.
+            Carga archivos nuevos desde Admin &gt; Archivos R2; aquí sólo se vinculan assets existentes o links externos.
           </div>
           <div className="flex justify-end">
             <button type="submit" className="ui-button-info px-4 py-2 text-sm">
@@ -293,15 +284,6 @@ export default async function EnrollmentFormatsAdminPage() {
                   />
                 </label>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2 text-sm">
-                    Reemplazar con archivo R2
-                    <input
-                      name="file"
-                      type="file"
-                      className="ui-control"
-                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    />
-                  </label>
                   <label className="grid gap-2 text-sm">
                     Reemplazar con asset R2
                     <select name="fileAssetId" className="ui-control" defaultValue="">

@@ -3,6 +3,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import {
@@ -721,7 +722,7 @@ export default function FeesClient({
                   </div>
                   <div className="text-xs text-[#4B6475]">
                     {feeEditor.mode === "edit"
-                      ? "En edición individual solo se ajusta el valor del costo."
+                      ? "Edita código, concepto, sección, estado y costo base."
                       : "En altas individuales captura código, concepto, sección y costo."}
                   </div>
                 </div>
@@ -753,7 +754,6 @@ export default function FeesClient({
                           current ? { ...current, code: event.target.value } : current,
                         )
                       }
-                      readOnly={feeEditor.mode === "edit"}
                       className="ui-control"
                     />
                   </label>
@@ -770,7 +770,6 @@ export default function FeesClient({
                             : current,
                         )
                       }
-                      disabled={feeEditor.mode === "edit"}
                       className="ui-control"
                     >
                       {Object.entries(SECTION_LABELS).map(([value, label]) => (
@@ -792,7 +791,6 @@ export default function FeesClient({
                         current ? { ...current, concept: event.target.value } : current,
                       )
                     }
-                    readOnly={feeEditor.mode === "edit"}
                     className="ui-control"
                   />
                 </label>
@@ -1331,7 +1329,7 @@ export default function FeesClient({
                   </div>
                   <div className="text-xs text-[#4B6475]">
                     {materiaEditor.mode === "edit"
-                      ? "En edición individual solo se ajusta el costo."
+                      ? "Edita plantel, modalidad, número de materias y costo."
                       : "Captura plantel, modalidad, número de materias y costo."}
                   </div>
                 </div>
@@ -1360,7 +1358,6 @@ export default function FeesClient({
                           current ? { ...current, plantel: event.target.value } : current,
                         )
                       }
-                      readOnly={materiaEditor.mode === "edit"}
                       className="ui-control"
                     />
                   </label>
@@ -1375,7 +1372,6 @@ export default function FeesClient({
                           current ? { ...current, modalidad: event.target.value } : current,
                         )
                       }
-                      disabled={materiaEditor.mode === "edit"}
                       className="ui-control"
                     >
                       {MODALITY_OPTIONS.map((option) => (
@@ -1401,7 +1397,6 @@ export default function FeesClient({
                             : current,
                         )
                       }
-                      readOnly={materiaEditor.mode === "edit"}
                       className="ui-control"
                     />
                   </label>
@@ -1504,9 +1499,17 @@ export default function FeesClient({
 
       {tab === "seed" && (
         <div className="grid gap-4">
-          <div className="rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
-            Usa CSV para cargar costos base y disponibilidad por plantel en una sola operación.
-            El preview valida columnas mínimas antes de aplicar cambios.
+          <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#D7E4ED] bg-[#F7FBFD] px-4 py-3 text-sm text-[#123348]">
+            <div>
+              Usa CSV para cargar costos base y disponibilidad por plantel en una sola operación.
+              El preview valida columnas mínimas antes de aplicar cambios.
+            </div>
+            <Link
+              href="/admin/importaciones"
+              className="rounded-full border border-[#D7E4ED] bg-white px-3 py-1 text-xs font-semibold text-[#123348] transition hover:bg-[#EEF6FA]"
+            >
+              Ver validador
+            </Link>
           </div>
 
           <div className="grid gap-3">
