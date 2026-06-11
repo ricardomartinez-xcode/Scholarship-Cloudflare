@@ -229,6 +229,18 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         ],
       },
       {
+        title: "Bots de roleplay",
+        description: "Perfiles preprogramados, base de conocimiento y preparación para API avanzada.",
+        href: "/admin/capacitacion/bots",
+        eyebrow: "Entrenamiento",
+        capability: [
+          AdminCapability.view_users,
+          AdminCapability.manage_users,
+          AdminCapability.view_org_members,
+          AdminCapability.manage_org_members,
+        ],
+      },
+      {
         title: "Información pública",
         description: "Contacto y orientación del rail público del home.",
         href: "/admin/sidebar",

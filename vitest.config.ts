@@ -18,6 +18,8 @@ export default defineConfig({
       { find: "@relead/domain", replacement: path.resolve(__dirname, "./packages/domain/src/index.ts") },
       { find: /^@relead\/realtime\/(.+)$/, replacement: `${path.resolve(__dirname, "./packages/realtime/src")}/$1` },
       { find: "@relead/realtime", replacement: path.resolve(__dirname, "./packages/realtime/src/index.ts") },
+      { find: /^@relead\/matricula-sdk\/(.+)$/, replacement: `${path.resolve(__dirname, "./packages/matricula-sdk/src")}/$1` },
+      { find: "@relead/matricula-sdk", replacement: path.resolve(__dirname, "./packages/matricula-sdk/src/index.ts") },
     ],
   },
   test: {

@@ -1,6 +1,5 @@
 "use client";
 
-import { WhatsappTemplateKind } from "@prisma/client";
 import { useRef, useState } from "react";
 
 import WhatsappVariableCatalog from "@/components/whatsapp/WhatsappVariableCatalog";
@@ -25,7 +24,7 @@ export default function OfficialTemplateEditor({
 }: OfficialTemplateEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [baseText, setBaseText] = useState(editingTemplate?.baseText ?? "");
-  const selectedKind = editingTemplate?.kind ?? WhatsappTemplateKind.detailed;
+  const selectedKind = editingTemplate?.kind ?? "detailed";
   const createMode = !editingTemplate;
 
   function insertToken(position: number) {

@@ -1,4 +1,8 @@
 import {
+  ROLEPLAY_ADVANCED_BOT_ENV_KEYS,
+  getAdvancedRoleplayBotStatus,
+} from "@/lib/roleplay-advanced-bot";
+import {
   PRELOADED_ROLEPLAY_KNOWLEDGE,
   getRoleplayBotReply,
   listRoleplayBots,
@@ -62,6 +66,12 @@ const CONFIGURATION_FILES = [
     detail:
       "Documentar nuevas reglas, ejemplos de objeciones y criterios de entrenamiento.",
   },
+  {
+    label: "Bot avanzado por API",
+    path: "apps/web/src/lib/roleplay-advanced-bot.ts",
+    detail:
+      "Declarar proveedor, endpoint y modelo sin exponer tokens al navegador.",
+  },
 ];
 
 function intentLabel(intent: RoleplayBotIntent) {
@@ -113,6 +123,7 @@ function ConfigPath({ path }: { path: string }) {
 
 export default async function AdminTrainingBotsPage() {
   await assertTrainingAdminView();
+  const advancedBotStatus = getAdvancedRoleplayBotStatus();
 
   const bots = listRoleplayBots().map((bot, index) => ({
     ...bot,
@@ -135,6 +146,16 @@ export default async function AdminTrainingBotsPage() {
               </span>
               <span className="rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#536a7c]">
                 Sin API de IA
+              </span>
+              <span
+                className={[
+                  "rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em]",
+                  advancedBotStatus.enabled
+                    ? "border-emerald-600/25 bg-emerald-50 text-emerald-700"
+                    : "border-[#8a5b00]/25 bg-[#fff7df] text-[#7a4f00]",
+                ].join(" ")}
+              >
+                {advancedBotStatus.enabled ? "API avanzada lista" : "API avanzada pendiente"}
               </span>
             </div>
             <div className="mt-4 text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
@@ -187,6 +208,27 @@ export default async function AdminTrainingBotsPage() {
             <div className="rounded-[18px] border border-[#c8d6e2] bg-white p-3 text-sm font-semibold leading-6 text-[#536a7c]">
               Configuración editable por código, sin llamadas externas ni
               generación dinámica por modelo.
+            </div>
+            <div className="rounded-[18px] border border-[#c8d6e2] bg-white p-3 text-sm leading-6 text-[#536a7c]">
+              <div className="font-black text-[#102838]">Bot avanzado por API</div>
+              <div className="mt-1 font-semibold">
+                {advancedBotStatus.enabled
+                  ? `Configurado para proveedor ${advancedBotStatus.provider}.`
+                  : "Listo para activar cuando el endpoint y la clave existan en servidor."}
+              </div>
+              <div className="mt-2 grid gap-1 text-xs font-bold text-[#536a7c]">
+                <span>
+                  Endpoint:{" "}
+                  {advancedBotStatus.endpointConfigured ? "configurado" : ROLEPLAY_ADVANCED_BOT_ENV_KEYS.apiUrl}
+                </span>
+                <span>
+                  API key:{" "}
+                  {advancedBotStatus.apiKeyConfigured ? "configurada" : ROLEPLAY_ADVANCED_BOT_ENV_KEYS.apiKey}
+                </span>
+                <span>
+                  Modelo: {advancedBotStatus.model ?? ROLEPLAY_ADVANCED_BOT_ENV_KEYS.model}
+                </span>
+              </div>
             </div>
           </div>
         </div>

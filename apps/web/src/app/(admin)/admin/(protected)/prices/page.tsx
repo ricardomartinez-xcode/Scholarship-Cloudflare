@@ -13,7 +13,6 @@ import {
 } from "../config-actions";
 import {
   deletePriceOverrideAction,
-  getBecaRules,
   upsertMontoOverrideAction,
 } from "./actions";
 
@@ -26,10 +25,9 @@ export default async function PricesPage() {
   const configModule = AdminConfigModule.PRICES;
   const moduleMeta = getAdminConfigModuleMeta(configModule);
 
-  const [admin, publicationState, becaRules, montoOverrides] = await Promise.all([
+  const [admin, publicationState, montoOverrides] = await Promise.all([
     getAdminUser(),
     getConfigPublicationState(configModule),
-    getBecaRules(),
     prisma.adminPriceOverride.findMany({
       where: { scope: "base_price", isActive: true },
       select: { id: true, targetKeys: true, newPrice: true, isActive: true },
@@ -48,7 +46,6 @@ export default async function PricesPage() {
         rollbackConfigVersionAction={rollbackConfigVersionAction}
       />
       <PricesClient
-        becaRules={becaRules}
         montoOverrides={montoOverrides}
         upsertMontoOverrideAction={upsertMontoOverrideAction}
         deletePriceOverrideAction={deletePriceOverrideAction}

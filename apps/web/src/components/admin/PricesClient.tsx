@@ -7,7 +7,6 @@ import AdminSegmentedTabs from "@/components/admin/AdminSegmentedTabs";
 import AdminDialogShell from "@/components/admin/AdminDialogShell";
 import { useAdminActionForm } from "@/components/admin/useAdminActionForm";
 import {
-  compareAdminPricingScope,
   formatAdminPricingPlantel,
   formatAdminPricingTier,
   normalizeAdminPricingRegion,
@@ -21,44 +20,12 @@ import {
   type AdminPriceScopePreset,
 } from "@/lib/admin-price-scope";
 import { ACADEMIC_MODULES, type AcademicModule } from "@/lib/academic-modules";
-
-type BecaRule = {
-  id: string;
-  programa_key: string;
-  nivel_key: string;
-  modalidad_key: string;
-  plan: string;
-  tier: string | null;
-  rango_min: number | null;
-  rango_max: number | null;
-  porcentaje: number | null;
-  monto: number | null;
-  basePriceMxn: number | null;
-  origen: string | null;
-};
-
-type MontoOverride = {
-  id: string;
-  targetKeys: unknown;
-  newPrice: unknown;
-  isActive: boolean;
-};
-
-type PriceRow = {
-  id: string;
-  region: string | null;
-  plantel: string | null;
-  programa_key: string | null;
-  nivel_key: string;
-  modalidad_key: string;
-  plan: string;
-  module: AcademicModule;
-  tier: string | null;
-  basePriceMxn: number | null;
-  subjectPriceMxn: number | null;
-  sourceOverrideId: string | null;
-  source: "canonical" | "derived" | "missing";
-};
+import {
+  buildAdminPriceRows,
+  findOverride,
+  type MontoOverride,
+  type PriceRow,
+} from "@/lib/admin-price-rows";
 
 type ActionResult = { ok: boolean; error?: string };
 
@@ -103,132 +70,6 @@ type PriceImportApplyMode = "replace" | "update-only";
 
 const PAGE_SIZE = 20;
 
-function normalizeTierKey(value: unknown) {
-  const normalized = String(value ?? "").trim();
-  return normalized || null;
-}
-
-function normalizeScopeValue(value: unknown) {
-  const normalized = String(value ?? "").trim();
-  return normalized || null;
-}
-
-function normalizeModuleValue(value: unknown): AcademicModule {
-  const normalized = String(value ?? "").trim();
-  return ACADEMIC_MODULES.includes(normalized as AcademicModule)
-    ? (normalized as AcademicModule)
-    : "Longitudinal";
-}
-
-function targetKeysRecord(targetKeys: unknown) {
-  return targetKeys && typeof targetKeys === "object"
-    ? (targetKeys as Record<string, unknown>)
-    : {};
-}
-
-function priceScopeKey(scope: {
-  region?: unknown;
-  plantel?: unknown;
-  programa_key?: unknown;
-  nivel_key: unknown;
-  modalidad_key: unknown;
-  plan: unknown;
-  module?: unknown;
-  tier?: unknown;
-}) {
-  return [
-    normalizeScopeValue(scope.region) ?? "",
-    normalizeScopeValue(scope.plantel) ?? "",
-    normalizeScopeValue(scope.programa_key) ?? "",
-    String(scope.nivel_key ?? "").trim(),
-    String(scope.modalidad_key ?? "").trim(),
-    String(scope.plan ?? "").trim(),
-    normalizeModuleValue(scope.module),
-    normalizeTierKey(scope.tier) ?? "",
-  ].join("|");
-}
-
-function priceScopeKeyFromRecord(keys: Record<string, unknown>) {
-  return priceScopeKey({
-    region: keys.region,
-    plantel: keys.plantel,
-    programa_key: keys.programa_key ?? keys.programaKey ?? keys.program_key ?? keys.programa ?? keys.program,
-    nivel_key: keys.nivel_key,
-    modalidad_key: keys.modalidad_key,
-    plan: keys.plan,
-    module: keys.modulo ?? keys.module ?? keys.academicModule ?? "Longitudinal",
-    tier: keys.tier,
-  });
-}
-
-function priceCombinationKey(scope: {
-  programa_key?: unknown;
-  nivel_key: unknown;
-  modalidad_key: unknown;
-  plan: unknown;
-  module?: unknown;
-  tier?: unknown;
-}) {
-  return [
-    normalizeScopeValue(scope.programa_key) ?? "",
-    String(scope.nivel_key ?? "").trim(),
-    String(scope.modalidad_key ?? "").trim(),
-    String(scope.plan ?? "").trim(),
-    normalizeModuleValue(scope.module),
-    normalizeTierKey(scope.tier) ?? "",
-  ].join("|");
-}
-
-function toPriceNumber(value: unknown) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function priceRowFromOverride(override: MontoOverride): PriceRow | null {
-  const keys = targetKeysRecord(override.targetKeys);
-  const nivel = normalizeScopeValue(keys.nivel_key);
-  const modalidad = normalizeScopeValue(keys.modalidad_key);
-  const plan = normalizeScopeValue(keys.plan);
-  if (!nivel || !modalidad || !plan) return null;
-
-  return {
-    id: `price:${override.id}`,
-    region: normalizeScopeValue(keys.region),
-    plantel: normalizeScopeValue(keys.plantel),
-    programa_key: normalizeScopeValue(
-      keys.programa_key ?? keys.programaKey ?? keys.program_key ?? keys.programa ?? keys.program,
-    ),
-    nivel_key: nivel,
-    modalidad_key: modalidad,
-    plan,
-    module: normalizeModuleValue(keys.modulo ?? keys.module ?? keys.academicModule),
-    tier: normalizeTierKey(keys.tier),
-    basePriceMxn: toPriceNumber(override.newPrice),
-    subjectPriceMxn: toPriceNumber(
-      keys.subject_price_mxn ??
-        keys.precio_por_materia ??
-        keys.precioPorMateria ??
-        keys.price_per_subject ??
-        keys.subjectPriceMxn,
-    ),
-    sourceOverrideId: override.id,
-    source: "canonical",
-  };
-}
-
-function findOverride(rule: PriceRow, overrides: MontoOverride[]): MontoOverride | null {
-  if (rule.sourceOverrideId) {
-    return overrides.find((override) => override.id === rule.sourceOverrideId) ?? null;
-  }
-
-  return (
-    overrides.find((o) => {
-      const keys = targetKeysRecord(o.targetKeys);
-      return priceScopeKeyFromRecord(keys) === priceScopeKey(rule);
-    }) ?? null
-  );
-}
-
 function fmt(v: number | null | undefined) {
   if (v === null || v === undefined) return "—";
   return `$${Number(v).toLocaleString("es-MX")}`;
@@ -256,80 +97,21 @@ function priceScopeDescription(row: PriceRow) {
   return adminPriceScopeDefinition(priceScopePresetForRow(row)).label;
 }
 
-function comparePriceRows(left: PriceRow, right: PriceRow) {
-  return (
-    [
-      left.nivel_key.localeCompare(right.nivel_key),
-      compareAdminPricingScope(left, right),
-      left.modalidad_key.localeCompare(right.modalidad_key),
-      left.plan.localeCompare(right.plan, undefined, { numeric: true }),
-      left.module.localeCompare(right.module, "es-MX"),
-    ].find((result) => result !== 0) ?? 0
-  );
-}
-
 export default function PricesClient({
-  becaRules,
   montoOverrides,
   upsertMontoOverrideAction,
   deletePriceOverrideAction,
 }: {
-  becaRules: BecaRule[];
   montoOverrides: MontoOverride[];
   upsertMontoOverrideAction: (fd: FormData) => Promise<ActionResult>;
   deletePriceOverrideAction: (fd: FormData) => Promise<void>;
 }) {
   const router = useRouter();
   const importFileRef = useRef<HTMLInputElement | null>(null);
-  const priceRows = useMemo(() => {
-    const rows = new Map<string, PriceRow>();
-    const canonicalCombinations = new Set<string>();
-    for (const override of montoOverrides) {
-      const row = priceRowFromOverride(override);
-      if (!row) continue;
-      rows.set(priceScopeKey(row), row);
-      canonicalCombinations.add(priceCombinationKey(row));
-    }
-
-    for (const rule of becaRules) {
-      const tier = normalizeTierKey(rule.tier);
-      const combinationKey = priceCombinationKey({
-        nivel_key: rule.nivel_key,
-        modalidad_key: rule.modalidad_key,
-        plan: rule.plan,
-        module: "Longitudinal",
-        tier,
-      });
-      if (canonicalCombinations.has(combinationKey)) continue;
-
-      const key = priceScopeKey({
-        nivel_key: rule.nivel_key,
-        modalidad_key: rule.modalidad_key,
-        plan: rule.plan,
-        module: "Longitudinal",
-        tier,
-      });
-      const current = rows.get(key);
-      if (!current || current.basePriceMxn === null) {
-        rows.set(key, {
-          id: `rule:${key}`,
-          region: null,
-          plantel: null,
-          programa_key: null,
-          nivel_key: rule.nivel_key,
-          modalidad_key: rule.modalidad_key,
-          plan: rule.plan,
-          module: "Longitudinal",
-          tier,
-          basePriceMxn: rule.basePriceMxn,
-          subjectPriceMxn: null,
-          sourceOverrideId: null,
-          source: rule.basePriceMxn === null ? "missing" : "derived",
-        });
-      }
-    }
-    return Array.from(rows.values()).sort(comparePriceRows);
-  }, [becaRules, montoOverrides]);
+  const priceRows = useMemo(
+    () => buildAdminPriceRows({ montoOverrides }),
+    [montoOverrides],
+  );
 
   const [filterNivel, setFilterNivel] = useState("");
   const [page, setPage] = useState(0);

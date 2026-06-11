@@ -1,6 +1,5 @@
 "use client";
 
-import { TrainingAccessRole } from "@prisma/client";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useTrainingAccess } from "@/components/capacitacion/TrainingAccessProvider";
@@ -15,6 +14,8 @@ import {
 import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
 import { useRealtimePresence } from "@/hooks/useRealtimePresence";
 import { realtimeTopics } from "@/lib/realtime-topics";
+
+type TrainingAccessRole = "user" | "moderator" | "admin" | "owner";
 
 type TrainingIdentity = {
   userId: string;
@@ -156,7 +157,7 @@ export default function RolplayWorkspace() {
   });
   const [memberForm, setMemberForm] = useState({
     targetUserId: "",
-    accessRole: TrainingAccessRole.user as TrainingAccessRole,
+    accessRole: "user" as TrainingAccessRole,
     isAnonymous: true,
     anonymousAlias: "",
   });
@@ -419,7 +420,7 @@ export default function RolplayWorkspace() {
     });
     setMemberForm({
       targetUserId: "",
-      accessRole: TrainingAccessRole.user,
+      accessRole: "user",
       isAnonymous: true,
       anonymousAlias: "",
     });
