@@ -74,6 +74,11 @@
     return findSafeMediaAttachmentOptionByPosition();
   }
 
+  function findMediaAttachmentInputForOption(option, pack) {
+    if (!option || typeof selectors?.findAttachmentInputForOption !== "function") return null;
+    return selectors.findAttachmentInputForOption(option, "media", pack);
+  }
+
   function isMediaAttachment(file) {
     const mime = String(file?.type || "").toLowerCase();
     return mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/");
@@ -124,8 +129,8 @@
     await textUtils.wait(300);
   }
 
-  async function chooseAttachmentOption(kind) {
-    const option = await textUtils.waitFor(() => {
+  async function chooseAttachmentOption(kind, preferredOption = null) {
+    const option = preferredOption || await textUtils.waitFor(() => {
       if (kind === "media") {
         return (
           findMediaAttachmentOption()
@@ -157,6 +162,7 @@
       });
     }
     await textUtils.wait(300);
+    return option;
   }
 
   async function waitForPreview(pack) {
@@ -179,8 +185,15 @@
         const mediaOption = findMediaAttachmentOption();
 
         if (mediaOption) {
-          await chooseAttachmentOption(kind);
-          const input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 5000, 200);
+          const scopedInputBeforeClick = findMediaAttachmentInputForOption(mediaOption, pack);
+          const selectedOption = await chooseAttachmentOption(kind, mediaOption);
+          const input = scopedInputBeforeClick || await textUtils.waitFor(
+            () =>
+              findMediaAttachmentInputForOption(selectedOption, pack) ||
+              selectors.findAttachmentInput(kind, pack, { allowSingleImage: true }),
+            5000,
+            200,
+          );
           if (input) {
             log("Input de adjunto listo.", {
               kind,

@@ -233,7 +233,7 @@
   }
 
   function findAttachButton(pack) {
-    const target = firstVisible(getSelector("attachButton", pack));
+    const target = firstVisibleInFooter(getSelector("attachButton", pack)) || firstVisible(getSelector("attachButton", pack));
     return resolveClickable(target);
   }
 
@@ -247,7 +247,16 @@
     );
     if (removeButton) return removeButton;
 
-    return firstVisible(getSelector("previewModal", pack));
+    const previewModal = firstVisible(getSelector("previewModal", pack));
+    if (previewModal) return previewModal;
+
+    for (const selector of parseSelectorList(getSelector("mediaCaptionInput", pack))) {
+      const nodes = Array.from(document.querySelectorAll(selector));
+      const previewCaption = nodes.find((node) => node instanceof Element && isVisible(node) && !node.closest?.("footer"));
+      if (previewCaption) return previewCaption;
+    }
+
+    return null;
   }
 
   function findCaptionInput(pack) {
@@ -268,9 +277,43 @@
     return Array.from(document.querySelectorAll(getSelector("fileInput", pack))).filter((node) => node instanceof HTMLInputElement);
   }
 
-  function scoreAttachmentInput(input, kind) {
+  function fileInputsWithin(root, pack) {
+    if (!(root instanceof Element)) return [];
+
+    const selector = getSelector("fileInput", pack);
+    const inputs = [];
+    if (root instanceof HTMLInputElement) {
+      inputs.push(root);
+    }
+
+    try {
+      inputs.push(...Array.from(root.querySelectorAll(selector)));
+    } catch {
+      // WhatsApp can redraw the attachment menu while it is being inspected.
+    }
+
+    return inputs.filter((node, index, list) =>
+      node instanceof HTMLInputElement &&
+      !node.disabled &&
+      list.indexOf(node) === index,
+    );
+  }
+
+  function nearestAttachmentInputContext(input) {
+    if (!(input instanceof Element)) return null;
+    return input.closest?.("label, [role='menuitem'], [role='button'], li, button, div[aria-label], div[title]") || null;
+  }
+
+  function isStickerLikeAttachmentInput(input) {
+    const context = nearestAttachmentInputContext(input);
+    return Boolean(context && isStickerLikeAttachmentOption(context));
+  }
+
+  function scoreAttachmentInput(input, kind, options = {}) {
     const accept = String(input?.accept || "").toLowerCase();
     const multiple = Boolean(input?.multiple);
+    const scopedToMediaOption = Boolean(options.scopedToMediaOption);
+    const allowSingleImage = Boolean(options.allowSingleImage);
 
     if (kind === "media") {
       let score = 0;
@@ -278,9 +321,10 @@
       if (accept.includes("video")) score += 6;
       if (accept.includes("audio")) score -= 4;
       if (multiple) score += 4;
+      if (isStickerLikeAttachmentInput(input)) score -= 20;
       // WhatsApp deja un input image/* que abre Sticker Maker; penalizarlo cuando exista
       // otra opción más parecida al flujo real de Fotos y videos.
-      if (accept === "image/*" && !multiple) score -= 6;
+      if (accept === "image/*" && !multiple && !scopedToMediaOption && !allowSingleImage) score -= 6;
       return score;
     }
 
@@ -292,22 +336,48 @@
     return score;
   }
 
-  function findAttachmentInput(kind, pack) {
-    const inputs = allFileInputs(pack).filter((input) => !input.disabled);
+  function isViableMediaInput(input, score, options = {}) {
+    const accept = String(input?.accept || "").toLowerCase().trim();
+    const multiple = Boolean(input?.multiple);
+    const scopedToMediaOption = Boolean(options.scopedToMediaOption);
+    const allowSingleImage = Boolean(options.allowSingleImage);
 
-    const sorted = inputs
-      .map((input) => ({ input, score: scoreAttachmentInput(input, kind) }))
+    if (isStickerLikeAttachmentInput(input)) return false;
+    if (accept.includes("video")) return true;
+    if (accept.includes("image") && (multiple || scopedToMediaOption || allowSingleImage)) return true;
+    return score >= 4;
+  }
+
+  function findAttachmentInputForOption(option, kind, pack) {
+    if (!(option instanceof Element)) return null;
+    if (kind === "media" && isStickerLikeAttachmentOption(option)) return null;
+
+    const scopedInputs = fileInputsWithin(option, pack);
+    const sorted = scopedInputs
+      .map((input) => ({
+        input,
+        score: scoreAttachmentInput(input, kind, { scopedToMediaOption: kind === "media" }),
+      }))
       .sort((a, b) => b.score - a.score);
 
     if (kind === "media") {
-      const viableMediaInputs = sorted.filter(({ input, score }) => {
-        const accept = String(input?.accept || "").toLowerCase().trim();
-        const multiple = Boolean(input?.multiple);
+      return sorted.find(({ input, score }) =>
+        isViableMediaInput(input, score, { scopedToMediaOption: true }),
+      )?.input || null;
+    }
 
-        if (accept.includes("video")) return true;
-        if (multiple && accept.includes("image")) return true;
-        return score >= 4;
-      });
+    return sorted[0]?.input || null;
+  }
+
+  function findAttachmentInput(kind, pack, options = {}) {
+    const inputs = allFileInputs(pack).filter((input) => !input.disabled);
+
+    const sorted = inputs
+      .map((input) => ({ input, score: scoreAttachmentInput(input, kind, options) }))
+      .sort((a, b) => b.score - a.score);
+
+    if (kind === "media") {
+      const viableMediaInputs = sorted.filter(({ input, score }) => isViableMediaInput(input, score, options));
 
       if (viableMediaInputs[0]?.input) return viableMediaInputs[0].input;
 
@@ -321,7 +391,9 @@
       if (
         imageInputsByDom.length > 1 &&
         String(imageInputsByDom[0]?.accept || "").toLowerCase().trim() === "image/*" &&
-        !imageInputsByDom[0].multiple
+        !imageInputsByDom[0].multiple &&
+        isStickerLikeAttachmentInput(imageInputsByDom[0]) &&
+        !isStickerLikeAttachmentInput(imageInputsByDom[1])
       ) {
         return imageInputsByDom[1];
       }
@@ -334,6 +406,10 @@
       const fallbackMultiple = Boolean(imageFallback?.multiple);
       const hasMediaMenuOption = Boolean(findAttachmentOption("media") || findAttachmentOptionByPosition(1));
 
+      if (fallbackAccept === "image/*" && !fallbackMultiple && options.allowSingleImage && !isStickerLikeAttachmentInput(imageFallback)) {
+        return imageFallback;
+      }
+
       if (fallbackAccept === "image/*" && !fallbackMultiple && !hasMediaMenuOption) {
         return null;
       }
@@ -345,9 +421,7 @@
   }
 
   function findAttachmentOption(kind) {
-    const candidates = Array.from(
-      document.querySelectorAll("[role='menuitem'], [role='button'], button, li, div[aria-label], div[title]"),
-    ).filter((node) => isVisible(node));
+    const candidates = findAttachmentMenuOptions();
 
     if (kind === "media") {
       return candidates
@@ -396,6 +470,7 @@
     findPreviewModal,
     findCaptionInput,
     findAttachmentInput,
+    findAttachmentInputForOption,
     findAttachmentOption,
     findAttachmentMenuOptions,
     findAttachmentOptionByPosition,

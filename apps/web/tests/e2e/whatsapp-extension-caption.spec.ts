@@ -195,6 +195,13 @@ async function openMediaChooser(page: Page) {
         findAttachButton: (pack: unknown) => Element | null;
         findAttachmentOptionByPosition: (index: number) => Element | null;
         findAttachmentOption: (kind: string) => Element | null;
+        findAttachmentInput: (
+          kind: string,
+          pack: unknown,
+          options?: { allowSingleImage?: boolean },
+        ) => HTMLInputElement | null;
+        findAttachmentInputForOption?: (option: Element, kind: string, pack: unknown) => HTMLInputElement | null;
+        matchAnyText?: (node: Element, needles: string[]) => boolean;
       };
       RecalcWaText?: {
         clickElement: (target: Element | null) => boolean;
@@ -202,6 +209,55 @@ async function openMediaChooser(page: Page) {
     };
 
     const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    const stickerNeedles = [
+      "sticker",
+      "stickers",
+      "sticker maker",
+      "pegatina",
+      "pegatinas",
+      "calcomanía",
+      "calcomanías",
+      "calcomania",
+      "calcomanias",
+    ];
+    const accessibleText = (node: Element | null) => {
+      if (!node) return "";
+      const parts = [
+        node.getAttribute("aria-label"),
+        node.getAttribute("title"),
+        node.getAttribute("data-icon"),
+        node.textContent,
+        (node as HTMLElement).innerText,
+      ];
+      node.querySelectorAll?.("[aria-label], [title], [data-icon], title").forEach((child) => {
+        parts.push(
+          child.getAttribute("aria-label"),
+          child.getAttribute("title"),
+          child.getAttribute("data-icon"),
+          child.textContent,
+          (child as HTMLElement).innerText,
+        );
+      });
+      return parts
+        .map((value) => String(value || "").trim().toLowerCase())
+        .filter(Boolean)
+        .join(" ");
+    };
+    const isStickerLike = (node: Element | null) => {
+      if (!node) return false;
+      if (typeof win.RecalcWaSelectors?.matchAnyText === "function") {
+        return win.RecalcWaSelectors.matchAnyText(node, stickerNeedles);
+      }
+      const haystack = accessibleText(node);
+      return stickerNeedles.some((needle) => haystack.includes(needle));
+    };
+    const safeMediaOptionByPosition = () => {
+      for (const position of [1, 2, 3, 0]) {
+        const option = win.RecalcWaSelectors?.findAttachmentOptionByPosition(position) || null;
+        if (option && !isStickerLike(option)) return option;
+      }
+      return null;
+    };
 
     if (!win.RecalcWaSelectors || !win.RecalcWaText) {
       return { ok: false, error: "Los helpers de selector o click no están disponibles." };
@@ -219,8 +275,8 @@ async function openMediaChooser(page: Page) {
     let option: Element | null = null;
     for (let attempt = 0; attempt < 20; attempt += 1) {
       option =
-        win.RecalcWaSelectors.findAttachmentOptionByPosition(1) ||
-        win.RecalcWaSelectors.findAttachmentOption("media");
+        win.RecalcWaSelectors.findAttachmentOption("media") ||
+        safeMediaOptionByPosition();
       if (option) break;
       await wait(150);
     }
@@ -229,32 +285,40 @@ async function openMediaChooser(page: Page) {
       return { ok: false, error: "No se encontró la opción de imagen/video del menú de adjuntos." };
     }
 
+    const scopedInput = typeof win.RecalcWaSelectors.findAttachmentInputForOption === "function"
+      ? win.RecalcWaSelectors.findAttachmentInputForOption(option, "media", null)
+      : null;
+
     if (!win.RecalcWaText.clickElement(option)) {
       return { ok: false, error: "No se pudo seleccionar la opción de imagen/video." };
     }
 
-    return { ok: true };
-  });
+    let target = scopedInput;
+    for (let attempt = 0; attempt < 20 && !target; attempt += 1) {
+      target =
+        (typeof win.RecalcWaSelectors.findAttachmentInputForOption === "function"
+          ? win.RecalcWaSelectors.findAttachmentInputForOption(option, "media", null)
+          : null) ||
+        win.RecalcWaSelectors.findAttachmentInput("media", null, { allowSingleImage: true });
+      if (target) break;
+      await wait(150);
+    }
 
-  expect(result.ok, result.error).toBe(true);
-}
-
-async function resolveMediaInputIndex(page: Page) {
-  const inputIndex = await page.evaluate(() => {
-    const win = window as typeof window & {
-      RecalcWaSelectors?: {
-        findAttachmentInput: (kind: string, pack: unknown) => HTMLInputElement | null;
-      };
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input[type='file']"));
+    const inputIndex = target ? inputs.indexOf(target) : -1;
+    return {
+      ok: inputIndex >= 0,
+      inputIndex,
+      optionText: accessibleText(option).slice(0, 200),
+      inputAccept: target?.accept || "",
+      inputMultiple: Boolean(target?.multiple),
+      error: inputIndex >= 0 ? null : "No se encontró un input de media seguro después de seleccionar Fotos y videos.",
     };
-
-    if (!win.RecalcWaSelectors) return -1;
-    const inputs = Array.from(document.querySelectorAll("input[type='file']"));
-    const target = win.RecalcWaSelectors.findAttachmentInput("media", null);
-    return target ? inputs.indexOf(target) : -1;
   });
 
-  expect(inputIndex).toBeGreaterThanOrEqual(0);
-  return inputIndex;
+  expect(result.ok, `${result.error || ""} option=${result.optionText || ""}`).toBe(true);
+  expect(result.inputIndex).toBeGreaterThanOrEqual(0);
+  return result.inputIndex ?? -1;
 }
 
 async function fillPreviewCaption(page: Page, caption: string) {
@@ -382,9 +446,8 @@ test("dry-run: carga la extensión, reutiliza perfil de WhatsApp y deja lista un
     await page.goto(sendUrl, { waitUntil: "domcontentloaded" });
     await failIfWhatsAppShowsInvalidNumber(page);
     await waitForConversationReady(page);
-    await openMediaChooser(page);
 
-    const inputIndex = await resolveMediaInputIndex(page);
+    const inputIndex = await openMediaChooser(page);
     await page.locator("input[type='file']").nth(inputIndex).setInputFiles(uploadFixture);
 
     await assertPreviewReady(page);

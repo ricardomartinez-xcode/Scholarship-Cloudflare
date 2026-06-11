@@ -7,6 +7,9 @@ const SIDE_PANEL_PATH = "panel.html";
 const WHATSAPP_URL = "https://web.whatsapp.com/";
 const WHATSAPP_HOST = "https://web.whatsapp.com/*";
 const PENDING_DRAFT_KEY = "recalc.pendingWhatsAppDraft";
+const DEBUGGER_PROTOCOL_VERSION = "1.3";
+const DEBUGGER_UPLOAD_TIMEOUT_MS = 20000;
+const TEMP_DOWNLOAD_DIR = "ReCalc";
 const mainWorldFiles = [
   "lib/whatsapp/wa-selectors.js",
   "lib/whatsapp/wa-text.js",
@@ -239,6 +242,387 @@ function extensionForCampaignImageType(contentType) {
   return "jpg";
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sanitizeDownloadName(value, fallback = "campaign-media") {
+  const safe = String(value || fallback)
+    .replace(/[<>:"/\\|?*\x00-\x1f]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  return safe || fallback;
+}
+
+function bytesToBase64(bytes) {
+  const source = Array.isArray(bytes) ? bytes : [];
+  let binary = "";
+  for (let index = 0; index < source.length; index += 0x8000) {
+    binary += String.fromCharCode(...source.slice(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function chromeCallback(fn) {
+  return new Promise((resolve, reject) => {
+    fn((result) => {
+      const error = chrome.runtime.lastError;
+      if (error) {
+        reject(new Error(error.message));
+        return;
+      }
+      resolve(result);
+    });
+  });
+}
+
+function downloadWithCallback(options) {
+  return chromeCallback((resolve) => chrome.downloads.download(options, resolve));
+}
+
+function searchDownloadWithCallback(query) {
+  return chromeCallback((resolve) => chrome.downloads.search(query, resolve));
+}
+
+function removeDownloadFile(downloadId) {
+  if (!downloadId && downloadId !== 0) return Promise.resolve();
+  return chromeCallback((resolve) => chrome.downloads.removeFile(downloadId, resolve)).catch(() => null)
+    .then(() => chromeCallback((resolve) => chrome.downloads.erase({ id: downloadId }, resolve)).catch(() => null));
+}
+
+function waitForDownloadComplete(downloadId, timeoutMs = DEBUGGER_UPLOAD_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      chrome.downloads.onChanged.removeListener(listener);
+      reject(new Error("La descarga temporal de la imagen tardó demasiado."));
+    }, timeoutMs);
+
+    function listener(delta) {
+      if (delta.id !== downloadId || !delta.state?.current) return;
+      if (delta.state.current === "complete") {
+        clearTimeout(timer);
+        chrome.downloads.onChanged.removeListener(listener);
+        resolve();
+        return;
+      }
+      if (delta.state.current === "interrupted") {
+        clearTimeout(timer);
+        chrome.downloads.onChanged.removeListener(listener);
+        reject(new Error("Chrome interrumpió la descarga temporal de la imagen."));
+      }
+    }
+
+    chrome.downloads.onChanged.addListener(listener);
+  });
+}
+
+async function materializeAttachmentForDebugger(attachment) {
+  const bytes = Array.isArray(attachment?.bytes) ? attachment.bytes : [];
+  if (!bytes.length) {
+    throw new Error("La imagen de campaña no contiene bytes para cargar en WhatsApp.");
+  }
+
+  const contentType = normalizeContentType(attachment.type || "image/png") || "image/png";
+  const extension = extensionForCampaignImageType(contentType);
+  const baseName = sanitizeDownloadName(attachment.name || `campaign-media.${extension}`);
+  const fileName = baseName.includes(".") ? baseName : `${baseName}.${extension}`;
+  const dataUrl = `data:${contentType};base64,${bytesToBase64(bytes)}`;
+  const downloadId = await downloadWithCallback({
+    url: dataUrl,
+    filename: `${TEMP_DOWNLOAD_DIR}/${Date.now()}-${fileName}`,
+    conflictAction: "uniquify",
+    saveAs: false,
+  });
+
+  await waitForDownloadComplete(downloadId);
+  const [item] = await searchDownloadWithCallback({ id: downloadId });
+  if (!item?.filename) {
+    throw new Error("Chrome no devolvió la ruta local de la imagen temporal.");
+  }
+
+  return { downloadId, filePath: item.filename };
+}
+
+function debuggerCommand(tabId, method, params = {}) {
+  return chromeCallback((resolve) => chrome.debugger.sendCommand({ tabId }, method, params, resolve));
+}
+
+function waitForDebuggerEvent(tabId, method, timeoutMs = DEBUGGER_UPLOAD_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      chrome.debugger.onEvent.removeListener(listener);
+      reject(new Error(`No llegó el evento ${method} desde Chrome Debugger.`));
+    }, timeoutMs);
+
+    function listener(source, eventMethod, params) {
+      if (source.tabId !== tabId || eventMethod !== method) return;
+      clearTimeout(timer);
+      chrome.debugger.onEvent.removeListener(listener);
+      resolve(params || {});
+    }
+
+    chrome.debugger.onEvent.addListener(listener);
+  });
+}
+
+async function withDebugger(tabId, task) {
+  await chromeCallback((resolve) => chrome.debugger.attach({ tabId }, DEBUGGER_PROTOCOL_VERSION, resolve));
+  try {
+    return await task();
+  } finally {
+    await chromeCallback((resolve) => chrome.debugger.detach({ tabId }, resolve)).catch(() => null);
+  }
+}
+
+async function executeMainWorld(tabId, func, args = []) {
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    world: "MAIN",
+    func,
+    args,
+  });
+  return result?.result ?? null;
+}
+
+async function waitForMainWorld(tabId, func, args = [], timeoutMs = 12000, intervalMs = 250) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const result = await executeMainWorld(tabId, func, args).catch(() => null);
+    if (result) return result;
+    await wait(intervalMs);
+  }
+  return null;
+}
+
+function centerFromRect(rect) {
+  if (!rect || !rect.width || !rect.height) return null;
+  return {
+    x: Math.round(rect.left + rect.width / 2),
+    y: Math.round(rect.top + rect.height / 2),
+  };
+}
+
+async function debuggerClick(tabId, point) {
+  if (!point) throw new Error("No se pudo calcular el punto de click para WhatsApp.");
+  await debuggerCommand(tabId, "Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: point.x,
+    y: point.y,
+    button: "none",
+  });
+  await debuggerCommand(tabId, "Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: point.x,
+    y: point.y,
+    button: "left",
+    buttons: 1,
+    clickCount: 1,
+  });
+  await debuggerCommand(tabId, "Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: point.x,
+    y: point.y,
+    button: "left",
+    buttons: 0,
+    clickCount: 1,
+  });
+}
+
+function hasDebuggerMediaAttachments(payload) {
+  return Array.isArray(payload?.attachments) &&
+    payload.attachments.length > 0 &&
+    payload.attachments.every((attachment) => {
+      const mime = normalizeContentType(attachment?.type || "");
+      return mime.startsWith("image/") || mime.startsWith("video/");
+    });
+}
+
+async function waitForWhatsAppConversation(tabId, selectorPack) {
+  return waitForMainWorld(tabId, (pack) => {
+    if (!window.RecalcWaSelectors) return null;
+    const bodyText = String(document.body?.innerText || "").toLowerCase();
+    const invalid = [
+      "phone number shared via url is invalid",
+      "número de teléfono compartido mediante la url no es válido",
+      "no está en whatsapp",
+      "not on whatsapp",
+    ].some((pattern) => bodyText.includes(pattern));
+    if (invalid) return { invalid: true };
+
+    const attach = window.RecalcWaSelectors.findAttachButton(pack);
+    const composer = window.RecalcWaSelectors.findMessageInput(pack);
+    if (!attach && !composer) return null;
+    return { invalid: false, ready: true };
+  }, [selectorPack], 20000, 350);
+}
+
+async function getAttachClickPoint(tabId, selectorPack) {
+  return executeMainWorld(tabId, (pack) => {
+    const attach = window.RecalcWaSelectors?.findAttachButton?.(pack);
+    if (!attach) return null;
+    const rect = attach.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      inFooter: Boolean(attach.closest?.("footer")),
+    };
+  }, [selectorPack]).then((rect) => centerFromRect(rect));
+}
+
+async function getMediaOptionClickPoint(tabId, selectorPack) {
+  return waitForMainWorld(tabId, (pack) => {
+    const selectors = window.RecalcWaSelectors;
+    if (!selectors) return null;
+    const option = selectors.findAttachmentOption("media");
+    const stickerNeedles = [
+      "sticker",
+      "stickers",
+      "sticker maker",
+      "pegatina",
+      "pegatinas",
+      "calcomanía",
+      "calcomanías",
+      "calcomania",
+      "calcomanias",
+    ];
+    if (!option || selectors.matchAnyText?.(option, stickerNeedles)) return null;
+    const rect = option.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+  }, [selectorPack], 6000, 150).then((rect) => centerFromRect(rect));
+}
+
+async function fillPreviewCaption(tabId, text, selectorPack) {
+  return waitForMainWorld(tabId, (captionText, pack) => {
+    const selectors = window.RecalcWaSelectors;
+    const textUtils = window.RecalcWaText;
+    if (!selectors || !textUtils || !selectors.findPreviewModal(pack)) return null;
+
+    const normalized = String(captionText || "").trim();
+    const caption = selectors.findCaptionInput(pack);
+    if (!caption) return { previewFound: true, captionFound: false, captionApplied: !normalized };
+
+    let captionApplied = true;
+    if (normalized) {
+      captionApplied = Boolean(textUtils.fillComposer(caption, normalized));
+      captionApplied = captionApplied && textUtils.composerText(caption) === normalized;
+    }
+
+    const composer = selectors.findMessageInput(pack);
+    if (composer && composer !== caption && textUtils.composerText(composer) === normalized) {
+      textUtils.clearComposer(composer);
+    }
+
+    return {
+      previewFound: true,
+      captionFound: true,
+      captionApplied,
+      captionText: textUtils.composerText(caption),
+    };
+  }, [text, selectorPack], 10000, 250);
+}
+
+async function getPreviewSendClickPoint(tabId, selectorPack) {
+  return waitForMainWorld(tabId, (pack) => {
+    const button = window.RecalcWaSelectors?.findPreviewSendButton?.(pack);
+    if (!button) return null;
+    const rect = button.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+  }, [selectorPack], 10000, 250).then((rect) => centerFromRect(rect));
+}
+
+async function sendMediaMessageViaDebugger(tabId, payload) {
+  const selectorPack = payload?.selectorPack ?? null;
+  const text = String(payload?.text || "").trim();
+  const attachments = Array.isArray(payload?.attachments) ? payload.attachments : [];
+  const materialized = [];
+
+  try {
+    await ensureWhatsAppBridge(tabId);
+    const readyState = await waitForWhatsAppConversation(tabId, selectorPack);
+    if (readyState?.invalid) {
+      throw new Error("WhatsApp marcó el número como inválido o no disponible.");
+    }
+    if (!readyState?.ready) {
+      throw new Error("No fue posible preparar el chat de WhatsApp Web.");
+    }
+
+    for (const attachment of attachments) {
+      materialized.push(await materializeAttachmentForDebugger(attachment));
+    }
+
+    await withDebugger(tabId, async () => {
+      await debuggerCommand(tabId, "Page.enable");
+      await debuggerCommand(tabId, "DOM.enable");
+
+      for (const item of materialized) {
+        await debuggerCommand(tabId, "Page.setInterceptFileChooserDialog", { enabled: true });
+
+        const attachPoint = await getAttachClickPoint(tabId, selectorPack);
+        await debuggerClick(tabId, attachPoint);
+        await wait(500);
+
+        const mediaPoint = await getMediaOptionClickPoint(tabId, selectorPack);
+        if (!mediaPoint) {
+          throw new Error("No se encontró una opción segura de Fotos y videos en WhatsApp.");
+        }
+
+        const chooserPromise = waitForDebuggerEvent(tabId, "Page.fileChooserOpened", 8000);
+        await debuggerClick(tabId, mediaPoint);
+        const chooser = await chooserPromise;
+        if (!chooser?.backendNodeId) {
+          throw new Error("Chrome no expuso el input del file chooser de WhatsApp.");
+        }
+
+        await debuggerCommand(tabId, "DOM.setFileInputFiles", {
+          files: [item.filePath],
+          backendNodeId: chooser.backendNodeId,
+        });
+
+        const captionState = await fillPreviewCaption(tabId, text, selectorPack);
+        if (text && !captionState?.captionApplied) {
+          throw new Error("No fue posible escribir el caption en el preview de WhatsApp.");
+        }
+
+        const sendPoint = await getPreviewSendClickPoint(tabId, selectorPack);
+        await debuggerClick(tabId, sendPoint);
+        const previewClosed = await waitForMainWorld(tabId, (pack) => {
+          return window.RecalcWaSelectors?.findPreviewModal?.(pack) ? null : { closed: true };
+        }, [selectorPack], 12000, 300);
+        if (!previewClosed) {
+          throw new Error("WhatsApp no confirmó el cierre del preview después de enviar la imagen.");
+        }
+      }
+    });
+
+    return {
+      success: true,
+      step: "debugger_media_sent",
+      delayMs: 4000,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      step: "debugger_media_failed",
+      delayMs: 4000,
+      error: error instanceof Error ? error.message : "Falló el envío de media con Chrome Debugger.",
+    };
+  } finally {
+    await Promise.all(materialized.map((item) => removeDownloadFile(item.downloadId)));
+  }
+}
+
 function filenameFromDisposition(headerValue) {
   const normalized = String(headerValue || "");
   const utf8Match = normalized.match(/filename\*=UTF-8''([^;]+)/i);
@@ -307,6 +691,10 @@ async function getAttachmentsForCampaign(working) {
 }
 
 async function sendToWhatsApp(tabId, payload) {
+  if (payload?.type === "RECALC_WA_SEND_WITH_ATTACHMENTS" && hasDebuggerMediaAttachments(payload)) {
+    return sendMediaMessageViaDebugger(tabId, payload);
+  }
+
   return sendMessageToTab(tabId, payload, { retries: 12, delayMs: 900 });
 }
 

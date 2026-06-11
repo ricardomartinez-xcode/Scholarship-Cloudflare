@@ -95,11 +95,21 @@
 
   function findMenuCandidates(selectors) {
     return Array.from(
-      document.querySelectorAll("[role='menuitem'], [role='button'], button, li, div[aria-label], div[title]"),
-    ).filter((node) => {
-      const isVisible = typeof selectors.isVisible === "function" ? selectors.isVisible(node) : fallbackVisible(node);
-      return Boolean(isVisible);
-    });
+      document.querySelectorAll(
+        "[role='menu'] [role='menuitem'], [role='menuitem'], [data-animate-dropdown-item='true'], div[role='application'] li[role='button'], li[role='button'], li [role='button'], li button",
+      ),
+    )
+      .filter((node) => {
+        const isVisible = typeof selectors.isVisible === "function" ? selectors.isVisible(node) : fallbackVisible(node);
+        return Boolean(isVisible);
+      })
+      .map((node) => {
+        if (typeof selectors.resolveClickable === "function") {
+          return selectors.resolveClickable(node.closest?.("[role='menuitem'], button, [role='button'], li") || node) || node;
+        }
+        return node.closest?.("[role='menuitem'], button, [role='button'], li") || node;
+      })
+      .filter((node, index, list) => node && list.indexOf(node) === index);
   }
 
   function installPatch() {

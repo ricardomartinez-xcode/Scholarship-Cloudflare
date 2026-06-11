@@ -31,7 +31,9 @@
     "tabs",
     "alarms",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "debugger",
+    "downloads"
   ],
   "host_permissions": [
     "https://recalc.relead.com.mx/*",

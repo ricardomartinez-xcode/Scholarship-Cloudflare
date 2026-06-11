@@ -116,17 +116,194 @@ function findSendButton(selectorPack) {
 }
 
 function findAttachButton(selectorPack) {
-  return findFirstVisible(normalizeSelectorPack(selectorPack).selectors.attachButton);
+  const selectors = normalizeSelectorPack(selectorPack).selectors.attachButton;
+  const footer = document.querySelector("footer");
+  if (footer) {
+    for (const selector of parseSelectorList(selectors)) {
+      const nodes = Array.from(footer.querySelectorAll(selector));
+      const visible = nodes.find((node) => isVisible(node));
+      if (visible) return visible;
+      if (nodes[0]) return nodes[0];
+    }
+  }
+  return findFirstVisible(selectors);
 }
 
-function findFileInput(selectorPack) {
+const MEDIA_ATTACHMENT_NEEDLES = [
+  "photos & videos",
+  "photos and videos",
+  "photo & video",
+  "photo and video",
+  "fotos y videos",
+  "foto y video",
+  "fotos",
+  "foto",
+  "photos",
+  "photo",
+  "videos",
+  "video",
+  "imagen",
+  "imágenes",
+  "imagenes",
+  "image",
+  "images",
+  "galería",
+  "galeria",
+  "gallery",
+];
+const PRIMARY_MEDIA_ATTACHMENT_NEEDLES = [
+  "photos & videos",
+  "photos and videos",
+  "photo & video",
+  "photo and video",
+  "fotos y videos",
+  "foto y video",
+];
+const STICKER_ATTACHMENT_NEEDLES = [
+  "sticker",
+  "stickers",
+  "sticker maker",
+  "pegatina",
+  "pegatinas",
+  "calcomanía",
+  "calcomanías",
+  "calcomania",
+  "calcomanias",
+];
+
+function accessibleText(node) {
+  if (!(node instanceof Element)) return "";
+  const parts = [
+    node.getAttribute?.("aria-label"),
+    node.getAttribute?.("title"),
+    node.getAttribute?.("data-icon"),
+    node.textContent,
+    node.innerText,
+  ];
+
+  try {
+    node.querySelectorAll?.("[aria-label], [title], [data-icon], title")?.forEach((child) => {
+      parts.push(
+        child.getAttribute?.("aria-label"),
+        child.getAttribute?.("title"),
+        child.getAttribute?.("data-icon"),
+        child.textContent,
+        child.innerText,
+      );
+    });
+  } catch {
+    // WhatsApp can redraw the attachment menu while it is being inspected.
+  }
+
+  return parts
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function matchAnyText(node, needles) {
+  const haystack = accessibleText(node);
+  return needles.some((needle) => haystack.includes(String(needle).trim().toLowerCase()));
+}
+
+function isStickerLikeAttachmentOption(node) {
+  return matchAnyText(node, STICKER_ATTACHMENT_NEEDLES);
+}
+
+function scoreMediaAttachmentOption(node) {
+  if (isStickerLikeAttachmentOption(node) || !matchAnyText(node, MEDIA_ATTACHMENT_NEEDLES)) {
+    return 0;
+  }
+
+  const haystack = accessibleText(node);
+  let score = 1;
+  if (PRIMARY_MEDIA_ATTACHMENT_NEEDLES.some((needle) => haystack.includes(needle))) score += 20;
+  if (haystack.includes("video")) score += 4;
+  if (
+    haystack.includes("foto") ||
+    haystack.includes("photo") ||
+    haystack.includes("imagen") ||
+    haystack.includes("image")
+  ) {
+    score += 3;
+  }
+  return score;
+}
+
+function findAttachmentMenuOptions() {
+  const candidates = Array.from(
+    document.querySelectorAll(
+      "[role='menu'] [role='menuitem'], [role='menuitem'], [data-animate-dropdown-item='true'], div[role='application'] li[role='button'], li[role='button'], li [role='button'], li button",
+    ),
+  )
+    .filter((node) => isVisible(node))
+    .map((node) => resolveClickable(node.closest?.("[role='menuitem'], button, [role='button'], li") || node) || node)
+    .filter(Boolean);
+
+  return candidates.filter((node, index, list) => list.indexOf(node) === index);
+}
+
+function findMediaAttachmentOption() {
+  const options = findAttachmentMenuOptions();
+  const textMatch = options
+    .map((node, index) => ({ node, index, score: scoreMediaAttachmentOption(node) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || a.index - b.index)[0]?.node;
+
+  if (textMatch) return textMatch;
+
+  for (const position of [1, 2, 3, 0]) {
+    const option = options[position] || null;
+    if (option && !isStickerLikeAttachmentOption(option)) return option;
+  }
+
+  return null;
+}
+
+function fileInputsWithin(root, selectorPack) {
+  if (!(root instanceof Element)) return [];
+  const selector = normalizeSelectorPack(selectorPack).selectors.fileInput;
+  const inputs = [];
+  if (root instanceof HTMLInputElement) inputs.push(root);
+
+  try {
+    for (const item of parseSelectorList(selector)) {
+      inputs.push(...Array.from(root.querySelectorAll(item)));
+    }
+  } catch {
+    // WhatsApp can unmount the option while the menu animates.
+  }
+
+  return inputs.filter((node, index, list) =>
+    node instanceof HTMLInputElement &&
+    node.type === "file" &&
+    !node.disabled &&
+    list.indexOf(node) === index,
+  );
+}
+
+function nearestAttachmentInputContext(input) {
+  if (!(input instanceof Element)) return null;
+  return input.closest?.("label, [role='menuitem'], [role='button'], li, button, div[aria-label], div[title]") || null;
+}
+
+function isStickerLikeAttachmentInput(input) {
+  const context = nearestAttachmentInputContext(input);
+  return Boolean(context && isStickerLikeAttachmentOption(context));
+}
+
+function findFileInput(selectorPack, options = {}) {
   const selectors = normalizeSelectorPack(selectorPack).selectors;
-  const candidates = [];
-  for (const selector of parseSelectorList(selectors.fileInput)) {
-    const nodes = Array.from(document.querySelectorAll(selector));
-    for (const node of nodes) {
-      if (node instanceof HTMLInputElement && node.type === "file" && !node.disabled) {
-        candidates.push(node);
+  const scopedOption = options.option instanceof Element ? options.option : null;
+  const candidates = scopedOption ? fileInputsWithin(scopedOption, selectorPack) : [];
+
+  if (!candidates.length) {
+    for (const selector of parseSelectorList(selectors.fileInput)) {
+      const nodes = Array.from(document.querySelectorAll(selector));
+      for (const node of nodes) {
+        if (node instanceof HTMLInputElement && node.type === "file" && !node.disabled) {
+          candidates.push(node);
+        }
       }
     }
   }
@@ -140,17 +317,46 @@ function findFileInput(selectorPack) {
     if (accept.includes("video")) score += 6;
     if (multiple) score += 4;
     if (accept.includes("audio")) score -= 4;
-    if (accept === "image/*" && !multiple) score -= 6;
+    if (isStickerLikeAttachmentInput(input)) score -= 20;
+    if (accept === "image/*" && !multiple && !options.scopedToMediaOption && !options.allowSingleImage) score -= 6;
     return score;
   };
 
-  return uniqueCandidates
+  const sorted = uniqueCandidates
     .map((input) => ({ input, score: scoreInput(input) }))
-    .sort((a, b) => b.score - a.score)[0]?.input || null;
+    .sort((a, b) => b.score - a.score);
+
+  if (options.scopedToMediaOption) {
+    return sorted.find(({ input }) => {
+      const accept = String(input.accept || "").toLowerCase();
+      return accept.includes("image") || accept.includes("video");
+    })?.input || null;
+  }
+
+  if (options.allowSingleImage) {
+    return sorted.find(({ input }) => {
+      const accept = String(input.accept || "").toLowerCase();
+      return accept.includes("image") && !isStickerLikeAttachmentInput(input);
+    })?.input || null;
+  }
+
+  return sorted[0]?.input || null;
+}
+
+function findPreviewCaptionComposer(selectorPack) {
+  const selectors = normalizeSelectorPack(selectorPack).selectors.mediaCaptionInput;
+  for (const selector of parseSelectorList(selectors)) {
+    const nodes = Array.from(document.querySelectorAll(selector));
+    const visible = nodes.find((node) => isVisible(node) && !node.closest?.("footer"));
+    if (visible) return visible;
+    const firstPreviewNode = nodes.find((node) => !node.closest?.("footer"));
+    if (firstPreviewNode) return firstPreviewNode;
+  }
+  return null;
 }
 
 function findCaptionComposer(selectorPack) {
-  return findFirstVisible(normalizeSelectorPack(selectorPack).selectors.mediaCaptionInput);
+  return findPreviewCaptionComposer(selectorPack);
 }
 
 function findConversationReady(selectorPack) {
@@ -286,15 +492,36 @@ function clickElement(target) {
 
   clickable.scrollIntoView?.({ block: "center", inline: "center" });
   clickable.focus?.();
-  try {
-    clickable.click();
-  } catch {
-    clickable.dispatchEvent(new MouseEvent("click", {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-    }));
+
+  const rect = clickable.getBoundingClientRect?.() || { x: 0, y: 0, width: 0, height: 0 };
+  const eventInit = {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    view: window,
+    button: 0,
+    buttons: 1,
+    clientX: rect.x + rect.width / 2,
+    clientY: rect.y + rect.height / 2,
+  };
+
+  for (const type of [
+    "pointerover",
+    "mouseover",
+    "pointerenter",
+    "mouseenter",
+    "pointerdown",
+    "mousedown",
+    "pointerup",
+    "mouseup",
+    "click",
+  ]) {
+    const EventClass = type.startsWith("pointer") && typeof PointerEvent === "function"
+      ? PointerEvent
+      : MouseEvent;
+    clickable.dispatchEvent(new EventClass(type, eventInit));
   }
+
   return true;
 }
 
@@ -417,18 +644,25 @@ async function attachMedia(selectorPack, mediaUrl, extensionSessionToken) {
   }
   await wait(350);
 
-  const menuOptions = await waitFor(
-    () => Array.from(document.querySelectorAll("[role='menuitem'], [data-animate-dropdown-item='true']")).filter((node) => isVisible(node)),
+  const mediaOption = await waitFor(
+    () => findMediaAttachmentOption(),
     6000,
     200,
   );
-  const mediaOption = menuOptions?.[1] || null;
+  const scopedFileInput = findFileInput(selectorPack, {
+    option: mediaOption,
+    scopedToMediaOption: true,
+  });
   if (!clickElement(mediaOption)) {
     throw new Error("No fue posible seleccionar la opción de imagen en WhatsApp Web.");
   }
   await wait(300);
 
-  const fileInput = await waitFor(() => findFileInput(selectorPack), 10000, 300);
+  const fileInput = scopedFileInput || await waitFor(
+    () => findFileInput(selectorPack, { allowSingleImage: true }),
+    10000,
+    300,
+  );
   if (!(fileInput instanceof HTMLInputElement)) {
     throw new Error("No fue posible encontrar el input de adjuntos en WhatsApp Web.");
   }
@@ -436,7 +670,9 @@ async function attachMedia(selectorPack, mediaUrl, extensionSessionToken) {
   const file = await fetchMediaFile(mediaUrl, extensionSessionToken);
   assignFilesToInput(fileInput, [file]);
   const preview = await waitFor(
-    () => document.querySelector("div[role='dialog'], div[data-testid='media-viewer'], div[data-animate-modal-body='true']"),
+    () =>
+      findPreviewCaptionComposer(selectorPack) ||
+      document.querySelector("div[role='dialog'], div[data-testid='media-viewer'], div[data-animate-modal-body='true']"),
     12000,
     250,
   );

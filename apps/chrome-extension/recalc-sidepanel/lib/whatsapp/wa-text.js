@@ -154,15 +154,35 @@
     clickable.scrollIntoView?.({ block: "center", inline: "center" });
     clickable.focus?.();
 
-    try {
-      clickable.click();
-    } catch {
-      clickable.dispatchEvent(new MouseEvent("click", {
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-      }));
+    const rect = clickable.getBoundingClientRect?.() || { x: 0, y: 0, width: 0, height: 0 };
+    const eventInit = {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      view: window,
+      button: 0,
+      buttons: 1,
+      clientX: rect.x + rect.width / 2,
+      clientY: rect.y + rect.height / 2,
+    };
+
+    for (const type of [
+      "pointerover",
+      "mouseover",
+      "pointerenter",
+      "mouseenter",
+      "pointerdown",
+      "mousedown",
+      "pointerup",
+      "mouseup",
+      "click",
+    ]) {
+      const EventClass = type.startsWith("pointer") && typeof PointerEvent === "function"
+        ? PointerEvent
+        : MouseEvent;
+      clickable.dispatchEvent(new EventClass(type, eventInit));
     }
+
     return true;
   }
 
