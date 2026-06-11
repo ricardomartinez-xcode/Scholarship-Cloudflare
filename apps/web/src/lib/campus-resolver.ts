@@ -36,9 +36,11 @@ export const campusIdentitySelect = {
 } as const;
 
 export async function listCampusCatalog(
-  client: CampusClient = prisma,
+  client?: CampusClient,
 ): Promise<CampusIdentity[]> {
-  const campuses = await client.campus.findMany({
+  const db = (client ?? prisma) as CampusClient;
+
+  const campuses = await db.campus.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     select: campusIdentitySelect,
@@ -68,7 +70,7 @@ export function resolveCampusFromCatalog(
 
 export async function resolveCampus(
   raw: string | null | undefined,
-  client: CampusClient = prisma,
+  client?: CampusClient,
 ) {
   const campuses = await listCampusCatalog(client);
   return resolveCampusFromCatalog(campuses, raw);

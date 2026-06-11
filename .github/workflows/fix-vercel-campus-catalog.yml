@@ -41,7 +41,7 @@ jobs:
                   if not root.exists():
                       continue
                   for suffix in ("*.ts", "*.tsx"):
-                      for path in root.rgb(suffix):
+                      for path in root.rglob(suffix):
                           ignored_parts = {"node_modules", ".next", "dist", "build", "coverage"}
                           if ignored_parts.intersection(path.parts):
                               continue

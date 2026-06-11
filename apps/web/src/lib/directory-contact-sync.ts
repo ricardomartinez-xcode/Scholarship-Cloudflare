@@ -30,10 +30,11 @@ function serializeMethods(
 export async function syncDirectoryContactMethods(
   directoryContactId: string,
   rawContact: string | null | undefined,
-  client: DirectoryContactMethodClient = prisma,
+  client?: DirectoryContactMethodClient,
 ) {
+  const db = (client ?? prisma) as DirectoryContactMethodClient;
   const parsed = parseDirectoryContactMethods(rawContact);
-  const existing = await client.directoryContactMethod.findMany({
+  const existing = await db.directoryContactMethod.findMany({
     where: { directoryContactId },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: {
@@ -49,12 +50,12 @@ export async function syncDirectoryContactMethods(
     return { status: "skipped" as const, parsed };
   }
 
-  await client.directoryContactMethod.deleteMany({
+  await db.directoryContactMethod.deleteMany({
     where: { directoryContactId },
   });
 
   if (parsed.length > 0) {
-    await client.directoryContactMethod.createMany({
+    await db.directoryContactMethod.createMany({
       data: parsed.map((method) => ({
         directoryContactId,
         type: method.type,
