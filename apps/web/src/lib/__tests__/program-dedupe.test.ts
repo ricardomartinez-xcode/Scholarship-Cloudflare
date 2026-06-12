@@ -58,6 +58,46 @@ describe("program dedupe planning", () => {
     ]);
     expect(plan.programsToDelete).toBe(1);
   });
+
+  it("uses program context when grouping prefixed posgrado duplicates", () => {
+    const plan = buildAcademicProgramDedupePlan([
+      {
+        id: "bare",
+        name: "Derecho Corporativo",
+        nameNormalized: "derecho corporativo",
+        level: "Posgrado",
+        category: "Posgrado",
+        businessLine: "posgrado",
+        planPdfUrl: null,
+        planDriveLink: null,
+        planUrl: null,
+        brochurePdfUrl: null,
+        _count: { offerings: 0, quoteScenarios: 0, assetChecks: 0 },
+      },
+      {
+        id: "prefixed",
+        name: "Maestría en Derecho Corporativo",
+        nameNormalized: "maestria en derecho corporativo",
+        level: "Posgrado",
+        category: "Posgrado",
+        businessLine: "posgrado",
+        planPdfUrl: null,
+        planDriveLink: null,
+        planUrl: null,
+        brochurePdfUrl: null,
+        _count: { offerings: 4, quoteScenarios: 0, assetChecks: 0 },
+      },
+    ]);
+
+    expect(plan.groups).toEqual([
+      expect.objectContaining({
+        canonicalKey: "maestria en derecho corporativo",
+        canonicalName: "Maestría en Derecho Corporativo",
+        canonicalId: "prefixed",
+        duplicateIds: ["bare"],
+      }),
+    ]);
+  });
 });
 
 describe("program name normalization planning", () => {

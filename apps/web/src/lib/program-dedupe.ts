@@ -133,6 +133,13 @@ function isOrphanExtra(program: ProgramDedupeCandidate) {
   );
 }
 
+function normalizeProgramCandidateName(program: ProgramNameNormalizationCandidate) {
+  return normalizeAcademicProgramName(program.name || program.nameNormalized, {
+    level: [program.level, program.category].filter(Boolean).join(" "),
+    businessLine: program.businessLine,
+  });
+}
+
 export function buildAcademicProgramDedupePlan(
   programs: ReadonlyArray<ProgramDedupeCandidate>,
   options: { includeOrphanExtras?: boolean } = {},
@@ -140,7 +147,7 @@ export function buildAcademicProgramDedupePlan(
   const groupsByKey = new Map<string, ProgramDedupeCandidate[]>();
 
   for (const program of programs) {
-    const normalized = normalizeAcademicProgramName(program.name || program.nameNormalized);
+    const normalized = normalizeProgramCandidateName(program);
     const key = normalized.nameNormalized || program.nameNormalized;
     if (!key) continue;
 
@@ -153,7 +160,6 @@ export function buildAcademicProgramDedupePlan(
   const orphanExtraIds: string[] = [];
 
   for (const [canonicalKey, group] of groupsByKey) {
-    const canonicalName = normalizeAcademicProgramName(group[0]?.name ?? canonicalKey).name;
     if (group.length === 1) {
       const only = group[0];
       if (options.includeOrphanExtras && only && isOrphanExtra(only)) {
@@ -169,6 +175,7 @@ export function buildAcademicProgramDedupePlan(
     });
     const [canonical, ...duplicates] = sorted;
     if (!canonical || duplicates.length === 0) continue;
+    const canonicalName = normalizeProgramCandidateName(canonical).name;
 
     groups.push({
       canonicalKey,
@@ -195,10 +202,7 @@ export function buildAcademicProgramNameNormalizationPlan(
   programs: ReadonlyArray<ProgramNameNormalizationCandidate>,
 ): AcademicProgramNameNormalizationPlan {
   const normalizedPrograms = programs.map((program) => {
-    const normalized = normalizeAcademicProgramName(program.name || program.nameNormalized, {
-      level: [program.level, program.category].filter(Boolean).join(" "),
-      businessLine: program.businessLine,
-    });
+    const normalized = normalizeProgramCandidateName(program);
 
     return {
       program,
