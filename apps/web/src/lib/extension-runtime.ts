@@ -3,8 +3,8 @@ import { type Role } from "@prisma/client";
 import { getExtensionPanelConfig } from "@/lib/extension-panel-config";
 import { getQuoteMode } from "@/lib/runtime-modes";
 
-const EXTENSION_RUNTIME_VERSION = "2026-06-10.no-stickers-v4-prod";
-const REQUIRED_EXTENSION_VERSION = "6.2.4";
+const EXTENSION_RUNTIME_VERSION = "2026-06-12.no-stickers-cdp-v1-prod";
+const REQUIRED_EXTENSION_VERSION = "6.3.0";
 
 export async function buildExtensionBootstrap(params: {
   user: {

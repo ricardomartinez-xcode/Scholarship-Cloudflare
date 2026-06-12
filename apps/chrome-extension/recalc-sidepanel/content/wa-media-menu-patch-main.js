@@ -1,5 +1,5 @@
 (function attachRecalcWaMediaMenuPatch(globalScope) {
-  const PATCH_VERSION = "2026-06-10.no-stickers-v4-prod";
+  const PATCH_VERSION = "2026-06-12.no-stickers-cdp-v1-prod";
   const TIMER_KEY = "__RECALC_WA_MEDIA_MENU_PATCH_TIMER__";
 
   function mediaNeedles() {
