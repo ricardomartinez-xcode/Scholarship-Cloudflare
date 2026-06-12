@@ -4,11 +4,13 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 
 import { CampusKind } from "@prisma/client";
+import { normalizeAcademicProgramKey } from "@relead/db/program-name-normalization";
 import { prisma } from "@/lib/prisma";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
   addConfiguredCampusAliasesToLookup,
   canonicalImportKey,
+  canonicalImportText,
   loadImporterAliasRows,
   type ImporterAliasOptions,
 } from "@/lib/importers/configured-aliases";
@@ -517,9 +519,10 @@ function parseOnlineSheet(
 
     for (const entry of entries) {
       if (!entry.programName) continue;
+      const programAliasText = canonicalImportText(aliasRows, "program", entry.programName);
       rows.push({
         programName: entry.programName,
-        programNormalized: canonicalImportKey(aliasRows, "program", entry.programName) || normalizeKey(entry.programName),
+        programNormalized: normalizeAcademicProgramKey(programAliasText) || normalizeKey(entry.programName),
         level: entry.level,
         lineOfBusiness: normalizeBusinessLineWithAliases(entry.level, aliasRows),
         escolarizado: false,
@@ -569,7 +572,8 @@ function parsePlantelesSheet(
     }
 
     const campusKey = canonicalImportKey(aliasRows, "campus", campusName) || normalizeKey(campusName);
-    const programNormalized = canonicalImportKey(aliasRows, "program", programName) || normalizeKey(programName);
+    const programAliasText = canonicalImportText(aliasRows, "program", programName);
+    const programNormalized = normalizeAcademicProgramKey(programAliasText) || normalizeKey(programName);
     const lineRaw = cols.linea ? cleanText(row.getCell(cols.linea).value) : "";
     const lineOfBusiness = normalizeBusinessLineWithAliases(lineRaw, aliasRows);
     const modality = cols.modalidad

@@ -25,4 +25,16 @@ describe("academic program name normalization", () => {
       nameNormalized: "administracion de negocios y mercadotecnia",
     });
   });
+
+  it("normalizes licenciatura prefixes received from academic offer sheets", () => {
+    expect(normalizeAcademicProgramName("Licenciatura en Psicología")).toMatchObject({
+      name: "Licenciatura en Psicología",
+      nameNormalized: "licenciatura en psicologia",
+    });
+    expect(normalizeAcademicProgramName("Lic. en Derecho")).toMatchObject({
+      name: "Licenciatura en Derecho",
+      nameNormalized: "licenciatura en derecho",
+    });
+    expect(normalizeAcademicProgramKey("Enfermería")).toBe("licenciatura en enfermeria");
+  });
 });

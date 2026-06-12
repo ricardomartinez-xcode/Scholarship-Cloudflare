@@ -54,6 +54,66 @@ const HIGH_CONFIDENCE_PROGRAM_ALIASES: Array<{ canonical: string; aliases: strin
       "Administracion de Negocios y Mercadotecnia",
     ],
   },
+  {
+    canonical: "Licenciatura en Derecho",
+    aliases: [
+      "Derecho",
+      "Lic. Derecho",
+      "Lic. en Derecho",
+      "Licenciatura Derecho",
+      "Licenciatura en Derecho",
+    ],
+  },
+  {
+    canonical: "Licenciatura en Enfermería",
+    aliases: [
+      "Enfermeria",
+      "Lic. Enfermeria",
+      "Lic. en Enfermeria",
+      "Licenciatura Enfermeria",
+      "Licenciatura en Enfermeria",
+    ],
+  },
+  {
+    canonical: "Licenciatura en Fisioterapia",
+    aliases: [
+      "Fisioterapia",
+      "Lic. Fisioterapia",
+      "Lic. en Fisioterapia",
+      "Licenciatura Fisioterapia",
+      "Licenciatura en Fisioterapia",
+    ],
+  },
+  {
+    canonical: "Licenciatura en Nutrición",
+    aliases: [
+      "Nutricion",
+      "Lic. Nutricion",
+      "Lic. en Nutricion",
+      "Licenciatura Nutricion",
+      "Licenciatura en Nutricion",
+    ],
+  },
+  {
+    canonical: "Licenciatura en Pedagogía",
+    aliases: [
+      "Pedagogia",
+      "Lic. Pedagogia",
+      "Lic. en Pedagogia",
+      "Licenciatura Pedagogia",
+      "Licenciatura en Pedagogia",
+    ],
+  },
+  {
+    canonical: "Licenciatura en Psicología",
+    aliases: [
+      "Psicologia",
+      "Lic. Psicologia",
+      "Lic. en Psicologia",
+      "Licenciatura Psicologia",
+      "Licenciatura en Psicologia",
+    ],
+  },
 ];
 
 const TYPO_REPLACEMENTS: Array<[RegExp, string]> = [

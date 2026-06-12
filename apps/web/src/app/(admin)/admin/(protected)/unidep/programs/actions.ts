@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { AdminCapability } from "@prisma/client";
+import { normalizeAcademicProgramName } from "@relead/db/program-name-normalization";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { assignFileAssetUsage, clearFileAssetUsage } from "@/lib/file-assets";
 import { prisma } from "@/lib/prisma";
-import { normalizeKey } from "@/lib/text-normalize";
 import {
   PUBLIC_ROUTE_CACHE_TAGS,
   revalidatePublicRouteTags,
@@ -116,10 +116,12 @@ export async function updateProgramUnidepAction(formData: FormData) {
       return { ok: false, error: "brochurePdfUrl debe ser una URL válida (http/https)." };
     }
 
+    const normalizedName = nameRaw ? normalizeAcademicProgramName(nameRaw) : null;
+
     await prisma.program.update({
       where: { id },
       data: {
-        ...(nameRaw ? { name: nameRaw } : {}),
+        ...(normalizedName ? { name: normalizedName.name, nameNormalized: normalizedName.nameNormalized } : {}),
         category: categoryRaw,
         level: levelRaw,
         businessLine,
@@ -163,9 +165,9 @@ export async function createProgramUnidepAction(formData: FormData) {
       return { ok: false, error: "brochurePdfUrl debe ser una URL válida (http/https)." };
     }
 
-    const nameNormalized = normalizeKey(nameRaw);
+    const normalizedName = normalizeAcademicProgramName(nameRaw);
     const existing = await prisma.program.findUnique({
-      where: { nameNormalized },
+      where: { nameNormalized: normalizedName.nameNormalized },
       select: { id: true },
     });
     if (existing) {
@@ -174,8 +176,8 @@ export async function createProgramUnidepAction(formData: FormData) {
 
     const created = await prisma.program.create({
       data: {
-        name: nameRaw,
-        nameNormalized,
+        name: normalizedName.name,
+        nameNormalized: normalizedName.nameNormalized,
         category: categoryRaw,
         level: levelRaw,
         businessLine,

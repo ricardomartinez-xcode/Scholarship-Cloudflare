@@ -8,11 +8,6 @@ import {
   resolveConfiguredAlias,
 } from "@/lib/admin-canonical-aliases";
 import { getActiveCanonicalAliasRows } from "@/lib/configured-canonical-aliases";
-import {
-  normalizeAcademicProgramKey,
-  normalizeAcademicProgramName,
-} from "@relead/db/program-name-normalization";
-
 export type ImporterAliasOptions = {
   aliasRows?: CanonicalAliasRuntimeRow[];
 };
@@ -45,12 +40,7 @@ export function canonicalImportText(
   const trimmed = String(value ?? "").trim();
   if (!trimmed) return "";
 
-  const canonical = resolveImporterCanonicalAlias(rows, aliasType, trimmed) ?? trimmed;
-  if (aliasType === "program") {
-    return normalizeAcademicProgramName(canonical).name;
-  }
-
-  return canonical;
+  return resolveImporterCanonicalAlias(rows, aliasType, trimmed) ?? trimmed;
 }
 
 export function canonicalImportKey(
@@ -59,7 +49,7 @@ export function canonicalImportKey(
   value: string | null | undefined,
 ) {
   const canonical = canonicalImportText(rows, aliasType, value);
-  return aliasType === "program" ? normalizeAcademicProgramKey(canonical) : normalizeAliasKey(canonical);
+  return normalizeAliasKey(canonical);
 }
 
 export function addConfiguredCampusAliasesToLookup<T>(
