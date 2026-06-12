@@ -4,7 +4,7 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 
 import { CampusKind } from "@prisma/client";
-import { normalizeAcademicProgramKey } from "@relead/db/program-name-normalization";
+import { normalizeAcademicProgramName } from "@relead/db/program-name-normalization";
 import { prisma } from "@/lib/prisma";
 import { normalizeKey } from "@/lib/text-normalize";
 import {
@@ -520,11 +520,18 @@ function parseOnlineSheet(
     for (const entry of entries) {
       if (!entry.programName) continue;
       const programAliasText = canonicalImportText(aliasRows, "program", entry.programName);
-      rows.push({
-        programName: entry.programName,
-        programNormalized: normalizeAcademicProgramKey(programAliasText) || normalizeKey(entry.programName),
+      const lineOfBusiness = normalizeBusinessLineWithAliases(entry.level, aliasRows);
+      const normalizedProgram = normalizeAcademicProgramName(programAliasText, {
         level: entry.level,
-        lineOfBusiness: normalizeBusinessLineWithAliases(entry.level, aliasRows),
+        businessLine: lineOfBusiness,
+        delivery: "ONLINE",
+        pricingPlans: entry.pricingPlans,
+      });
+      rows.push({
+        programName: normalizedProgram.name,
+        programNormalized: normalizedProgram.nameNormalized || normalizeKey(entry.programName),
+        level: entry.level,
+        lineOfBusiness,
         escolarizado: false,
         ejecutivo: false,
         escolarizadoSchedule: null,
@@ -572,8 +579,6 @@ function parsePlantelesSheet(
     }
 
     const campusKey = canonicalImportKey(aliasRows, "campus", campusName) || normalizeKey(campusName);
-    const programAliasText = canonicalImportText(aliasRows, "program", programName);
-    const programNormalized = normalizeAcademicProgramKey(programAliasText) || normalizeKey(programName);
     const lineRaw = cols.linea ? cleanText(row.getCell(cols.linea).value) : "";
     const lineOfBusiness = normalizeBusinessLineWithAliases(lineRaw, aliasRows);
     const modality = cols.modalidad
@@ -585,6 +590,14 @@ function parsePlantelesSheet(
     const pricingPlans = cols.planes
       ? normalizeAcademicPricingPlans(row.getCell(cols.planes).value)
       : null;
+    const programAliasText = canonicalImportText(aliasRows, "program", programName);
+    const normalizedProgram = normalizeAcademicProgramName(programAliasText, {
+      level: lineRaw,
+      businessLine: lineOfBusiness,
+      delivery,
+      pricingPlans,
+    });
+    const programNormalized = normalizedProgram.nameNormalized || normalizeKey(programName);
     const academicModule = academicModuleOrBlank(
       cols.modulo ? row.getCell(cols.modulo).value : null,
     );
@@ -607,7 +620,7 @@ function parsePlantelesSheet(
       modality.includes("ejecut") ||
       modality.includes("mixt");
     const next: ParsedRow = {
-      programName,
+      programName: normalizedProgram.name,
       programNormalized,
       level: lineRaw || null,
       lineOfBusiness,

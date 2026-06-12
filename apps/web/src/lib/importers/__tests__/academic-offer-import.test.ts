@@ -55,7 +55,7 @@ describe("prepareAcademicOfferImport", () => {
       expect.arrayContaining([
         expect.objectContaining({
           campusCode: "HMO",
-          programName: "Enfermería",
+          programName: "Licenciatura en Enfermería",
           line: "salud",
           modality: "Escolarizado",
           pricingPlans: [9],

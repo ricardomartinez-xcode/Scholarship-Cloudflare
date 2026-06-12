@@ -53,6 +53,39 @@ export type AcademicProgramDedupeResult = AcademicProgramDedupePlan & {
   counters: DedupeApplyCounters;
 };
 
+export type ProgramNameNormalizationCandidate = Pick<
+  ProgramDedupeCandidate,
+  "id" | "name" | "nameNormalized" | "level" | "category" | "businessLine"
+>;
+
+export type ProgramNameNormalizationPlanItem = {
+  id: string;
+  currentName: string;
+  currentNameNormalized: string;
+  nextName: string;
+  nextNameNormalized: string;
+};
+
+export type ProgramNameNormalizationConflict = {
+  nextNameNormalized: string;
+  nextName: string;
+  programIds: string[];
+  programNames: string[];
+};
+
+export type AcademicProgramNameNormalizationPlan = {
+  renames: ProgramNameNormalizationPlanItem[];
+  conflicts: ProgramNameNormalizationConflict[];
+  programsToUpdate: number;
+};
+
+export type AcademicProgramNameNormalizationResult = AcademicProgramNameNormalizationPlan & {
+  applied: boolean;
+  counters: {
+    programsUpdated: number;
+  };
+};
+
 const emptyCounters = (): DedupeApplyCounters => ({
   programsDeleted: 0,
   offeringsMoved: 0,
@@ -155,6 +188,62 @@ export function buildAcademicProgramDedupePlan(
     programsToDelete:
       groups.reduce((total, group) => total + group.duplicateIds.length, 0) +
       orphanExtraIds.length,
+  };
+}
+
+export function buildAcademicProgramNameNormalizationPlan(
+  programs: ReadonlyArray<ProgramNameNormalizationCandidate>,
+): AcademicProgramNameNormalizationPlan {
+  const normalizedPrograms = programs.map((program) => {
+    const normalized = normalizeAcademicProgramName(program.name || program.nameNormalized, {
+      level: [program.level, program.category].filter(Boolean).join(" "),
+      businessLine: program.businessLine,
+    });
+
+    return {
+      program,
+      nextName: normalized.name,
+      nextNameNormalized: normalized.nameNormalized,
+      changed:
+        program.name !== normalized.name ||
+        program.nameNormalized !== normalized.nameNormalized,
+    };
+  });
+
+  const byNextKey = new Map<string, typeof normalizedPrograms>();
+  for (const item of normalizedPrograms) {
+    const group = byNextKey.get(item.nextNameNormalized) ?? [];
+    group.push(item);
+    byNextKey.set(item.nextNameNormalized, group);
+  }
+
+  const conflictKeys = new Set<string>();
+  const conflicts: ProgramNameNormalizationConflict[] = [];
+  for (const [nextNameNormalized, group] of byNextKey) {
+    if (group.length <= 1) continue;
+    conflictKeys.add(nextNameNormalized);
+    conflicts.push({
+      nextNameNormalized,
+      nextName: group[0]?.nextName ?? nextNameNormalized,
+      programIds: group.map((item) => item.program.id),
+      programNames: group.map((item) => item.program.name),
+    });
+  }
+
+  const renames = normalizedPrograms
+    .filter((item) => item.changed && !conflictKeys.has(item.nextNameNormalized))
+    .map((item) => ({
+      id: item.program.id,
+      currentName: item.program.name,
+      currentNameNormalized: item.program.nameNormalized,
+      nextName: item.nextName,
+      nextNameNormalized: item.nextNameNormalized,
+    }));
+
+  return {
+    renames,
+    conflicts,
+    programsToUpdate: renames.length,
   };
 }
 
@@ -347,6 +436,50 @@ export async function deleteDuplicateAcademicPrograms(options: {
       for (const orphanId of plan.orphanExtraIds) {
         await transactionalPrisma.program.delete({ where: { id: orphanId } });
         counters.programsDeleted += 1;
+      }
+    },
+    { timeout: 60_000 },
+  );
+
+  return { ...plan, applied: true, counters };
+}
+
+export async function normalizeExistingAcademicProgramNames(options: {
+  dryRun?: boolean;
+} = {}): Promise<AcademicProgramNameNormalizationResult> {
+  const programs = await prisma.program.findMany({
+    orderBy: [{ name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      nameNormalized: true,
+      level: true,
+      category: true,
+      businessLine: true,
+    },
+  });
+  const plan = buildAcademicProgramNameNormalizationPlan(programs);
+  const counters = { programsUpdated: 0 };
+
+  if (options.dryRun ?? true) {
+    return { ...plan, applied: false, counters };
+  }
+
+  if (plan.conflicts.length > 0) {
+    return { ...plan, applied: false, counters };
+  }
+
+  await prisma.$transaction(
+    async (tx) => {
+      for (const item of plan.renames) {
+        await tx.program.update({
+          where: { id: item.id },
+          data: {
+            name: item.nextName,
+            nameNormalized: item.nextNameNormalized,
+          },
+        });
+        counters.programsUpdated += 1;
       }
     },
     { timeout: 60_000 },
