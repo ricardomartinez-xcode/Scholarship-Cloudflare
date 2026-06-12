@@ -71,6 +71,18 @@ describe("academic program name normalization", () => {
       name: "Maestría en Administración de Negocios y Mercadotecnia",
       nameNormalized: "maestria en administracion de negocios y mercadotecnia",
     });
+    expect(normalizeAcademicProgramName("Gestion de Proyectos", { businessLine: "posgrado" })).toMatchObject({
+      name: "Maestría en Gestión de Proyectos",
+      nameNormalized: "maestria en gestion de proyectos",
+    });
+    expect(normalizeAcademicProgramName("Diseno Estrategico e Innovacion", { businessLine: "posgrado" })).toMatchObject({
+      name: "Maestría en Diseño Estratégico e Innovación",
+      nameNormalized: "maestria en diseno estrategico e innovacion",
+    });
+    expect(normalizeAcademicProgramName("Robotica y Automatizacion", { businessLine: "posgrado" })).toMatchObject({
+      name: "Maestría en Robótica y Automatización",
+      nameNormalized: "maestria en robotica y automatizacion",
+    });
   });
 
   it("normalizes bachillerato variants with explicit duration or online mode", () => {
