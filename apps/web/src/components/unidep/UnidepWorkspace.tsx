@@ -18,6 +18,11 @@ import SimulatorSidebarPanel from "@/components/simulator/SimulatorSidebarPanel"
 import SmartSelect from "@/components/SmartSelect";
 import { useAppContext } from "@/components/app/AppChrome";
 import type { AcademicOfferCycle } from "@/config/academicOffer";
+import {
+  ACADEMIC_OFFER_SCHEDULE_FILTER_OPTIONS,
+  buildOfertaAcademicaQuery,
+  type AcademicOfferScheduleFilter,
+} from "@/lib/oferta-academica-filters";
 import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
 import type { WhatsappTemplateCollection } from "@/lib/whatsapp-templates.shared";
 import { type WorkspaceSectionKey } from "@/lib/unidep-navigation";
@@ -237,6 +242,7 @@ function OfertaAcademicaSection() {
   const { campuses } = useCampuses();
   const [campus, setCampus] = useState("");
   const [line, setLine] = useState("");
+  const [schedule, setSchedule] = useState<AcademicOfferScheduleFilter>("");
   const [availableCycles, setAvailableCycles] = useState<AcademicOfferCycle[]>([]);
   const [cycle, setCycle] = useState<AcademicOfferCycle | "">("");
   const [programs, setPrograms] = useState<OfertaProgram[]>([]);
@@ -249,10 +255,7 @@ function OfertaAcademicaSection() {
     let mounted = true;
     const run = async () => {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (campus) params.set("campus", campus);
-      if (line) params.set("line", line);
-      if (cycle) params.set("cycle", cycle);
+      const params = buildOfertaAcademicaQuery({ campus, line, cycle, schedule });
       try {
         const res = await fetch(`/api/public/oferta?${params.toString()}`, {
           cache: "no-store",
@@ -292,7 +295,7 @@ function OfertaAcademicaSection() {
     return () => {
       mounted = false;
     };
-  }, [campus, cycle, line]);
+  }, [campus, cycle, line, schedule]);
 
   const currentProgram = programs.find((p) => p.programId === selectedProgram) ?? null;
   const currentOfferings = useMemo(
@@ -327,7 +330,7 @@ function OfertaAcademicaSection() {
     <section className="ui-card ui-card-pad min-w-0">
       <h2 className="text-lg font-semibold">Oferta por planteles</h2>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="grid min-w-0 gap-2 text-sm">
           Ciclo
           <SmartSelect
@@ -367,6 +370,15 @@ function OfertaAcademicaSection() {
               { value: "prepa", label: "Bachillerato" },
               { value: "posgrado", label: "Posgrado" },
             ]}
+          />
+        </div>
+        <div className="grid min-w-0 gap-2 text-sm">
+          Horario
+          <SmartSelect
+            value={schedule}
+            onChange={(value) => setSchedule(value as AcademicOfferScheduleFilter)}
+            placeholder="Todos"
+            options={[...ACADEMIC_OFFER_SCHEDULE_FILTER_OPTIONS]}
           />
         </div>
       </div>
