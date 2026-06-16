@@ -103,4 +103,13 @@ describe("workflow regressions", () => {
       }
     }
   });
+
+  it("keeps CTA editor image previews scrollable instead of cropped thumbnails", () => {
+    const source = read("apps/web/src/components/admin/CtasClient.tsx");
+
+    expect(source).toContain('data-testid="cta-admin-image-preview"');
+    expect(source).toContain("overflow-auto");
+    expect(source).toContain("object-contain");
+    expect(source).not.toContain("h-16 w-16 rounded-lg object-cover");
+  });
 });

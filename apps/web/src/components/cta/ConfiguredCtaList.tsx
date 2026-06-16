@@ -261,14 +261,19 @@ function CtaPopupModal({
         </div>
 
         {config.image ? (
-          <Image
-            src={config.image.previewUrl}
-            alt=""
-            width={960}
-            height={480}
-            unoptimized
-            className="mt-4 max-h-[320px] w-full rounded-2xl border border-[color:var(--ui-border)] object-cover"
-          />
+          <div
+            data-testid="cta-popup-image-preview"
+            className="ui-scrollbar mt-4 max-h-[min(70dvh,520px)] overflow-auto rounded-2xl border border-[color:var(--ui-border)] bg-white"
+          >
+            <Image
+              src={config.image.previewUrl}
+              alt=""
+              width={960}
+              height={960}
+              unoptimized
+              className="h-auto w-full object-contain"
+            />
+          </div>
         ) : null}
 
         {config.message ? (

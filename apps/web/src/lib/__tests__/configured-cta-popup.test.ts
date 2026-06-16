@@ -25,4 +25,13 @@ describe("configured CTA popup", () => {
     expect(source).toContain('aria-labelledby={titleId}');
     expect(source).toContain('event.key === "Escape"');
   });
+
+  it("renders popup images in a scrollable preview without cropping them", () => {
+    const source = read("apps/web/src/components/cta/ConfiguredCtaList.tsx");
+
+    expect(source).toContain('data-testid="cta-popup-image-preview"');
+    expect(source).toContain("overflow-auto");
+    expect(source).toContain("object-contain");
+    expect(source).not.toContain("max-h-[320px] w-full rounded-2xl border border-[color:var(--ui-border)] object-cover");
+  });
 });

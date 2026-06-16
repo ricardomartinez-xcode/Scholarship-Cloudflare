@@ -702,15 +702,20 @@ export default function CtasClient({
                           ) : null}
                         </div>
                         {actionImage ? (
-                          <div className="flex items-center gap-3 rounded-xl border border-[#D7E4ED] bg-white p-2">
-                            <Image
-                              src={actionImage.previewUrl}
-                              alt=""
-                              width={64}
-                              height={64}
-                              unoptimized
-                              className="h-16 w-16 rounded-lg object-cover"
-                            />
+                          <div className="grid gap-2 rounded-xl border border-[#D7E4ED] bg-white p-2">
+                            <div
+                              data-testid="cta-admin-image-preview"
+                              className="ui-scrollbar max-h-64 overflow-auto rounded-lg bg-[#F7FBFD]"
+                            >
+                              <Image
+                                src={actionImage.previewUrl}
+                                alt=""
+                                width={960}
+                                height={960}
+                                unoptimized
+                                className="h-auto w-full rounded-lg object-contain"
+                              />
+                            </div>
                             <div className="min-w-0 text-xs text-[#657D8F]">
                               <div className="truncate font-semibold text-[#123348]">
                                 {actionImage.fileName}
