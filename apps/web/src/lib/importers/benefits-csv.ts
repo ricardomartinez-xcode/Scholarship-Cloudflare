@@ -14,7 +14,12 @@ import {
   loadImporterAliasRows,
   type ImporterAliasOptions,
 } from "@/lib/importers/configured-aliases";
-import { normalizeTierWithAliases } from "@/lib/pricing-normalize";
+import {
+  normalizeBusinessLineWithAliases,
+  normalizeCanonicalModalityWithAliases,
+  normalizeEnrollmentTypeWithAliases,
+  normalizeTierWithAliases,
+} from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 
 export type BenefitImportDiffAction = "create" | "update" | "noop";
@@ -103,14 +108,16 @@ const HEADER_ALIASES = {
   campusIds: ["campusids", "campuses", "campus", "plantel", "planteles", "campusid"],
   appliesToAll: ["appliestoall", "todosplanteles", "allcampuses", "todos"],
   enrollmentType: ["enrollmenttype", "tipoingreso", "ingreso"],
-  businessLine: ["businessline", "business_line", "lineanegocio", "linea"],
+  businessLine: ["businessline", "business_line", "lineanegocio", "lineadenegocio", "linea"],
   modality: ["modality", "modalidad"],
   duration: ["duration", "duracion"],
-  extraPercent: ["extrapercent", "porcentaje", "extra", "percent"],
-  firstPaymentAmount: ["firstpaymentamount", "primerpago", "monto", "montoinicial"],
-  isActive: ["isactive", "activo", "active"],
+  extraPercent: ["extrapercent", "porcentaje", "porcentajeadicional", "extra", "percent"],
+  firstPaymentAmount: ["firstpaymentamount", "primerpago", "pagoinicial", "monto", "montoinicial"],
+  isActive: ["isactive", "activo", "active", "estado", "estatus"],
   notes: ["notes", "nota", "notas"],
 } as const;
+
+type ImporterAliasRows = Awaited<ReturnType<typeof loadImporterAliasRows>>;
 
 function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
   for (const alias of aliases) {
@@ -125,20 +132,152 @@ function readCell(row: string[], index: number): string {
   return String(row[index] ?? "").trim();
 }
 
-function parseOptionalEnum<T extends string>(
-  value: string,
-  allowed: Set<T>,
-): T | null {
-  const normalized = value.trim();
-  if (!normalized || normalized === "__ALL__") return null;
-  return allowed.has(normalized as T) ? (normalized as T) : null;
+function normalizeHumanValue(value: string) {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isAllScopeValue(value: string) {
+  const normalized = normalizeHumanValue(value);
+  return (
+    !normalized ||
+    normalized === "all" ||
+    normalized === "any" ||
+    normalized === "todos" ||
+    normalized === "todas" ||
+    normalized === "todo" ||
+    normalized === "toda" ||
+    normalized === "general" ||
+    normalized === "cualquiera" ||
+    normalized === "cualquier ingreso"
+  );
+}
+
+function normalizeBenefitTypeValue(value: string) {
+  const trimmed = value.trim();
+  if (BENEFIT_TYPE_SET.has(trimmed as AdminAdditionalBenefitType)) {
+    return trimmed as AdminAdditionalBenefitType;
+  }
+
+  const normalized = normalizeHumanValue(trimmed);
+  const map: Record<string, AdminAdditionalBenefitType> = {
+    porcentaje: AdminAdditionalBenefitType.percentage,
+    "porcentaje adicional": AdminAdditionalBenefitType.percentage,
+    adicional: AdminAdditionalBenefitType.percentage,
+    percentage: AdminAdditionalBenefitType.percentage,
+    percent: AdminAdditionalBenefitType.percentage,
+    "primer pago": AdminAdditionalBenefitType.first_payment,
+    "pago inicial": AdminAdditionalBenefitType.first_payment,
+    "first payment": AdminAdditionalBenefitType.first_payment,
+  };
+
+  return map[normalized] ?? null;
+}
+
+function normalizeEnrollmentTypeValue(value: string, aliases: ImporterAliasRows) {
+  const canonical = canonicalImportText(aliases, "enrollment_type", value);
+  if (isAllScopeValue(canonical)) return null;
+
+  const configured = normalizeEnrollmentTypeWithAliases(canonical, aliases);
+  if (configured && ENROLLMENT_SET.has(configured as EnrollmentType)) {
+    return configured as EnrollmentType;
+  }
+
+  const normalized = normalizeHumanValue(canonical);
+  const map: Record<string, EnrollmentType> = {
+    "nuevo ingreso": EnrollmentType.nuevo_ingreso,
+    ni: EnrollmentType.nuevo_ingreso,
+    regreso: EnrollmentType.regreso,
+    reingreso: EnrollmentType.reingreso,
+  };
+
+  return map[normalized] ?? null;
+}
+
+function normalizeBusinessLineValue(value: string, aliases: ImporterAliasRows) {
+  const canonical = canonicalImportText(aliases, "business_line", value);
+  if (isAllScopeValue(canonical)) return null;
+
+  const configured = normalizeBusinessLineWithAliases(canonical, aliases);
+  if (configured && BUSINESS_LINE_SET.has(configured as BenefitBusinessLine)) {
+    return configured as BenefitBusinessLine;
+  }
+
+  const normalized = normalizeHumanValue(canonical);
+  const map: Record<string, BenefitBusinessLine> = {
+    salud: BenefitBusinessLine.salud,
+    licenciatura: BenefitBusinessLine.licenciatura,
+    lic: BenefitBusinessLine.licenciatura,
+    prepa: BenefitBusinessLine.prepa,
+    preparatoria: BenefitBusinessLine.prepa,
+    bachillerato: BenefitBusinessLine.prepa,
+    posgrado: BenefitBusinessLine.posgrado,
+    maestria: BenefitBusinessLine.posgrado,
+    maestrias: BenefitBusinessLine.posgrado,
+  };
+
+  return map[normalized] ?? null;
+}
+
+function normalizeModalityValue(value: string, aliases: ImporterAliasRows) {
+  const canonical = canonicalImportText(aliases, "modality", value);
+  if (isAllScopeValue(canonical)) return null;
+
+  const configured = normalizeCanonicalModalityWithAliases(canonical, aliases);
+  if (configured && MODALITY_SET.has(configured as BenefitModality)) {
+    return configured as BenefitModality;
+  }
+
+  const normalized = normalizeHumanValue(canonical);
+  const map: Record<string, BenefitModality> = {
+    presencial: BenefitModality.presencial,
+    escolarizada: BenefitModality.presencial,
+    escolarizado: BenefitModality.presencial,
+    mixta: BenefitModality.mixta,
+    mixto: BenefitModality.mixta,
+    ejecutiva: BenefitModality.mixta,
+    ejecutivo: BenefitModality.mixta,
+    online: BenefitModality.online,
+    "en linea": BenefitModality.online,
+  };
+
+  return map[normalized] ?? null;
+}
+
+function normalizeDurationValue(value: string) {
+  const trimmed = value.trim();
+  if (isAllScopeValue(trimmed)) return null;
+  if (DURATION_SET.has(trimmed as BenefitDuration)) return trimmed as BenefitDuration;
+
+  const normalized = normalizeHumanValue(trimmed);
+  const map: Record<string, BenefitDuration> = {
+    "1 cuatrimestre": BenefitDuration.primer_cuatrimestre,
+    "1er cuatrimestre": BenefitDuration.primer_cuatrimestre,
+    "un cuatrimestre": BenefitDuration.primer_cuatrimestre,
+    "primer cuatrimestre": BenefitDuration.primer_cuatrimestre,
+    "primer cuatri": BenefitDuration.primer_cuatrimestre,
+    "1 cuatri": BenefitDuration.primer_cuatrimestre,
+    "1er cuatri": BenefitDuration.primer_cuatrimestre,
+    "toda la carrera": BenefitDuration.toda_la_carrera,
+    "toda carrera": BenefitDuration.toda_la_carrera,
+    "pago inicial": BenefitDuration.pago_inicial,
+    "primer pago": BenefitDuration.pago_inicial,
+  };
+
+  return map[normalized] ?? null;
 }
 
 function parseBoolean(value: string, defaultValue: boolean) {
-  const normalized = value.trim().toLowerCase();
+  const normalized = normalizeHumanValue(value);
   if (!normalized) return defaultValue;
-  if (["1", "true", "si", "sí", "yes", "y"].includes(normalized)) return true;
-  if (["0", "false", "no", "n"].includes(normalized)) return false;
+  if (["1", "true", "si", "yes", "y", "activo", "activa"].includes(normalized)) return true;
+  if (["0", "false", "no", "n", "inactivo", "inactiva"].includes(normalized)) return false;
   return defaultValue;
 }
 
@@ -154,6 +293,17 @@ function parseCampusIdentifiers(value: string): string[] {
         .filter(Boolean),
     ),
   );
+}
+
+function campusColumnTargetsAll(value: string) {
+  const identifiers = parseCampusIdentifiers(value);
+  return identifiers.length > 0 && identifiers.every(isAllScopeValue);
+}
+
+function parseCsvNumber(value: string) {
+  const normalized = value.trim().replace("%", "").replace(/\s+/g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 function normalizeDurationForKey(
@@ -348,42 +498,45 @@ export async function prepareBenefitsCsvImport(
     const normalizedTier = normalizeTierWithAliases(tierRaw, aliasRows);
     const tier = normalizedTier === "ANY" ? null : normalizedTier;
     const benefitTypeRaw = readCell(row, idxBenefitType);
-    if (!BENEFIT_TYPE_SET.has(benefitTypeRaw as AdminAdditionalBenefitType)) {
+    const benefitType = normalizeBenefitTypeValue(benefitTypeRaw);
+    if (!benefitType) {
       errors.push(`Fila ${rowNumber}: benefit_type inválido "${benefitTypeRaw}".`);
       continue;
     }
-    const benefitType = benefitTypeRaw as AdminAdditionalBenefitType;
 
-    const enrollmentTypeRaw = canonicalImportText(aliasRows, "enrollment_type", readCell(row, idxEnrollmentType));
-    const enrollmentType = parseOptionalEnum(enrollmentTypeRaw, ENROLLMENT_SET);
-    if (enrollmentTypeRaw && enrollmentType === null && enrollmentTypeRaw !== "__ALL__") {
+    const enrollmentTypeRaw = readCell(row, idxEnrollmentType);
+    const enrollmentType = normalizeEnrollmentTypeValue(enrollmentTypeRaw, aliasRows);
+    if (enrollmentTypeRaw && enrollmentType === null && !isAllScopeValue(enrollmentTypeRaw)) {
       errors.push(`Fila ${rowNumber}: enrollment_type inválido "${enrollmentTypeRaw}".`);
       continue;
     }
 
-    const businessLineRaw = canonicalImportText(aliasRows, "business_line", readCell(row, idxBusinessLine));
-    const businessLine = parseOptionalEnum(businessLineRaw, BUSINESS_LINE_SET);
-    if (businessLineRaw && businessLine === null && businessLineRaw !== "__ALL__") {
+    const businessLineRaw = readCell(row, idxBusinessLine);
+    const businessLine = normalizeBusinessLineValue(businessLineRaw, aliasRows);
+    if (businessLineRaw && businessLine === null && !isAllScopeValue(businessLineRaw)) {
       errors.push(`Fila ${rowNumber}: business_line inválido "${businessLineRaw}".`);
       continue;
     }
 
-    const modalityRaw = canonicalImportText(aliasRows, "modality", readCell(row, idxModality));
-    const modality = parseOptionalEnum(modalityRaw, MODALITY_SET);
-    if (modalityRaw && modality === null && modalityRaw !== "__ALL__") {
+    const modalityRaw = readCell(row, idxModality);
+    const modality = normalizeModalityValue(modalityRaw, aliasRows);
+    if (modalityRaw && modality === null && !isAllScopeValue(modalityRaw)) {
       errors.push(`Fila ${rowNumber}: modality inválido "${modalityRaw}".`);
       continue;
     }
 
     const durationRaw = readCell(row, idxDuration);
-    let duration = parseOptionalEnum(durationRaw, DURATION_SET);
-    if (durationRaw && duration === null && durationRaw !== "__ALL__") {
+    let duration = normalizeDurationValue(durationRaw);
+    if (durationRaw && duration === null && !isAllScopeValue(durationRaw)) {
       errors.push(`Fila ${rowNumber}: duration inválido "${durationRaw}".`);
       continue;
     }
 
-    const appliesToAll = parseBoolean(readCell(row, idxAppliesToAll), false);
-    const campusIdentifiers = parseCampusIdentifiers(readCell(row, idxCampusIds));
+    const campusIdsRaw = readCell(row, idxCampusIds);
+    const appliesToAll =
+      parseBoolean(readCell(row, idxAppliesToAll), false) ||
+      campusColumnTargetsAll(campusIdsRaw);
+    const campusIdentifiers = parseCampusIdentifiers(campusIdsRaw);
     const campusIds: string[] = [];
     const campusLabels: string[] = [];
     if (!appliesToAll) {
@@ -413,8 +566,8 @@ export async function prepareBenefitsCsvImport(
 
     const extraPercentRaw = readCell(row, idxExtraPercent);
     const firstPaymentAmountRaw = readCell(row, idxFirstPaymentAmount);
-    const extraPercent = extraPercentRaw ? Number(extraPercentRaw) : 0;
-    const firstPaymentAmount = firstPaymentAmountRaw ? Number(firstPaymentAmountRaw) : 0;
+    const extraPercent = extraPercentRaw ? parseCsvNumber(extraPercentRaw) : 0;
+    const firstPaymentAmount = firstPaymentAmountRaw ? parseCsvNumber(firstPaymentAmountRaw) : 0;
 
     if (benefitType === AdminAdditionalBenefitType.percentage) {
       if (!Number.isFinite(extraPercent) || extraPercent <= 0 || extraPercent > 100) {
@@ -425,7 +578,7 @@ export async function prepareBenefitsCsvImport(
         errors.push(`Fila ${rowNumber}: extra_percent debe ser múltiplo de 5.`);
         continue;
       }
-      if (firstPaymentAmountRaw && Number(firstPaymentAmountRaw) !== 0) {
+      if (firstPaymentAmountRaw && firstPaymentAmount !== 0) {
         warnings.push(
           `Fila ${rowNumber}: first_payment_amount se ignoró porque benefit_type=percentage.`,
         );
@@ -435,7 +588,7 @@ export async function prepareBenefitsCsvImport(
         errors.push(`Fila ${rowNumber}: first_payment_amount debe ser mayor a 0.`);
         continue;
       }
-      if (extraPercentRaw && Number(extraPercentRaw) !== 0) {
+      if (extraPercentRaw && extraPercent !== 0) {
         warnings.push(`Fila ${rowNumber}: extra_percent se ignoró porque benefit_type=first_payment.`);
       }
       duration = BenefitDuration.pago_inicial;

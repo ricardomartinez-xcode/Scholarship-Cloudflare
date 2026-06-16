@@ -13,6 +13,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
+import { getAdminImportTemplate } from "@/lib/importers/admin-import-templates";
 import { prepareBenefitsCsvImport } from "@/lib/importers/benefits-csv";
 
 describe("prepareBenefitsCsvImport", () => {
@@ -26,6 +27,13 @@ describe("prepareBenefitsCsvImport", () => {
         metaKey: "Chihuahua",
         name: "Chihuahua",
         slug: "chihuahua",
+      },
+      {
+        id: "campus-2",
+        code: "HMO",
+        metaKey: "Hermosillo",
+        name: "Hermosillo",
+        slug: "hermosillo",
       },
     ]);
     prismaMock.adminAdditionalBenefit.findMany.mockResolvedValue([]);
@@ -109,5 +117,65 @@ describe("prepareBenefitsCsvImport", () => {
     expect(result.payload.rows[0]?.key).not.toContain("Norte");
     expect(result.payload.rows[0]?.key).not.toContain("T2");
     expect(result.payload.rows[0]?.key).not.toContain("campus-1");
+  });
+
+  it("accepts the UI-shaped additional benefits CSV with human labels", async () => {
+    const csv = [
+      "linea_negocio,planteles,tipo_beneficio,tipo_ingreso,modalidad,duracion,porcentaje_adicional,estado,notas",
+      "Licenciatura,Chihuahua; Hermosillo,Porcentaje adicional,Cualquier ingreso,Presencial,Toda la carrera,20,Activo,Origen Excel",
+      "Todas,Todos,Porcentaje adicional,Nuevo ingreso,Todas,Cualquiera,100,Inactivo,Global NI",
+    ].join("\n");
+
+    const result = await prepareBenefitsCsvImport({
+      file: new File([csv], "beneficios.csv", { type: "text/csv" }),
+    });
+
+    expect(result.summary.ready).toBe(2);
+    expect(result.summary.errors).toEqual([]);
+    expect(result.payload.rows[0]).toMatchObject({
+      action: "create",
+      benefitType: "percentage",
+      enrollmentType: null,
+      businessLine: "licenciatura",
+      modality: "presencial",
+      duration: "toda_la_carrera",
+      appliesToAll: false,
+      campusIds: ["campus-1", "campus-2"],
+      campusLabels: ["Chihuahua", "Hermosillo"],
+      extraPercent: 20,
+      isActive: true,
+      notes: "Origen Excel",
+    });
+    expect(result.payload.rows[1]).toMatchObject({
+      action: "create",
+      benefitType: "percentage",
+      enrollmentType: "nuevo_ingreso",
+      businessLine: null,
+      modality: null,
+      duration: null,
+      appliesToAll: true,
+      campusIds: [],
+      campusLabels: [],
+      extraPercent: 100,
+      isActive: false,
+      notes: "Global NI",
+    });
+  });
+
+  it("exposes the downloadable benefits template with importer UI columns", () => {
+    const template = getAdminImportTemplate("benefits");
+
+    expect(template?.headers).toEqual([
+      "linea_negocio",
+      "planteles",
+      "tipo_beneficio",
+      "tipo_ingreso",
+      "modalidad",
+      "duracion",
+      "porcentaje_adicional",
+      "estado",
+      "notas",
+    ]);
+    expect(template?.rows[0]).toHaveLength(9);
   });
 });

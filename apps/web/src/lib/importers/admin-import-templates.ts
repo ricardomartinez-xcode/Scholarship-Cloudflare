@@ -46,19 +46,20 @@ export const ADMIN_IMPORT_TEMPLATES = [
   {
     id: "benefits",
     label: "Beneficios",
-    description: "Carga reglas de beneficios por línea, modalidad, inscripción y rango académico.",
+    description: "Carga beneficios adicionales por alcance, tipo, ingreso, modalidad y duración.",
     moduleLabel: "Beneficios",
     format: "csv",
     fileName: "plantilla-beneficios.csv",
-    headers: ["linea", "modalidad", "tipo_ingreso", "promedio_min", "promedio_max", "beneficio", "activo", "notas"],
+    headers: ["linea_negocio", "planteles", "tipo_beneficio", "tipo_ingreso", "modalidad", "duracion", "porcentaje_adicional", "estado", "notas"],
     rows: [
-      ["licenciatura", "presencial", "nuevo ingreso", "8.0", "8.9", "20", "true", "Ejemplo"],
-      ["maestria", "online", "reingreso", "9.0", "10", "30", "true", "Ejemplo"],
+      ["Licenciatura", "Chihuahua; Hermosillo", "Porcentaje adicional", "Cualquier ingreso", "Presencial", "Toda la carrera", "20", "Activo", "Ejemplo por planteles"],
+      ["Todas", "Todos", "Porcentaje adicional", "Nuevo ingreso", "Todas", "Cualquiera", "15", "Activo", "Ejemplo global"],
     ],
     notes: [
-      "linea, modalidad y tipo_ingreso aceptan aliases configurables.",
-      "promedio_min/promedio_max deben ser numéricos.",
-      "beneficio representa porcentaje o valor según la regla vigente del importador.",
+      "linea_negocio, tipo_ingreso, modalidad y duracion aceptan etiquetas de UI o valores canónicos.",
+      "planteles acepta uno o varios nombres separados por punto y coma; usa Todos para alcance global.",
+      "porcentaje_adicional debe ser numérico, sin símbolo %.",
+      "estado acepta Activo/Inactivo, true/false, si/no, 1/0.",
     ],
   },
   {
