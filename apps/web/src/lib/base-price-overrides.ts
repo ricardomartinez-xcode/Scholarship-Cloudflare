@@ -7,7 +7,19 @@ import {
 } from "@/lib/pricing-normalize";
 import { normalizeKey as normalizeTextKey } from "@/lib/text-normalize";
 
-export const BASE_PRICE_OVERRIDE_SCOPE = "base_price";
+/**
+ * Canonical price imports use scope "monto".
+ *
+ * The previous quote engine requested only "base_price", so canonical imported
+ * prices were ignored and the calculator fell back to scholarship-rule-derived
+ * prices, commonly resolving to 5900 for unrelated programs.
+ */
+export const BASE_PRICE_OVERRIDE_SCOPE = "monto";
+const LEGACY_BASE_PRICE_OVERRIDE_SCOPE = "base_price";
+const BASE_PRICE_OVERRIDE_SCOPES = new Set([
+  BASE_PRICE_OVERRIDE_SCOPE,
+  LEGACY_BASE_PRICE_OVERRIDE_SCOPE,
+]);
 
 const BUSINESS_LINE_TARGET_ALIASES: Record<CanonicalBusinessLine, string[]> = {
   salud: ["salud"],
@@ -24,7 +36,7 @@ const BUSINESS_LINE_TARGET_ALIASES: Record<CanonicalBusinessLine, string[]> = {
   ],
 };
 
-const LEGACY_PROGRAMA_KEYS = new Set([
+const LEGACY_PROGRAM_KEYS = new Set([
   "canonical",
   "canonico",
   "nuevo ingreso",
@@ -32,19 +44,6 @@ const LEGACY_PROGRAMA_KEYS = new Set([
   "regreso",
   "reingreso",
 ]);
-
-function businessLineTargetKeys(businessLine: CanonicalBusinessLine | string) {
-  const canonical = normalizeBusinessLine(String(businessLine));
-  const aliases = canonical
-    ? BUSINESS_LINE_TARGET_ALIASES[canonical]
-    : [String(businessLine)];
-
-  return new Set(
-    [...aliases, String(businessLine)]
-      .map((value) => normalizeKey(value))
-      .filter(Boolean),
-  );
-}
 
 function normalizeKey(value: unknown) {
   return normalizeTextKey(String(value ?? ""));
@@ -61,18 +60,35 @@ function normalizeCampusKey(value: unknown) {
 
 function normalizeTierKey(value: unknown) {
   const raw = String(value ?? "").trim();
-  if (!raw || raw.toUpperCase() === "ANY") return "";
-  if (raw.toUpperCase() === "ONLINE") return "";
+  if (!raw || raw.toUpperCase() === "ANY" || raw.toUpperCase() === "ONLINE") return "";
   return raw.toUpperCase();
 }
 
 function targetRecord(targetKeys: unknown) {
-  return targetKeys && typeof targetKeys === "object"
+  return targetKeys && typeof targetKeys === "object" && !Array.isArray(targetKeys)
     ? (targetKeys as Record<string, unknown>)
     : {};
 }
 
-function matchesBasePriceCoreTarget(
+function businessLineTargetKeys(businessLine: CanonicalBusinessLine | string) {
+  const canonical = normalizeBusinessLine(String(businessLine));
+  const aliases = canonical ? BUSINESS_LINE_TARGET_ALIASES[canonical] : [String(businessLine)];
+  return new Set([...aliases, String(businessLine)].map(normalizeKey).filter(Boolean));
+}
+
+function targetBusinessLineKey(keys: Record<string, unknown>) {
+  return normalizeKey(keys.nivel_key ?? keys.businessLine ?? keys.business_line ?? keys.nivel);
+}
+
+function targetModalityKey(keys: Record<string, unknown>) {
+  return normalizeKey(keys.modalidad_key ?? keys.modality ?? keys.modalidad);
+}
+
+function targetPlanKey(keys: Record<string, unknown>) {
+  return normalizeKey(keys.plan);
+}
+
+function matchesCoreTarget(
   keys: Record<string, unknown>,
   params: {
     businessLine: CanonicalBusinessLine | string;
@@ -81,30 +97,26 @@ function matchesBasePriceCoreTarget(
   },
 ) {
   const expectedBusinessLineKeys = businessLineTargetKeys(params.businessLine);
-  const targetNivel = normalizeKey(keys.nivel_key ?? keys.businessLine ?? keys.nivel);
-  const targetModality = normalizeKey(
-    keys.modalidad_key ?? keys.modality ?? keys.modalidad,
-  );
-  const targetPlan = normalizeKey(keys.plan);
+  const businessLineKey = targetBusinessLineKey(keys);
+  const modalityKey = targetModalityKey(keys);
+  const planKey = targetPlanKey(keys);
 
   return (
-    expectedBusinessLineKeys.has(targetNivel) &&
-    targetModality === normalizeKey(params.modality) &&
-    targetPlan === normalizeKey(params.plan)
+    expectedBusinessLineKeys.has(businessLineKey) &&
+    modalityKey === normalizeKey(params.modality) &&
+    planKey === normalizeKey(params.plan)
   );
 }
 
-function getGenericTierMatchScore(
-  keys: Record<string, unknown>,
-  params: {
-    tier?: string | null;
-  },
-) {
-  const targetTier = normalizeTierKey(keys.tier);
-  const expectedTier = normalizeTierKey(params.tier);
-
-  if (!targetTier) return 1;
-  return targetTier === expectedTier ? 2 : 0;
+function targetCampusKey(keys: Record<string, unknown>) {
+  return normalizeCampusKey(
+    keys.plantel ??
+      keys.campus ??
+      keys.sede ??
+      keys.metaKey ??
+      keys.campusName ??
+      keys.campusCode,
+  );
 }
 
 function normalizeCampusTargets(params: {
@@ -118,9 +130,14 @@ function normalizeCampusTargets(params: {
   );
 }
 
+function campusTargetMatches(target: string, campusTargets: Set<string>) {
+  if (!target) return true;
+  return campusTargets.has(target);
+}
+
 function normalizeProgramTarget(value: unknown) {
   const normalized = normalizeKey(value);
-  if (!normalized || LEGACY_PROGRAMA_KEYS.has(normalized)) return "";
+  if (!normalized || LEGACY_PROGRAM_KEYS.has(normalized)) return "";
   return normalizeCompactKey(normalized);
 }
 
@@ -152,6 +169,7 @@ function programTargetMatches(target: string, programTargets: Set<string>) {
     if (target.length >= 5 && candidate.includes(target)) return true;
     if (candidate.length >= 5 && target.includes(candidate)) return true;
   }
+
   return false;
 }
 
@@ -167,8 +185,12 @@ function targetProgramKey(keys: Record<string, unknown>) {
   );
 }
 
-function targetCampusKey(keys: Record<string, unknown>) {
-  return normalizeCampusKey(keys.plantel ?? keys.campus ?? keys.sede ?? keys.metaKey);
+function targetModuleKey(keys: Record<string, unknown>) {
+  return normalizeKey(keys.modulo ?? keys.module);
+}
+
+function priceFromOverride(override: PriceOverrideSnapshot) {
+  return toNumber(override.newPrice);
 }
 
 function subjectPriceFromTargetKeys(keys: Record<string, unknown>) {
@@ -179,6 +201,45 @@ function subjectPriceFromTargetKeys(keys: Record<string, unknown>) {
       keys.price_per_subject ??
       keys.subjectPriceMxn,
   );
+}
+
+function isBasePriceScope(scope: string) {
+  return BASE_PRICE_OVERRIDE_SCOPES.has(scope);
+}
+
+function getScopeScore(keys: Record<string, unknown>, params: {
+  tier?: string | null;
+  campus?: string | null;
+  campusAliases?: string[];
+  programId?: string | null;
+  programName?: string | null;
+  programAliases?: Array<string | null | undefined>;
+  module?: string | null;
+}) {
+  const campusTargets = normalizeCampusTargets(params);
+  const programTargets = normalizeProgramTargets(params);
+
+  const campusKey = targetCampusKey(keys);
+  if (!campusTargetMatches(campusKey, campusTargets)) return null;
+
+  const programKey = targetProgramKey(keys);
+  if (!programTargetMatches(programKey, programTargets)) return null;
+
+  const moduleKey = targetModuleKey(keys);
+  const expectedModule = normalizeKey(params.module);
+  if (moduleKey && moduleKey !== expectedModule) return null;
+
+  const targetTier = normalizeTierKey(keys.tier);
+  const expectedTier = normalizeTierKey(params.tier);
+  if (targetTier && targetTier !== expectedTier) return null;
+
+  let score = 0;
+  if (programKey) score += 1_000;
+  if (campusKey) score += targetTier ? 300 : 260;
+  if (!campusKey && targetTier) score += 150;
+  if (moduleKey) score += 50;
+
+  return score;
 }
 
 export function findPublishedBasePriceOverride(
@@ -196,45 +257,20 @@ export function findPublishedBasePriceOverride(
     module?: string | null;
   },
 ) {
-  const campusTargets = normalizeCampusTargets(params);
-  const programTargets = normalizeProgramTargets(params);
   let bestMatch: { price: number; score: number } | null = null;
 
   for (const override of overrides) {
-    if (!override.isActive || override.scope !== BASE_PRICE_OVERRIDE_SCOPE) continue;
+    if (!override.isActive || !isBasePriceScope(override.scope)) continue;
+
     const keys = targetRecord(override.targetKeys);
-    if (!matchesBasePriceCoreTarget(keys, params)) continue;
+    if (!matchesCoreTarget(keys, params)) continue;
 
-    const programKey = targetProgramKey(keys);
-    if (!programTargetMatches(programKey, programTargets)) continue;
-
-    const price = toNumber(override.newPrice);
+    const price = priceFromOverride(override);
     if (price === null) continue;
 
-    const campusKey = targetCampusKey(keys);
-    const targetTier = normalizeTierKey(keys.tier);
-    const expectedTier = normalizeTierKey(params.tier);
-    const programScore = programKey ? 1_000 : 0;
-    let scopeScore = 0;
+    const score = getScopeScore(keys, params);
+    if (score === null) continue;
 
-    if (campusKey) {
-      if (!campusTargets.has(campusKey)) continue;
-
-      // Plantel exacto es más específico que tier. Si el catálogo del campus
-      // viene sin tier, no descartamos un precio canónico acotado por plantel.
-      scopeScore = !targetTier
-        ? 260
-        : targetTier === expectedTier
-          ? 300
-          : 250;
-    } else {
-      const tierScore = getGenericTierMatchScore(keys, params);
-      if (!tierScore) continue;
-      // Sin plantel: precio por tier gana sobre precio general.
-      scopeScore = tierScore === 2 ? 150 : 100;
-    }
-
-    const score = programScore + scopeScore;
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = { price, score };
     }
@@ -247,41 +283,20 @@ export function findPublishedSubjectPriceOverride(
   overrides: PriceOverrideSnapshot[],
   params: Parameters<typeof findPublishedBasePriceOverride>[1],
 ) {
-  const campusTargets = normalizeCampusTargets(params);
-  const programTargets = normalizeProgramTargets(params);
   let bestMatch: { price: number; score: number } | null = null;
 
   for (const override of overrides) {
-    if (!override.isActive || override.scope !== BASE_PRICE_OVERRIDE_SCOPE) continue;
+    if (!override.isActive || !isBasePriceScope(override.scope)) continue;
+
     const keys = targetRecord(override.targetKeys);
-    if (!matchesBasePriceCoreTarget(keys, params)) continue;
+    if (!matchesCoreTarget(keys, params)) continue;
 
     const subjectPrice = subjectPriceFromTargetKeys(keys);
     if (subjectPrice === null) continue;
 
-    const programKey = targetProgramKey(keys);
-    if (!programTargetMatches(programKey, programTargets)) continue;
+    const score = getScopeScore(keys, params);
+    if (score === null) continue;
 
-    const campusKey = targetCampusKey(keys);
-    const targetTier = normalizeTierKey(keys.tier);
-    const expectedTier = normalizeTierKey(params.tier);
-    const programScore = programKey ? 1_000 : 0;
-    let scopeScore = 0;
-
-    if (campusKey) {
-      if (!campusTargets.has(campusKey)) continue;
-      scopeScore = !targetTier
-        ? 260
-        : targetTier === expectedTier
-          ? 300
-          : 250;
-    } else {
-      const tierScore = getGenericTierMatchScore(keys, params);
-      if (!tierScore) continue;
-      scopeScore = tierScore === 2 ? 150 : 100;
-    }
-
-    const score = programScore + scopeScore;
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = { price: subjectPrice, score };
     }
