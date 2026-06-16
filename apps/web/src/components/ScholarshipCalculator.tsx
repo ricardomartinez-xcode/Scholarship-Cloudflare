@@ -10,12 +10,7 @@ import ConfiguredCtaList from "@/components/cta/ConfiguredCtaList";
 import { useSimulator } from "@/components/simulator/SimulatorProvider";
 import FloatingCalculator from "@/components/unidep/FloatingCalculator";
 import ResultsWhatsappTemplatePanel from "@/components/whatsapp/ResultsWhatsappTemplatePanel";
-import {
-  ACADEMIC_MODULE_CHOICES,
-  academicModuleOrDefault,
-  formatAcademicModuleLabel,
-  type AcademicModule,
-} from "@/lib/academic-modules";
+import type { AcademicModule } from "@/lib/academic-modules";
 import {
   formatBenefitDurationLabel,
   formatBenefitDurationSentence,
@@ -40,21 +35,13 @@ import type { AcademicOfferCycle } from "@/config/academicOffer";
 const QUOTE_DEBOUNCE_MS = 300;
 
 type TipoInscripcion = "nuevo_ingreso" | "regreso" | "reingreso";
-type StartModule = AcademicModule;
-
-// ACADEMIC_MODULES remains the internal superset; quote UI uses ACADEMIC_MODULE_CHOICES.
-const MODULE_OPTIONS_BY_CYCLE: Record<AcademicOfferCycle, StartModule[]> = {
-  C1: [...ACADEMIC_MODULE_CHOICES],
-  C2: [...ACADEMIC_MODULE_CHOICES],
-  C3: [...ACADEMIC_MODULE_CHOICES],
-};
 
 type PricingOption = {
   enrollmentType: TipoInscripcion;
   businessLine: string;
   modality: string;
   plan: number;
-  module: StartModule;
+  module: AcademicModule;
   programKey?: string | null;
   source?: "pricing" | "offering";
 };
@@ -81,7 +68,7 @@ type PricingOptionsResponse = {
       businessLine: string;
       modality: string;
       plan: number;
-      module: StartModule;
+      module: AcademicModule;
       programId?: string;
       programKey?: string | null;
       source?: "pricing" | "offering";
@@ -116,7 +103,6 @@ type CalculationErr = {
     | "nivel"
     | "modalidad"
     | "plan"
-    | "modulo"
     | "plantel"
     | "materias"
     | "promedio"
@@ -131,7 +117,6 @@ const QUOTE_MISSING_FIELD_LABELS: Record<string, string> = {
   businessLine: "línea de negocio",
   modality: "modalidad",
   plan: "plan de pago",
-  modulo: "módulo de inicio",
   campus: "plantel",
   average: "promedio",
   subjectCount: "materias",
@@ -142,7 +127,6 @@ const QUOTE_MISSING_FIELD_MAP: Record<string, NonNullable<CalculationErr["missin
   businessLine: "nivel",
   modality: "modalidad",
   plan: "plan",
-  modulo: "modulo",
   campus: "plantel",
   average: "promedio",
   subjectCount: "materias",
@@ -307,9 +291,6 @@ type OfferProgram = {
   offeringId: string;
   programId: string;
   programName: string;
-  module: StartModule;
-  moduleCount: number | null;
-  subjectsByModule: string | null;
   modality: string;
   schedule: string | null;
   planLink: string | null;
@@ -539,7 +520,7 @@ export default function ScholarshipCalculator({
         businessLine: string;
         modality: string;
         plan: number;
-        module: StartModule;
+        module: AcademicModule;
         programId?: string;
         programKey?: string | null;
       }>;
@@ -554,7 +535,6 @@ export default function ScholarshipCalculator({
   const [modalidad, setModalidad] = useState("");
   const [studyProgramId, setStudyProgramId] = useState("");
   const [plan, setPlan] = useState<number | null>(null);
-  const [selectedStartModule, setSelectedStartModule] = useState<StartModule | "">("");
   const [plantel, setPlantel] = useState("");
   const [materias, setMaterias] = useState<number | null>(null);
   const [promedio, setPromedio] = useState("");
@@ -571,8 +551,6 @@ export default function ScholarshipCalculator({
     Array<{ id: string; code: string; concept: string; costMxn: number; section: string }>
   >([]);
   const [academicFeesLoading, setAcademicFeesLoading] = useState(false);
-
-  // moduloIngreso removed from UI
 
   const [benefitBundle, setBenefitBundle] = useState<BenefitBundle | null>(null);
   const [beneficioLoading, setBeneficioLoading] = useState(false);
@@ -596,7 +574,6 @@ export default function ScholarshipCalculator({
   const modalidadLabelId = useId();
   const studyProgramLabelId = useId();
   const planLabelId = useId();
-  const startModuleLabelId = useId();
   const plantelLabelId = useId();
   const materiasLabelId = useId();
   const promedioLabelId = useId();
@@ -611,7 +588,6 @@ export default function ScholarshipCalculator({
       setModalidad(toUiModality(scenario.input.modality));
       setStudyProgramId(scenario.input.selectedProgramId ?? "");
       setPlan(scenario.input.plan);
-      setSelectedStartModule(academicModuleOrDefault(scenario.input.module));
       setPlantel(scenario.input.campus ?? "");
       setMaterias(scenario.input.subjectCount ?? null);
       setPromedio(String(scenario.input.average));
@@ -769,7 +745,6 @@ export default function ScholarshipCalculator({
     setModalidad("");
     setStudyProgramId("");
     setPlan(null);
-    setSelectedStartModule("");
     setPlantel("");
     setMaterias(null);
     setPromedio("");
@@ -780,7 +755,6 @@ export default function ScholarshipCalculator({
     setModalidad("");
     setStudyProgramId("");
     setPlan(null);
-    setSelectedStartModule("");
     setPlantel("");
     setMaterias(null);
   }, [nivel]);
@@ -789,7 +763,6 @@ export default function ScholarshipCalculator({
     if (applyingScenarioRef.current) return;
     setStudyProgramId("");
     setPlan(null);
-    setSelectedStartModule("");
     setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
   }, [modalidad]);
@@ -797,21 +770,18 @@ export default function ScholarshipCalculator({
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlan(null);
-    setSelectedStartModule("");
     setPlantel(modalidad === "online" ? ONLINE_QUOTE_CAMPUS.value : "");
     setMaterias(null);
   }, [studyProgramId, modalidad]);
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
-    setSelectedStartModule("");
     setMaterias(null);
   }, [plan]);
 
   useEffect(() => {
     if (applyingScenarioRef.current) return;
     setPlan(null);
-    setSelectedStartModule("");
     setMaterias(null);
   }, [plantel]);
 
@@ -924,18 +894,6 @@ export default function ScholarshipCalculator({
       return;
     }
 
-    if (plan && !selectedStartModule) {
-      setQuoteResult({
-        ok: false,
-        error: "missing_fields",
-        hint: "Selecciona el módulo de inicio.",
-        missing: ["modulo"],
-        source: "ui",
-      });
-      setQuoteLoading(false);
-      return;
-    }
-
     let active = true;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
@@ -957,7 +915,6 @@ export default function ScholarshipCalculator({
             campus: benefitLookupKey || plantel || null,
             average: promedio.trim(),
             subjectCount: materias,
-            module: selectedStartModule || null,
             extraCharge: cargoEnabled ? cargoAmount : null,
             selectedProgramId: studyProgramId || null,
             selectedProgramName: selectedStudyProgram?.name ?? selectedOfferProgram?.programName ?? null,
@@ -994,7 +951,6 @@ export default function ScholarshipCalculator({
     benefitLookupKey,
     modalidad,
     plan,
-    selectedStartModule,
     plantel,
     promedio,
     materias,
@@ -1112,9 +1068,6 @@ export default function ScholarshipCalculator({
             offeringId: row.id,
             programId: row.program.id,
             programName: row.program.name,
-            module: academicModuleOrDefault(row.module),
-            moduleCount: row.moduleCount ?? null,
-            subjectsByModule: row.subjectsByModule ?? null,
             modality: row.modality,
             schedule: row.schedule ?? null,
             planLink: row.planLink ?? null,
@@ -1202,53 +1155,6 @@ export default function ScholarshipCalculator({
   const nivelOptions = niveles.map((n) => ({ value: n, label: humanizeLabel(n) }));
   const modalidadOptions = modalidades.map((m) => ({ value: m, label: humanizeLabel(m) }));
   const planOptions = planes.map((p) => ({ value: String(p), label: `Plan ${p}` }));
-  const startModuleOptions = useMemo(
-    () => {
-      const offeredModules = new Set<StartModule>();
-      for (const offer of offerPrograms) {
-        if (offer.programId === studyProgramId) {
-          offeredModules.add(offer.module);
-        }
-      }
-      const selectedCampus = campusOptions.find((campus) => campus.value === plantel);
-      const sourceOptions = selectedCampus?.pricingOptions?.length
-        ? selectedCampus.pricingOptions
-        : availablePricingOptions;
-      for (const option of sourceOptions) {
-        if (
-          option.businessLine === nivel &&
-          option.modality === modalidad &&
-          option.programId === studyProgramId &&
-          Number(option.plan) === Number(plan)
-        ) {
-          offeredModules.add(option.module);
-        }
-      }
-
-      const fallbackModules = selectedOfferCycle
-        ? MODULE_OPTIONS_BY_CYCLE[selectedOfferCycle]
-        : MODULE_OPTIONS_BY_CYCLE.C1;
-      const configuredModules = offeredModules.size
-        ? ACADEMIC_MODULE_CHOICES.filter((module) => offeredModules.has(module))
-        : [];
-      const modules = configuredModules.length ? configuredModules : fallbackModules;
-      return modules.map((module) => ({
-        value: module,
-        label: formatAcademicModuleLabel(module),
-      }));
-    },
-    [
-      availablePricingOptions,
-      campusOptions,
-      modalidad,
-      nivel,
-      offerPrograms,
-      plan,
-      plantel,
-      selectedOfferCycle,
-      studyProgramId,
-    ],
-  );
   const plantelOptions = planteles.map((campus) => ({
     value: campus.value,
     label: campus.label,
@@ -1270,12 +1176,6 @@ export default function ScholarshipCalculator({
         { value: "kardex", label: "Kardex", cost: 0 },
         { value: "revalidacion", label: "Revalidación", cost: 0 },
       ];
-
-  useEffect(() => {
-    if (!selectedStartModule) return;
-    if (startModuleOptions.some((option) => option.value === selectedStartModule)) return;
-    setSelectedStartModule("");
-  }, [selectedStartModule, startModuleOptions]);
 
   const porcentajeBenefit = benefitBundle?.benefit ?? null;
   const firstPaymentBenefit = benefitBundle?.firstPaymentBenefit ?? null;
@@ -1322,7 +1222,7 @@ export default function ScholarshipCalculator({
       campus: plantel || null,
       average: toNum(promedio) ?? 0,
       subjectCount: materias,
-      module: selectedStartModule || null,
+      module: null,
       extraChargeAmount: cargoEnabled ? cargoAmountValue : 0,
       chargeType: cargoEnabled ? cargoType || null : null,
       selectedProgramId: studyProgramId || offerSelectedProgramId || null,
@@ -1341,7 +1241,6 @@ export default function ScholarshipCalculator({
     plan,
     plantel,
     promedio,
-    selectedStartModule,
     selectedStudyProgram?.name,
     selectedOfferProgram?.programName,
     studyProgramId,
@@ -2230,19 +2129,6 @@ export default function ScholarshipCalculator({
                 error={Boolean(calcErr?.missing?.includes("plan"))}
                 options={planOptions}
                 onChange={(v) => setPlan(v ? Number(v) : null)}
-              />
-            </label>
-
-            <label className="grid min-w-0 gap-2 ui-label">
-              <span id={startModuleLabelId}>Módulo de inicio</span>
-              <SmartSelect
-                labelId={startModuleLabelId}
-                value={selectedStartModule}
-                placeholder={plan ? "Selecciona módulo" : "Selecciona plan primero"}
-                disabled={!plan}
-                error={Boolean(calcErr?.missing?.includes("modulo"))}
-                options={startModuleOptions}
-                onChange={(v) => setSelectedStartModule(v as StartModule)}
               />
             </label>
           </div>

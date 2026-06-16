@@ -4,7 +4,7 @@ import {
   normalizeCanonicalModality,
   type EnrollmentTypeValue,
 } from "@/lib/pricing-normalize";
-import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
+import type { AcademicModule } from "@/lib/academic-modules";
 import { normalizeKey } from "@/lib/text-normalize";
 
 export type QuotePricingOption = {
@@ -65,7 +65,6 @@ function optionKey(option: QuotePricingOption) {
     option.businessLine,
     option.modality,
     option.plan,
-    option.module,
     option.programKey ?? "",
   ].join("|");
 }
@@ -76,7 +75,6 @@ function compareOptions(left: QuotePricingOption, right: QuotePricingOption) {
     left.businessLine.localeCompare(right.businessLine, "es-MX") ||
     left.modality.localeCompare(right.modality, "es-MX") ||
     left.plan - right.plan ||
-    left.module.localeCompare(right.module, "es-MX") ||
     String(left.programKey ?? "").localeCompare(String(right.programKey ?? ""), "es-MX")
   );
 }
@@ -91,7 +89,6 @@ export function buildQuotePricingOptions(
     businessLine: string;
     modality: string;
     plan: number;
-    module?: string | null;
     programKey?: string | null;
   }) {
     for (const enrollmentType of ENROLLMENT_TYPES) {
@@ -100,7 +97,7 @@ export function buildQuotePricingOptions(
         businessLine: params.businessLine,
         modality: params.modality,
         plan: params.plan,
-        module: academicModuleOrDefault(params.module),
+        module: "Longitudinal" as AcademicModule,
         ...(params.programKey ? { programKey: params.programKey } : {}),
       };
       options.set(optionKey(option), option);
@@ -118,7 +115,6 @@ export function buildQuotePricingOptions(
       businessLine,
       modality,
       plan,
-      module: "Longitudinal",
       programKey: normalizeProgramKey(rule.programKey ?? rule.programaKey),
     });
   }
@@ -141,17 +137,12 @@ export function buildQuotePricingOptions(
         keys.programa ??
         keys.program,
     );
-    const academicModule = academicModuleOrDefault(
-      keys.modulo ?? keys.module ?? keys.academicModule,
-    );
-
     if (!businessLine || !modality || plan === null) continue;
 
     addForAllEnrollmentTypes({
       businessLine,
       modality,
       plan,
-      module: academicModule,
       programKey,
     });
   }

@@ -52,17 +52,15 @@ describe("workflow regressions", () => {
     expect(adminChrome).toContain("width: min(82vw, 320px)");
   });
 
-  it("requires the UI-only module selector after payment plan by cycle", () => {
+  it("keeps the imported academic module out of the quote UI and required quote fields", () => {
     const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
 
-    expect(source).toContain("MODULE_OPTIONS_BY_CYCLE");
-    expect(source).toContain("ACADEMIC_MODULES");
     expect(read("apps/web/src/lib/academic-modules.ts")).toContain(
       "[\"M1\", \"M2\", \"M3\", \"Longitudinal\", \"Modular\"]",
     );
-    expect(source).toContain("setSelectedStartModule");
-    expect(source).toContain("Módulo de inicio");
-    expect(source).toContain("missing: [\"modulo\"]");
+    expect(source).not.toContain("setSelectedStartModule");
+    expect(source).not.toContain("Módulo de inicio");
+    expect(source).not.toContain("missing: [\"modulo\"]");
   });
 
   it("makes the plan preview primary and removes redundant download CTAs", () => {

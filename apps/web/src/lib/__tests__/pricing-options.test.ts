@@ -161,7 +161,7 @@ describe("buildQuotePricingOptions", () => {
     ).toBe(false);
   });
 
-  it("keeps module-specific override options distinct", () => {
+  it("collapses module-scoped override options for quote availability", () => {
     const options = buildQuotePricingOptions([], [
       {
         targetKeys: {
@@ -195,14 +195,7 @@ describe("buildQuotePricingOptions", () => {
         businessLine: "licenciatura",
         modality: "presencial",
         plan: 9,
-        module: "M1",
-      },
-      {
-        enrollmentType: "nuevo_ingreso",
-        businessLine: "licenciatura",
-        modality: "presencial",
-        plan: 9,
-        module: "M2",
+        module: "Longitudinal",
       },
     ]);
   });

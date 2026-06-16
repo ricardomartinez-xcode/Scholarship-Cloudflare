@@ -430,25 +430,8 @@ describe("findPublishedBasePriceOverride", () => {
     ).toBe(4100);
   });
 
-  it("prefers module-specific list and subject prices over generic prices", () => {
+  it("does not require a quote module to use imported module-scoped list and subject prices", () => {
     const overrides: PriceOverrideSnapshot[] = [
-      {
-        id: "longitudinal-price",
-        scope: BASE_PRICE_OVERRIDE_SCOPE,
-        targetKeys: {
-          nivel_key: "licenciatura",
-          modalidad_key: "presencial",
-          plan: "9",
-          plantel: "Hermosillo",
-          tier: "T3",
-          modulo: "Longitudinal",
-          subject_price_mxn: 1100,
-        },
-        newPrice: 5000,
-        isActive: true,
-        notes: null,
-        updatedBy: null,
-      },
       {
         id: "m2-price",
         scope: BASE_PRICE_OVERRIDE_SCOPE,
@@ -474,7 +457,6 @@ describe("findPublishedBasePriceOverride", () => {
       plan: 9,
       tier: "T3",
       campus: "Hermosillo",
-      module: "M2",
     };
 
     expect(findPublishedBasePriceOverride(overrides, params)).toBe(5300);

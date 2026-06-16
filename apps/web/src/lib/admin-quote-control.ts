@@ -1,5 +1,4 @@
 import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
-import { normalizeAcademicModule } from "@/lib/academic-modules";
 import { resolveQuoteAcademicOffering } from "@/lib/quote-academic-offering";
 import {
   normalizeBusinessLine,
@@ -116,7 +115,6 @@ export function inspectAdminQuotePayload(
     invalid.push("subjectCount");
   }
   if (extraChargeAmount < 0) invalid.push("extraCharge");
-  if (academicModule && !normalizeAcademicModule(academicModule)) invalid.push("module");
 
   return {
     ok: missing.length === 0 && invalid.length === 0,
@@ -145,7 +143,7 @@ function toCanonicalQuoteRequest(input: NormalizedAdminQuotePayload) {
     campus: input.campus,
     average: input.average,
     subjectCount: input.subjectCount,
-    module: input.module,
+    module: null,
     extraChargeAmount: input.extraChargeAmount,
     selectedProgramId: input.selectedProgramId,
     selectedProgramName: input.selectedProgramName,
@@ -205,7 +203,7 @@ export async function runAdminQuoteSimulation(payload: AdminQuotePayload) {
           selectedProgramId: offeringResolution.context.programId,
           selectedProgramName: offeringResolution.context.programName,
           offeringId: offeringResolution.context.offeringId,
-          module: offeringResolution.context.module,
+          module: null,
         }
       : {}),
   };

@@ -46,4 +46,19 @@ describe("admin quote control", () => {
     expect(diagnostics.ok).toBe(false);
     expect(diagnostics.invalid).toEqual(["plan", "average", "subjectCount", "extraCharge"]);
   });
+
+  it("keeps legacy module data from making quote payloads invalid", () => {
+    const diagnostics = inspectAdminQuotePayload({
+      enrollmentType: "nuevo_ingreso",
+      businessLine: "licenciatura",
+      modality: "online",
+      plan: "11",
+      average: "8.5",
+      module: "Modulo informativo importado",
+    });
+
+    expect(diagnostics.ok).toBe(true);
+    expect(diagnostics.invalid).toEqual([]);
+    expect(diagnostics.normalized.module).toBe("Modulo informativo importado");
+  });
 });
