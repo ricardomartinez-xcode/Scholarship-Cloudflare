@@ -19,7 +19,7 @@ function normalizeOverride(override: {
   return {
     id: override.id,
     scope: override.scope,
-    targetKeys: JSON.parse(JSON.stringify(override.targetKeys ?? {}))
+    targetKeys: JSON.parse(JSON.stringify(override.targetKeys ?? {})),
     newPrice: Number(override.newPrice),
     isActive: override.isActive,
     notes: override.notes,
@@ -66,7 +66,7 @@ function mergePriceOverrides(
 
 export async function listActivePublishedPriceOverrides(
   scopes: string[] = ["monto"],
-d): Promise<PriceOverrideSnapshot[]> {
+): Promise<PriceOverrideSnapshot[]> {
   const [published, dbOverrides] = await Promise.all([
     getPublishedConfigSnapshot(AdminConfigModule.PRICES),
     listActiveDbPriceOverrides(scopes),
