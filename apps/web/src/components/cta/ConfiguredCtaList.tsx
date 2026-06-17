@@ -235,7 +235,9 @@ function CtaPopupModal({
   return createPortal(
     <div
       className="ui-cta-popup-overlay fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <div
         ref={panelRef}

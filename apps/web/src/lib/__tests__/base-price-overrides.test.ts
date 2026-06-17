@@ -402,6 +402,50 @@ describe("findPublishedBasePriceOverride", () => {
     ).toBe(5600);
   });
 
+  it("matches imported program aliases against canonical program names before choosing generic prices", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "generic-industrial-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T2",
+        },
+        newPrice: 4300,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "industrial-sistemas-price",
+        scope: BASE_PRICE_OVERRIDE_SCOPE,
+        targetKeys: {
+          programa_key: "Industrial y Sistemas",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T2",
+        },
+        newPrice: 5100,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        tier: "T2",
+        programName: "Licenciatura en Ingeniería Industrial y de Sistemas",
+      }),
+    ).toBe(5100);
+  });
+
   it("uses a general line/modality/plan price after plantel and tier scopes", () => {
     const overrides: PriceOverrideSnapshot[] = [
       {

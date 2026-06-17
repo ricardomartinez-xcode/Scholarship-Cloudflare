@@ -8,6 +8,7 @@
  * This module is now the sole quote engine for web and extension quote APIs.
  */
 import { prisma } from "@/lib/prisma";
+import { normalizeAcademicProgramKey } from "@relead/db/program-name-normalization";
 import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrides";
 import { resolveAdditionalBenefits } from "@/lib/additional-benefits";
 import { buildCampusAliases, resolveCampus } from "@/lib/campus-resolver";
@@ -107,7 +108,7 @@ const LEGACY_PROGRAM_KEYS = new Set([
 function normalizeRuleProgramKey(value: unknown) {
   const normalized = normalizeScopeKey(value);
   if (LEGACY_PROGRAM_KEYS.has(normalized)) return "";
-  return normalizeCompactScopeKey(normalized);
+  return normalizeCompactScopeKey(normalizeAcademicProgramKey(String(value ?? "")) || normalized);
 }
 
 function buildProgramTargets(input: {

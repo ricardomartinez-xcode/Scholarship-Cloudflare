@@ -148,7 +148,7 @@ describe("buildQuotePricingOptions", () => {
       modality: "presencial",
       plan: 9,
       module: "Longitudinal",
-      programKey: "psicologia",
+      programKey: "licenciatura en psicologia",
     });
     expect(
       options.some(
@@ -159,6 +159,29 @@ describe("buildQuotePricingOptions", () => {
           !option.programKey,
       ),
     ).toBe(false);
+  });
+
+  it("normalizes imported program aliases before exposing program-scoped quote options", () => {
+    const options = buildQuotePricingOptions([], [
+      {
+        targetKeys: {
+          programa_key: "Industrial y Sistemas",
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T2",
+        },
+      },
+    ]);
+
+    expect(options).toContainEqual({
+      enrollmentType: "nuevo_ingreso",
+      businessLine: "licenciatura",
+      modality: "presencial",
+      plan: 9,
+      module: "Longitudinal",
+      programKey: "licenciatura en ingenieria industrial y de sistemas",
+    });
   });
 
   it("collapses module-scoped override options for quote availability", () => {

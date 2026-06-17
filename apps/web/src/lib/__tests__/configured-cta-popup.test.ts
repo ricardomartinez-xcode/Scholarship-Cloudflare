@@ -12,14 +12,17 @@ function read(relativePath: string) {
 describe("configured CTA popup", () => {
   it("renders popup dialogs through a body portal with the dialog role on the panel", () => {
     const source = read("apps/web/src/components/cta/ConfiguredCtaList.tsx");
-    const overlayOpeningTag = source.match(
-      /<div\s+className="ui-cta-popup-overlay[\s\S]*?onClick=\{onClose\}\s*>/,
-    )?.[0];
+    const overlayStart = source.indexOf('className="ui-cta-popup-overlay');
+    const panelStart = source.indexOf('role="dialog"');
+    const overlayMarkup = source.slice(overlayStart, panelStart);
 
     expect(source).toContain("createPortal(");
     expect(source).toContain("document.body");
-    expect(overlayOpeningTag).toBeTruthy();
-    expect(overlayOpeningTag).not.toContain('role="dialog"');
+    expect(overlayStart).toBeGreaterThan(-1);
+    expect(panelStart).toBeGreaterThan(overlayStart);
+    expect(overlayMarkup).not.toContain('role="dialog"');
+    expect(overlayMarkup).not.toContain("onClick={onClose}");
+    expect(source).toContain("event.target === event.currentTarget");
     expect(source).toContain('role="dialog"');
     expect(source).toContain('aria-modal="true"');
     expect(source).toContain('aria-labelledby={titleId}');

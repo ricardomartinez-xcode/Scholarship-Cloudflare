@@ -1,4 +1,5 @@
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
+import { normalizeAcademicProgramKey } from "@relead/db/program-name-normalization";
 import {
   normalizeBusinessLine,
   toNumber,
@@ -138,7 +139,7 @@ function campusTargetMatches(target: string, campusTargets: Set<string>) {
 function normalizeProgramTarget(value: unknown) {
   const normalized = normalizeKey(value);
   if (!normalized || LEGACY_PROGRAM_KEYS.has(normalized)) return "";
-  return normalizeCompactKey(normalized);
+  return normalizeCompactKey(normalizeAcademicProgramKey(String(value ?? "")) || normalized);
 }
 
 function normalizeProgramTargets(params: {
@@ -227,17 +228,21 @@ function getScopeScore(keys: Record<string, unknown>, params: {
 
   const moduleKey = targetModuleKey(keys);
   const expectedModule = normalizeKey(params.module);
-  if (moduleKey && moduleKey !== expectedModule) return null;
+  if (moduleKey && expectedModule && moduleKey !== expectedModule) return null;
 
   const targetTier = normalizeTierKey(keys.tier);
   const expectedTier = normalizeTierKey(params.tier);
-  if (targetTier && targetTier !== expectedTier) return null;
+  if (targetTier && targetTier !== expectedTier && (expectedTier || !campusKey)) {
+    return null;
+  }
 
   let score = 0;
   if (programKey) score += 1_000;
-  if (campusKey) score += targetTier ? 300 : 260;
+  if (campusKey) {
+    score += targetTier ? (expectedTier ? 300 : 250) : 260;
+  }
   if (!campusKey && targetTier) score += 150;
-  if (moduleKey) score += 50;
+  if (moduleKey && expectedModule) score += 50;
 
   return score;
 }

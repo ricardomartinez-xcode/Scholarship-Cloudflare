@@ -1,3 +1,5 @@
+import { normalizeAcademicProgramKey } from "@relead/db/program-name-normalization";
+
 import {
   ENROLLMENT_TYPES,
   normalizeBusinessLine,
@@ -56,7 +58,7 @@ function normalizePlan(value: unknown) {
 function normalizeProgramKey(value: unknown) {
   const normalized = normalizeKey(String(value ?? ""));
   if (!normalized || LEGACY_PROGRAMA_KEYS.has(normalized)) return null;
-  return normalized;
+  return normalizeAcademicProgramKey(String(value ?? "")) || normalized;
 }
 
 function optionKey(option: QuotePricingOption) {
