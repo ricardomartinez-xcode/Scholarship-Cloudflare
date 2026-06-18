@@ -8,6 +8,32 @@ import {
 import type { PriceOverrideSnapshot } from "@/lib/admin-config-snapshots";
 
 describe("findPublishedBasePriceOverride", () => {
+  it("ignores historical monto-scoped records for quote list prices", () => {
+    const overrides: PriceOverrideSnapshot[] = [
+      {
+        id: "historical-monto-price",
+        scope: "monto",
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "online",
+          plan: "9",
+        },
+        newPrice: 5900,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ];
+
+    expect(
+      findPublishedBasePriceOverride(overrides, {
+        businessLine: "licenciatura",
+        modality: "online",
+        plan: 9,
+      }),
+    ).toBeNull();
+  });
+
   it("prefers campus-specific price-list overrides over tier-level overrides", () => {
     const overrides: PriceOverrideSnapshot[] = [
       {

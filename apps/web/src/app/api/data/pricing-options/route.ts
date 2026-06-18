@@ -15,15 +15,11 @@ import {
 import { normalizeKey } from "@/lib/text-normalize";
 import {
   ENROLLMENT_TYPES,
-  basePriceFromRules,
   normalizeBusinessLine,
-  normalizeCanonicalModality,
   normalizeTier,
-  toNumber,
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
-import { findStaticBasePrice } from "@/lib/static-costs";
 import {
   getUnidepProgramCatalog,
   getUnidepProgramPlanUrl,
@@ -113,32 +109,6 @@ function programMatchesPricingOption(
       (target.length >= 5 && candidate.includes(target)) ||
       (candidate.length >= 5 && target.includes(candidate)),
   );
-}
-
-function normalizeRulesForBasePrice(
-  rules: Array<{
-    enrollmentType: string;
-    businessLine: string;
-    modality: string;
-    plan: number;
-    campusTier: string | null;
-    minAverage: unknown;
-    maxAverage: unknown;
-    scholarshipPercent: unknown;
-    discountedPriceMxn: unknown;
-  }>,
-) {
-  return rules.map((rule) => ({
-    enrollmentType: rule.enrollmentType,
-    businessLine: rule.businessLine,
-    modality: rule.modality,
-    plan: rule.plan,
-    campusTier: rule.campusTier,
-    minAverage: toNumber(rule.minAverage),
-    maxAverage: toNumber(rule.maxAverage),
-    scholarshipPercent: toNumber(rule.scholarshipPercent),
-    discountedPriceMxn: toNumber(rule.discountedPriceMxn),
-  }));
 }
 
 function getOfferingModalities(offering: {
@@ -279,32 +249,11 @@ export async function GET() {
   }
 
   const [
-    rules,
     priceOverrides,
     campuses,
     activeOfferings,
     catalogPrograms,
   ] = await Promise.all([
-    prisma.scholarshipRule.findMany({
-      where: { sourceVersion: "canonical" },
-      orderBy: [
-        { businessLine: "asc" },
-        { modality: "asc" },
-        { plan: "asc" },
-      ],
-      select: {
-        enrollmentType: true,
-        businessLine: true,
-        modality: true,
-        plan: true,
-        campusTier: true,
-        programaKey: true,
-        minAverage: true,
-        maxAverage: true,
-        scholarshipPercent: true,
-        discountedPriceMxn: true,
-      },
-    }),
     prisma.adminPriceOverride.findMany({
       where: {
         scope: BASE_PRICE_OVERRIDE_SCOPE,
@@ -372,7 +321,7 @@ export async function GET() {
   );
 
   const pricingOptions = [
-    ...buildQuotePricingOptions(rules, priceOverrides),
+    ...buildQuotePricingOptions([], priceOverrides),
     ...buildConfiguredOfferingPricingOptions(activeOfferings, r2Assignments),
   ];
 
@@ -404,31 +353,6 @@ export async function GET() {
         new Map(
           pricingOptions
             .filter((option) => {
-              const tierCandidates = new Set([runtimeTier, "ANY"]);
-              const candidateRules = rules.filter((rule) => {
-                const ruleBusinessLine = normalizeBusinessLine(rule.businessLine);
-                const ruleModality = normalizeCanonicalModality(rule.modality);
-                return (
-                  ruleBusinessLine === option.businessLine &&
-                  ruleModality === option.modality &&
-                  Number(rule.plan) === option.plan &&
-                  tierCandidates.has(normalizeTier(rule.campusTier))
-                );
-              });
-              const fallbackRules = rules.filter((rule) => {
-                const ruleBusinessLine = normalizeBusinessLine(rule.businessLine);
-                const ruleModality = normalizeCanonicalModality(rule.modality);
-                return (
-                  ruleBusinessLine === option.businessLine &&
-                  ruleModality === option.modality &&
-                  Number(rule.plan) === option.plan
-                );
-              });
-              const ruleBasePrice = basePriceFromRules(
-                normalizeRulesForBasePrice(
-                  candidateRules.length ? candidateRules : fallbackRules,
-                ),
-              );
               const overrideBasePrice = findPublishedBasePriceOverride(
                 priceOverrideSnapshots,
                 {
@@ -448,11 +372,6 @@ export async function GET() {
                   programAliases: option.programKey ? [option.programKey] : [],
                 },
               );
-              const staticBasePrice = findStaticBasePrice({
-                businessLine: option.businessLine,
-                modality: option.modality,
-                plan: option.plan,
-              });
 
               if (option.source === "offering") {
                 return true;
@@ -462,11 +381,7 @@ export async function GET() {
                 return overrideBasePrice !== null;
               }
 
-              return (
-                ruleBasePrice !== null ||
-                overrideBasePrice !== null ||
-                staticBasePrice !== null
-              );
+              return overrideBasePrice !== null;
             })
             .map((option) => [buildPriceOnlyKey(option), option]),
         ).values(),

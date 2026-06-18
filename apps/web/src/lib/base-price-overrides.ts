@@ -9,18 +9,11 @@ import {
 import { normalizeKey as normalizeTextKey } from "@/lib/text-normalize";
 
 /**
- * Canonical price imports use scope "monto".
- *
- * The previous quote engine requested only "base_price", so canonical imported
- * prices were ignored and the calculator fell back to scholarship-rule-derived
- * prices, commonly resolving to 5900 for unrelated programs.
+ * Admin price imports and manual edits persist list prices with scope "base_price".
+ * Quote resolution must use this source instead of derived rule/static prices.
  */
-export const BASE_PRICE_OVERRIDE_SCOPE = "monto";
-const LEGACY_BASE_PRICE_OVERRIDE_SCOPE = "base_price";
-const BASE_PRICE_OVERRIDE_SCOPES = new Set([
-  BASE_PRICE_OVERRIDE_SCOPE,
-  LEGACY_BASE_PRICE_OVERRIDE_SCOPE,
-]);
+export const BASE_PRICE_OVERRIDE_SCOPE = "base_price";
+const BASE_PRICE_OVERRIDE_SCOPES = new Set([BASE_PRICE_OVERRIDE_SCOPE]);
 
 const BUSINESS_LINE_TARGET_ALIASES: Record<CanonicalBusinessLine, string[]> = {
   salud: ["salud"],

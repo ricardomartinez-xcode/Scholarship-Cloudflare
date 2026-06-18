@@ -65,7 +65,7 @@ function mergePriceOverrides(
 }
 
 export async function listActivePublishedPriceOverrides(
-  scopes: string[] = ["monto"],
+  scopes: string[] = ["base_price"],
 ): Promise<PriceOverrideSnapshot[]> {
   const [published, dbOverrides] = await Promise.all([
     getPublishedConfigSnapshot(AdminConfigModule.PRICES),

@@ -127,7 +127,64 @@ describe("GET /api/data/pricing-options", () => {
         discountedPriceMxn: 6000,
       },
     ]);
-    prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([
+      {
+        id: "price_prepa_t1",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "preparatoria",
+          modalidad_key: "presencial",
+          plan: "6",
+          tier: "T1",
+        },
+        newPrice: 3200,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "price_prepa_t3",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "preparatoria",
+          modalidad_key: "presencial",
+          plan: "6",
+          tier: "T3",
+        },
+        newPrice: 3600,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "price_lic_t2",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T2",
+        },
+        newPrice: 5600,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+      {
+        id: "price_posgrado_online",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "posgrado",
+          modalidad_key: "online",
+          plan: "11",
+          plantel: "ONLINE",
+        },
+        newPrice: 7700,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ]);
     listFileAssetAssignmentsForTargetsMock.mockResolvedValue(new Map());
     listContentBucketObjectsMock.mockResolvedValue([]);
     listFileAssetsMock.mockResolvedValue([]);
@@ -307,7 +364,7 @@ describe("GET /api/data/pricing-options", () => {
     ]);
   });
 
-  it("annotates campuses from active academic offerings and keeps offered programs independent from price", async () => {
+  it("annotates campuses from active academic offerings and uses admin price overrides for quote options", async () => {
     const response = await GET();
     const data = (await response.json()) as {
       campuses: Array<{
@@ -459,6 +516,14 @@ describe("GET /api/data/pricing-options", () => {
       expect.objectContaining({
         where: expect.not.objectContaining({
           cycle: expect.anything(),
+        }),
+      }),
+    );
+    expect(prismaMock.adminPriceOverride.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          scope: "base_price",
+          isActive: true,
         }),
       }),
     );

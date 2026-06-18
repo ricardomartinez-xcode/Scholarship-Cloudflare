@@ -18,7 +18,6 @@ import {
   findPublishedSubjectPriceOverride,
 } from "@/lib/base-price-overrides";
 import {
-  basePriceFromRules,
   listRuleRanges,
   normalizeTier,
   requiresCampusForQuote,
@@ -27,8 +26,6 @@ import {
   type CanonicalModalityValue,
   type EnrollmentTypeValue,
 } from "@/lib/pricing-normalize";
-import { logStructured } from "@/lib/observability";
-import { findStaticBasePrice } from "@/lib/static-costs";
 import { normalizeKey as normalizeTextKey } from "@/lib/text-normalize";
 
 export type ScholarshipQuoteInput = {
@@ -402,13 +399,6 @@ export async function resolveScholarshipQuote(
       input.selectedProgramName ?? null,
     ],
   });
-  const ruleBasePrice = basePriceFromRules(normalizedCandidateRules);
-  const staticBasePrice = findStaticBasePrice({
-    businessLine: input.businessLine,
-    modality: input.modality,
-    plan: input.plan,
-  });
-
   const returnSubjectPriceMxn =
     input.enrollmentType === "regreso" &&
     input.businessLine === "licenciatura" &&
@@ -418,38 +408,15 @@ export async function resolveScholarshipQuote(
       : null;
   const basePriceMxn =
     returnSubjectPriceMxn ??
-    basePriceOverride ??
-    ruleBasePrice ??
-    staticBasePrice;
-
-  if (
-    staticBasePrice !== null &&
-    basePriceMxn === staticBasePrice &&
-    basePriceOverride === null &&
-    ruleBasePrice === null
-  ) {
-    logStructured("warn", "Quote used static base price fallback", {
-      module: "scholarship-quote",
-      action: "resolve-base-price",
-      result: "fallback",
-      metadata: {
-        businessLine: input.businessLine,
-        modality: input.modality,
-        plan: input.plan,
-        module: input.module ?? null,
-        campus: input.campus ?? null,
-        tier: runtimeTier,
-        selectedProgramId: input.selectedProgramId ?? null,
-        selectedProgramName: input.selectedProgramName ?? null,
-        offeringId: input.offeringId ?? null,
-      },
-    });
-  }
+    basePriceOverride;
 
   if (basePriceMxn === null) {
     return {
       ok: false,
-      error: "No fue posible determinar el costo base de esta combinación.",
+      error: "No hay precio lista publicado para esta combinación.",
+      hint:
+        "Publica el precio correspondiente en Admin > Precios antes de generar la cotización.",
+      missing: ["basePrice"],
       source: "canonical",
     };
   }

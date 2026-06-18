@@ -55,6 +55,22 @@ describe("resolveScholarshipQuote", () => {
   });
 
   it("matches program-scoped scholarship rules using imported aliases before generic rules", async () => {
+    listActivePublishedPriceOverridesMock.mockResolvedValue([
+      {
+        id: "industrial-price",
+        scope: "base_price",
+        targetKeys: {
+          programa_key: "Industrial y Sistemas",
+          nivel_key: "licenciatura",
+          modalidad_key: "online",
+          plan: "9",
+        },
+        newPrice: 5100,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ]);
     prismaMock.scholarshipRule.findMany.mockResolvedValue([
       {
         enrollmentType: "nuevo_ingreso",
@@ -101,5 +117,40 @@ describe("resolveScholarshipQuote", () => {
       scholarshipPercent: 20,
       totalMxn: 4080,
     });
+  });
+
+  it("does not return rule-derived or static prices when no admin price is published", async () => {
+    findStaticBasePriceMock.mockReturnValue(5900);
+    prismaMock.scholarshipRule.findMany.mockResolvedValue([
+      {
+        enrollmentType: "nuevo_ingreso",
+        businessLine: "licenciatura",
+        modality: "online",
+        plan: 9,
+        campusTier: "ANY",
+        region: null,
+        plantel: null,
+        programaKey: null,
+        minAverage: 8,
+        maxAverage: 10,
+        scholarshipPercent: 20,
+        discountedPriceMxn: 4080,
+      },
+    ]);
+
+    const result = await resolveScholarshipQuote({
+      enrollmentType: "nuevo_ingreso",
+      businessLine: "licenciatura",
+      modality: "online",
+      plan: 9,
+      average: 9,
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "No hay precio lista publicado para esta combinación.",
+      missing: ["basePrice"],
+    });
+    expect(findStaticBasePriceMock).not.toHaveBeenCalled();
   });
 });
