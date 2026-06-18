@@ -122,15 +122,18 @@ export function visibleQuoteModalities(
   modalities: string[],
   businessLine?: string,
 ): CanonicalModalityValue[] {
-  const normalizedBusinessLine = normalizeBusinessLine(businessLine);
-
-  if (normalizedBusinessLine) {
-    return VISIBLE_MODALITIES_BY_BUSINESS_LINE[normalizedBusinessLine];
-  }
-
   const available = modalities
     .map((modality) => normalizeCanonicalModality(modality))
     .filter((modality): modality is CanonicalModalityValue => Boolean(modality));
+
+  const normalizedBusinessLine = normalizeBusinessLine(businessLine);
+
+  if (normalizedBusinessLine) {
+    const availableSet = new Set(available);
+    return VISIBLE_MODALITIES_BY_BUSINESS_LINE[normalizedBusinessLine].filter((modality) =>
+      availableSet.has(modality),
+    );
+  }
 
   return sortModalities(Array.from(new Set(available)));
 }

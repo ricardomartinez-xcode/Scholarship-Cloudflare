@@ -77,18 +77,22 @@ describe("admin UI patterns", () => {
     }
   });
 
-  it("keeps autorepair and bot configuration visible in admin navigation", () => {
+  it("keeps autopilot and bot configuration visible in admin navigation", () => {
     const source = read("apps/web/src/config/dashboard-navigation.ts");
+    const autopilotPagePath =
+      "apps/web/src/app/(admin)/admin/(protected)/autopilot/page.tsx";
     const botsPagePath =
       "apps/web/src/app/(admin)/admin/(protected)/capacitacion/bots/page.tsx";
 
-    expect(source).toContain('key: "autorepair"');
-    expect(source).toContain('label: "Autoreparador"');
-    expect(source).toContain('href: "/admin/reporting"');
+    expect(source).toContain('key: "autopilot"');
+    expect(source).toContain('label: "Autopilot"');
+    expect(source).toContain('href: "/admin/autopilot"');
+    expect(source).toContain('"/admin/autopilot": "Autopilot"');
     expect(source).toContain('key: "training-bots"');
     expect(source).toContain('label: "Configuración de bots"');
     expect(source).toContain('href: "/admin/capacitacion/bots"');
     expect(source).toContain('"/admin/capacitacion/bots": "Configuración de bots"');
+    expect(fs.existsSync(path.join(rootDir, autopilotPagePath))).toBe(true);
     expect(fs.existsSync(path.join(rootDir, botsPagePath))).toBe(true);
     expect(read(botsPagePath)).toContain('listRoleplayBots');
     expect(read(botsPagePath)).toContain('PRELOADED_ROLEPLAY_KNOWLEDGE');

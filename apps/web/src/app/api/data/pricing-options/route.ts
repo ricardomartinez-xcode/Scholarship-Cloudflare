@@ -213,6 +213,8 @@ function buildConfiguredOfferingPricingOptions(
               modality,
               plan,
               module: academicModule,
+              programId: studyProgram.id,
+              programName: studyProgram.name,
               programKey: studyProgram.id,
               source: "offering",
             };
@@ -320,10 +322,12 @@ export async function GET() {
     ),
   );
 
-  const pricingOptions = [
-    ...buildQuotePricingOptions([], priceOverrides),
-    ...buildConfiguredOfferingPricingOptions(activeOfferings, r2Assignments),
-  ];
+  const quotePricingOptions = buildQuotePricingOptions([], priceOverrides);
+  const offeringPricingOptions = buildConfiguredOfferingPricingOptions(
+    activeOfferings,
+    r2Assignments,
+  );
+  const pricingOptions = [...quotePricingOptions, ...offeringPricingOptions];
 
   const priceOverrideSnapshots = priceOverrides.map(
     (override): PriceOverrideSnapshot => ({
@@ -369,17 +373,11 @@ export async function GET() {
                     campus.code,
                     campus.slug,
                   ].filter(Boolean),
+                  programId: option.programId ?? null,
+                  programName: option.programName ?? null,
                   programAliases: option.programKey ? [option.programKey] : [],
                 },
               );
-
-              if (option.source === "offering") {
-                return true;
-              }
-
-              if (option.programKey) {
-                return overrideBasePrice !== null;
-              }
 
               return overrideBasePrice !== null;
             })
@@ -517,7 +515,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    combinations: pricingOptions,
+    combinations: quotePricingOptions,
     studyPrograms,
     campuses: responseCampuses,
     subjectCounts: buildSubjectCountOptions(priceOverrides),

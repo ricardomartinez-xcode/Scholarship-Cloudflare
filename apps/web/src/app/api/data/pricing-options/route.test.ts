@@ -529,7 +529,7 @@ describe("GET /api/data/pricing-options", () => {
     );
   });
 
-  it("exposes configured offering plans even before a canonical price exists", async () => {
+  it("keeps configured offerings visible without exposing quote plans before a price exists", async () => {
     prismaMock.scholarshipRule.findMany.mockResolvedValue([]);
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
     prismaMock.program.findMany.mockResolvedValue([
@@ -579,6 +579,7 @@ describe("GET /api/data/pricing-options", () => {
 
     const response = await GET();
     const data = (await response.json()) as {
+      combinations: Array<unknown>;
       campuses: Array<{
         value: string;
         businessLines: string[];
@@ -594,6 +595,7 @@ describe("GET /api/data/pricing-options", () => {
     };
 
     expect(response.status).toBe(200);
+    expect(data.combinations).toEqual([]);
     expect(data.campuses).toEqual([
       expect.objectContaining({
         value: "Hermosillo",
@@ -605,16 +607,7 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "salud",
           }),
         ],
-        pricingOptions: [
-          {
-            businessLine: "salud",
-            modality: "presencial",
-            plan: 9,
-            module: "Longitudinal",
-            programId: "program_psicologia",
-            programKey: "program_psicologia",
-          },
-        ],
+        pricingOptions: [],
       }),
     ]);
   });
