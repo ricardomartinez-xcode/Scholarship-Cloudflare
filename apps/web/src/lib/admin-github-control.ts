@@ -1,3 +1,5 @@
+import { inflateRawSync } from "node:zlib";
+
 type GitHubConfig =
   | { ok: true; token: string; owner: string; repo: string }
   | { ok: false; missing: string[] };
@@ -100,6 +102,81 @@ export async function githubRequest<T>(
   return body as T;
 }
 
+async function githubBinaryRequest(path: string): Promise<Buffer> {
+  const config = getGitHubConfig();
+  if (!config.ok) {
+    throw new GitHubControlError(
+      503,
+      "GITHUB_CONFIG_MISSING",
+      "La integración de GitHub no está configurada.",
+      { missing: config.missing },
+    );
+  }
+
+  const response = await fetch(githubUrl(config, path), {
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${config.token}`,
+      "x-github-api-version": "2022-11-28",
+    },
+  });
+
+  if (!response.ok) {
+    throw new GitHubControlError(
+      response.status,
+      errorCodeForStatus(response.status),
+      "GitHub rechazó la descarga solicitada.",
+      { status: response.status },
+    );
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
+function findEndOfCentralDirectory(buffer: Buffer) {
+  for (let offset = buffer.length - 22; offset >= 0; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === 0x06054b50) return offset;
+  }
+  return -1;
+}
+
+function extractZipTextFile(buffer: Buffer, fileName: string) {
+  const eocdOffset = findEndOfCentralDirectory(buffer);
+  if (eocdOffset < 0) return null;
+
+  const entryCount = buffer.readUInt16LE(eocdOffset + 10);
+  let centralOffset = buffer.readUInt32LE(eocdOffset + 16);
+
+  for (let index = 0; index < entryCount; index += 1) {
+    if (buffer.readUInt32LE(centralOffset) !== 0x02014b50) return null;
+
+    const compressionMethod = buffer.readUInt16LE(centralOffset + 10);
+    const compressedSize = buffer.readUInt32LE(centralOffset + 20);
+    const fileNameLength = buffer.readUInt16LE(centralOffset + 28);
+    const extraLength = buffer.readUInt16LE(centralOffset + 30);
+    const commentLength = buffer.readUInt16LE(centralOffset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(centralOffset + 42);
+    const entryName = buffer
+      .subarray(centralOffset + 46, centralOffset + 46 + fileNameLength)
+      .toString("utf8");
+
+    if (entryName === fileName) {
+      if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) return null;
+      const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+      const dataOffset = localHeaderOffset + 30 + localNameLength + localExtraLength;
+      const compressed = buffer.subarray(dataOffset, dataOffset + compressedSize);
+      if (compressionMethod === 0) return compressed.toString("utf8");
+      if (compressionMethod === 8) return inflateRawSync(compressed).toString("utf8");
+      return null;
+    }
+
+    centralOffset += 46 + fileNameLength + extraLength + commentLength;
+  }
+
+  return null;
+}
+
 export async function getGitHubRepository() {
   const repo = await githubRequest<{
     name: string;
@@ -172,6 +249,116 @@ export async function listGitHubActionRuns() {
     updatedAt: run.updated_at,
     url: run.html_url,
   }));
+}
+
+export async function listGitHubWorkflowRuns(input: {
+  workflowId: string;
+  perPage?: number;
+  branch?: string;
+}) {
+  const params = new URLSearchParams({
+    per_page: String(Math.max(1, Math.min(input.perPage ?? 20, 50))),
+    event: "workflow_dispatch",
+  });
+  if (input.branch) params.set("branch", input.branch);
+
+  const payload = await githubRequest<{
+    workflow_runs: Array<{
+      id: number;
+      name: string | null;
+      status: string | null;
+      conclusion: string | null;
+      head_branch: string | null;
+      head_sha: string;
+      created_at: string;
+      updated_at: string;
+      html_url: string;
+    }>;
+  }>(
+    `/actions/workflows/${encodeURIComponent(input.workflowId)}/runs?${params.toString()}`,
+  );
+
+  return payload.workflow_runs.map((run) => ({
+    id: run.id,
+    name: run.name,
+    status: run.status,
+    conclusion: run.conclusion,
+    branch: run.head_branch,
+    commit: run.head_sha,
+    createdAt: run.created_at,
+    updatedAt: run.updated_at,
+    url: run.html_url,
+  }));
+}
+
+export async function listGitHubRunArtifacts(runId: string | number) {
+  const payload = await githubRequest<{
+    artifacts: Array<{
+      id: number;
+      name: string;
+      size_in_bytes: number;
+      expired: boolean;
+      created_at: string;
+      updated_at: string;
+      archive_download_url: string;
+      workflow_run?: { id: number; head_sha: string; head_branch: string | null };
+    }>;
+  }>(`/actions/runs/${encodeURIComponent(String(runId))}/artifacts?per_page=50`);
+
+  return payload.artifacts.map((artifact) => ({
+    id: artifact.id,
+    name: artifact.name,
+    sizeBytes: artifact.size_in_bytes,
+    expired: artifact.expired,
+    createdAt: artifact.created_at,
+    updatedAt: artifact.updated_at,
+    downloadUrl: artifact.archive_download_url,
+    workflowRunId: artifact.workflow_run?.id ?? Number(runId),
+    headSha: artifact.workflow_run?.head_sha ?? null,
+    branch: artifact.workflow_run?.head_branch ?? null,
+  }));
+}
+
+export async function findGitHubArtifactByName(input: {
+  workflowId: string;
+  artifactName: string;
+  branch?: string;
+  perPage?: number;
+}) {
+  const runs = await listGitHubWorkflowRuns({
+    workflowId: input.workflowId,
+    branch: input.branch,
+    perPage: input.perPage ?? 20,
+  });
+
+  for (const run of runs) {
+    const artifacts = await listGitHubRunArtifacts(run.id);
+    const artifact = artifacts.find(
+      (candidate) => candidate.name === input.artifactName && !candidate.expired,
+    );
+    if (artifact) return { artifact, run };
+  }
+
+  return null;
+}
+
+export async function downloadGitHubArtifactFile(input: {
+  artifactId: string | number;
+  fileName: string;
+}) {
+  const archive = await githubBinaryRequest(
+    `/actions/artifacts/${encodeURIComponent(String(input.artifactId))}/zip`,
+  );
+  const content = extractZipTextFile(archive, input.fileName);
+  if (content === null) {
+    throw new GitHubControlError(
+      404,
+      "GITHUB_ARTIFACT_FILE_NOT_FOUND",
+      "No se encontró el archivo solicitado dentro del artifact.",
+      { artifactId: input.artifactId, fileName: input.fileName },
+    );
+  }
+  return content;
 }
 
 export async function createGitHubIssue(input: {

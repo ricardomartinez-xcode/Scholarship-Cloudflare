@@ -1,0 +1,102 @@
+name: Internal Auto Repair
+
+on:
+  workflow_dispatch:
+    inputs:
+      audit_run_id:
+        description: Source auto audit run id
+        required: true
+        type: string
+      repair_run_id:
+        description: Auto repair run id
+        required: true
+        type: string
+      finding_ids:
+        description: Comma-separated finding ids or check ids selected for repair
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run deterministic repairs
+        run: npx tsx scripts/autopilot/run-internal-repair.ts
+        env:
+          AUTO_AUDIT_RUN_ID: ${{ inputs.audit_run_id }}
+          AUTO_REPAIR_RUN_ID: ${{ inputs.repair_run_id }}
+          AUTO_REPAIR_FINDING_IDS: ${{ inputs.finding_ids }}
+          AUTO_REPAIR_OUTPUT_DIR: artifacts/autopilot/${{ inputs.repair_run_id }}
+
+      - name: Detect changes
+        id: diff
+        shell: bash
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate repaired branch
+        if: steps.diff.outputs.has_changes == 'true'
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Commit repair branch
+        if: steps.diff.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          BRANCH="codex/autorepair/${{ inputs.audit_run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add apps packages scripts .github package.json package-lock.json
+          git commit -m "Auto repair ${{ inputs.audit_run_id }}"
+          git push --set-upstream origin "$BRANCH"
+
+      - name: Create repair pull request
+        if: steps.diff.outputs.has_changes == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="codex/autorepair/${{ inputs.audit_run_id }}"
+          if gh pr view "$BRANCH" --json url --jq .url >/tmp/autorepair_pr_url 2>/dev/null; then
+            cat /tmp/autorepair_pr_url
+          else
+            gh pr create \
+              --base "${{ github.ref_name }}" \
+              --head "$BRANCH" \
+              --title "Auto repair ${{ inputs.audit_run_id }}" \
+              --body-file "artifacts/autopilot/${{ inputs.repair_run_id }}/auto-repair-report.md"
+          fi
+
+      - name: Upload repair report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-repair-report-${{ inputs.repair_run_id }}
+          path: artifacts/autopilot/${{ inputs.repair_run_id }}/*
+          if-no-files-found: warn

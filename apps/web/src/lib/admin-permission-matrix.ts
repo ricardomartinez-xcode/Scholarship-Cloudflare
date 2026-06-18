@@ -179,9 +179,10 @@ export const ADMIN_PERMISSION_MATRIX: Record<
 
   [AdminCapability.view_reports]: {
     module: "Reportes y auditoría",
-    routes: ["/admin/reporting", "/admin/audit"],
+    routes: ["/admin/autopilot", "/admin/reporting", "/admin/audit"],
     uiActions: [
       "view_audit_log",
+      "run_auto_audit",
       "view_reporting_snapshot",
       "run_asset_health",
     ],
@@ -195,7 +196,6 @@ export const ADMIN_PERMISSION_MATRIX: Record<
       "/admin/ctas",
       "/admin/whatsapp-templates",
       "/admin/organizations",
-      "/admin/reporting",
       "/admin/audit",
     ],
     uiActions: ["access_admin_operations_submenu"],
@@ -205,8 +205,8 @@ export const ADMIN_PERMISSION_MATRIX: Record<
   [AdminCapability.publish_config]: {
     module: "Publicar configuración",
     routes: [],
-    uiActions: ["publish_config_version", "rollback_config_version"],
-    mutations: ["publishConfigModule", "rollbackConfigVersion"],
+    uiActions: ["publish_config_version", "rollback_config_version", "create_auto_repair_pr"],
+    mutations: ["publishConfigModule", "rollbackConfigVersion", "dispatchAutoRepairWorkflow"],
   },
 };
 
@@ -298,6 +298,9 @@ export const ADMIN_ROUTE_GUARDS: Record<
   },
 
   // ── Desarrollo ─────────────────────────────────────────────────────────
+  "/admin/autopilot": {
+    requiredAny: [AdminCapability.view_reports],
+  },
   "/admin/reporting": {
     requiredAll: [AdminCapability.view_admin_operations],
     requiredAny: [AdminCapability.view_reports],

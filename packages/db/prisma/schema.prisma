@@ -1390,6 +1390,83 @@ model AdminAuditLog {
   @@schema("recalc_admin")
 }
 
+model AutoAuditRun {
+  id              String             @id @default(uuid()) @db.Uuid
+  status          String             @default("queued")
+  mode            String             @default("standard")
+  trigger         String             @default("manual")
+  ref             String             @default("main")
+  headSha         String?            @map("head_sha")
+  workflowRunId   String?            @map("workflow_run_id")
+  workflowRunUrl  String?            @map("workflow_run_url")
+  artifactName    String?            @map("artifact_name")
+  reportSummary   Json?              @map("report_summary")
+  reportMarkdown  String?            @map("report_markdown")
+  error           String?
+  createdByUserId String?            @map("created_by_user_id") @db.Uuid
+  createdByEmail  String?            @map("created_by_email")
+  completedAt     DateTime?          @map("completed_at")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  findings        AutoAuditFinding[]
+  repairs         AutoRepairRun[]
+
+  @@index([status, createdAt], map: "auto_audit_run_status_created_idx")
+  @@index([createdByEmail, createdAt], map: "auto_audit_run_actor_created_idx")
+  @@index([workflowRunId], map: "auto_audit_run_workflow_run_idx")
+  @@map("auto_audit_run")
+  @@schema("recalc_admin")
+}
+
+model AutoAuditFinding {
+  id              String       @id @default(uuid()) @db.Uuid
+  auditRunId      String       @map("audit_run_id") @db.Uuid
+  checkId         String       @map("check_id")
+  severity        String
+  domain          String
+  title           String
+  message         String
+  filePath        String?      @map("file_path")
+  line            Int?
+  suggestedAction String?      @map("suggested_action")
+  repairable      Boolean      @default(false)
+  raw             Json?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  auditRun        AutoAuditRun @relation(fields: [auditRunId], references: [id], onDelete: Cascade)
+
+  @@index([auditRunId, severity], map: "auto_audit_finding_run_severity_idx")
+  @@index([checkId], map: "auto_audit_finding_check_idx")
+  @@index([domain, severity], map: "auto_audit_finding_domain_severity_idx")
+  @@map("auto_audit_finding")
+  @@schema("recalc_admin")
+}
+
+model AutoRepairRun {
+  id                 String       @id @default(uuid()) @db.Uuid
+  auditRunId         String       @map("audit_run_id") @db.Uuid
+  status             String       @default("queued")
+  workflowRunId      String?      @map("workflow_run_id")
+  workflowRunUrl     String?      @map("workflow_run_url")
+  branchName         String       @map("branch_name")
+  commitSha          String?      @map("commit_sha")
+  pullRequestNumber  Int?         @map("pull_request_number")
+  pullRequestUrl     String?      @map("pull_request_url")
+  selectedFindingIds String[]     @default([]) @map("selected_finding_ids")
+  error              String?
+  createdByUserId    String?      @map("created_by_user_id") @db.Uuid
+  createdByEmail     String?      @map("created_by_email")
+  completedAt        DateTime?    @map("completed_at")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+  auditRun           AutoAuditRun @relation(fields: [auditRunId], references: [id], onDelete: Cascade)
+
+  @@index([auditRunId, createdAt], map: "auto_repair_run_audit_created_idx")
+  @@index([status, createdAt], map: "auto_repair_run_status_created_idx")
+  @@index([workflowRunId], map: "auto_repair_run_workflow_run_idx")
+  @@map("auto_repair_run")
+  @@schema("recalc_admin")
+}
+
 // ============================================================================
 // TRAINING / CAPACITACION MODELS
 // ============================================================================

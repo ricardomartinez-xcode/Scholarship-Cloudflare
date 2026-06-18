@@ -3,17 +3,14 @@ import { describe, expect, it } from "vitest";
 import { visibleQuoteCampuses, visibleQuoteModalities } from "@/lib/pricing-option-display";
 
 describe("visibleQuoteModalities", () => {
-  it("shows configured modalidades for licenciatura", () => {
+  it("limits licenciatura modalidades to priced options", () => {
     expect(visibleQuoteModalities(["online"], "licenciatura")).toEqual([
-      "presencial",
-      "mixta",
       "online",
     ]);
   });
 
-  it("shows configured modalidades for prepa aliases", () => {
+  it("limits prepa aliases to priced options", () => {
     expect(visibleQuoteModalities(["online"], "bachillerato")).toEqual([
-      "presencial",
       "online",
     ]);
   });
@@ -31,6 +28,10 @@ describe("visibleQuoteModalities", () => {
       "mixta",
       "online",
     ]);
+  });
+
+  it("does not invent modalidades when no priced options are available", () => {
+    expect(visibleQuoteModalities([], "licenciatura")).toEqual([]);
   });
 });
 

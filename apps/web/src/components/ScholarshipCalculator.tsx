@@ -669,8 +669,8 @@ export default function ScholarshipCalculator({
   }, [campusPricingOptions, pricingOptions, tipo]);
 
   const niveles = useMemo(() => {
-    return uniqSorted(studyPrograms.map((program) => program.businessLine));
-  }, [studyPrograms]);
+    return uniqSorted(availablePricingOptions.map((option) => option.businessLine));
+  }, [availablePricingOptions]);
 
   const modalidades = useMemo(() => {
     if (!nivel) return [];
@@ -691,21 +691,13 @@ export default function ScholarshipCalculator({
         )
         .map((option) => option.programId as string),
     );
-    const offeredProgramIds = new Set(
-      campusOptions
-        .filter((campus) => campus.modalities?.includes(modalidad))
-        .flatMap((campus) => campus.studyPrograms ?? [])
-        .filter((program) => program.businessLine === nivel)
-        .map((program) => program.id),
-    );
-    const availableProgramIds = offeredProgramIds.size ? offeredProgramIds : pricedProgramIds;
     return studyPrograms
-      .filter((program) => program.businessLine === nivel && availableProgramIds.has(program.id))
+      .filter((program) => program.businessLine === nivel && pricedProgramIds.has(program.id))
       .map((program) => ({
         value: program.id,
         label: program.name,
       }));
-  }, [availablePricingOptions, campusOptions, modalidad, nivel, studyPrograms]);
+  }, [availablePricingOptions, modalidad, nivel, studyPrograms]);
 
   const planes = useMemo(() => {
     if (!nivel || !modalidad || !studyProgramId) return [];

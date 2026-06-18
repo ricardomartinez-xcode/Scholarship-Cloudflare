@@ -15,6 +15,8 @@ export type QuotePricingOption = {
   modality: string;
   plan: number;
   module: AcademicModule;
+  programId?: string | null;
+  programName?: string | null;
   programKey?: string | null;
   source?: "pricing" | "offering";
 };
