@@ -13,6 +13,15 @@ import {
   getCanonicalMateriaRows,
   syncCanonicalMateriaRow,
 } from "@/lib/return-subject-price-admin";
+import { normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  isAllScopeValue,
+  normalizeAcademicFeeSectionForImport,
+  parseImportBoolean,
+  parseImportDelimitedText,
+  parseImportInteger,
+  parseImportMoney,
+} from "@/lib/importers/global-import-normalization";
 import {
   listCampusCatalog,
   resolveCampusFromCatalog,
@@ -122,81 +131,8 @@ export async function deleteMateriaAction(formData: FormData): Promise<void> {
 
 type ImportFormat = "json" | "csv";
 
-function normalizeHeader(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function countDelimiterOutsideQuotes(line: string, delimiter: string) {
-  let count = 0;
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        i++;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-    if (ch === delimiter && !inQuotes) {
-      count++;
-    }
-  }
-  return count;
-}
-
-function detectDelimiter(line: string) {
-  const candidates = [",", ";", "|"] as const;
-  return candidates.reduce<(typeof candidates)[number]>((best, candidate) => {
-    const bestCount = countDelimiterOutsideQuotes(line, best);
-    const nextCount = countDelimiterOutsideQuotes(line, candidate);
-    return nextCount > bestCount ? candidate : best;
-  }, ",");
-}
-
-function parseDelimitedLine(line: string, delimiter: string) {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (ch === delimiter && !inQuotes) {
-      result.push(current.trim().replace(/^\uFEFF/, ""));
-      current = "";
-      continue;
-    }
-
-    current += ch;
-  }
-
-  result.push(current.trim().replace(/^\uFEFF/, ""));
-  return result;
-}
-
 function parseDelimitedText(text: string) {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (!lines.length) return [] as string[][];
-  const delimiter = detectDelimiter(lines[0] ?? "");
-  return lines.map((line) => parseDelimitedLine(line, delimiter));
+  return parseImportDelimitedText(text);
 }
 
 function hasExpectedHeader(row: string[], expected: string[]) {
@@ -249,45 +185,15 @@ function getImportFormat(formData: FormData): ImportFormat {
 }
 
 function parseMxnValue(value: unknown) {
-  const raw = String(value ?? "")
-    .trim()
-    .replace(/\$/g, "")
-    .replace(/\s+/g, "");
-
-  if (!raw) return Number.NaN;
-
-  let normalized = raw;
-  const hasComma = raw.includes(",");
-  const hasDot = raw.includes(".");
-
-  if (hasComma && hasDot) {
-    normalized =
-      raw.lastIndexOf(",") > raw.lastIndexOf(".")
-        ? raw.replace(/\./g, "").replace(",", ".")
-        : raw.replace(/,/g, "");
-  } else if (hasComma) {
-    const parts = raw.split(",");
-    normalized =
-      parts.length === 2 && parts[1] && parts[1].length <= 2
-        ? `${parts[0]}.${parts[1]}`
-        : raw.replace(/,/g, "");
-  }
-
-  return Number(normalized);
+  return parseImportMoney(value) ?? Number.NaN;
 }
 
 function parseCountValue(value: unknown) {
-  const parsed = parseMxnValue(value);
-  return Number.isFinite(parsed) ? Math.trunc(parsed) : Number.NaN;
+  return parseImportInteger(value) ?? Number.NaN;
 }
 
 function toSection(raw: string): AcademicFeeSection | null {
-  const s = raw.trim().toUpperCase();
-  // Accept Spanish accented variants too
-  if (s === "EXAMENES" || s === "EXÁMENES" || s === "EXAMENES") return "EXAMENES";
-  if (s === "TRAMITES" || s === "TRÁMITES") return "TRAMITES";
-  if (s === "DIVERSOS") return "DIVERSOS";
-  return null;
+  return normalizeAcademicFeeSectionForImport(raw);
 }
 
 export async function upsertFeeAction(formData: FormData) {
@@ -299,12 +205,12 @@ export async function upsertFeeAction(formData: FormData) {
     const concept = String(formData.get("concept") ?? "").trim();
     const costMxnRaw = String(formData.get("costMxn") ?? "").trim();
     const sectionRaw = String(formData.get("section") ?? "").trim();
-    const isActive = String(formData.get("isActive") ?? "true") === "true";
+    const isActive = parseImportBoolean(formData.get("isActive"), true);
 
     if (!code) return { ok: false, error: "El código es requerido." };
     if (!concept) return { ok: false, error: "El concepto es requerido." };
-    const costMxn = parseInt(costMxnRaw, 10);
-    if (isNaN(costMxn) || costMxn < 0) return { ok: false, error: "El costo debe ser un entero no negativo." };
+    const costMxn = parseCountValue(costMxnRaw);
+    if (Number.isNaN(costMxn) || costMxn < 0) return { ok: false, error: "El costo debe ser un entero no negativo." };
 
     const section = toSection(sectionRaw);
     if (!section) return { ok: false, error: "Sección inválida. Usa: EXAMENES, TRAMITES o DIVERSOS." };
@@ -468,9 +374,9 @@ export async function upsertCampusFeeAction(formData: FormData) {
 
     const campusId = String(formData.get("campusId") ?? "").trim();
     const academicFeeId = String(formData.get("academicFeeId") ?? "").trim();
-    const isActive = String(formData.get("isActive") ?? "true") === "true";
+    const isActive = parseImportBoolean(formData.get("isActive"), true);
     const overrideRaw = String(formData.get("overrideCostMxn") ?? "").trim();
-    const overrideCostMxn = overrideRaw ? parseInt(overrideRaw, 10) : null;
+    const overrideCostMxn = overrideRaw ? parseCountValue(overrideRaw) : null;
 
     if (!campusId || !academicFeeId)
       return { ok: false, error: "campusId y academicFeeId requeridos." };
@@ -484,7 +390,7 @@ export async function upsertCampusFeeAction(formData: FormData) {
         where: { id: existing.id },
         data: {
           isActive,
-          overrideCostMxn: overrideCostMxn !== null && !isNaN(overrideCostMxn) ? overrideCostMxn : null,
+          overrideCostMxn: overrideCostMxn !== null && !Number.isNaN(overrideCostMxn) ? overrideCostMxn : null,
         },
       });
     } else {
@@ -494,7 +400,7 @@ export async function upsertCampusFeeAction(formData: FormData) {
           campusId,
           academicFeeId,
           isActive,
-          overrideCostMxn: overrideCostMxn !== null && !isNaN(overrideCostMxn) ? overrideCostMxn : null,
+          overrideCostMxn: overrideCostMxn !== null && !Number.isNaN(overrideCostMxn) ? overrideCostMxn : null,
         },
       });
     }
@@ -573,9 +479,7 @@ function buildUnifiedFeeHeaderReader(row: string[]) {
     campus_is_active:
       campusActiveIndex < 0
         ? true
-        : !["false", "0", "no", "inactivo"].includes(
-            normalizeHeader(String(dataRow[campusActiveIndex] ?? "")),
-          ),
+        : parseImportBoolean(dataRow[campusActiveIndex], true),
   });
 }
 
@@ -615,7 +519,10 @@ export async function seedUnifiedFeesCsvAction(formData: FormData) {
       const concept = String(item.concept ?? "").trim();
       const section = toSection(String(item.section ?? ""));
       const costMxn = Math.round(parseMxnValue(item.cost_mxn));
-      const campus = resolveCampusFromCatalog(campusCatalog, item.campus);
+      const campusIsGlobal = isAllScopeValue(item.campus);
+      const campus = campusIsGlobal
+        ? null
+        : resolveCampusFromCatalog(campusCatalog, item.campus);
       const campusCost =
         item.campus_cost_mxn === null ? null : Math.round(parseMxnValue(item.campus_cost_mxn));
 
@@ -623,7 +530,7 @@ export async function seedUnifiedFeesCsvAction(formData: FormData) {
         errors.push(`Fila inválida para costo: ${JSON.stringify(item)}`);
         continue;
       }
-      if (!campus) {
+      if (!campusIsGlobal && !campus) {
         errors.push(`Plantel no encontrado: ${item.campus}`);
         continue;
       }
@@ -643,6 +550,13 @@ export async function seedUnifiedFeesCsvAction(formData: FormData) {
           });
       if (existingFee) updated++;
       else created++;
+
+      if (campusIsGlobal) {
+        continue;
+      }
+      if (!campus) {
+        continue;
+      }
 
       const existingCampusFee = await prisma.campusAcademicFee.findUnique({
         where: { campusId_academicFeeId: { campusId: campus.id, academicFeeId: fee.id } },

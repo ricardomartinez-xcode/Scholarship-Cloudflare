@@ -15,6 +15,15 @@ import {
 } from "@/lib/admin-price-scope";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { academicModuleOrDefault } from "@/lib/academic-modules";
+import {
+  normalizeImportPlan,
+  normalizeLegacyPriceBusinessLineForImport,
+  normalizeModalityForImport,
+  normalizeProgramKeyForImport,
+  normalizeTierForImport,
+  parseImportBoolean,
+  parseImportMoney,
+} from "@/lib/importers/global-import-normalization";
 import { captureException, logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 
@@ -72,8 +81,7 @@ function inferBasePriceMxn(params: {
 function parseOptionalMoney(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
   if (!text) return null;
-  const numeric = Number(text);
-  return Number.isFinite(numeric) ? numeric : Number.NaN;
+  return parseImportMoney(text) ?? Number.NaN;
 }
 
 export async function getBecaRules(): Promise<BecaRule[]> {
@@ -127,23 +135,30 @@ export async function upsertMontoOverrideAction(formData: FormData) {
   try {
     const admin = await requireAdminCapabilityUser(PRICES_WRITE_CAPABILITY);
 
-    const programa_key = String(formData.get("programa_key") ?? "").trim();
-    const nivel_key = String(formData.get("nivel_key") ?? "").trim();
-    const modalidad_key = String(formData.get("modalidad_key") ?? "").trim();
-    const plan = String(formData.get("plan") ?? "").trim();
+    const programa_key =
+      normalizeProgramKeyForImport(formData.get("programa_key")) ?? "";
+    const nivel_key = normalizeLegacyPriceBusinessLineForImport(
+      formData.get("nivel_key"),
+    );
+    const modalidad_key =
+      normalizeModalityForImport(formData.get("modalidad_key")) ??
+      String(formData.get("modalidad_key") ?? "").trim();
+    const plan = normalizeImportPlan(formData.get("plan"));
     const academicModule = academicModuleOrDefault(formData.get("module"));
-    const tier = String(formData.get("tier") ?? "").trim();
+    const tier =
+      normalizeTierForImport(formData.get("tier"), null, { nullForAny: true }) ??
+      "";
     const region = String(formData.get("region") ?? "").trim();
     const plantel = String(formData.get("plantel") ?? "").trim();
     const priceScopePreset = normalizeAdminPriceScopePreset(formData.get("priceScopePreset"));
-    const newPrice = String(formData.get("newPrice") ?? "").trim();
+    const newPrice = parseImportMoney(formData.get("newPrice"));
     const subjectPrice = parseOptionalMoney(formData.get("subjectPrice"));
     const existingId = String(formData.get("existingId") ?? "").trim();
 
-    if (!newPrice || Number.isNaN(Number(newPrice))) {
+    if (newPrice === null || Number.isNaN(newPrice)) {
       return { ok: false, error: "El precio debe ser numérico." };
     }
-    if (Number(newPrice) < 0) {
+    if (newPrice < 0) {
       return { ok: false, error: "El precio no puede ser negativo." };
     }
     if (Number.isNaN(subjectPrice) || (subjectPrice !== null && subjectPrice < 0)) {
@@ -217,7 +232,7 @@ export async function upsertMontoOverrideAction(formData: FormData) {
       });
     } else {
       saved = await prisma.adminPriceOverride.create({
-          data: {
+        data: {
           scope: "base_price",
           targetKeys,
           newPrice,
@@ -287,18 +302,18 @@ export async function upsertPriceOverrideAction(formData: FormData) {
     const id = String(formData.get("id") ?? "").trim();
     const scope = String(formData.get("scope") ?? "").trim();
     const targetKeys = parseJson(formData.get("targetKeys"));
-    const newPrice = String(formData.get("newPrice") ?? "").trim();
-    const isActive = String(formData.get("isActive") ?? "true") === "true";
+    const newPrice = parseImportMoney(formData.get("newPrice"));
+    const isActive = parseImportBoolean(formData.get("isActive"), true);
     const notes = String(formData.get("notes") ?? "").trim() || null;
 
     if (!scope) return { ok: false, error: "Scope es requerido." };
     if (targetKeys === null) {
       return { ok: false, error: "targetKeys debe ser JSON válido." };
     }
-    if (!newPrice || Number.isNaN(Number(newPrice))) {
+    if (newPrice === null || Number.isNaN(newPrice)) {
       return { ok: false, error: "newPrice debe ser numérico." };
     }
-    if (Number(newPrice) < 0) {
+    if (newPrice < 0) {
       return { ok: false, error: "newPrice no puede ser negativo." };
     }
 

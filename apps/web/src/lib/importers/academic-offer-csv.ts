@@ -1,7 +1,11 @@
 import ExcelJS from "exceljs";
 
 import { normalizeAcademicModuleDisplay } from "@/lib/academic-modules";
-import { normalizeHeader, parseCsvText } from "@/lib/importers/csv-utils";
+import { normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  parseImportBoolean,
+  parseImportDelimitedText,
+} from "@/lib/importers/global-import-normalization";
 
 type CsvRecord = Record<string, string>;
 
@@ -18,7 +22,7 @@ function pick(row: CsvRecord, aliases: string[]) {
 }
 
 function yes(value: string) {
-  return ["1", "si", "true", "verdadero", "x", "activo", "activa"].includes(normalizeHeader(value));
+  return parseImportBoolean(value, false);
 }
 
 function isInactive(row: CsvRecord) {
@@ -66,7 +70,7 @@ function pickSubjectsByModule(row: CsvRecord) {
 }
 
 export async function academicOfferCsvToXlsxBuffer(buffer: Buffer) {
-  const rows = parseCsvText(buffer.toString("utf8"));
+  const rows = parseImportDelimitedText(buffer.toString("utf8"));
   if (rows.length < 2) {
     throw new Error("El CSV de oferta académica debe incluir encabezados y al menos una fila de datos.");
   }

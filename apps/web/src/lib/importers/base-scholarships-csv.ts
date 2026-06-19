@@ -4,18 +4,24 @@ import {
   EnrollmentType,
 } from "@prisma/client";
 
-import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
 import {
   canonicalImportText,
   loadImporterAliasRows,
   type ImporterAliasOptions,
 } from "@/lib/importers/configured-aliases";
 import {
-  normalizeBusinessLineWithAliases,
-  normalizeCanonicalModalityWithAliases,
-  normalizeEnrollmentTypeWithAliases,
-  normalizeTierWithAliases,
-} from "@/lib/pricing-normalize";
+  buildImportHeaderMap,
+  findImportColumnIndex,
+  normalizeBusinessLineForImport,
+  normalizeEnrollmentTypeForImport,
+  normalizeModalityForImport,
+  normalizeOptionalImportScopeText,
+  normalizeProgramKeyForImport,
+  normalizeTierForImport,
+  parseImportDelimitedText,
+  parseImportMoney,
+  readImportCell,
+} from "@/lib/importers/global-import-normalization";
 import { prisma } from "@/lib/prisma";
 
 export type BaseScholarshipImportDiffAction = "create" | "update" | "noop";
@@ -85,121 +91,49 @@ const HEADER_ALIASES = {
   averageRange: ["promedio", "rango", "average", "averagerange"],
   minAverage: ["promediomin", "minaverage", "rango_min", "min"],
   maxAverage: ["promediomax", "maxaverage", "rango_max", "max"],
-  scholarshipPercent: ["porcentaje", "beca", "scholarshippercent", "percent"],
+  scholarshipPercent: ["porcentaje", "porcentaje_beca", "porcentaje beca", "beca", "scholarshippercent", "percent"],
   notes: ["notes", "nota", "notas"],
 } as const;
 
 function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
-  for (const alias of aliases) {
-    const index = headerMap.get(alias);
-    if (typeof index === "number") return index;
-  }
-  return -1;
+  return findImportColumnIndex(headerMap, aliases);
 }
 
 function readCell(row: string[], index: number): string {
-  if (index < 0) return "";
-  return String(row[index] ?? "").trim();
+  return readImportCell(row, index);
 }
 
-function normalizeHumanValue(value: string) {
-  return value
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-
-
-function normalizeProgramKey(value: string) {
-  const human = normalizeHumanValue(value);
-  if (!human || human === "todos" || human === "todas" || human === "general" || human === "any") {
-    return null;
-  }
-  const normalized = human.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return normalized || null;
-}
-
-function normalizeOptionalScopeText(value: string) {
-  const trimmed = value.trim();
-  const normalized = normalizeHumanValue(trimmed);
-  if (!normalized || normalized === "todos" || normalized === "todas" || normalized === "general" || normalized === "any") {
-    return null;
-  }
-  return trimmed;
-}
 function normalizeEnrollmentTypeValue(
   value: string,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const configured = normalizeEnrollmentTypeWithAliases(value, aliases);
-  if (configured) return configured as EnrollmentType;
-  const normalized = normalizeHumanValue(value);
-const enrollmentMap: Record<string, EnrollmentType> = {
-    "nuevo ingreso": EnrollmentType.nuevo_ingreso,
-    ni: EnrollmentType.nuevo_ingreso,
-    regreso: EnrollmentType.regreso,
-    reingreso: EnrollmentType.reingreso,
-  };
-  return enrollmentMap[normalized] ?? null;
+  return normalizeEnrollmentTypeForImport(value, aliases) as EnrollmentType | null;
 }
 
 function normalizeBusinessLineValue(
   value: string,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const configured = normalizeBusinessLineWithAliases(value, aliases);
-  if (configured) return configured as BenefitBusinessLine;
-  const normalized = normalizeHumanValue(value);
-const businessLineMap: Record<string, BenefitBusinessLine> = {
-    licenciatura: BenefitBusinessLine.licenciatura,
-    "licenciatura escolarizada": BenefitBusinessLine.licenciatura,
-    "licenciatura mixta": BenefitBusinessLine.licenciatura,
-    "licenciatura online": BenefitBusinessLine.licenciatura,
-    prepa: BenefitBusinessLine.prepa,
-    preparatoria: BenefitBusinessLine.prepa,
-    bachillerato: BenefitBusinessLine.prepa,
-    "bachillerato escolarizado": BenefitBusinessLine.prepa,
-    "bachillerato online": BenefitBusinessLine.prepa,
-    posgrado: BenefitBusinessLine.posgrado,
-    maestria: BenefitBusinessLine.posgrado,
-    salud: BenefitBusinessLine.salud,
-  };
-  return businessLineMap[normalized] ?? null;
+  return normalizeBusinessLineForImport(value, aliases) as BenefitBusinessLine | null;
 }
 
 function normalizeModalityValue(
   value: string,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const configured = normalizeCanonicalModalityWithAliases(value, aliases);
-  if (configured) return configured as CanonicalModality;
-  const normalized = normalizeHumanValue(value);
-const modalityMap: Record<string, CanonicalModality> = {
-    presencial: CanonicalModality.presencial,
-    escolarizada: CanonicalModality.presencial,
-    escolarizado: CanonicalModality.presencial,
-    mixta: CanonicalModality.mixta,
-    ejecutiva: CanonicalModality.mixta,
-    ejecutivo: CanonicalModality.mixta,
-    online: CanonicalModality.online,
-    "en linea": CanonicalModality.online,
-  };
-  return modalityMap[normalized] ?? null;
+  return normalizeModalityForImport(value, aliases) as CanonicalModality | null;
 }
 
 function parseNumber(value: string) {
-  const normalized = value.trim().replace("%", "").replace(",", ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseImportMoney(value.replace("%", ""));
 }
 
 function parseAverageRange(value: string) {
-  const normalized = value.trim().replace(/\s+/g, "");
+  const normalized = value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "");
   if (!normalized) return null;
   const match = normalized.match(/^(\d+(?:[.,]\d+)?)-(\d+(?:[.,]\d+)?)$/);
   if (!match) return null;
@@ -214,13 +148,8 @@ function normalizeTier(
   modality: CanonicalModality,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const raw = normalizeTierWithAliases(
-    canonicalImportText(aliases, "tier", value),
-    aliases,
-  ).trim().toUpperCase();
   if (modality === CanonicalModality.online) return "ANY";
-  if (!raw || raw === "GENERAL" || raw === "TODOS" || raw === "ANY") return "ANY";
-  return raw;
+  return normalizeTierForImport(value, aliases) ?? "ANY";
 }
 
 function buildBaseScholarshipKey(input: {
@@ -305,15 +234,12 @@ export async function prepareBaseScholarshipsCsvImport(input: {
   file: File;
 } & ImporterAliasOptions): Promise<BaseScholarshipsImportPrepareResult> {
   const text = await input.file.text();
-  const rows = parseCsvText(text);
+  const rows = parseImportDelimitedText(text);
   if (rows.length < 2) {
     throw new Error("El CSV debe contener encabezado y al menos una fila de datos.");
   }
 
-  const headerMap = new Map<string, number>();
-  (rows[0] ?? []).forEach((cell, index) => {
-    headerMap.set(normalizeHeader(cell), index);
-  });
+  const headerMap = buildImportHeaderMap(rows[0] ?? []);
 
   const idxEnrollmentType = findColumnIndex(headerMap, HEADER_ALIASES.enrollmentType);
   const idxBusinessLine = findColumnIndex(headerMap, HEADER_ALIASES.businessLine);
@@ -419,9 +345,9 @@ export async function prepareBaseScholarshipsCsvImport(input: {
 
     const parsedRow: ParsedBaseScholarshipRow = {
       rowNumber,
-      region: normalizeOptionalScopeText(readCell(row, idxRegion)),
-      plantel: normalizeOptionalScopeText(canonicalImportText(aliasRows, "campus", readCell(row, idxPlantel))),
-      programaKey: normalizeProgramKey(canonicalImportText(aliasRows, "program", readCell(row, idxProgramaKey))),
+      region: normalizeOptionalImportScopeText(readCell(row, idxRegion)),
+      plantel: normalizeOptionalImportScopeText(canonicalImportText(aliasRows, "campus", readCell(row, idxPlantel))),
+      programaKey: normalizeProgramKeyForImport(readCell(row, idxProgramaKey), aliasRows),
       tier,
       enrollmentType,
       businessLine,

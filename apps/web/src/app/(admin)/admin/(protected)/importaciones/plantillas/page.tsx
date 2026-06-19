@@ -15,7 +15,7 @@ export default async function ImportTemplatesPage() {
         <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Importaciones</div>
         <h1 className="mt-1 text-xl font-semibold">Plantillas descargables</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          Descarga archivos base para preparar importaciones con columnas consistentes. Las plantillas reducen errores de captura y ayudan a operar precios, beneficios, becas base, aliases y oferta académica sin tocar código.
+          Descarga archivos base para preparar importaciones con columnas consistentes. Todas usan el contrato global de normalización que también aplica a la captura manual: estados, líneas, modalidades, alcances, planteles, programas y números se interpretan igual en cada módulo.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link

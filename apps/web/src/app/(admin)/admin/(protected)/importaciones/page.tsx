@@ -37,24 +37,27 @@ const IMPORT_STEPS = [
 const IMPORT_TARGETS = [
   {
     label: "Precio lista",
-    description: "Carga XLSX o CSV para precios canónicos de calculadora.",
+    description: "Carga CSV/XLSX con alcance, programa, línea, modalidad, plan, módulo, tier y precio normalizados.",
     href: "/admin/prices?panel=imports",
     format: "XLSX / CSV",
     action: "Importar precios",
+    templateId: "prices",
   },
   {
     label: "Beneficios adicionales",
-    description: "Importa porcentajes extra o primer pago sin tocar beca por promedio.",
+    description: "Importa porcentajes extra o primer pago con los mismos tipos, ingresos y estados que la captura manual.",
     href: "/admin/benefits?panel=imports",
     format: "CSV",
     action: "Importar beneficios",
+    templateId: "benefits",
   },
   {
     label: "% de beca por promedio",
-    description: "Actualiza reglas base por promedio, línea, modalidad, plan y alcance.",
+    description: "Actualiza reglas base por promedio, línea, modalidad, plan, programa, plantel y tier.",
     href: "/admin/benefits?panel=base",
     format: "CSV",
     action: "Importar becas base",
+    templateId: "base-scholarships",
   },
   {
     label: "Oferta académica",
@@ -65,10 +68,11 @@ const IMPORT_TARGETS = [
   },
   {
     label: "Oferta por planteles",
-    description: "Valida oferta activa por campus, programa, ciclo, modalidad y horarios.",
+    description: "Valida oferta activa por campus, programa, ciclo, línea, modalidad, plan, módulos y horarios.",
     href: "/admin/oferta?panel=imports",
     format: "XLSX / CSV",
     action: "Importar oferta",
+    templateId: "academic-offer",
   },
   {
     label: "Planteles",
@@ -78,11 +82,35 @@ const IMPORT_TARGETS = [
     action: "Importar planteles",
   },
   {
-    label: "Trámites + plantel",
-    description: "Carga costos base y disponibilidad por plantel. Los precios por materia se importan desde Precios.",
+    label: "Costos académicos",
+    description: "Carga costos base y disponibilidad/costo por plantel; Todos actualiza solo el costo base.",
     href: "/admin/unidep/fees?tab=seed&seedMode=unified",
     format: "CSV",
     action: "Importar costos",
+    templateId: "academic-fees",
+  },
+];
+
+const GLOBAL_INPUT_CONTRACT = [
+  {
+    label: "Estados",
+    value: "Activo/Inactivo, true/false, si/no, 1/0",
+  },
+  {
+    label: "Líneas",
+    value: "licenciatura, salud, preparatoria/bachillerato, posgrado/maestría",
+  },
+  {
+    label: "Modalidades",
+    value: "presencial/escolarizada, ejecutiva/mixta, online/en línea",
+  },
+  {
+    label: "Alcances",
+    value: "Todos/General omite dimensión; programa, plantel y tier se normalizan por aliases",
+  },
+  {
+    label: "Números",
+    value: "precios, porcentajes y promedios aceptan punto o coma decimal, sin símbolos requeridos",
   },
 ];
 
@@ -110,12 +138,22 @@ function ImportTargetCard({ target }: { target: (typeof IMPORT_TARGETS)[number] 
         </h3>
         <p className="mt-2 text-sm leading-6 text-[#536a7c]">{target.description}</p>
       </div>
-      <Link
-        href={target.href}
-        className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white transition hover:bg-[#0b3d56]"
-      >
-        {target.action}
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={target.href}
+          className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white transition hover:bg-[#0b3d56]"
+        >
+          {target.action}
+        </Link>
+        {"templateId" in target && target.templateId ? (
+          <a
+            href={`/api/admin/import-templates/${target.templateId}`}
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-4 text-sm font-extrabold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
+          >
+            Plantilla
+          </a>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -334,6 +372,29 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
         {IMPORT_STEPS.map((step) => (
           <ImportStepCard key={step.label} step={step} />
         ))}
+      </section>
+
+      <section className="rounded-[26px] border border-[#c8d6e2] bg-[#f7fafc] p-5">
+        <div className="mb-4">
+          <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
+            Contrato global
+          </div>
+          <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">
+            La captura manual y los importadores leen las mismas entradas
+          </h2>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {GLOBAL_INPUT_CONTRACT.map((item) => (
+            <div key={item.label} className="rounded-[18px] border border-[#c8d6e2] bg-white p-3">
+              <div className="text-[0.66rem] font-extrabold uppercase tracking-[0.18em] text-[#0f4c6b]">
+                {item.label}
+              </div>
+              <div className="mt-2 text-sm font-semibold leading-5 text-[#163247]">
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-[26px] border border-[#c8d6e2] bg-white p-5 shadow-[0_16px_50px_rgb(16_32_42/0.06)]">

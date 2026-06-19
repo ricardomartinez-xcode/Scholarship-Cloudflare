@@ -5,9 +5,13 @@ import { AdminCapability, ProgramOfferingDelivery } from "@prisma/client";
 
 import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
-import { normalizeBusinessLine } from "@/lib/pricing-normalize";
 import { normalizeAcademicPricingPlans } from "@/lib/academic-offer-plans";
 import { academicModuleOrBlank } from "@/lib/academic-modules";
+import {
+  normalizeBusinessLineForImport,
+  parseImportBoolean,
+  parseImportInteger,
+} from "@/lib/importers/global-import-normalization";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_ROUTE_CACHE_TAGS,
@@ -33,14 +37,12 @@ function revalidateOfferSurfaces() {
 }
 
 function formBoolean(formData: FormData, key: string) {
-  return String(formData.get(key) ?? "").trim() === "true";
+  return parseImportBoolean(formData.get(key), false);
 }
 
 function parsePositiveInt(value: FormDataEntryValue | null) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  const parsed = parseImportInteger(value);
+  return parsed !== null && parsed > 0 ? parsed : null;
 }
 
 export async function upsertAcademicOfferAction(
@@ -59,7 +61,7 @@ export async function upsertAcademicOfferAction(
         ? ProgramOfferingDelivery.ONLINE
         : ProgramOfferingDelivery.CAMPUS;
     const lineRaw = String(formData.get("lineOfBusiness") ?? "").trim();
-    const lineOfBusiness = normalizeBusinessLine(lineRaw) ?? null;
+    const lineOfBusiness = normalizeBusinessLineForImport(lineRaw) ?? null;
     const pricingPlans = normalizeAcademicPricingPlans(formData.get("pricingPlans"));
     const track = academicModuleOrBlank(formData.get("module"));
     const moduleCount = parsePositiveInt(formData.get("moduleCount"));

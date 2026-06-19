@@ -6,7 +6,21 @@ import {
   EnrollmentType,
 } from "@prisma/client";
 
-import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  buildImportHeaderMap,
+  findImportColumnIndex,
+  isAllScopeValue as isGlobalAllScopeValue,
+  normalizeBenefitDurationForImport,
+  normalizeBenefitTypeForImport,
+  normalizeBusinessLineForImport,
+  normalizeEnrollmentTypeForImport,
+  normalizeModalityForImport,
+  normalizeTierForImport,
+  parseImportBoolean,
+  parseImportDelimitedText,
+  parseImportMoney,
+  readImportCell,
+} from "@/lib/importers/global-import-normalization";
 import {
   addConfiguredCampusAliasesToLookup,
   canonicalImportKey,
@@ -14,12 +28,6 @@ import {
   loadImporterAliasRows,
   type ImporterAliasOptions,
 } from "@/lib/importers/configured-aliases";
-import {
-  normalizeBusinessLineWithAliases,
-  normalizeCanonicalModalityWithAliases,
-  normalizeEnrollmentTypeWithAliases,
-  normalizeTierWithAliases,
-} from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 
 export type BenefitImportDiffAction = "create" | "update" | "noop";
@@ -91,11 +99,6 @@ type ParsedBenefitRow = {
   notes: string | null;
 };
 
-const ACTIVE_BENEFIT_TYPES = [
-  AdminAdditionalBenefitType.percentage,
-  AdminAdditionalBenefitType.first_payment,
-] as const;
-const BENEFIT_TYPE_SET = new Set<AdminAdditionalBenefitType>(ACTIVE_BENEFIT_TYPES);
 const BUSINESS_LINE_SET = new Set(Object.values(BenefitBusinessLine));
 const MODALITY_SET = new Set(Object.values(BenefitModality));
 const DURATION_SET = new Set(Object.values(BenefitDuration));
@@ -120,165 +123,58 @@ const HEADER_ALIASES = {
 type ImporterAliasRows = Awaited<ReturnType<typeof loadImporterAliasRows>>;
 
 function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
-  for (const alias of aliases) {
-    const index = headerMap.get(alias);
-    if (typeof index === "number") return index;
-  }
-  return -1;
+  return findImportColumnIndex(headerMap, aliases);
 }
 
 function readCell(row: string[], index: number): string {
-  if (index < 0) return "";
-  return String(row[index] ?? "").trim();
-}
-
-function normalizeHumanValue(value: string) {
-  return value
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return readImportCell(row, index);
 }
 
 function isAllScopeValue(value: string) {
-  const normalized = normalizeHumanValue(value);
-  return (
-    !normalized ||
-    normalized === "all" ||
-    normalized === "any" ||
-    normalized === "todos" ||
-    normalized === "todas" ||
-    normalized === "todo" ||
-    normalized === "toda" ||
-    normalized === "general" ||
-    normalized === "cualquiera" ||
-    normalized === "cualquier ingreso"
-  );
+  return isGlobalAllScopeValue(value);
 }
 
 function normalizeBenefitTypeValue(value: string) {
-  const trimmed = value.trim();
-  if (BENEFIT_TYPE_SET.has(trimmed as AdminAdditionalBenefitType)) {
-    return trimmed as AdminAdditionalBenefitType;
-  }
-
-  const normalized = normalizeHumanValue(trimmed);
-  const map: Record<string, AdminAdditionalBenefitType> = {
-    porcentaje: AdminAdditionalBenefitType.percentage,
-    "porcentaje adicional": AdminAdditionalBenefitType.percentage,
-    adicional: AdminAdditionalBenefitType.percentage,
-    percentage: AdminAdditionalBenefitType.percentage,
-    percent: AdminAdditionalBenefitType.percentage,
-    "primer pago": AdminAdditionalBenefitType.first_payment,
-    "pago inicial": AdminAdditionalBenefitType.first_payment,
-    "first payment": AdminAdditionalBenefitType.first_payment,
-  };
-
-  return map[normalized] ?? null;
+  return normalizeBenefitTypeForImport(value);
 }
 
 function normalizeEnrollmentTypeValue(value: string, aliases: ImporterAliasRows) {
   const canonical = canonicalImportText(aliases, "enrollment_type", value);
   if (isAllScopeValue(canonical)) return null;
 
-  const configured = normalizeEnrollmentTypeWithAliases(canonical, aliases);
-  if (configured && ENROLLMENT_SET.has(configured as EnrollmentType)) {
-    return configured as EnrollmentType;
-  }
-
-  const normalized = normalizeHumanValue(canonical);
-  const map: Record<string, EnrollmentType> = {
-    "nuevo ingreso": EnrollmentType.nuevo_ingreso,
-    ni: EnrollmentType.nuevo_ingreso,
-    regreso: EnrollmentType.regreso,
-    reingreso: EnrollmentType.reingreso,
-  };
-
-  return map[normalized] ?? null;
+  const normalized = normalizeEnrollmentTypeForImport(canonical, aliases);
+  return normalized && ENROLLMENT_SET.has(normalized as EnrollmentType)
+    ? (normalized as EnrollmentType)
+    : null;
 }
 
 function normalizeBusinessLineValue(value: string, aliases: ImporterAliasRows) {
   const canonical = canonicalImportText(aliases, "business_line", value);
   if (isAllScopeValue(canonical)) return null;
 
-  const configured = normalizeBusinessLineWithAliases(canonical, aliases);
-  if (configured && BUSINESS_LINE_SET.has(configured as BenefitBusinessLine)) {
-    return configured as BenefitBusinessLine;
-  }
-
-  const normalized = normalizeHumanValue(canonical);
-  const map: Record<string, BenefitBusinessLine> = {
-    salud: BenefitBusinessLine.salud,
-    licenciatura: BenefitBusinessLine.licenciatura,
-    lic: BenefitBusinessLine.licenciatura,
-    prepa: BenefitBusinessLine.prepa,
-    preparatoria: BenefitBusinessLine.prepa,
-    bachillerato: BenefitBusinessLine.prepa,
-    posgrado: BenefitBusinessLine.posgrado,
-    maestria: BenefitBusinessLine.posgrado,
-    maestrias: BenefitBusinessLine.posgrado,
-  };
-
-  return map[normalized] ?? null;
+  const normalized = normalizeBusinessLineForImport(canonical, aliases);
+  return normalized && BUSINESS_LINE_SET.has(normalized as BenefitBusinessLine)
+    ? (normalized as BenefitBusinessLine)
+    : null;
 }
 
 function normalizeModalityValue(value: string, aliases: ImporterAliasRows) {
   const canonical = canonicalImportText(aliases, "modality", value);
   if (isAllScopeValue(canonical)) return null;
 
-  const configured = normalizeCanonicalModalityWithAliases(canonical, aliases);
-  if (configured && MODALITY_SET.has(configured as BenefitModality)) {
-    return configured as BenefitModality;
-  }
-
-  const normalized = normalizeHumanValue(canonical);
-  const map: Record<string, BenefitModality> = {
-    presencial: BenefitModality.presencial,
-    escolarizada: BenefitModality.presencial,
-    escolarizado: BenefitModality.presencial,
-    mixta: BenefitModality.mixta,
-    mixto: BenefitModality.mixta,
-    ejecutiva: BenefitModality.mixta,
-    ejecutivo: BenefitModality.mixta,
-    online: BenefitModality.online,
-    "en linea": BenefitModality.online,
-  };
-
-  return map[normalized] ?? null;
+  const normalized = normalizeModalityForImport(canonical, aliases);
+  return normalized && MODALITY_SET.has(normalized as BenefitModality)
+    ? (normalized as BenefitModality)
+    : null;
 }
 
 function normalizeDurationValue(value: string) {
-  const trimmed = value.trim();
-  if (isAllScopeValue(trimmed)) return null;
-  if (DURATION_SET.has(trimmed as BenefitDuration)) return trimmed as BenefitDuration;
-
-  const normalized = normalizeHumanValue(trimmed);
-  const map: Record<string, BenefitDuration> = {
-    "1 cuatrimestre": BenefitDuration.primer_cuatrimestre,
-    "1er cuatrimestre": BenefitDuration.primer_cuatrimestre,
-    "un cuatrimestre": BenefitDuration.primer_cuatrimestre,
-    "primer cuatrimestre": BenefitDuration.primer_cuatrimestre,
-    "primer cuatri": BenefitDuration.primer_cuatrimestre,
-    "1 cuatri": BenefitDuration.primer_cuatrimestre,
-    "1er cuatri": BenefitDuration.primer_cuatrimestre,
-    "toda la carrera": BenefitDuration.toda_la_carrera,
-    "toda carrera": BenefitDuration.toda_la_carrera,
-    "pago inicial": BenefitDuration.pago_inicial,
-    "primer pago": BenefitDuration.pago_inicial,
-  };
-
-  return map[normalized] ?? null;
+  const normalized = normalizeBenefitDurationForImport(value);
+  return normalized && DURATION_SET.has(normalized) ? normalized : null;
 }
 
 function parseBoolean(value: string, defaultValue: boolean) {
-  const normalized = normalizeHumanValue(value);
-  if (!normalized) return defaultValue;
-  if (["1", "true", "si", "yes", "y", "activo", "activa"].includes(normalized)) return true;
-  if (["0", "false", "no", "n", "inactivo", "inactiva"].includes(normalized)) return false;
-  return defaultValue;
+  return parseImportBoolean(value, defaultValue);
 }
 
 function parseCampusIdentifiers(value: string): string[] {
@@ -301,9 +197,7 @@ function campusColumnTargetsAll(value: string) {
 }
 
 function parseCsvNumber(value: string) {
-  const normalized = value.trim().replace("%", "").replace(/\s+/g, "").replace(",", ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
+  return parseImportMoney(String(value ?? "").replace("%", "")) ?? Number.NaN;
 }
 
 function normalizeDurationForKey(
@@ -445,16 +339,13 @@ export async function prepareBenefitsCsvImport(
   input: { file: File } & ImporterAliasOptions,
 ): Promise<BenefitsImportPrepareResult> {
   const text = await input.file.text();
-  const rows = parseCsvText(text);
+  const rows = parseImportDelimitedText(text);
   if (rows.length < 2) {
     throw new Error("El CSV debe contener encabezado y al menos una fila de datos.");
   }
 
   const header = rows[0] ?? [];
-  const headerMap = new Map<string, number>();
-  header.forEach((cell, index) => {
-    headerMap.set(normalizeHeader(cell), index);
-  });
+  const headerMap = buildImportHeaderMap(header);
 
   const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
   const idxTier = findColumnIndex(headerMap, HEADER_ALIASES.tier);
@@ -494,9 +385,9 @@ export async function prepareBenefitsCsvImport(
 
     const rowNumber = index + 1;
     const region = readCell(row, idxRegion) || null;
-    const tierRaw = canonicalImportText(aliasRows, "tier", readCell(row, idxTier));
-    const normalizedTier = normalizeTierWithAliases(tierRaw, aliasRows);
-    const tier = normalizedTier === "ANY" ? null : normalizedTier;
+    const tier = normalizeTierForImport(readCell(row, idxTier), aliasRows, {
+      nullForAny: true,
+    });
     const benefitTypeRaw = readCell(row, idxBenefitType);
     const benefitType = normalizeBenefitTypeValue(benefitTypeRaw);
     if (!benefitType) {

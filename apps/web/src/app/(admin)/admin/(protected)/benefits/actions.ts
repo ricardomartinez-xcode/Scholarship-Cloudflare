@@ -16,6 +16,19 @@ import {
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
+import {
+  normalizeBenefitDurationForImport,
+  normalizeBenefitTypeForImport,
+  normalizeBusinessLineForImport,
+  normalizeEnrollmentTypeForImport,
+  normalizeModalityForImport,
+  normalizeOptionalImportScopeText,
+  normalizeProgramKeyForImport,
+  normalizeTierForImport,
+  parseImportBoolean,
+  parseImportInteger,
+  parseImportMoney,
+} from "@/lib/importers/global-import-normalization";
 import { captureException, logStructured } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 
@@ -68,32 +81,20 @@ function parseCampusIds(raw: FormDataEntryValue | null): string[] {
 
 function parseOptionalEnum<T extends string>(
   raw: FormDataEntryValue | null,
-  allowed: Set<T>
+  allowed: Set<T>,
+  normalize?: (value: FormDataEntryValue | null) => T | null,
 ) {
   const value = String(raw ?? "").trim();
   if (!value || value === "__ALL__") return { value: null, error: null };
-  if (!allowed.has(value as T)) {
+  const normalized = normalize ? normalize(raw) : (value as T);
+  if (!normalized || !allowed.has(normalized)) {
     return { value: null, error: "Valor inválido." };
   }
-  return { value: value as T, error: null };
-}
-
-
-
-function normalizeProgramKey(raw: FormDataEntryValue | null) {
-  const value = String(raw ?? "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  if (!value || value === "todos" || value === "todas" || value === "general" || value === "any") {
-    return "";
-  }
-  return value.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return { value: normalized, error: null };
 }
 
 function normalizeScopeText(raw: FormDataEntryValue | null) {
-  return String(raw ?? "").trim();
+  return normalizeOptionalImportScopeText(raw) ?? "";
 }
 async function loadBenefitAuditPayload(id: string) {
   const benefit = await prisma.adminAdditionalBenefit.findUnique({
@@ -141,24 +142,35 @@ export async function upsertBenefitAction(formData: FormData) {
 
     const id = String(formData.get("id") ?? "").trim();
     const campusIds = parseCampusIds(formData.get("campusIds"));
-    const extraPercent = Number(formData.get("extraPercent") ?? 0);
-    const firstPaymentAmount = Number(formData.get("firstPaymentAmount") ?? 0);
-    const isActive = String(formData.get("isActive") ?? "true") === "true";
+    const extraPercent = parseImportMoney(formData.get("extraPercent")) ?? 0;
+    const firstPaymentAmount = parseImportMoney(formData.get("firstPaymentAmount")) ?? 0;
+    const isActive = parseImportBoolean(formData.get("isActive"), true);
     const notes = String(formData.get("notes") ?? "").trim() || null;
-    const benefitTypeValue = String(formData.get("benefitType") ?? "").trim();
+    const benefitType = normalizeBenefitTypeForImport(formData.get("benefitType"));
     const businessLineResult = parseOptionalEnum(
       formData.get("businessLine"),
-      BUSINESS_LINES
+      BUSINESS_LINES,
+      (value) => normalizeBusinessLineForImport(value) as BenefitBusinessLine | null,
     );
-    const modalityResult = parseOptionalEnum(formData.get("modality"), MODALITIES);
-    const durationResult = parseOptionalEnum(formData.get("duration"), DURATIONS);
+    const modalityResult = parseOptionalEnum(
+      formData.get("modality"),
+      MODALITIES,
+      (value) => normalizeModalityForImport(value) as BenefitModality | null,
+    );
+    const durationResult = parseOptionalEnum(
+      formData.get("duration"),
+      DURATIONS,
+      normalizeBenefitDurationForImport,
+    );
     const enrollmentTypeResult = parseOptionalEnum(
       formData.get("enrollmentType"),
-      ENROLLMENT_TYPES
+      ENROLLMENT_TYPES,
+      (value) => normalizeEnrollmentTypeForImport(value) as EnrollmentType | null,
     );
 
     if (
-      !BENEFIT_TYPES.has(benefitTypeValue as AdminAdditionalBenefitType) ||
+      !benefitType ||
+      !BENEFIT_TYPES.has(benefitType) ||
       businessLineResult.error ||
       modalityResult.error ||
       durationResult.error ||
@@ -167,7 +179,6 @@ export async function upsertBenefitAction(formData: FormData) {
       return { ok: false, error: "Alcance inválido. Revisa los campos nuevos." };
     }
 
-    const benefitType = benefitTypeValue as AdminAdditionalBenefitType;
     const businessLine = businessLineResult.value;
     const modality = modalityResult.value;
     const duration =
@@ -382,32 +393,35 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
     const admin = await requireAdminCapabilityUser(BENEFITS_WRITE_CAPABILITY);
 
     const id = String(formData.get("id") ?? "").trim();
-    const enrollmentType = String(formData.get("enrollmentType") ?? "").trim();
-    const businessLine = String(formData.get("businessLine") ?? "").trim();
-    const modality = String(formData.get("modality") ?? "").trim();
+    const enrollmentType = normalizeEnrollmentTypeForImport(formData.get("enrollmentType"));
+    const businessLine = normalizeBusinessLineForImport(formData.get("businessLine"));
+    const modality = normalizeModalityForImport(formData.get("modality"));
     const campusId = String(formData.get("campusId") ?? "__ALL__").trim();
-    const submittedCampusTier = String(formData.get("campusTier") ?? "").trim();
+    const submittedCampusTier =
+      normalizeTierForImport(formData.get("campusTier"), null, { nullForAny: true }) ??
+      "";
     const region = normalizeScopeText(formData.get("region"));
     const submittedPlantel = normalizeScopeText(formData.get("plantel"));
-    const programaKey = normalizeProgramKey(formData.get("programaKey"));
-    const plan = Number(formData.get("plan") ?? "");
-    const scholarshipPercent = Number(formData.get("scholarshipPercent") ?? "");
-    const minAverage = Number(formData.get("minAverage") ?? "");
-    const maxAverage = Number(formData.get("maxAverage") ?? "");
+    const programaKey = normalizeProgramKeyForImport(formData.get("programaKey")) ?? "";
+    const plan = parseImportInteger(formData.get("plan"));
+    const scholarshipPercent = parseImportMoney(formData.get("scholarshipPercent"));
+    const minAverage = parseImportMoney(formData.get("minAverage"));
+    const maxAverage = parseImportMoney(formData.get("maxAverage"));
 
-    if (!ENROLLMENT_TYPES.has(enrollmentType as EnrollmentType)) {
+    if (!enrollmentType || !ENROLLMENT_TYPES.has(enrollmentType as EnrollmentType)) {
       return { ok: false, error: "Selecciona un tipo de inscripción válido." };
     }
-    if (!BUSINESS_LINES.has(businessLine as BenefitBusinessLine)) {
+    if (!businessLine || !BUSINESS_LINES.has(businessLine as BenefitBusinessLine)) {
       return { ok: false, error: "Selecciona una línea de negocio válida." };
     }
-    if (!MODALITIES.has(modality as BenefitModality)) {
+    if (!modality || !MODALITIES.has(modality as BenefitModality)) {
       return { ok: false, error: "Selecciona una modalidad válida." };
     }
-    if (!Number.isInteger(plan) || plan <= 0) {
+    if (plan === null || !Number.isInteger(plan) || plan <= 0) {
       return { ok: false, error: "El plan debe ser un número entero mayor que 0." };
     }
     if (
+      scholarshipPercent === null ||
       !Number.isFinite(scholarshipPercent) ||
       scholarshipPercent < 0 ||
       scholarshipPercent > 100
@@ -415,6 +429,8 @@ export async function upsertBaseScholarshipAction(formData: FormData) {
       return { ok: false, error: "El % de beca debe estar entre 0 y 100." };
     }
     if (
+      minAverage === null ||
+      maxAverage === null ||
       !Number.isFinite(minAverage) ||
       !Number.isFinite(maxAverage) ||
       minAverage < 0 ||

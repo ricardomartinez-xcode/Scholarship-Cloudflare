@@ -1,17 +1,23 @@
 import { Prisma } from "@prisma/client";
 
-import { parseCsvText, normalizeHeader } from "@/lib/importers/csv-utils";
+import {
+  buildImportHeaderMap,
+  findImportColumnIndex,
+  normalizeImportPlan,
+  normalizeLegacyPriceBusinessLineForImport,
+  normalizeModalityForImport,
+  normalizeTierForImport,
+  parseImportBoolean,
+  parseImportDelimitedText,
+  parseImportNonNegativeMoney,
+  readImportCell,
+} from "@/lib/importers/global-import-normalization";
 import {
   canonicalImportKey,
   canonicalImportText,
   loadImporterAliasRows,
   type ImporterAliasOptions,
 } from "@/lib/importers/configured-aliases";
-import {
-  normalizeBusinessLineWithAliases,
-  normalizeCanonicalModalityWithAliases,
-  normalizeTierWithAliases,
-} from "@/lib/pricing-normalize";
 import { academicModuleOrDefault, type AcademicModule } from "@/lib/academic-modules";
 import {
   adminPriceScopeDefinition,
@@ -174,84 +180,25 @@ function readProgramaKeyFromTarget(target: Record<string, unknown>) {
   );
 }
 
-function findColumnIndex(headerMap: Map<string, number>, aliases: readonly string[]) {
-  for (const alias of aliases) {
-    const index = headerMap.get(alias);
-    if (typeof index === "number") return index;
-  }
-  return -1;
-}
-
-function readCell(row: string[], index: number): string {
-  if (index < 0) return "";
-  return String(row[index] ?? "").trim();
-}
-
-function parseBoolean(value: string, defaultValue: boolean) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return defaultValue;
-  if (["1", "true", "si", "sí", "yes", "y"].includes(normalized)) return true;
-  if (["0", "false", "no", "n"].includes(normalized)) return false;
-  return defaultValue;
-}
-
-function parseMoney(value: string) {
-  const normalized = value.replace(/[$\s]/g, "").replace(/,/g, "");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-
 function normalizeNivelKey(
   value: string,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const configured = normalizeBusinessLineWithAliases(value, aliases);
-  if (configured === "prepa") return "preparatoria";
-  if (configured === "posgrado") return "maestria";
-  if (configured) return configured;
-
-  const key = normalizeText(value);
-  if (key.includes("bachiller") || key.includes("prepa")) return "preparatoria";
-  if (key.includes("licenciatura") || key.includes("lic")) return "licenciatura";
-  if (key.includes("salud")) return "salud";
-  if (key.includes("posgrado") || key.includes("maestria") || key.includes("maestr")) {
-    return "maestria";
-  }
-  return value.trim().toLowerCase();
+  return normalizeLegacyPriceBusinessLineForImport(value, aliases);
 }
 
 function normalizeModalidadKey(
   value: string,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const configured = normalizeCanonicalModalityWithAliases(value, aliases);
-  if (configured) return configured;
-
-  const key = normalizeText(value);
-  if (key.includes("online")) return "online";
-  if (key.includes("ejecut") || key.includes("mixta")) return "mixta";
-  if (key.includes("escolar") || key.includes("presencial")) return "presencial";
-  return value.trim().toLowerCase();
+  return normalizeModalityForImport(value, aliases) ?? value.trim().toLowerCase();
 }
 
 function normalizeTierKey(
   value: string,
   aliases: Awaited<ReturnType<typeof loadImporterAliasRows>>,
 ) {
-  const raw = normalizeTierWithAliases(
-    canonicalImportText(aliases, "tier", value),
-    aliases,
-  ).trim().toUpperCase();
-  if (!raw || raw === "ANY" || raw === "GENERAL" || raw === "ONLINE" || raw === "OL") {
-    return null;
-  }
-  const match = raw.match(/(?:TIER|T)\s*([0-9]+)/);
-  return match ? `T${match[1]}` : raw;
-}
-
-function normalizePlan(value: string) {
-  const match = value.trim().match(/[0-9]+/);
-  return match?.[0] ?? value.trim();
+  return normalizeTierForImport(value, aliases, { nullForAny: true });
 }
 
 function buildPriceScopeKey(input: {
@@ -330,7 +277,7 @@ async function buildExistingPriceOverridesByScopeKey() {
     const entry = {
       id: row.id,
       newPrice: Number(row.newPrice),
-      subjectPrice: parseMoney(
+      subjectPrice: parseImportNonNegativeMoney(
         String(
           target.subject_price_mxn ??
             target.precio_por_materia ??
@@ -355,31 +302,28 @@ export async function preparePricesCsvImport(
   input: { file: File } & ImporterAliasOptions,
 ): Promise<PricesImportPrepareResult> {
   const text = await input.file.text();
-  const rows = parseCsvText(text);
+  const rows = parseImportDelimitedText(text);
   if (rows.length < 2) {
     throw new Error("El CSV debe contener encabezado y al menos una fila de datos.");
   }
 
   const header = rows[0] ?? [];
-  const headerMap = new Map<string, number>();
-  header.forEach((cell, index) => {
-    headerMap.set(normalizeHeader(cell), index);
-  });
+  const headerMap = buildImportHeaderMap(header);
 
   const detectedHeaders = header.map((cell) => String(cell ?? "").trim()).filter(Boolean);
-  const idxPrograma = findColumnIndex(headerMap, HEADER_ALIASES.programaKey);
-  const idxScopePreset = findColumnIndex(headerMap, HEADER_ALIASES.scopePreset);
-  const idxRegion = findColumnIndex(headerMap, HEADER_ALIASES.region);
-  const idxPlantel = findColumnIndex(headerMap, HEADER_ALIASES.plantel);
-  const idxNivel = findColumnIndex(headerMap, HEADER_ALIASES.nivelKey);
-  const idxModalidad = findColumnIndex(headerMap, HEADER_ALIASES.modalidadKey);
-  const idxPlan = findColumnIndex(headerMap, HEADER_ALIASES.plan);
-  const idxModule = findColumnIndex(headerMap, HEADER_ALIASES.module);
-  const idxTier = findColumnIndex(headerMap, HEADER_ALIASES.tier);
-  const idxNewPrice = findColumnIndex(headerMap, HEADER_ALIASES.newPrice);
-  const idxSubjectPrice = findColumnIndex(headerMap, HEADER_ALIASES.subjectPrice);
-  const idxIsActive = findColumnIndex(headerMap, HEADER_ALIASES.isActive);
-  const idxNotes = findColumnIndex(headerMap, HEADER_ALIASES.notes);
+  const idxPrograma = findImportColumnIndex(headerMap, HEADER_ALIASES.programaKey);
+  const idxScopePreset = findImportColumnIndex(headerMap, HEADER_ALIASES.scopePreset);
+  const idxRegion = findImportColumnIndex(headerMap, HEADER_ALIASES.region);
+  const idxPlantel = findImportColumnIndex(headerMap, HEADER_ALIASES.plantel);
+  const idxNivel = findImportColumnIndex(headerMap, HEADER_ALIASES.nivelKey);
+  const idxModalidad = findImportColumnIndex(headerMap, HEADER_ALIASES.modalidadKey);
+  const idxPlan = findImportColumnIndex(headerMap, HEADER_ALIASES.plan);
+  const idxModule = findImportColumnIndex(headerMap, HEADER_ALIASES.module);
+  const idxTier = findImportColumnIndex(headerMap, HEADER_ALIASES.tier);
+  const idxNewPrice = findImportColumnIndex(headerMap, HEADER_ALIASES.newPrice);
+  const idxSubjectPrice = findImportColumnIndex(headerMap, HEADER_ALIASES.subjectPrice);
+  const idxIsActive = findImportColumnIndex(headerMap, HEADER_ALIASES.isActive);
+  const idxNotes = findImportColumnIndex(headerMap, HEADER_ALIASES.notes);
 
   if (idxNivel < 0 || idxModalidad < 0 || idxPlan < 0 || idxNewPrice < 0) {
     throw new PricesCsvValidationError(
@@ -408,16 +352,16 @@ export async function preparePricesCsvImport(
     if (!row.some((cell) => String(cell ?? "").trim())) continue;
     const rowNumber = index + 1;
 
-    const plantelRaw = readCell(row, idxPlantel);
+    const plantelRaw = readImportCell(row, idxPlantel);
     const plantel = plantelRaw ? canonicalImportText(aliasRows, "campus", plantelRaw) : null;
-    const region = readCell(row, idxRegion) || null;
-    const programaKey = normalizeProgramaKey(readCell(row, idxPrograma) || null, aliasRows);
-    const nivelKey = normalizeNivelKey(readCell(row, idxNivel), aliasRows);
-    const modalidadKey = normalizeModalidadKey(readCell(row, idxModalidad), aliasRows);
-    const plan = normalizePlan(readCell(row, idxPlan));
-    const academicModule = academicModuleOrDefault(readCell(row, idxModule));
-    const tier = normalizeTierKey(readCell(row, idxTier), aliasRows);
-    const explicitScopePreset = normalizeAdminPriceScopePreset(readCell(row, idxScopePreset));
+    const region = readImportCell(row, idxRegion) || null;
+    const programaKey = normalizeProgramaKey(readImportCell(row, idxPrograma) || null, aliasRows);
+    const nivelKey = normalizeNivelKey(readImportCell(row, idxNivel), aliasRows);
+    const modalidadKey = normalizeModalidadKey(readImportCell(row, idxModalidad), aliasRows);
+    const plan = normalizeImportPlan(readImportCell(row, idxPlan));
+    const academicModule = academicModuleOrDefault(readImportCell(row, idxModule));
+    const tier = normalizeTierKey(readImportCell(row, idxTier), aliasRows);
+    const explicitScopePreset = normalizeAdminPriceScopePreset(readImportCell(row, idxScopePreset));
     const scopePreset = explicitScopePreset ?? inferAdminPriceScopePreset({
       programa_key: programaKey,
       plantel,
@@ -458,21 +402,21 @@ export async function preparePricesCsvImport(
       }
     }
 
-    const newPriceRaw = readCell(row, idxNewPrice);
-    const newPrice = parseMoney(newPriceRaw);
+    const newPriceRaw = readImportCell(row, idxNewPrice);
+    const newPrice = parseImportNonNegativeMoney(newPriceRaw);
     if (!newPriceRaw || newPrice === null) {
       errors.push(`Fila ${rowNumber}: precio debe ser numérico y no negativo.`);
       continue;
     }
-    const subjectPriceRaw = readCell(row, idxSubjectPrice);
-    const subjectPrice = subjectPriceRaw ? parseMoney(subjectPriceRaw) : null;
+    const subjectPriceRaw = readImportCell(row, idxSubjectPrice);
+    const subjectPrice = subjectPriceRaw ? parseImportNonNegativeMoney(subjectPriceRaw) : null;
     if (subjectPriceRaw && subjectPrice === null) {
       errors.push(`Fila ${rowNumber}: precio_por_materia debe ser numérico y no negativo.`);
       continue;
     }
 
-    const isActive = parseBoolean(readCell(row, idxIsActive), true);
-    const notes = readCell(row, idxNotes) || null;
+    const isActive = parseImportBoolean(readImportCell(row, idxIsActive), true);
+    const notes = readImportCell(row, idxNotes) || null;
     const key = buildPriceScopeKey({
       plantel,
       programaKey,
