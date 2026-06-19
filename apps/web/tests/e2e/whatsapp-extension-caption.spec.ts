@@ -5,7 +5,11 @@ import { chromium, expect, test, type BrowserContext, type Page, type TestInfo }
 
 const EXTENSION_DIR = path.join(process.cwd(), "apps", "chrome-extension", "recalc-sidepanel");
 const OUTPUT_ROOT = path.join(process.cwd(), "output", "playwright", "whatsapp-extension");
-const DEFAULT_PROFILE_DIR = path.join(process.cwd(), "output", "playwright", "wa-profile");
+const DEFAULT_PROFILE_DIR = process.env.PW_WA_PROFILE_DIR?.trim()
+  ? path.resolve(process.env.PW_WA_PROFILE_DIR)
+  : path.join(process.cwd(), "output", "playwright", "wa-profile");
+const CHROME_EXECUTABLE_PATH = process.env.PW_CHROME_EXECUTABLE_PATH?.trim() || "";
+const BROWSER_CHANNEL = process.env.PW_BROWSER_CHANNEL?.trim() || "";
 const LOGIN_TIMEOUT_MS = Number(process.env.PW_WA_LOGIN_TIMEOUT_MS || 5 * 60_000);
 const DRY_RUN_CAPTION = process.env.PW_WA_CAPTION?.trim() || "Prueba de caption ReCalc";
 const AUTH_ONLY_MODE = process.env.PW_WA_AUTH_ONLY === "1";
@@ -75,6 +79,8 @@ async function resolveUploadFixture(): Promise<UploadFixture> {
 async function launchExtensionContext() {
   await ensureDir(DEFAULT_PROFILE_DIR);
   return chromium.launchPersistentContext(DEFAULT_PROFILE_DIR, {
+    ...(CHROME_EXECUTABLE_PATH ? { executablePath: CHROME_EXECUTABLE_PATH } : {}),
+    ...(!CHROME_EXECUTABLE_PATH && BROWSER_CHANNEL ? { channel: BROWSER_CHANNEL } : {}),
     headless: false,
     viewport: { width: 1600, height: 960 },
     args: [
@@ -323,10 +329,15 @@ async function openMediaChooser(page: Page) {
 
 async function fillPreviewCaption(page: Page, caption: string) {
   const captionSelector = [
+    "div[data-testid='media-caption-input-container'][contenteditable='true']",
+    "div[role='textbox'][contenteditable='true'][data-testid='media-caption-input-container']",
+    "div[role='textbox'][contenteditable='true'][aria-placeholder='Escribe un mensaje']",
+    "div[role='textbox'][contenteditable='true'][aria-label='Escribe un mensaje']",
     "div[role='textbox'][contenteditable='true'][aria-label*='Escribir un mensaje para']",
     "div[role='textbox'][contenteditable='true'][aria-label*='Write a message for']",
     "div[role='textbox'][contenteditable='true'][data-tab='10']",
     "div[role='textbox'][contenteditable='true'][data-tab='6']",
+    "div[role='textbox'][contenteditable='true'][data-tab='undefined']",
   ].join(", ");
 
   const input = page.locator(captionSelector).first();

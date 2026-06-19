@@ -13,7 +13,7 @@ export type ExtensionSelectorPack = {
 };
 
 export const DEFAULT_EXTENSION_SELECTOR_PACK: ExtensionSelectorPack = {
-  version: "waweb-2026.06.09-media-caption-02",
+  version: "waweb-2026.06.18-media-caption-03",
   channel: "compatible",
   selectors: {
     searchBox:
@@ -21,13 +21,13 @@ export const DEFAULT_EXTENSION_SELECTOR_PACK: ExtensionSelectorPack = {
     messageInput:
       "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true']",
     sendButton:
-      "button[aria-label='Enviar'], button[aria-label='Send'], span[data-icon='send']",
+      "button[aria-label='Enviar'], button[aria-label='Send'], button[aria-label^='Enviar'][aria-label*='seleccionado'], button[aria-label^='Send'][aria-label*='selected'], div[role='button'][aria-label^='Enviar'][aria-label*='seleccionado'], div[role='button'][aria-label^='Send'][aria-label*='selected'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
     attachButton:
       "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus'], span[data-icon='plus-rounded']",
     fileInput:
       "input[type='file'][accept*='video'], input[type='file'][accept*='image'][multiple], input[type='file'][accept*='image'], input[type='file']",
     mediaCaptionInput:
-      "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], div[contenteditable='true'][role='textbox']",
+      "div[data-testid='media-caption-input-container'][contenteditable='true'], div[contenteditable='true'][role='textbox'][data-testid='media-caption-input-container'], div[contenteditable='true'][role='textbox'][aria-placeholder='Escribe un mensaje'], div[contenteditable='true'][role='textbox'][aria-label='Escribe un mensaje'], div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], div[contenteditable='true'][role='textbox'][data-tab='undefined'], div[contenteditable='true'][role='textbox']",
     conversationReady:
       "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
   },
@@ -36,6 +36,21 @@ export const DEFAULT_EXTENSION_SELECTOR_PACK: ExtensionSelectorPack = {
 function normalizeText(value: unknown, fallback: string) {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+}
+
+function mergeSelector(defaultSelector: string, overrideSelector: unknown) {
+  const pieces = [
+    String(overrideSelector ?? "").trim(),
+    String(defaultSelector ?? "").trim(),
+  ].filter(Boolean);
+
+  return pieces
+    .join(", ")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item, index, list) => list.indexOf(item) === index)
+    .join(", ");
 }
 
 export function normalizeExtensionSelectorPack(
@@ -61,33 +76,33 @@ export function normalizeExtensionSelectorPack(
       DEFAULT_EXTENSION_SELECTOR_PACK.channel,
     ),
     selectors: {
-      searchBox: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).searchBox,
+      searchBox: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.searchBox,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).searchBox,
       ),
-      messageInput: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).messageInput,
+      messageInput: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.messageInput,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).messageInput,
       ),
-      sendButton: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).sendButton,
+      sendButton: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.sendButton,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).sendButton,
       ),
-      attachButton: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).attachButton,
+      attachButton: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.attachButton,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).attachButton,
       ),
-      fileInput: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).fileInput,
+      fileInput: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.fileInput,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).fileInput,
       ),
-      mediaCaptionInput: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).mediaCaptionInput,
+      mediaCaptionInput: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.mediaCaptionInput,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).mediaCaptionInput,
       ),
-      conversationReady: normalizeText(
-        (selectors as Partial<ExtensionSelectorPack["selectors"]>).conversationReady,
+      conversationReady: mergeSelector(
         DEFAULT_EXTENSION_SELECTOR_PACK.selectors.conversationReady,
+        (selectors as Partial<ExtensionSelectorPack["selectors"]>).conversationReady,
       ),
     },
   };

@@ -4,13 +4,13 @@ const DEFAULT_SELECTOR_PACK = {
     messageInput:
       "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
     sendButton:
-      "button[aria-label='Enviar'], button[aria-label='Send'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
+      "button[aria-label='Enviar'], button[aria-label='Send'], button[aria-label^='Enviar'][aria-label*='seleccionado'], button[aria-label^='Send'][aria-label*='selected'], div[role='button'][aria-label^='Enviar'][aria-label*='seleccionado'], div[role='button'][aria-label^='Send'][aria-label*='selected'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
     attachButton:
       "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus-i'], span[data-icon='plus'], span[data-icon='plus-rounded']",
     fileInput:
       "input[type='file'][accept*='image'], input[type='file'][accept*='video'], input[type='file']",
     mediaCaptionInput:
-      "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6']",
+      "div[data-testid='media-caption-input-container'][contenteditable='true'], div[contenteditable='true'][role='textbox'][data-testid='media-caption-input-container'], div[contenteditable='true'][role='textbox'][aria-placeholder='Escribe un mensaje'], div[contenteditable='true'][role='textbox'][aria-label='Escribe un mensaje'], div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], div[contenteditable='true'][role='textbox'][data-tab='undefined']",
     conversationReady:
       "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
   },
@@ -20,38 +20,36 @@ let awaitingChatNotified = false;
 let observer = null;
 let applyingDraft = false;
 
+function mergeSelector(defaultSelector, overrideSelector) {
+  const pieces = [
+    String(overrideSelector || "").trim(),
+    String(defaultSelector || "").trim(),
+  ].filter(Boolean);
+
+  return pieces
+    .join(", ")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item, index, list) => list.indexOf(item) === index)
+    .join(", ");
+}
+
 function normalizeSelectorPack(pack) {
   const selectors =
     pack && typeof pack === "object" && typeof pack.selectors === "object"
       ? pack.selectors
       : {};
+  const defaults = DEFAULT_SELECTOR_PACK.selectors;
 
   return {
     selectors: {
-      messageInput:
-        typeof selectors.messageInput === "string" && selectors.messageInput.trim()
-          ? selectors.messageInput.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.messageInput,
-      sendButton:
-        typeof selectors.sendButton === "string" && selectors.sendButton.trim()
-          ? selectors.sendButton.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.sendButton,
-      attachButton:
-        typeof selectors.attachButton === "string" && selectors.attachButton.trim()
-          ? selectors.attachButton.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.attachButton,
-      fileInput:
-        typeof selectors.fileInput === "string" && selectors.fileInput.trim()
-          ? selectors.fileInput.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.fileInput,
-      mediaCaptionInput:
-        typeof selectors.mediaCaptionInput === "string" && selectors.mediaCaptionInput.trim()
-          ? selectors.mediaCaptionInput.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.mediaCaptionInput,
-      conversationReady:
-        typeof selectors.conversationReady === "string" && selectors.conversationReady.trim()
-          ? selectors.conversationReady.trim()
-          : DEFAULT_SELECTOR_PACK.selectors.conversationReady,
+      messageInput: mergeSelector(defaults.messageInput, selectors.messageInput),
+      sendButton: mergeSelector(defaults.sendButton, selectors.sendButton),
+      attachButton: mergeSelector(defaults.attachButton, selectors.attachButton),
+      fileInput: mergeSelector(defaults.fileInput, selectors.fileInput),
+      mediaCaptionInput: mergeSelector(defaults.mediaCaptionInput, selectors.mediaCaptionInput),
+      conversationReady: mergeSelector(defaults.conversationReady, selectors.conversationReady),
     },
   };
 }

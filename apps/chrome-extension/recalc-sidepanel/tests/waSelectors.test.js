@@ -418,3 +418,132 @@ test("uses the media caption textbox as preview anchor when WhatsApp does not ex
   assert.equal(context.RecalcWaSelectors.findPreviewModal(), captionInput);
   assert.equal(context.RecalcWaSelectors.findCaptionInput(), captionInput);
 });
+
+test("uses current WhatsApp media caption container as preview anchor", () => {
+  class Element {
+    constructor({ attributes = {}, visible = true, inFooter = false } = {}) {
+      this.attributes = attributes;
+      this.visible = visible;
+      this.inFooter = inFooter;
+      this.textContent = "";
+      this.innerText = "";
+    }
+
+    getAttribute(name) {
+      return this.attributes[name] ?? null;
+    }
+
+    getBoundingClientRect() {
+      return this.visible ? { width: 10, height: 10 } : { width: 0, height: 0 };
+    }
+
+    closest(selector) {
+      return selector === "footer" && this.inFooter ? this : null;
+    }
+
+    querySelectorAll() {
+      return [];
+    }
+  }
+
+  const captionInput = new Element({
+    attributes: {
+      "data-testid": "media-caption-input-container",
+      "aria-placeholder": "Escribe un mensaje",
+      role: "textbox",
+    },
+  });
+  const context = {
+    Element,
+    HTMLInputElement: class HTMLInputElement extends Element {},
+    document: {
+      querySelector() {
+        return null;
+      },
+      querySelectorAll(selector) {
+        if (
+          selector.includes("media-caption-input-container") ||
+          selector.includes("aria-placeholder='Escribe un mensaje'")
+        ) {
+          return [captionInput];
+        }
+        return [];
+      },
+    },
+    getComputedStyle() {
+      return { display: "block", visibility: "visible" };
+    },
+  };
+  context.window = context;
+  vm.createContext(context);
+  vm.runInContext(selectorsSource, context, { filename: "wa-selectors.js" });
+
+  assert.equal(context.RecalcWaSelectors.findPreviewModal(), captionInput);
+  assert.equal(context.RecalcWaSelectors.findCaptionInput(), captionInput);
+});
+
+test("uses selected-media send button as preview anchor when remove button is absent", () => {
+  class Element {
+    constructor({ label = "", visible = true } = {}) {
+      this.label = label;
+      this.textContent = "";
+      this.innerText = "";
+      this.visible = visible;
+    }
+
+    getAttribute(name) {
+      return name === "aria-label" ? this.label : null;
+    }
+
+    getBoundingClientRect() {
+      return this.visible ? { width: 10, height: 10 } : { width: 0, height: 0 };
+    }
+
+    closest(selector) {
+      return selector === "footer" ? null : this;
+    }
+
+    querySelectorAll() {
+      return [];
+    }
+  }
+
+  const selectedSendButton = new Element({ label: "Enviar 1 seleccionado" });
+  const context = {
+    Element,
+    HTMLInputElement: class HTMLInputElement extends Element {},
+    document: {
+      querySelector() {
+        return null;
+      },
+      querySelectorAll(selector) {
+        return selector.includes("seleccionado") ? [selectedSendButton] : [];
+      },
+    },
+    getComputedStyle() {
+      return { display: "block", visibility: "visible" };
+    },
+  };
+  context.window = context;
+  vm.createContext(context);
+  vm.runInContext(selectorsSource, context, { filename: "wa-selectors.js" });
+
+  assert.equal(context.RecalcWaSelectors.findPreviewModal(), selectedSendButton);
+  assert.equal(context.RecalcWaSelectors.findPreviewSendButton(), selectedSendButton);
+});
+
+test("merges stale remote selector pack values with local WhatsApp fallbacks", () => {
+  const { context } = createContextWithInputs([]);
+
+  const normalized = context.RecalcWaSelectors.normalizeSelectorPack({
+    selectors: {
+      mediaCaptionInput: "div.old-caption-selector",
+      sendButton: "button.old-send-selector",
+    },
+  });
+
+  assert.match(normalized.selectors.mediaCaptionInput, /old-caption-selector/);
+  assert.match(normalized.selectors.mediaCaptionInput, /media-caption-input-container/);
+  assert.match(normalized.selectors.sendButton, /old-send-selector/);
+  assert.match(normalized.selectors.sendButton, /seleccionado/);
+});

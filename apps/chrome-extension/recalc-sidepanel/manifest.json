@@ -2,8 +2,8 @@
   "update_url": "https://clients2.google.com/service/update2/crx",
   "manifest_version": 3,
   "name": "ReCalc Sender",
-  "version": "6.3.0",
-  "description": "Extensión ReCalc Sender para campañas y automatización de WhatsApp Web con envío de imágenes como foto/video con caption, sin fallback a stickers.",
+  "version": "6.3.4",
+  "description": "Extensión ReCalc Sender 6.3.4 para campañas WhatsApp Web con envío de imágenes como foto/video y caption, no sticker.",
   "minimum_chrome_version": "114",
   "icons": {
     "16": "icons/icon16.png",
@@ -63,5 +63,6 @@
       "run_at": "document_idle",
       "world": "MAIN"
     }
-  ]
+  ],
+  "version_name": "6.3.4 caption-selector"
 }

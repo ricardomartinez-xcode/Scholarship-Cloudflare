@@ -8,15 +8,15 @@
       messageInput:
         "footer div[contenteditable='true'][role='textbox'], footer div[contenteditable='true'], div[role='textbox'][contenteditable='true'][aria-label='Escribir un mensaje'], div[role='textbox'][contenteditable='true'][aria-label='Write a message']",
       sendButton:
-        "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], button[aria-label='Enviar'], button[aria-label='Send'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
+        "div[role='button'][aria-label='Enviar'], div[role='button'][aria-label='Send'], div[role='button'][aria-label^='Enviar'][aria-label*='seleccionado'], div[role='button'][aria-label^='Send'][aria-label*='selected'], button[aria-label='Enviar'], button[aria-label='Send'], button[aria-label^='Enviar'][aria-label*='seleccionado'], button[aria-label^='Send'][aria-label*='selected'], [data-icon='send-i'], span[data-icon='wds-ic-send-filled'], span[data-icon='send-filled'], span[data-icon='send']",
       attachButton:
         "button[title*='Adjuntar'], button[title*='Attach'], button[aria-label*='Adjuntar'], button[aria-label*='Attach'], span[data-icon='plus-i'], span[data-icon='plus'], span[data-icon='plus-rounded']",
       mediaCaptionInput:
-        "div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6']",
+        "div[data-testid='media-caption-input-container'][contenteditable='true'], div[contenteditable='true'][role='textbox'][data-testid='media-caption-input-container'], div[contenteditable='true'][role='textbox'][aria-placeholder='Escribe un mensaje'], div[contenteditable='true'][role='textbox'][aria-label='Escribe un mensaje'], div[contenteditable='true'][role='textbox'][aria-label*='Escribir un mensaje para'], div[contenteditable='true'][role='textbox'][aria-label*='Write a message for'], div[contenteditable='true'][role='textbox'][data-tab='10'], div[contenteditable='true'][role='textbox'][data-tab='6'], div[contenteditable='true'][role='textbox'][data-tab='undefined']",
       conversationReady:
         "header, div[data-testid='conversation-panel-wrapper'], main[role='main']",
       previewModal:
-        "div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file']",
+        "div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file'], div[data-testid='media-caption-input-container'][contenteditable='true'], div[role='button'][aria-label^='Enviar'][aria-label*='seleccionado'], div[role='button'][aria-label^='Send'][aria-label*='selected']",
       fileInput: "input[type='file']",
     },
   };
@@ -44,6 +44,8 @@
     "galería",
     "galeria",
     "gallery",
+    "ic-filter-filled",
+    "filter-filled",
   ];
   const PRIMARY_MEDIA_ATTACHMENT_NEEDLES = [
     "photos & videos",
@@ -65,16 +67,39 @@
     "calcomanias",
   ];
 
+  function mergeSelector(defaultSelector, overrideSelector) {
+    const pieces = [
+      String(overrideSelector || "").trim(),
+      String(defaultSelector || "").trim(),
+    ].filter(Boolean);
+
+    return pieces
+      .join(", ")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .filter((item, index, list) => list.indexOf(item) === index)
+      .join(", ");
+  }
+
   function normalizeSelectorPack(pack) {
     const selectors = pack && typeof pack === "object" && typeof pack.selectors === "object"
       ? pack.selectors
       : {};
-    return {
-      selectors: {
-        ...DEFAULT_SELECTOR_PACK.selectors,
-        ...selectors,
-      },
-    };
+    const defaults = DEFAULT_SELECTOR_PACK.selectors;
+    const merged = {};
+
+    Object.keys(defaults).forEach((key) => {
+      merged[key] = mergeSelector(defaults[key], selectors[key]);
+    });
+
+    Object.keys(selectors).forEach((key) => {
+      if (!merged[key]) {
+        merged[key] = String(selectors[key] || "").trim();
+      }
+    });
+
+    return { selectors: merged };
   }
 
   function parseSelectorList(value) {
@@ -209,6 +234,10 @@
     if (!(previewAnchor instanceof Element)) return null;
 
     const previewSpecificSelectors = [
+      "div[role='button'][aria-label^='Enviar'][aria-label*='seleccionado']",
+      "div[role='button'][aria-label^='Send'][aria-label*='selected']",
+      "button[aria-label^='Enviar'][aria-label*='seleccionado']",
+      "button[aria-label^='Send'][aria-label*='selected']",
       "span[data-icon='wds-ic-send-filled']",
       "span[data-icon='send-i']",
       "span[data-icon='send-filled']",
@@ -246,6 +275,11 @@
       "div[role='button'][aria-label='Quitar archivo adjunto'], div[role='button'][aria-label='Remove attached file']",
     );
     if (removeButton) return removeButton;
+
+    const currentCaption = firstVisible(
+      "div[data-testid='media-caption-input-container'][contenteditable='true'], div[contenteditable='true'][role='textbox'][aria-placeholder='Escribe un mensaje']",
+    );
+    if (currentCaption && !currentCaption.closest?.("footer")) return currentCaption;
 
     const previewModal = firstVisible(getSelector("previewModal", pack));
     if (previewModal) return previewModal;
@@ -424,10 +458,21 @@
     const candidates = findAttachmentMenuOptions();
 
     if (kind === "media") {
-      return candidates
+      const scored = candidates
         .map((node, index) => ({ node, index, score: scoreMediaAttachmentOption(node) }))
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score || a.index - b.index)[0]?.node || null;
+
+      if (scored) return scored;
+
+      // WhatsApp puede ocultar el texto accesible del item. En los dumps
+      // capturados, Fotos y videos queda como segundo item del popup.
+      const positionFallback = candidates[1] || null;
+      if (positionFallback && !isStickerLikeAttachmentOption(positionFallback)) {
+        return positionFallback;
+      }
+
+      return null;
     }
 
     return candidates.find((node) => matchAnyText(node, DOCUMENT_ATTACHMENT_NEEDLES)) || null;
