@@ -50,6 +50,17 @@ Se ejecuto un dry-run real en Chrome contra WhatsApp Web:
 - No se presiono Enviar durante el dry-run.
 - Evidencia local: `output/playwright/whatsapp-live-dry-run/preview-caption-ready.png`.
 
+El 2026-06-20 se completo la validacion con envio real:
+
+- Destino validado en WhatsApp Web: busqueda por `5573578665`, chat resuelto como `Ricardo Martinez Hernandez`.
+- Imagen enviada: `apps/chrome-extension/recalc-sidepanel/icons/icon128.png`.
+- Caption enviado dentro del adjunto: `Prueba ReCalc 6.3.4 caption selector`.
+- Evidencia local limpia: `output/playwright/whatsapp-live-send/sent-clean-evidence-5573578665.png`.
+- El preview diagnostico pendiente se cerro sin enviar duplicados.
+- ZIP entregado en Escritorio: `C:\Users\ricar\OneDrive\Desktop\recalc-sidepanel-v6.3.4.zip`.
+
+Durante la validacion real se confirmo que WhatsApp Web puede ignorar clicks sinteticos del content script sobre `Adjuntar`. El flujo de campanas con media usa la ruta con `chrome.debugger` en `background.js`, que dispara clicks reales via CDP, intercepta el file chooser y despues aplica el caption en el preview antes de presionar el boton final.
+
 ## Resultado
 
 El selector ya encuentra el preview actual de WhatsApp, escribe el caption dentro del adjunto y mantiene el guardrail de no elegir stickers como media.
