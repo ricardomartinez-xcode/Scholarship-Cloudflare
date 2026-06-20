@@ -98,6 +98,16 @@ describe("admin UI patterns", () => {
     expect(read(botsPagePath)).toContain('PRELOADED_ROLEPLAY_KNOWLEDGE');
   });
 
+  it("keeps autopilot date rendering stable across server and browser runtimes", () => {
+    const source = read(
+      "apps/web/src/app/(admin)/admin/(protected)/autopilot/AutopilotClient.tsx",
+    );
+
+    expect(source).toContain('const ADMIN_DISPLAY_TIME_ZONE = "America/Mexico_City"');
+    expect(source).toContain("formatToParts(new Date(value))");
+    expect(source).toContain("`${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`");
+  });
+
   it("mounts the shared Excel-style table enhancer in protected admin pages", () => {
     const layout = read("apps/web/src/app/(admin)/admin/(protected)/layout.tsx");
     const enhancer = read("apps/web/src/components/admin/AdminTableExcelEnhancer.tsx");

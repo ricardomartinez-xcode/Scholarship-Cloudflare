@@ -47,6 +47,8 @@ type ApiPayload<T> = T & {
   message?: string;
 };
 
+const ADMIN_DISPLAY_TIME_ZONE = "America/Mexico_City";
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<ApiPayload<T>> {
   const response = await fetch(url, {
     ...init,
@@ -64,10 +66,22 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<ApiPayload
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Pendiente";
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
+  const parts = new Intl.DateTimeFormat("es-MX", {
+    timeZone: ADMIN_DISPLAY_TIME_ZONE,
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .formatToParts(new Date(value))
+    .reduce<Record<string, string>>((result, part) => {
+      if (part.type !== "literal") result[part.type] = part.value;
+      return result;
+    }, {});
+
+  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
 }
 
 function statusClass(status: string) {
