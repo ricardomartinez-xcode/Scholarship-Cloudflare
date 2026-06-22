@@ -17,8 +17,10 @@ import {
 } from "@/lib/benefit-duration";
 import {
   ONLINE_QUOTE_CAMPUS,
+  visibleQuoteBusinessLines,
   visibleQuoteCampuses,
   visibleQuoteModalities,
+  visibleQuoteStudyPrograms,
 } from "@/lib/pricing-option-display";
 import { normalizeBusinessLine } from "@/lib/pricing-normalize";
 import {
@@ -669,35 +671,29 @@ export default function ScholarshipCalculator({
   }, [campusPricingOptions, pricingOptions, tipo]);
 
   const niveles = useMemo(() => {
-    return uniqSorted(availablePricingOptions.map((option) => option.businessLine));
-  }, [availablePricingOptions]);
+    return visibleQuoteBusinessLines(campusOptions, availablePricingOptions);
+  }, [availablePricingOptions, campusOptions]);
 
   const modalidades = useMemo(() => {
     if (!nivel) return [];
-    const filtered = availablePricingOptions.filter((option) => option.businessLine === nivel);
-    const all = uniqSorted(filtered.map((option) => option.modality));
+    const offered = campusOptions
+      .filter((campus) => !campus.businessLines?.length || campus.businessLines.includes(nivel))
+      .flatMap((campus) => campus.modalities ?? []);
+    const fallback = availablePricingOptions
+      .filter((option) => option.businessLine === nivel)
+      .map((option) => option.modality);
+    const all = offered.length ? offered : uniqSorted(fallback);
     return visibleQuoteModalities(all, nivel);
-  }, [availablePricingOptions, nivel]);
+  }, [availablePricingOptions, campusOptions, nivel]);
 
   const studyPlanOptions = useMemo(() => {
     if (!nivel || !modalidad) return [];
-    const pricedProgramIds = new Set(
-      availablePricingOptions
-        .filter(
-          (option) =>
-            option.businessLine === nivel &&
-            option.modality === modalidad &&
-            option.programId,
-        )
-        .map((option) => option.programId as string),
-    );
-    return studyPrograms
-      .filter((program) => program.businessLine === nivel && pricedProgramIds.has(program.id))
+    return visibleQuoteStudyPrograms(campusOptions, studyPrograms, nivel, modalidad)
       .map((program) => ({
         value: program.id,
         label: program.name,
       }));
-  }, [availablePricingOptions, modalidad, nivel, studyPrograms]);
+  }, [campusOptions, modalidad, nivel, studyPrograms]);
 
   const planes = useMemo(() => {
     if (!nivel || !modalidad || !studyProgramId) return [];

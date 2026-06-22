@@ -28,6 +28,8 @@ export type QuoteCampusOption = {
   }>;
 };
 
+export type QuoteStudyProgramOption = NonNullable<QuoteCampusOption["studyPrograms"]>[number];
+
 export const ONLINE_QUOTE_CAMPUS = { value: "ONLINE", label: "Online" } as const;
 
 const MODALITY_ORDER: Record<CanonicalModalityValue, number> = {
@@ -66,6 +68,20 @@ function sortModules<T extends AcademicModule>(modules: T[]) {
   return [...modules].sort(
     (left, right) => (MODULE_ORDER[left] ?? 9) - (MODULE_ORDER[right] ?? 9),
   );
+}
+
+function uniqSorted(items: string[]) {
+  return Array.from(new Set(items.filter(Boolean))).sort((left, right) =>
+    left.localeCompare(right, "es"),
+  );
+}
+
+function campusOffersBusinessLine(campus: QuoteCampusOption, businessLine: string) {
+  return !campus.businessLines?.length || campus.businessLines.includes(businessLine);
+}
+
+function campusOffersModality(campus: QuoteCampusOption, modality: string) {
+  return !campus.modalities?.length || campus.modalities.includes(modality);
 }
 
 function pricingOptionMatches(
@@ -136,6 +152,53 @@ export function visibleQuoteModalities(
   }
 
   return sortModalities(Array.from(new Set(available)));
+}
+
+export function visibleQuoteBusinessLines(
+  campuses: QuoteCampusOption[],
+  fallbackOptions: Array<{ businessLine: string }> = [],
+): CanonicalBusinessLine[] {
+  const offered = campuses.flatMap((campus) => campus.businessLines ?? []);
+  const source = offered.length ? offered : fallbackOptions.map((option) => option.businessLine);
+  return uniqSorted(
+    source
+      .map((businessLine) => normalizeBusinessLine(businessLine))
+      .filter((businessLine): businessLine is CanonicalBusinessLine => Boolean(businessLine)),
+  ) as CanonicalBusinessLine[];
+}
+
+export function visibleQuoteStudyPrograms(
+  campuses: QuoteCampusOption[],
+  fallbackPrograms: QuoteStudyProgramOption[],
+  businessLine?: string,
+  modality?: string,
+): QuoteStudyProgramOption[] {
+  const normalizedBusinessLine = normalizeBusinessLine(businessLine);
+  const normalizedModality = normalizeCanonicalModality(modality);
+  if (!normalizedBusinessLine || !normalizedModality) return [];
+
+  const programsById = new Map<string, QuoteStudyProgramOption>();
+  for (const campus of campuses) {
+    if (!campusOffersBusinessLine(campus, normalizedBusinessLine)) continue;
+    if (!campusOffersModality(campus, normalizedModality)) continue;
+    for (const program of campus.studyPrograms ?? []) {
+      if (normalizeBusinessLine(program.businessLine) === normalizedBusinessLine) {
+        programsById.set(program.id, program);
+      }
+    }
+  }
+
+  if (!programsById.size) {
+    for (const program of fallbackPrograms) {
+      if (normalizeBusinessLine(program.businessLine) === normalizedBusinessLine) {
+        programsById.set(program.id, program);
+      }
+    }
+  }
+
+  return Array.from(programsById.values()).sort((left, right) =>
+    left.name.localeCompare(right.name, "es"),
+  );
 }
 
 export function visibleQuoteCampuses(

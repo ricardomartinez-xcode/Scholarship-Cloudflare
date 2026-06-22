@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { visibleQuoteCampuses, visibleQuoteModalities } from "@/lib/pricing-option-display";
+import {
+  visibleQuoteBusinessLines,
+  visibleQuoteCampuses,
+  visibleQuoteModalities,
+  visibleQuoteStudyPrograms,
+} from "@/lib/pricing-option-display";
 
 describe("visibleQuoteModalities", () => {
   it("limits licenciatura modalidades to priced options", () => {
@@ -32,6 +37,45 @@ describe("visibleQuoteModalities", () => {
 
   it("does not invent modalidades when no priced options are available", () => {
     expect(visibleQuoteModalities([], "licenciatura")).toEqual([]);
+  });
+});
+
+describe("visibleQuoteBusinessLines", () => {
+  it("uses active academic offer lines even when no quote price exists yet", () => {
+    expect(
+      visibleQuoteBusinessLines([
+        {
+          value: "HMO",
+          label: "Hermosillo",
+          businessLines: ["salud"],
+          modalities: ["presencial"],
+          studyPrograms: [{ id: "program_enfermeria", name: "Enfermería", businessLine: "salud" }],
+          pricingOptions: [],
+        },
+      ]),
+    ).toEqual(["salud"]);
+  });
+});
+
+describe("visibleQuoteStudyPrograms", () => {
+  it("uses active academic offer programs even when no quote price exists yet", () => {
+    expect(
+      visibleQuoteStudyPrograms(
+        [
+          {
+            value: "HMO",
+            label: "Hermosillo",
+            businessLines: ["salud"],
+            modalities: ["presencial"],
+            studyPrograms: [{ id: "program_enfermeria", name: "Enfermería", businessLine: "salud" }],
+            pricingOptions: [],
+          },
+        ],
+        [],
+        "salud",
+        "presencial",
+      ),
+    ).toEqual([{ id: "program_enfermeria", name: "Enfermería", businessLine: "salud" }]);
   });
 });
 
