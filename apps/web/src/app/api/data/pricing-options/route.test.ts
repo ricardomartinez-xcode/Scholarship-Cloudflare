@@ -281,7 +281,7 @@ describe("GET /api/data/pricing-options", () => {
         delivery: "CAMPUS",
         escolarizado: true,
         ejecutivo: false,
-        lineOfBusiness: "Bachillerato",
+        lineOfBusiness: "Licenciatura",
         program: {
           id: "program_prepa",
           name: "Bachillerato UNIDEP",

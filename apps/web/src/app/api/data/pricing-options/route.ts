@@ -162,6 +162,22 @@ function buildStudyProgram(
   };
 }
 
+function resolveOfferingProgramBusinessLine(offering: {
+  lineOfBusiness: string | null;
+  program: {
+    businessLine: string | null;
+    level: string | null;
+    category: string | null;
+  };
+}) {
+  return (
+    normalizeBusinessLine(offering.program.businessLine) ??
+    normalizeBusinessLine(offering.lineOfBusiness) ??
+    normalizeBusinessLine(offering.program.category) ??
+    normalizeBusinessLine(offering.program.level)
+  );
+}
+
 function buildConfiguredOfferingPricingOptions(
   offerings: Array<{
     pricingPlans: number[];
@@ -194,8 +210,7 @@ function buildConfiguredOfferingPricingOptions(
     const studyProgram = buildStudyProgram(
       {
         ...offering.program,
-        businessLine:
-          normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
+        businessLine: resolveOfferingProgramBusinessLine(offering),
       },
       r2Assignments.get(offering.program.id),
     );
@@ -415,8 +430,7 @@ export async function GET() {
         const studyProgram = buildStudyProgram(
           {
             ...offering.program,
-            businessLine:
-              normalizeBusinessLine(offering.lineOfBusiness) ?? offering.program.businessLine,
+            businessLine: resolveOfferingProgramBusinessLine(offering),
           },
           r2Assignments.get(offering.program.id),
         );
