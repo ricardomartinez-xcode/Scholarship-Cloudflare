@@ -9,6 +9,7 @@ import {
   downloadGitHubArtifactFile,
   findGitHubArtifactByName,
   GitHubControlError,
+  listGitHubWorkflowRuns,
 } from "@/lib/admin-github-control";
 import { prisma } from "@/lib/prisma";
 
@@ -161,6 +162,49 @@ export async function markAutoAuditRunFailed(input: {
   });
 }
 
+async function findDispatchedAutoAuditWorkflowRun(run: AutoAuditRunRecord) {
+  const runs = await listGitHubWorkflowRuns({
+    workflowId: INTERNAL_AUTO_AUDIT_WORKFLOW_ID,
+    branch: run.ref,
+    perPage: 20,
+  });
+
+  if (run.workflowRunId) {
+    const workflowRun = runs.find((candidate) => String(candidate.id) === run.workflowRunId);
+    if (workflowRun) return workflowRun;
+  }
+
+  const earliestAllowed = run.createdAt.getTime() - 120_000;
+  return (
+    runs
+      .filter((candidate) => new Date(candidate.createdAt).getTime() >= earliestAllowed)
+      .sort(
+        (left, right) =>
+          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+      )[0] ?? null
+  );
+}
+
+async function updateAutoAuditRunWorkflowState(input: {
+  auditRunId: string;
+  status: string;
+  workflowRunId: string | number;
+  workflowRunUrl: string;
+  error?: string | null;
+}) {
+  return prisma.autoAuditRun.update({
+    where: { id: input.auditRunId },
+    data: {
+      status: input.status,
+      workflowRunId: String(input.workflowRunId),
+      workflowRunUrl: input.workflowRunUrl,
+      ...(input.error !== undefined ? { error: input.error } : {}),
+      completedAt: completedAtFor(input.status),
+    },
+    include: { findings: true, repairs: true },
+  });
+}
+
 export async function listAutoAuditRuns(options?: { limit?: number }) {
   return prisma.autoAuditRun.findMany({
     orderBy: [{ createdAt: "desc" }],
@@ -239,6 +283,36 @@ export async function syncAutoAuditRunFromGitHub(auditRunId: string) {
   });
 
   if (!match) {
+    const workflowRun = await findDispatchedAutoAuditWorkflowRun(run);
+    if (workflowRun) {
+      const workflowStatus =
+        workflowRun.status === "completed"
+          ? workflowRun.conclusion === "cancelled"
+            ? "cancelled"
+            : "failed"
+          : workflowRun.status === "queued"
+            ? "queued"
+            : "running";
+      const isTerminal = TERMINAL_STATUSES.has(workflowStatus);
+      const updated = await updateAutoAuditRunWorkflowState({
+        auditRunId,
+        status: workflowStatus,
+        workflowRunId: workflowRun.id,
+        workflowRunUrl: workflowRun.url,
+        error: isTerminal
+          ? `GitHub Actions terminó con estado ${workflowRun.conclusion ?? workflowRun.status} antes de publicar auto-audit-report.json.`
+          : undefined,
+      });
+
+      return {
+        synced: isTerminal,
+        audit: updated,
+        message: isTerminal
+          ? "GitHub Actions terminó sin publicar el artifact de auditoría."
+          : "GitHub Actions todavía no publica el artifact de auditoría.",
+      };
+    }
+
     return {
       synced: false,
       audit: run,

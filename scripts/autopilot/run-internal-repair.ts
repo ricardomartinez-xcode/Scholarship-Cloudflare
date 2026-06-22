@@ -88,4 +88,7 @@ async function main() {
   await writeFile(path.join(outputDir, "auto-repair-report.md"), markdown);
 }
 
-await main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.stack ?? error.message : String(error));
+  process.exitCode = 1;
+});
