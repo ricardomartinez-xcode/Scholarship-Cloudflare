@@ -412,7 +412,7 @@ describe("GET /api/data/pricing-options", () => {
       {
         value: "tijuana",
         label: "Tijuana",
-        businessLines: ["licenciatura"],
+        businessLines: ["licenciatura", "salud"],
         modalities: ["presencial"],
         studyPrograms: [
           {
@@ -421,6 +421,13 @@ describe("GET /api/data/pricing-options", () => {
             businessLine: "licenciatura",
             planPdfUrl: "https://example.com/lic.pdf",
             planDownloadUrl: "https://example.com/lic.pdf",
+          },
+          {
+            id: "program_salud_without_pdf",
+            name: "Enfermeria",
+            businessLine: "salud",
+            planPdfUrl: null,
+            planDownloadUrl: null,
           },
         ],
         pricingOptions: [
@@ -503,6 +510,13 @@ describe("GET /api/data/pricing-options", () => {
         businessLine: "prepa",
         planPdfUrl: "https://example.com/prepa.pdf",
         planDownloadUrl: "https://example.com/prepa.pdf",
+      },
+      {
+        id: "program_salud_without_pdf",
+        name: "Enfermeria",
+        businessLine: "salud",
+        planPdfUrl: null,
+        planDownloadUrl: null,
       },
       {
         id: "program_catalog_salud",
@@ -608,6 +622,107 @@ describe("GET /api/data/pricing-options", () => {
           }),
         ],
         pricingOptions: [],
+      }),
+    ]);
+  });
+
+  it("keeps imported offer programs selectable before a study plan PDF is assigned", async () => {
+    prismaMock.scholarshipRule.findMany.mockResolvedValue([]);
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);
+    prismaMock.program.findMany.mockResolvedValue([
+      {
+        id: "program_enfermeria",
+        name: "Licenciatura en Enfermería",
+        nameNormalized: "licenciatura-en-enfermeria",
+        category: "Salud",
+        level: "Licenciatura",
+        businessLine: "salud",
+        planPdfUrl: null,
+        brochurePdfUrl: null,
+        planDriveLink: null,
+        planUrl: null,
+      },
+    ]);
+    prismaMock.campus.findMany.mockResolvedValue([
+      {
+        id: "campus_hermosillo",
+        code: "HMO",
+        metaKey: "Hermosillo",
+        name: "Hermosillo",
+        tier: "T3",
+      },
+    ]);
+    prismaMock.programOffering.findMany.mockResolvedValue([
+      {
+        id: "offering_enfermeria_hmo",
+        campusId: "campus_hermosillo",
+        pricingPlans: [9],
+        track: "Modular",
+        moduleCount: 3,
+        subjectsByModule: null,
+        delivery: "CAMPUS",
+        escolarizado: true,
+        ejecutivo: false,
+        lineOfBusiness: "salud",
+        program: {
+          id: "program_enfermeria",
+          name: "Licenciatura en Enfermería",
+          businessLine: "salud",
+          level: "Licenciatura",
+          category: "Salud",
+          planPdfUrl: null,
+          brochurePdfUrl: null,
+          planDriveLink: null,
+          planUrl: null,
+        },
+      },
+    ]);
+
+    const response = await GET();
+    const data = (await response.json()) as {
+      campuses: Array<{
+        value: string;
+        businessLines: string[];
+        modalities: string[];
+        studyPrograms: Array<{
+          id: string;
+          businessLine: string;
+          planPdfUrl: string | null;
+          planDownloadUrl: string | null;
+        }>;
+        pricingOptions: Array<unknown>;
+      }>;
+      studyPrograms: Array<{
+        id: string;
+        businessLine: string;
+        planPdfUrl: string | null;
+        planDownloadUrl: string | null;
+      }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(data.campuses).toEqual([
+      expect.objectContaining({
+        value: "Hermosillo",
+        businessLines: ["salud"],
+        modalities: ["presencial"],
+        studyPrograms: [
+          expect.objectContaining({
+            id: "program_enfermeria",
+            businessLine: "salud",
+            planPdfUrl: null,
+            planDownloadUrl: null,
+          }),
+        ],
+        pricingOptions: [],
+      }),
+    ]);
+    expect(data.studyPrograms).toEqual([
+      expect.objectContaining({
+        id: "program_enfermeria",
+        businessLine: "salud",
+        planPdfUrl: null,
+        planDownloadUrl: null,
       }),
     ]);
   });

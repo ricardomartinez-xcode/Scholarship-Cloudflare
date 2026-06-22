@@ -151,7 +151,7 @@ function buildStudyProgram(
   const planPdfUrl = r2Payload.planPdfUrl;
   const planDownloadUrl = r2Payload.planDownloadUrl;
 
-  if (!businessLine || !planPdfUrl) return null;
+  if (!businessLine) return null;
 
   return {
     id: program.id,
@@ -394,7 +394,7 @@ export async function GET() {
           id: string;
           name: string;
           businessLine: string;
-          planPdfUrl: string;
+          planPdfUrl: string | null;
           planDownloadUrl: string | null;
         }
       >();
