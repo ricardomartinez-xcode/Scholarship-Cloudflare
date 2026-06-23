@@ -19,6 +19,7 @@ import {
   applyPreparedPricesImport,
   type PreparedPricesImportPayload,
 } from "@/lib/importers/prices-csv";
+import { PriceImportCoverageError } from "@/lib/importers/price-import-integrity-guard";
 import {
   redirectAdminImportPublicationIfNeeded,
   validateAdminImportPublicationConfirmation,
@@ -179,6 +180,17 @@ export async function POST(
       { message: "Importación de precios aplicada." },
     );
   } catch (error) {
+    if (error instanceof PriceImportCoverageError) {
+      return adminApiError({
+        requestId,
+        status: error.status,
+        errorCode: error.code,
+        error: error.message,
+        details: error.details,
+        recoverable: true,
+      });
+    }
+
     if (sessionIdForRedirect) {
       const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionIdForRedirect, {
         publicationError:

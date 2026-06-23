@@ -1,20 +1,62 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const prismaMock = vi.hoisted(() => ({
-  adminPriceOverride: {
-    findMany: vi.fn(),
-  },
-}));
+const { prismaMock, txMock } = vi.hoisted(() => {
+  const tx = {
+    adminPublishedConfig: {
+      findUnique: vi.fn(),
+    },
+    adminPriceOverride: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      create: vi.fn(),
+    },
+    programOffering: {
+      findMany: vi.fn(),
+    },
+  };
+
+  return {
+    txMock: tx,
+    prismaMock: {
+      adminPriceOverride: {
+        findMany: vi.fn(),
+      },
+      $transaction: vi.fn(),
+    },
+  };
+});
 
 vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
-import { preparePricesCsvImport } from "@/lib/importers/prices-csv";
+import {
+  applyPreparedPricesImport,
+  preparePricesCsvImport,
+  type PreparedPricesImportPayloadRow,
+} from "@/lib/importers/prices-csv";
 
 describe("preparePricesCsvImport", () => {
   beforeEach(() => {
     prismaMock.adminPriceOverride.findMany.mockReset();
+    prismaMock.$transaction.mockReset();
+    prismaMock.$transaction.mockImplementation(
+      async (callback: (tx: typeof txMock) => Promise<unknown>) => callback(txMock),
+    );
+    txMock.adminPublishedConfig.findUnique.mockReset();
+    txMock.adminPublishedConfig.findUnique.mockResolvedValue(null);
+    txMock.adminPriceOverride.findMany.mockReset();
+    txMock.adminPriceOverride.findMany.mockResolvedValue([]);
+    txMock.adminPriceOverride.deleteMany.mockReset();
+    txMock.adminPriceOverride.deleteMany.mockResolvedValue({ count: 0 });
+    txMock.adminPriceOverride.findUnique.mockReset();
+    txMock.adminPriceOverride.findUnique.mockResolvedValue(null);
+    txMock.adminPriceOverride.update.mockReset();
+    txMock.adminPriceOverride.create.mockReset();
+    txMock.programOffering.findMany.mockReset();
+    txMock.programOffering.findMany.mockResolvedValue([]);
   });
 
   it("prepares price-list imports as base_price overrides keyed by campus when present", async () => {
@@ -290,4 +332,180 @@ it("rejects CSV rows whose explicit scope does not match populated dimensions", 
   });
 });
 
+});
+
+const activeOffering = {
+  id: "offering-1",
+  cycle: "C3",
+  track: "M1",
+  lineOfBusiness: "licenciatura",
+  pricingPlans: [9],
+  delivery: "CAMPUS",
+  escolarizado: true,
+  ejecutivo: false,
+  campus: {
+    id: "campus-1",
+    code: "HMO",
+    metaKey: "HERMOSILLO",
+    name: "Hermosillo",
+    slug: "hermosillo",
+    tier: "T1",
+    kind: "campus",
+  },
+  program: {
+    id: "program-1",
+    name: "Administración",
+    nameNormalized: "administracion",
+    businessLine: "licenciatura",
+    level: "Licenciatura",
+    category: "Licenciatura",
+  },
+};
+
+const preparedRow = {
+  rowNumber: 2,
+  action: "create",
+  region: null,
+  plantel: "Hermosillo",
+  programaKey: "administracion",
+  scopePreset: "program_campus_tier",
+  scopeLabel: "Programa + plantel + tier",
+  nivelKey: "licenciatura",
+  modalidadKey: "presencial",
+  plan: "9",
+  module: "M1",
+  tier: "T1",
+  newPrice: 3900,
+  subjectPrice: null,
+  isActive: true,
+  notes: null,
+  key: "scope-key",
+  existingId: null,
+} satisfies PreparedPricesImportPayloadRow;
+
+describe("applyPreparedPricesImport coverage guard", () => {
+  beforeEach(() => {
+    prismaMock.$transaction.mockReset();
+    prismaMock.$transaction.mockImplementation(
+      async (callback: (tx: typeof txMock) => Promise<unknown>) => callback(txMock),
+    );
+    txMock.adminPublishedConfig.findUnique.mockReset();
+    txMock.adminPublishedConfig.findUnique.mockResolvedValue(null);
+    txMock.adminPriceOverride.findMany.mockReset();
+    txMock.adminPriceOverride.deleteMany.mockReset();
+    txMock.adminPriceOverride.deleteMany.mockResolvedValue({ count: 1 });
+    txMock.adminPriceOverride.findUnique.mockReset();
+    txMock.adminPriceOverride.findUnique.mockResolvedValue({
+      id: "live-price",
+    });
+    txMock.adminPriceOverride.update.mockReset();
+    txMock.adminPriceOverride.update.mockResolvedValue({ id: "live-price" });
+    txMock.adminPriceOverride.create.mockReset();
+    txMock.adminPriceOverride.create.mockResolvedValue({ id: "created-price" });
+    txMock.programOffering.findMany.mockReset();
+    txMock.programOffering.findMany.mockResolvedValue([activeOffering]);
+  });
+
+  it("rechaza replace que eliminaría el único precio antes de mutar", async () => {
+    txMock.adminPriceOverride.findMany.mockResolvedValue([
+      {
+        id: "live-price",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          modulo: "M1",
+          plantel: "Hermosillo",
+          programa_key: "administracion",
+          tier: "T1",
+        },
+        newPrice: 3500,
+        isActive: true,
+        notes: null,
+        updatedBy: "admin@example.com",
+      },
+    ]);
+
+    await expect(
+      applyPreparedPricesImport({
+        payload: { rows: [] },
+        updatedBy: "admin@example.com",
+        mode: "replace",
+      }),
+    ).rejects.toMatchObject({
+      code: "PRICE_IMPORT_COVERAGE_INCOMPLETE",
+    });
+
+    expect(txMock.adminPriceOverride.deleteMany).not.toHaveBeenCalled();
+    expect(txMock.adminPriceOverride.create).not.toHaveBeenCalled();
+    expect(txMock.adminPriceOverride.update).not.toHaveBeenCalled();
+  });
+
+  it("permite update-only noop cuando el override vivo conserva cobertura", async () => {
+    txMock.adminPriceOverride.findMany.mockResolvedValue([
+      {
+        id: "live-price",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "licenciatura",
+          modalidad_key: "presencial",
+          plan: "9",
+          modulo: "M1",
+          plantel: "Hermosillo",
+          programa_key: "administracion",
+          tier: "T1",
+        },
+        newPrice: 3500,
+        isActive: true,
+        notes: null,
+        updatedBy: "admin@example.com",
+      },
+    ]);
+
+    const summary = await applyPreparedPricesImport({
+      payload: {
+        rows: [
+          {
+            ...preparedRow,
+            action: "noop",
+            existingId: "live-price",
+            newPrice: 3500,
+          },
+        ],
+      },
+      updatedBy: "admin@example.com",
+      mode: "update-only",
+    });
+
+    expect(summary).toEqual({
+      processed: 1,
+      created: 0,
+      updated: 0,
+      unchanged: 1,
+    });
+    expect(txMock.adminPriceOverride.deleteMany).not.toHaveBeenCalled();
+    expect(txMock.adminPriceOverride.create).not.toHaveBeenCalled();
+    expect(txMock.adminPriceOverride.update).not.toHaveBeenCalled();
+  });
+
+  it("mantiene el flujo válido de replace", async () => {
+    txMock.adminPriceOverride.findMany.mockResolvedValue([]);
+
+    const summary = await applyPreparedPricesImport({
+      payload: { rows: [preparedRow] },
+      updatedBy: "admin@example.com",
+      mode: "replace",
+    });
+
+    expect(summary).toEqual({
+      processed: 1,
+      created: 1,
+      updated: 0,
+      unchanged: 0,
+    });
+    expect(txMock.adminPriceOverride.deleteMany).toHaveBeenCalledBefore(
+      txMock.adminPriceOverride.create,
+    );
+  });
 });

@@ -27,7 +27,12 @@ import {
   normalizeAdminPriceScopePreset,
   type AdminPriceScopePreset,
 } from "@/lib/admin-price-scope";
+import { BASE_PRICE_OVERRIDE_SCOPE } from "@/lib/base-price-overrides";
+import { listActivePriceCoverageInputs } from "@/lib/importers/price-coverage-report";
+import { assertProjectedPriceImportCoverage } from "@/lib/importers/price-import-integrity-guard";
+import type { PriceImportCoverageRow } from "@/lib/importers/price-import-coverage-projection";
 import { prisma } from "@/lib/prisma";
+import { listPriceOverrideLayers } from "@/lib/published-price-overrides";
 
 export type PriceImportDiffAction = "create" | "update" | "noop";
 
@@ -527,42 +532,76 @@ export async function applyPreparedPricesImport(params: {
   let updated = 0;
   let unchanged = 0;
 
-  await prisma.$transaction(async (tx) => {
-    if (mode === "replace") {
-      await tx.adminPriceOverride.deleteMany({ where: { scope: "base_price" } });
+  const writes = rows.map((row) => {
+    const targetKeys: Record<string, string | number> = {
+      ...(row.programaKey ? { programa_key: row.programaKey } : {}),
+      nivel_key: row.nivelKey,
+      modalidad_key: row.modalidadKey,
+      plan: row.plan,
+      modulo: row.module,
+    };
+    if (row.subjectPrice !== null) {
+      targetKeys.subject_price_mxn = row.subjectPrice;
+    }
+    if (row.tier) {
+      targetKeys.tier = row.tier;
+    }
+    if (row.plantel) {
+      targetKeys.plantel = row.plantel;
+    }
+    if (row.region) {
+      targetKeys.region = row.region;
     }
 
-    for (const row of rows) {
+    const coverageRow: PriceImportCoverageRow = {
+      rowNumber: row.rowNumber,
+      action: row.action,
+      existingId: row.existingId,
+      scope: BASE_PRICE_OVERRIDE_SCOPE,
+      targetKeys,
+      newPrice: row.newPrice,
+      isActive: row.isActive,
+      notes: row.notes,
+      updatedBy: params.updatedBy,
+    };
+
+    return { row, coverageRow };
+  });
+
+  await prisma.$transaction(async (tx) => {
+    for (const { row } of writes) {
       if (mode === "update-only" && row.action === "create") {
         throw new PricesCsvValidationError(
           `Actualizar lote no puede crear precios nuevos. Revisa la fila ${row.rowNumber}.`,
           "UPDATE_ONLY_CANNOT_CREATE_PRICE",
         );
       }
+    }
 
+    const [{ publishedOverrides, liveOverrides }, coverageInputs] =
+      await Promise.all([
+        listPriceOverrideLayers([BASE_PRICE_OVERRIDE_SCOPE], tx),
+        listActivePriceCoverageInputs(null, tx),
+      ]);
+
+    assertProjectedPriceImportCoverage({
+      coverageInputs,
+      publishedOverrides,
+      currentLiveOverrides: liveOverrides,
+      rows: writes.map(({ coverageRow }) => coverageRow),
+      mode,
+    });
+
+    if (mode === "replace") {
+      await tx.adminPriceOverride.deleteMany({
+        where: { scope: BASE_PRICE_OVERRIDE_SCOPE },
+      });
+    }
+
+    for (const { row, coverageRow } of writes) {
       if (row.action === "noop" && mode !== "replace") {
         unchanged += 1;
         continue;
-      }
-
-      const targetKeys: Record<string, string | number> = {
-        ...(row.programaKey ? { programa_key: row.programaKey } : {}),
-        nivel_key: row.nivelKey,
-        modalidad_key: row.modalidadKey,
-        plan: row.plan,
-        modulo: row.module,
-      };
-      if (row.subjectPrice !== null) {
-        targetKeys.subject_price_mxn = row.subjectPrice;
-      }
-      if (row.tier) {
-        targetKeys.tier = row.tier;
-      }
-      if (row.plantel) {
-        targetKeys.plantel = row.plantel;
-      }
-      if (row.region) {
-        targetKeys.region = row.region;
       }
 
       let existingId = mode === "replace" ? null : row.existingId ?? null;
@@ -575,7 +614,7 @@ export async function applyPreparedPricesImport(params: {
           await tx.adminPriceOverride.update({
             where: { id: existingId },
             data: {
-              targetKeys: targetKeys as Prisma.InputJsonValue,
+              targetKeys: coverageRow.targetKeys as Prisma.InputJsonValue,
               newPrice: row.newPrice,
               isActive: row.isActive,
               notes: row.notes,
@@ -590,8 +629,8 @@ export async function applyPreparedPricesImport(params: {
 
       await tx.adminPriceOverride.create({
         data: {
-          scope: "base_price",
-          targetKeys: targetKeys as Prisma.InputJsonValue,
+          scope: BASE_PRICE_OVERRIDE_SCOPE,
+          targetKeys: coverageRow.targetKeys as Prisma.InputJsonValue,
           newPrice: row.newPrice,
           isActive: row.isActive,
           notes: row.notes,

@@ -1,11 +1,15 @@
 import { AdminConfigModule } from "@prisma/client";
 
 import {
-  getPublishedConfigSnapshot,
   type PriceOverrideSnapshot,
   type PricesDraftSnapshot,
 } from "@/lib/admin-config-snapshots";
 import { prisma } from "@/lib/prisma";
+
+type PriceOverrideClient = Pick<
+  typeof prisma,
+  "adminPriceOverride" | "adminPublishedConfig"
+>;
 
 function normalizeOverride(override: {
   id: string;
@@ -27,8 +31,11 @@ function normalizeOverride(override: {
   };
 }
 
-async function listActiveDbPriceOverrides(scopes: string[]) {
-  const overrides = await prisma.adminPriceOverride.findMany({
+async function listActiveDbPriceOverrides(
+  scopes: string[],
+  client: PriceOverrideClient,
+) {
+  const overrides = await client.adminPriceOverride.findMany({
     where: { isActive: true, scope: { in: scopes } },
     orderBy: [{ scope: "asc" }, { createdAt: "asc" }],
     select: {
@@ -45,7 +52,27 @@ async function listActiveDbPriceOverrides(scopes: string[]) {
   return overrides.map(normalizeOverride);
 }
 
-function mergePriceOverrides(
+async function listPublishedSnapshotPriceOverrides(
+  scopes: string[],
+  client: PriceOverrideClient,
+) {
+  const published = await client.adminPublishedConfig.findUnique({
+    where: { module: AdminConfigModule.PRICES },
+    select: {
+      version: {
+        select: { snapshot: true },
+      },
+    },
+  });
+
+  if (!published) return [];
+
+  return (published.version.snapshot as PricesDraftSnapshot).overrides.filter(
+    (override) => override.isActive && scopes.includes(override.scope),
+  );
+}
+
+export function mergePriceOverrideLayers(
   publishedOverrides: PriceOverrideSnapshot[],
   dbOverrides: PriceOverrideSnapshot[],
 ) {
@@ -64,19 +91,26 @@ function mergePriceOverrides(
   return Array.from(merged.values());
 }
 
-export async function listActivePublishedPriceOverrides(
+export async function listPriceOverrideLayers(
   scopes: string[] = ["base_price"],
-): Promise<PriceOverrideSnapshot[]> {
-  const [published, dbOverrides] = await Promise.all([
-    getPublishedConfigSnapshot(AdminConfigModule.PRICES),
-    listActiveDbPriceOverrides(scopes),
+  client: PriceOverrideClient = prisma,
+) {
+  const [publishedOverrides, liveOverrides] = await Promise.all([
+    listPublishedSnapshotPriceOverrides(scopes, client),
+    listActiveDbPriceOverrides(scopes, client),
   ]);
 
-  const publishedOverrides = published
-    ? (published.snapshot as PricesDraftSnapshot).overrides.filter(
-        (override) => override.isActive && scopes.includes(override.scope),
-      )
-    : [];
+  return { publishedOverrides, liveOverrides };
+}
 
-  return mergePriceOverrides(publishedOverrides, dbOverrides);
+export async function listActivePublishedPriceOverrides(
+  scopes: string[] = ["base_price"],
+  client: PriceOverrideClient = prisma,
+): Promise<PriceOverrideSnapshot[]> {
+  const { publishedOverrides, liveOverrides } = await listPriceOverrideLayers(
+    scopes,
+    client,
+  );
+
+  return mergePriceOverrideLayers(publishedOverrides, liveOverrides);
 }

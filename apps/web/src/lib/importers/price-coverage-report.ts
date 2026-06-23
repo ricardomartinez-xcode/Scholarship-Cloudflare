@@ -9,7 +9,7 @@ import {
   normalizeBusinessLine,
   type CanonicalBusinessLine,
   type CanonicalModalityValue,
-} from "@/lib/pricing-normalization";
+} from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 import { listActivePublishedPriceOverrides } from "@/lib/published-price-overrides";
 
@@ -60,6 +60,33 @@ export type ActivePriceCoverageInputs = {
   contexts: PriceCoverageContext[];
   unresolvedIssues: PriceCoverageIssue[];
 };
+
+type PriceCoverageClient = Pick<typeof prisma, "programOffering">;
+
+function issueSortKey(issue: PriceCoverageIssue) {
+  return [
+    issue.cycle,
+    issue.campus,
+    issue.program,
+    issue.businessLine ?? "",
+    issue.modality ?? "",
+    issue.plan === null ? "" : String(issue.plan).padStart(4, "0"),
+    issue.module ?? "",
+    issue.tier ?? "",
+    issue.offeringId,
+    issue.kind,
+  ].join("\u0000");
+}
+
+function sortCoverageIssues(issues: PriceCoverageIssue[]) {
+  return [...issues].sort((left, right) => {
+    const leftKey = issueSortKey(left);
+    const rightKey = issueSortKey(right);
+    if (leftKey < rightKey) return -1;
+    if (leftKey > rightKey) return 1;
+    return 0;
+  });
+}
 
 function messageForIssue(kind: PriceCoverageIssue["kind"]) {
   const messages: Record<PriceCoverageIssue["kind"], string> = {
@@ -195,14 +222,15 @@ export function inspectPriceCoverage(params: {
     offeringsChecked: offeringIds.size,
     combinationsChecked,
     coveredCombinations,
-    issues,
+    issues: sortCoverageIssues(issues),
   };
 }
 
 export async function listActivePriceCoverageInputs(
   cycle: string | null,
+  client: PriceCoverageClient = prisma,
 ): Promise<ActivePriceCoverageInputs> {
-  const offerings = await prisma.programOffering.findMany({
+  const offerings = await client.programOffering.findMany({
     where: {
       isActive: true,
       campus: { isActive: true },
@@ -262,7 +290,7 @@ export async function listActivePriceCoverageInputs(
             ...(offering.ejecutivo ? (["mixta"] as const) : []),
           ];
 
-    const module = academicModuleOrDefault(offering.track);
+    const academicModule = academicModuleOrDefault(offering.track);
 
     if (!businessLine || !modalities.length) {
       unresolvedIssues.push(
@@ -273,7 +301,7 @@ export async function listActivePriceCoverageInputs(
           program: offering.program.name,
           businessLine: businessLine ?? null,
           modality: modalities[0] ?? null,
-          module,
+          module: academicModule,
           tier: offering.campus.tier,
         }),
       );
@@ -310,7 +338,7 @@ export async function listActivePriceCoverageInputs(
         campusName: offering.campus.name,
         campusTier: offering.campus.tier,
         pricingPlans: normalizeAcademicPricingPlans(offering.pricingPlans),
-        module,
+        module: academicModule,
         campusAliases,
         programAliases: [
           offering.program.id,

@@ -61,6 +61,44 @@ describe("price coverage report", () => {
     });
   });
 
+  it("resuelve aliases de campus y programa con el matcher compartido", () => {
+    const report = inspectPriceCoverage({
+      contexts: [
+        {
+          ...context,
+          campusAliases: ["campus-1", "HMO", "campus-hermosillo"],
+          programAliases: [
+            "program-1",
+            "Psicología",
+            "Licenciatura en Psicología",
+          ],
+        },
+      ],
+      overrides: [
+        {
+          id: "price-alias",
+          scope: "base_price",
+          targetKeys: {
+            nivel_key: "licenciatura",
+            modalidad_key: "presencial",
+            plan: "9",
+            modulo: "M1",
+            plantel: "HMO",
+            programa_key: "Licenciatura en Psicologia",
+            tier: "T1",
+          },
+          newPrice: 3500,
+          isActive: true,
+          notes: null,
+          updatedBy: "test@example.com",
+        },
+      ],
+    });
+
+    expect(report.coveredCombinations).toBe(1);
+    expect(report.issues).toEqual([]);
+  });
+
   it("reporta ofertas sin planes de precio", () => {
     const report = inspectPriceCoverage({
       contexts: [{ ...context, pricingPlans: [] }],
@@ -69,6 +107,35 @@ describe("price coverage report", () => {
 
     expect(report.issues).toEqual([
       expect.objectContaining({ kind: "offering_without_pricing_plan", plan: null }),
+    ]);
+  });
+
+  it("ordena de forma determinista incidencias resolubles y no resolubles", () => {
+    const report = inspectPriceCoverage({
+      contexts: [context],
+      overrides: [],
+      unresolvedIssues: [
+        {
+          kind: "unresolvable_offering_context",
+          offeringId: "offering-2",
+          cycle: "C4",
+          campus: "Zacatecas",
+          program: "Programa sin línea",
+          businessLine: null,
+          modality: null,
+          plan: null,
+          module: "M1",
+          tier: null,
+          message:
+            "La oferta activa no tiene línea o modalidad canónica resoluble.",
+        },
+      ],
+    });
+
+    expect(report.offeringsChecked).toBe(2);
+    expect(report.issues.map((issue) => issue.kind)).toEqual([
+      "missing_base_price",
+      "unresolvable_offering_context",
     ]);
   });
 });
