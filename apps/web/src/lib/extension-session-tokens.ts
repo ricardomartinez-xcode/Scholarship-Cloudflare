@@ -13,18 +13,13 @@ const DAY_MS = 1000 * 60 * 60 * 24;
 
 export const EXTENSION_SESSION_TTL_PRESETS = {
   "24h": DAY_MS,
-  "7d": 7 * DAY_MS,
-  "30d": 30 * DAY_MS,
-  "365d": 365 * DAY_MS,
-  never: null,
 } as const;
 
 export type ExtensionSessionTtlPreset = keyof typeof EXTENSION_SESSION_TTL_PRESETS;
 
-const DEFAULT_TTL_PRESET: ExtensionSessionTtlPreset = "7d";
-const DEFAULT_TTL_MS = EXTENSION_SESSION_TTL_PRESETS[DEFAULT_TTL_PRESET] ?? 7 * DAY_MS;
-const MAX_TTL_MS = EXTENSION_SESSION_TTL_PRESETS["365d"] ?? 365 * DAY_MS;
-const NEVER_EXPIRES_AT = new Date("9999-12-31T23:59:59.000Z");
+const DEFAULT_TTL_PRESET: ExtensionSessionTtlPreset = "24h";
+const DEFAULT_TTL_MS = EXTENSION_SESSION_TTL_PRESETS[DEFAULT_TTL_PRESET];
+const MAX_TTL_MS = EXTENSION_SESSION_TTL_PRESETS["24h"];
 const MAX_CLIENT_LENGTH = 80;
 const MAX_VERSION_LENGTH = 32;
 const MAX_UA_LENGTH = 240;
@@ -85,30 +80,30 @@ export function normalizeExtensionSessionTtlPreset(
     daily: "24h",
     dia: "24h",
     "día": "24h",
-    "7d": "7d",
-    week: "7d",
-    weekly: "7d",
-    semana: "7d",
-    "30d": "30d",
-    "1m": "30d",
-    month: "30d",
-    monthly: "30d",
-    mes: "30d",
-    "365d": "365d",
-    "1y": "365d",
-    year: "365d",
-    yearly: "365d",
-    annual: "365d",
-    ano: "365d",
-    "año": "365d",
-    never: "never",
-    forever: "never",
-    none: "never",
-    "no-expiration": "never",
-    "no_expiration": "never",
-    "sin-expirar": "never",
-    "sin_expirar": "never",
-    nunca: "never",
+    "7d": "24h",
+    week: "24h",
+    weekly: "24h",
+    semana: "24h",
+    "30d": "24h",
+    "1m": "24h",
+    month: "24h",
+    monthly: "24h",
+    mes: "24h",
+    "365d": "24h",
+    "1y": "24h",
+    year: "24h",
+    yearly: "24h",
+    annual: "24h",
+    ano: "24h",
+    "año": "24h",
+    never: "24h",
+    forever: "24h",
+    none: "24h",
+    "no-expiration": "24h",
+    "no_expiration": "24h",
+    "sin-expirar": "24h",
+    "sin_expirar": "24h",
+    nunca: "24h",
   };
 
   return aliases[normalized] ?? null;
@@ -130,14 +125,6 @@ export function resolveExtensionSessionExpiry(params: {
   ttlPreset?: string | null;
 } = {}): ResolvedExtensionSessionExpiry {
   const preset = normalizeExtensionSessionTtlPreset(params.ttlPreset);
-
-  if (preset === "never") {
-    return {
-      expiresAt: new Date(NEVER_EXPIRES_AT.getTime()),
-      ttlMs: null,
-      ttlPreset: "never",
-    };
-  }
 
   if (preset) {
     const presetTtlMs = EXTENSION_SESSION_TTL_PRESETS[preset];

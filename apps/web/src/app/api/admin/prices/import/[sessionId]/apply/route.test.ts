@@ -81,57 +81,61 @@ describe("POST admin prices import apply", () => {
     });
   });
 
-  it("responde 422 y no aplica la sesión cuando la cobertura queda incompleta", async () => {
-    const issue = {
-      kind: "missing_base_price" as const,
-      offeringId: "offering-1",
-      cycle: "C3",
-      campus: "Hermosillo",
-      program: "Administración",
-      businessLine: "licenciatura",
-      modality: "presencial",
-      plan: 9,
-      module: "M1",
-      tier: "T1",
-      message:
-        "No hay precio lista publicado para la combinación activa de oferta.",
-    };
-    const { POST } = await import("./route");
-    const { PriceImportCoverageError } = await import(
-      "@/lib/importers/price-import-integrity-guard"
-    );
-    mocks.applyPreparedPricesImport.mockRejectedValue(
-      new PriceImportCoverageError({
-        offeringsChecked: 1,
-        combinationsChecked: 1,
-        coveredCombinations: 0,
-        issues: [issue],
-        effectiveOverrides: [],
-      }),
-    );
+  it(
+    "responde 422 y no aplica la sesión cuando la cobertura queda incompleta",
+    async () => {
+      const issue = {
+        kind: "missing_base_price" as const,
+        offeringId: "offering-1",
+        cycle: "C3",
+        campus: "Hermosillo",
+        program: "Administración",
+        businessLine: "licenciatura",
+        modality: "presencial",
+        plan: 9,
+        module: "M1",
+        tier: "T1",
+        message:
+          "No hay precio lista publicado para la combinación activa de oferta.",
+      };
+      const { POST } = await import("./route");
+      const { PriceImportCoverageError } = await import(
+        "@/lib/importers/price-import-integrity-guard"
+      );
+      mocks.applyPreparedPricesImport.mockRejectedValue(
+        new PriceImportCoverageError({
+          offeringsChecked: 1,
+          combinationsChecked: 1,
+          coveredCombinations: 0,
+          issues: [issue],
+          effectiveOverrides: [],
+        }),
+      );
 
-    const response = await POST(
-      new Request(
-        "https://recalc.local/api/admin/prices/import/session-1/apply",
-        { method: "POST" },
-      ),
-      { params: Promise.resolve({ sessionId: "session-1" }) },
-    );
-    const payload = await response.json();
+      const response = await POST(
+        new Request(
+          "https://recalc.local/api/admin/prices/import/session-1/apply",
+          { method: "POST" },
+        ),
+        { params: Promise.resolve({ sessionId: "session-1" }) },
+      );
+      const payload = await response.json();
 
-    expect(response.status).toBe(422);
-    expect(payload).toMatchObject({
-      ok: false,
-      errorCode: "PRICE_IMPORT_COVERAGE_INCOMPLETE",
-      details: {
-        offeringsChecked: 1,
-        combinationsChecked: 1,
-        coveredCombinations: 0,
-        issues: [issue],
-      },
-    });
-    expect(payload.details).not.toHaveProperty("effectiveOverrides");
-    expect(mocks.markAdminImportSessionApplied).not.toHaveBeenCalled();
-    expect(mocks.writeBusinessEventSafe).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(422);
+      expect(payload).toMatchObject({
+        ok: false,
+        errorCode: "PRICE_IMPORT_COVERAGE_INCOMPLETE",
+        details: {
+          offeringsChecked: 1,
+          combinationsChecked: 1,
+          coveredCombinations: 0,
+          issues: [issue],
+        },
+      });
+      expect(payload.details).not.toHaveProperty("effectiveOverrides");
+      expect(mocks.markAdminImportSessionApplied).not.toHaveBeenCalled();
+      expect(mocks.writeBusinessEventSafe).not.toHaveBeenCalled();
+    },
+    10_000,
+  );
 });

@@ -22,7 +22,7 @@ describe("extension session tokens", () => {
     prismaMock.user.findUnique.mockReset();
   });
 
-  it("allows issued token ttl below the production maximum", async () => {
+  it("defaults issued extension token ttl to 24 hours", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-25T00:00:00.000Z"));
     prismaMock.$executeRaw.mockResolvedValue(1);
@@ -32,13 +32,14 @@ describe("extension session tokens", () => {
       userId: "00000000-0000-0000-0000-000000000001",
       client: "chrome-sidepanel",
       scope: "extension:chrome-sidepanel",
-      ttlMs: 1000 * 60 * 60 * 24 * 30,
     });
 
-    expect(issued.expiresAt.toISOString()).toBe("2026-06-24T00:00:00.000Z");
+    expect(issued.expiresAt.toISOString()).toBe("2026-05-26T00:00:00.000Z");
+    expect(issued.ttlMs).toBe(1000 * 60 * 60 * 24);
+    expect(issued.ttlPreset).toBe("24h");
   });
 
-  it("caps custom token ttl to the production maximum", async () => {
+  it("caps custom token ttl to 24 hours", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-25T00:00:00.000Z"));
     prismaMock.$executeRaw.mockResolvedValue(1);
@@ -51,7 +52,36 @@ describe("extension session tokens", () => {
       ttlMs: 1000 * 60 * 60 * 24 * 999,
     });
 
-    expect(issued.expiresAt.toISOString()).toBe("2027-05-25T00:00:00.000Z");
+    expect(issued.expiresAt.toISOString()).toBe("2026-05-26T00:00:00.000Z");
+    expect(issued.ttlMs).toBe(1000 * 60 * 60 * 24);
+    expect(issued.ttlPreset).toBe("custom");
+  });
+
+  it("maps legacy long-lived token presets to the 24 hour maximum", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-25T00:00:00.000Z"));
+    prismaMock.$executeRaw.mockResolvedValue(1);
+    const { issueExtensionSessionToken } = await import("@/lib/extension-session-tokens");
+
+    const yearly = await issueExtensionSessionToken({
+      userId: "00000000-0000-0000-0000-000000000001",
+      client: "chrome-sidepanel",
+      scope: "extension:chrome-sidepanel",
+      ttlPreset: "365d",
+    });
+    const never = await issueExtensionSessionToken({
+      userId: "00000000-0000-0000-0000-000000000001",
+      client: "chrome-sidepanel",
+      scope: "extension:chrome-sidepanel",
+      ttlPreset: "never",
+    });
+
+    expect(yearly.expiresAt.toISOString()).toBe("2026-05-26T00:00:00.000Z");
+    expect(yearly.ttlMs).toBe(1000 * 60 * 60 * 24);
+    expect(yearly.ttlPreset).toBe("24h");
+    expect(never.expiresAt.toISOString()).toBe("2026-05-26T00:00:00.000Z");
+    expect(never.ttlMs).toBe(1000 * 60 * 60 * 24);
+    expect(never.ttlPreset).toBe("24h");
   });
 
   it("revokes active equivalent tokens before issuing a rotated token", async () => {
