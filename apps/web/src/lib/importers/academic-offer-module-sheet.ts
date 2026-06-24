@@ -9,7 +9,7 @@ import type {
 
 type ModulePart = "M1" | "M2" | "M3";
 type ModuleValue = ModulePart | "Longitudinal" | "Modular";
-type ModuleSelection = ModulePart | "Longitudinal";
+type ModuleSelection = ModuleValue;
 
 type ParsedOfferRowLike = {
   programName: string;
@@ -64,6 +64,7 @@ type ModuleConfig = {
   programKey: string;
   planNumbers: number[];
   modules: Set<ModuleSelection>;
+  moduleCount: number | null;
   subjectsByModule: string | null;
 };
 
@@ -107,7 +108,13 @@ function matchKey(value: unknown): string {
 }
 
 function parsePlanNumbers(value: unknown): number[] {
-  const text = cleanText(value);
+  const text = normalized(value)
+    .replace(/\bm\s*[1-3]\s*[:=]\s*\d+\b/g, " ")
+    .replace(/\bmodulo\s*[1-3]\s*[:=]\s*\d+\b/g, " ")
+    .replace(/\bcontenido\s*[1-3]\s*[:=]\s*\d+\b/g, " ")
+    .replace(/\bm\s*[1-3]\b/g, " ")
+    .replace(/\bmodulo\s*[1-3]\b/g, " ")
+    .replace(/\bcontenido\s*[1-3]\b/g, " ");
   if (!text) return [];
   return Array.from(new Set((text.match(/\d+/g) ?? [])
     .map((part) => Number(part))
@@ -123,18 +130,12 @@ function parseModuleCount(value: unknown): number | null {
   return Number.isInteger(count) && count >= 1 && count <= 3 ? count : null;
 }
 
-function modulePartFromNumber(value: number): ModulePart | null {
-  if (value === 1) return "M1";
-  if (value === 2) return "M2";
-  if (value === 3) return "M3";
-  return null;
-}
-
 function parseModulesFromText(value: unknown): Set<ModuleSelection> {
   const text = normalized(value);
   const modules = new Set<ModuleSelection>();
   if (!text) return modules;
 
+  if (text.includes("modular")) modules.add("Modular");
   if (text.includes("longitudinal") || text === "long") modules.add("Longitudinal");
 
   const checks: Array<[ModulePart, RegExp[]]> = [
@@ -148,6 +149,14 @@ function parseModulesFromText(value: unknown): Set<ModuleSelection> {
   }
 
   return modules;
+}
+
+function maxModuleCountFromParts(modules: Set<ModuleSelection>) {
+  const moduleNumbers = MODULE_PARTS
+    .filter((moduleSelection) => modules.has(moduleSelection))
+    .map((moduleSelection) => Number(moduleSelection.replace("M", "")));
+
+  return moduleNumbers.length ? Math.max(...moduleNumbers) : null;
 }
 
 function moduleFromHeader(header: string): ModuleSelection | null {
@@ -355,38 +364,52 @@ function parseModuleConfigs(detection: HeaderDetection): ModuleConfig[] {
     if (!programText) continue;
 
     const modules = new Set<ModuleSelection>();
+    let moduleCount: number | null = null;
 
     if (columns.module) {
-      for (const moduleSelection of parseModulesFromText(
-        row.getCell(columns.module).value,
-      )) {
+      const parsedModules = parseModulesFromText(row.getCell(columns.module).value);
+      for (const moduleSelection of parsedModules) {
         modules.add(moduleSelection);
+      }
+      if (parsedModules.has("Modular")) {
+        moduleCount =
+          maxModuleCountFromParts(parsedModules) ??
+          parseModuleCount(row.getCell(columns.module).value);
       }
     }
 
     if (columns.moduleCount) {
       const count = parseModuleCount(row.getCell(columns.moduleCount).value);
       if (count) {
-        for (let index = 1; index <= count; index += 1) {
-          const moduleSelection = modulePartFromNumber(index);
-          if (moduleSelection) modules.add(moduleSelection);
+        moduleCount = count;
+        if (!modules.size || modules.has("Modular")) {
+          modules.add("Modular");
         }
       }
     }
 
-    for (const contentColumn of columns.content) {
-      if (looksTruthy(row.getCell(contentColumn.column).value)) {
-        modules.add(contentColumn.module);
+    if (!modules.has("Modular")) {
+      for (const contentColumn of columns.content) {
+        if (looksTruthy(row.getCell(contentColumn.column).value)) {
+          modules.add(contentColumn.module);
+        }
       }
     }
 
     if (!modules.size) {
-      for (const moduleSelection of parseModulesFromText(rowText)) {
+      const parsedModules = parseModulesFromText(rowText);
+      for (const moduleSelection of parsedModules) {
         modules.add(moduleSelection);
+      }
+      if (parsedModules.has("Modular")) {
+        moduleCount = maxModuleCountFromParts(parsedModules);
       }
     }
 
     if (!modules.size) continue;
+    if (modules.has("Modular")) {
+      moduleCount = moduleCount ?? maxModuleCountFromParts(modules);
+    }
 
     const subjectNotes = collectSubjectNotes(row, detection);
     configs.push({
@@ -396,6 +419,7 @@ function parseModuleConfigs(detection: HeaderDetection): ModuleConfig[] {
       programKey: matchKey(programText),
       planNumbers: parsePlanNumbers(rowText),
       modules,
+      moduleCount,
       subjectsByModule: subjectNotes.length ? subjectNotes.join(" | ") : null,
     });
   }
@@ -431,32 +455,44 @@ function planMatches(config: ModuleConfig, row: ParsedOfferRowLike) {
   return config.planNumbers.some((plan) => rowPlans.includes(plan));
 }
 
-function mergeConfigs(configs: ModuleConfig[]): { modules: Set<ModuleSelection>; subjectsByModule: string | null } {
+function mergeConfigs(configs: ModuleConfig[]): {
+  modules: Set<ModuleSelection>;
+  moduleCount: number | null;
+  subjectsByModule: string | null;
+} {
   const modules = new Set<ModuleSelection>();
   const subjectNotes: string[] = [];
+  let moduleCount: number | null = null;
 
   for (const config of configs) {
     for (const moduleSelection of config.modules) modules.add(moduleSelection);
+    if (config.moduleCount != null) {
+      moduleCount = Math.max(moduleCount ?? 0, config.moduleCount);
+    }
     if (config.subjectsByModule) subjectNotes.push(config.subjectsByModule);
   }
 
   return {
     modules,
+    moduleCount,
     subjectsByModule: subjectNotes.length ? Array.from(new Set(subjectNotes)).join(" | ") : null,
   };
 }
 
-function modulesToVariants(modules: Set<ModuleSelection>, subjectsByModule: string | null) {
+function modulesToVariants(
+  modules: Set<ModuleSelection>,
+  subjectsByModule: string | null,
+  moduleCount: number | null,
+) {
   const variants: Array<{ module: ModuleValue; moduleCount: number | null; subjectsByModule: string | null }> = [];
   const moduleParts = MODULE_PARTS.filter((moduleSelection) => modules.has(moduleSelection));
 
-  if (moduleParts.length === 1) {
-    variants.push({ module: moduleParts[0], moduleCount: null, subjectsByModule });
-  } else if (moduleParts.length > 1) {
-    const maxModule = Math.max(
-      ...moduleParts.map((moduleSelection) => Number(moduleSelection.replace("M", ""))),
-    );
-    variants.push({ module: "Modular", moduleCount: maxModule, subjectsByModule });
+  if (modules.has("Modular")) {
+    variants.push({ module: "Modular", moduleCount, subjectsByModule });
+  } else {
+    for (const modulePart of moduleParts) {
+      variants.push({ module: modulePart, moduleCount: null, subjectsByModule });
+    }
   }
 
   if (modules.has("Longitudinal")) {
@@ -497,7 +533,11 @@ function applyConfigsToPayload(
       }
 
       const merged = mergeConfigs(matchingConfigs);
-      const variants = modulesToVariants(merged.modules, merged.subjectsByModule);
+      const variants = modulesToVariants(
+        merged.modules,
+        merged.subjectsByModule,
+        merged.moduleCount,
+      );
       if (!variants.length) {
         nextRows.push(row);
         continue;
@@ -522,6 +562,21 @@ function applyConfigsToPayload(
   return appliedRows;
 }
 
+function previewRowKey(row: AcademicOfferPreviewRow) {
+  return [
+    row.campusCode,
+    row.campusName,
+    row.programName,
+    row.line ?? "",
+    row.modality,
+    row.module,
+    row.moduleCount ?? "",
+    row.subjectsByModule ?? "",
+    row.pricingPlans.join(","),
+    row.isActive ? "active" : "inactive",
+  ].join("|");
+}
+
 function previewMatchesConfig(config: ModuleConfig, row: AcademicOfferPreviewRow) {
   const programCandidates = [row.programName].map(matchKey).filter(Boolean);
   const campusCandidates = [row.campusCode, row.campusName].map(matchKey).filter(Boolean);
@@ -541,18 +596,40 @@ function previewMatchesConfig(config: ModuleConfig, row: AcademicOfferPreviewRow
 }
 
 function applyConfigsToPreview(previewRows: AcademicOfferPreviewRow[], configs: ModuleConfig[]) {
+  const nextRows: AcademicOfferPreviewRow[] = [];
+
   for (const row of previewRows) {
     const matchingConfigs = configs.filter((config) => previewMatchesConfig(config, row));
-    if (!matchingConfigs.length) continue;
+    if (!matchingConfigs.length) {
+      nextRows.push(row);
+      continue;
+    }
 
     const merged = mergeConfigs(matchingConfigs);
-    const [variant] = modulesToVariants(merged.modules, merged.subjectsByModule);
-    if (!variant) continue;
+    const variants = modulesToVariants(
+      merged.modules,
+      merged.subjectsByModule,
+      merged.moduleCount,
+    );
+    if (!variants.length) {
+      nextRows.push(row);
+      continue;
+    }
 
-    row.module = variant.module;
-    row.moduleCount = variant.moduleCount;
-    row.subjectsByModule = variant.subjectsByModule ?? row.subjectsByModule ?? null;
+    for (const variant of variants) {
+      nextRows.push({
+        ...row,
+        id: `${row.id}:${variant.module}:${variant.moduleCount ?? ""}`,
+        module: variant.module,
+        moduleCount: variant.moduleCount,
+        subjectsByModule: variant.subjectsByModule ?? row.subjectsByModule ?? null,
+      });
+    }
   }
+
+  const deduped = new Map<string, AcademicOfferPreviewRow>();
+  for (const row of nextRows) deduped.set(previewRowKey(row), row);
+  previewRows.splice(0, previewRows.length, ...deduped.values());
 }
 
 function pushUniqueWarning(target: string[] | undefined, message: string) {
@@ -597,7 +674,7 @@ export async function enrichAcademicOfferImportWithModuleSheet<TPrepared extends
     modules: detection.columns,
   } as typeof params.prepared.payload.detectedColumns;
 
-  const warning = `Configuración de módulos detectada en "${detection.sheet.name}": ${configs.length} filas leídas, ${appliedRows} ofertas enriquecidas para mostrar M1, M2, M3 o Longitudinal según contenido.`;
+  const warning = `Configuración de módulos detectada en "${detection.sheet.name}": ${configs.length} filas leídas, ${appliedRows} ofertas enriquecidas respetando módulos explícitos como M1, M2, Modular o Longitudinal.`;
   pushUniqueWarning(params.prepared.summary.warnings, warning);
   pushUniqueWarning(params.prepared.payload.warnings, warning);
 
