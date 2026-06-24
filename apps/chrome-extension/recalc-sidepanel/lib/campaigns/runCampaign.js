@@ -118,6 +118,18 @@
     );
   }
 
+  function isAuthFailureError(error) {
+    return Boolean(error && typeof error === "object" && error.authFailure === true);
+  }
+
+  function errorMessage(error, fallback) {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String(error.message || "").trim()
+        : "";
+    return message || fallback;
+  }
+
   function normalizeRunState(input, current) {
     return {
       ...current,
@@ -450,11 +462,28 @@
       await setState(finalState);
       await schedule(nextDelay);
     } catch (error) {
+      const message = errorMessage(error, "Falló la ejecución automática.");
+      if (isAuthFailureError(error)) {
+        await setState({
+          ...nextState,
+          enabled: false,
+          paused: false,
+          busy: false,
+          status: "stopped",
+          currentBatch: null,
+          currentIndex: 0,
+          lastMessage: message,
+          updatedAt: new Date().toISOString(),
+        });
+        await chrome.alarms.clear(RUNNER_ALARM);
+        return;
+      }
+
       await setState({
         ...nextState,
         busy: false,
         status: "waiting",
-        lastMessage: error instanceof Error ? error.message : "Falló la ejecución automática.",
+        lastMessage: message,
       });
       await schedule(15_000);
     }

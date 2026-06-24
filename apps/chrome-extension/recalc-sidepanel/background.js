@@ -7,6 +7,7 @@ const SIDE_PANEL_PATH = "panel.html";
 const WHATSAPP_URL = "https://web.whatsapp.com/";
 const WHATSAPP_HOST = "https://web.whatsapp.com/*";
 const PENDING_DRAFT_KEY = "recalc.pendingWhatsAppDraft";
+const EXTENSION_SESSION_TOKEN_KEY = "recalc.extensionSessionToken";
 const DEBUGGER_PROTOCOL_VERSION = "1.3";
 const DEBUGGER_UPLOAD_TIMEOUT_MS = 20000;
 const TEMP_DOWNLOAD_DIR = "ReCalc";
@@ -34,6 +35,49 @@ function normalizeToken(value) {
   } catch {
     return trimmed;
   }
+}
+
+function isAuthFailureResponse(response) {
+  return response?.status === 401 || response?.status === 403;
+}
+
+function buildCampaignApiError(response, data, fallbackMessage) {
+  const authFailure = isAuthFailureResponse(response);
+  const message = authFailure
+    ? "La sesión de la extensión expiró o fue reemplazada. Vuelve a iniciar sesión antes de continuar campañas."
+    : data?.error || fallbackMessage;
+  const error = new Error(message);
+  if (authFailure) error.authFailure = true;
+  return error;
+}
+
+async function refreshActiveRunnerSessionToken(extensionSessionToken) {
+  const token = normalizeToken(extensionSessionToken);
+  if (!token || !self.RecalcCampaignRunner?.getState || !self.RecalcCampaignRunner?.setState) {
+    return false;
+  }
+
+  const runner = await self.RecalcCampaignRunner.getState();
+  if (!runner?.enabled || !runner.campaignId || runner.extensionSessionToken === token) {
+    return false;
+  }
+
+  await self.RecalcCampaignRunner.setState({
+    ...runner,
+    extensionSessionToken: token,
+    updatedAt: new Date().toISOString(),
+  });
+  return true;
+}
+
+async function stopActiveRunnerForMissingSession() {
+  if (!self.RecalcCampaignRunner?.getState || !self.RecalcCampaignRunner?.stopCampaign) {
+    return false;
+  }
+  const runner = await self.RecalcCampaignRunner.getState();
+  if (!runner?.enabled) return false;
+  await self.RecalcCampaignRunner.stopCampaign(runner.runId ?? null);
+  return true;
 }
 
 async function apiJsonFetch({ appBaseUrl, extensionSessionToken, path, method = "GET", body = null }) {
@@ -179,7 +223,7 @@ async function loadCampaignById(runnerState) {
     path: "/api/ext/campaigns",
   });
   if (!response.ok || !data?.ok || !Array.isArray(data.campaigns)) {
-    throw new Error(data?.error || "No fue posible leer las campañas del backend.");
+    throw buildCampaignApiError(response, data, "No fue posible leer las campañas del backend.");
   }
   return data.campaigns.find((campaign) => campaign.id === runnerState.campaignId) ?? null;
 }
@@ -193,7 +237,7 @@ async function claimNextBatch(runnerState) {
     body: { campaignId: runnerState.campaignId },
   });
   if (!response.ok || !data?.ok) {
-    throw new Error(data?.error || "No fue posible reclamar el siguiente batch.");
+    throw buildCampaignApiError(response, data, "No fue posible reclamar el siguiente batch.");
   }
   return data.batch ?? null;
 }
@@ -207,7 +251,7 @@ async function reportDispatch(runnerState, result) {
     body: { results: [result] },
   });
   if (!response.ok || !data?.ok) {
-    throw new Error(data?.error || "No fue posible reportar el resultado del despacho.");
+    throw buildCampaignApiError(response, data, "No fue posible reportar el resultado del despacho.");
   }
   return data.campaign ?? null;
 }
@@ -658,6 +702,9 @@ async function getAttachmentsForCampaign(working) {
   }
 
   if (!response.ok) {
+    if (isAuthFailureResponse(response)) {
+      throw buildCampaignApiError(response, null, "No fue posible recuperar la imagen oficial de la campaña.");
+    }
     throw new Error("No fue posible recuperar la imagen oficial de la campaña.");
   }
 
@@ -737,6 +784,17 @@ async function openWhatsAppWithDraft(message, sendResponse) {
 
 chrome.runtime.onInstalled.addListener(() => { void configureSidePanel(); });
 chrome.runtime.onStartup.addListener(() => { void configureSidePanel(); });
+chrome.storage?.onChanged?.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+  if (!(EXTENSION_SESSION_TOKEN_KEY in changes)) return;
+
+  const token = normalizeToken(changes[EXTENSION_SESSION_TOKEN_KEY]?.newValue ?? "");
+  if (token) {
+    void refreshActiveRunnerSessionToken(token);
+    return;
+  }
+  void stopActiveRunnerForMissingSession();
+});
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== self.RecalcCampaignRunner.RUNNER_ALARM) return;
   void self.RecalcCampaignRunner.processTick({
@@ -766,6 +824,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     void self.RecalcCampaignRunner.runCampaign(message)
       .then((runner) => sendResponse({ ok: true, runner }))
       .catch((error) => sendResponse({ ok: false, error: error instanceof Error ? error.message : "No fue posible iniciar el runner." }));
+    return true;
+  }
+
+  if (message?.type === "REFRESH_CAMPAIGN_TOKEN") {
+    void refreshActiveRunnerSessionToken(message.extensionSessionToken)
+      .then((updated) => sendResponse({ ok: true, updated }))
+      .catch((error) => sendResponse({ ok: false, error: error instanceof Error ? error.message : "No fue posible actualizar la sesión del runner." }));
     return true;
   }
 

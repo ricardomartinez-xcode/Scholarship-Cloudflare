@@ -11,6 +11,7 @@ const runnerSource = fs.readFileSync(
 
 function createHarness() {
   const store = {};
+  const alarmEvents = [];
   const chrome = {
     storage: {
       local: {
@@ -32,8 +33,12 @@ function createHarness() {
       },
     },
     alarms: {
-      async clear() {},
-      async create() {},
+      async clear(name) {
+        alarmEvents.push({ type: "clear", name });
+      },
+      async create(name, options) {
+        alarmEvents.push({ type: "create", name, options });
+      },
     },
   };
   const context = { chrome, console, Date, Math, setTimeout, clearTimeout };
@@ -41,7 +46,7 @@ function createHarness() {
   context.window = context;
   vm.createContext(context);
   vm.runInContext(runnerSource, context, { filename: "runCampaign.js" });
-  return { runner: context.RecalcCampaignRunner, store };
+  return { runner: context.RecalcCampaignRunner, store, alarmEvents };
 }
 
 function createBatch() {
@@ -196,4 +201,52 @@ test("opens WhatsApp without URL draft for text-only campaigns", async () => {
   assert.equal(ensureCalls.length, 1);
   assert.equal(ensureCalls[0].phone, "5573578665");
   assert.equal(ensureCalls[0].text, "");
+});
+
+test("stops runner instead of retrying when campaign API rejects the session token", async () => {
+  const { runner, alarmEvents } = createHarness();
+  await runner.runCampaign({
+    campaignId: "campaign_1",
+    appBaseUrl: "https://recalc.test",
+    extensionSessionToken: "expired-token",
+  });
+
+  const deps = {
+    async claimNextBatch() {
+      const error = new Error("La sesión de la extensión expiró.");
+      error.authFailure = true;
+      throw error;
+    },
+    async loadCampaignById() {
+      throw new Error("No debe intentar leer la campaña después del fallo de sesión.");
+    },
+    async reportDispatch() {
+      throw new Error("No debe reportar despacho después del fallo de sesión.");
+    },
+    async ensureWhatsAppTab() {
+      throw new Error("No debe abrir WhatsApp después del fallo de sesión.");
+    },
+    async ensureWhatsAppBridge() {},
+    resolveMessage() {
+      return "";
+    },
+    async getAttachmentsForCampaign() {
+      return [];
+    },
+    async sendToWhatsApp() {
+      throw new Error("No debe enviar WhatsApp después del fallo de sesión.");
+    },
+  };
+
+  await runner.processTick(deps);
+
+  const state = await runner.getState();
+  assert.equal(state.enabled, false);
+  assert.equal(state.busy, false);
+  assert.equal(state.status, "stopped");
+  assert.equal(state.lastMessage, "La sesión de la extensión expiró.");
+  assert.equal(
+    alarmEvents.some((event) => event.type === "clear" && event.name === runner.RUNNER_ALARM),
+    true,
+  );
 });
