@@ -1,6 +1,12 @@
 import "server-only";
 
+import {
+  classifyNeonAuthSignInFailure,
+  createNeonAuthSessionMissingFailure,
+  createNeonAuthUnreachableFailure,
+} from "@/lib/extension-auth-errors";
 import { getNeonAuthBaseUrl } from "@/lib/auth/server";
+import { logStructured } from "@/lib/observability";
 
 export const EXTENSION_SESSION_TOKEN_HEADER = "x-extension-session-token";
 export const NEON_AUTH_SESSION_COOKIE_NAME = "__Secure-neon-auth.session_token";
@@ -8,6 +14,12 @@ export const NEON_AUTH_SESSION_COOKIE_NAME = "__Secure-neon-auth.session_token";
 type UpstreamSessionPayload = {
   session?: unknown | null;
   user?: unknown | null;
+};
+
+type NeonAuthErrorPayload = {
+  error?: unknown;
+  code?: unknown;
+  errorCode?: unknown;
 };
 
 function buildSessionCookieHeader(sessionToken: string) {
@@ -25,13 +37,56 @@ export function normalizeExtensionSessionToken(sessionToken: string) {
 }
 
 function extractSessionTokenFromSetCookies(setCookieHeaders: string[]) {
+  const prefix = `${NEON_AUTH_SESSION_COOKIE_NAME}=`;
+
   for (const header of setCookieHeaders) {
-    const match = header.match(
-      new RegExp(`${NEON_AUTH_SESSION_COOKIE_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]+)`),
-    );
-    if (match?.[1]) {
-      return decodeURIComponent(match[1]);
+    const cookiePair = header.split(";", 1)[0]?.trim() ?? "";
+    if (!cookiePair.startsWith(prefix)) continue;
+
+    const serializedValue = cookiePair.slice(prefix.length);
+    if (!serializedValue) continue;
+
+    try {
+      return decodeURIComponent(serializedValue);
+    } catch {
+      return serializedValue;
     }
+  }
+
+  return null;
+}
+
+function readSafeDiagnosticCode(value: unknown) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (!normalized || normalized.length > 96) return null;
+  if (!/^[a-z0-9._-]+$/.test(normalized)) return null;
+  return normalized;
+}
+
+function extractUpstreamErrorCode(payload: NeonAuthErrorPayload | null) {
+  const nestedError =
+    payload?.error && typeof payload.error === "object"
+      ? (payload.error as { code?: unknown })
+      : null;
+
+  return (
+    readSafeDiagnosticCode(nestedError?.code) ??
+    readSafeDiagnosticCode(payload?.code) ??
+    readSafeDiagnosticCode(payload?.errorCode)
+  );
+}
+
+function extractUpstreamRequestId(headers: Headers) {
+  for (const headerName of [
+    "x-neon-request-id",
+    "x-request-id",
+    "x-vercel-id",
+    "cf-ray",
+  ]) {
+    const value = headers.get(headerName)?.trim();
+    if (value) return value;
   }
   return null;
 }
@@ -45,28 +100,59 @@ export async function signInExtensionAuthSession({
   password: string;
   origin: string;
 }) {
-  const response = await fetch(`${getNeonAuthBaseUrl()}/sign-in/email`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Origin: origin,
-      Referer: origin,
-    },
-    body: JSON.stringify({ email, password }),
-    cache: "no-store",
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${getNeonAuthBaseUrl()}/sign-in/email`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Origin: origin,
+        Referer: origin,
+      },
+      body: JSON.stringify({ email, password }),
+      cache: "no-store",
+    });
+  } catch (error) {
+    const failure = createNeonAuthUnreachableFailure();
+    logStructured(
+      "error",
+      "Neon Auth extension sign-in request failed",
+      {
+        module: "auth",
+        action: "extensionSignIn",
+        result: failure.code,
+        actorEmail: email,
+        metadata: {
+          provider: "neon-auth",
+          errorName: error instanceof Error ? error.name : "unknown",
+        },
+      },
+    );
+    return failure;
+  }
 
   const payload = (await response.json().catch(() => null)) as
-    | { error?: { message?: string | null } | null }
+    | NeonAuthErrorPayload
     | null;
+  const upstreamRequestId = extractUpstreamRequestId(response.headers);
 
   if (!response.ok) {
-    return {
-      ok: false as const,
-      error:
-        payload?.error?.message ??
-        `Neon Auth rechazó el acceso (${response.status}).`,
-    };
+    const failure = classifyNeonAuthSignInFailure(response.status);
+    logStructured("warn", "Neon Auth extension sign-in rejected", {
+      module: "auth",
+      action: "extensionSignIn",
+      result: failure.code,
+      actorEmail: email,
+      requestId: upstreamRequestId,
+      metadata: {
+        provider: "neon-auth",
+        upstreamStatus: response.status,
+        upstreamErrorCode: extractUpstreamErrorCode(payload),
+      },
+    });
+    return failure;
   }
 
   const sessionToken = extractSessionTokenFromSetCookies(
@@ -74,10 +160,23 @@ export async function signInExtensionAuthSession({
   );
 
   if (!sessionToken) {
-    return {
-      ok: false as const,
-      error: "No fue posible obtener la sesión segura para la extensión.",
-    };
+    const failure = createNeonAuthSessionMissingFailure();
+    logStructured(
+      "error",
+      "Neon Auth extension sign-in response did not include a session cookie",
+      {
+        module: "auth",
+        action: "extensionSignIn",
+        result: failure.code,
+        actorEmail: email,
+        requestId: upstreamRequestId,
+        metadata: {
+          provider: "neon-auth",
+          upstreamStatus: response.status,
+        },
+      },
+    );
+    return failure;
   }
 
   return {
@@ -102,7 +201,9 @@ export async function getExtensionAuthSession(sessionToken: string) {
     return null;
   }
 
-  const payload = (await response.json().catch(() => null)) as UpstreamSessionPayload | null;
+  const payload = (await response.json().catch(() => null)) as
+    | UpstreamSessionPayload
+    | null;
   if (!payload?.session || !payload.user) {
     return null;
   }

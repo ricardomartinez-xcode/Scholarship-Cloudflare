@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/server";
-import { canSignInWithEmail, resolveSessionStateFromAuthUser } from "@/lib/authz";
+import {
+  canSignInWithEmail,
+  resolveSessionStateFromAuthUser,
+} from "@/lib/authz";
 import { captureException } from "@/lib/observability";
 import {
   getExtensionAuthSession,
@@ -16,6 +19,16 @@ export const dynamic = "force-dynamic";
 const DEFAULT_SUCCESS_PATH = "/extension";
 const DEFAULT_FAILURE_PATH = "/extension/auth/sign-in";
 
+type SignInPayload = {
+  email?: string;
+  password?: string;
+  next?: string;
+  ttlMs?: number | string | null;
+  sessionDuration?: string | null;
+  tokenDuration?: string | null;
+  extensionSessionDuration?: string | null;
+};
+
 const buildErrorUrl = (message: string, extra: Record<string, string> = {}) => {
   const qs = new URLSearchParams({ error: message, ...extra });
   return `${DEFAULT_FAILURE_PATH}?${qs.toString()}`;
@@ -29,24 +42,16 @@ function isJsonRequest(request: Request) {
   return request.headers.get("content-type")?.includes("application/json") ?? false;
 }
 
-async function readJsonPayload(request: Request) {
+async function readJsonPayload(request: Request): Promise<SignInPayload | null> {
   try {
-    return (await request.json()) as {
-      email?: string;
-      password?: string;
-      next?: string;
-      ttlMs?: number | string | null;
-      sessionDuration?: string | null;
-      tokenDuration?: string | null;
-      extensionSessionDuration?: string | null;
-    };
+    return (await request.json()) as SignInPayload;
   } catch {
     return null;
   }
 }
 
-function readRequestedSessionTtl(jsonPayload: Awaited<ReturnType<typeof readJsonPayload>>) {
-  const rawTtlMs = jsonPayload?.ttlMs;
+function readRequestedSessionTtl(payload: SignInPayload | null) {
+  const rawTtlMs = payload?.ttlMs;
   const ttlMs =
     typeof rawTtlMs === "number"
       ? rawTtlMs
@@ -56,9 +61,9 @@ function readRequestedSessionTtl(jsonPayload: Awaited<ReturnType<typeof readJson
 
   const ttlPreset =
     [
-      jsonPayload?.sessionDuration,
-      jsonPayload?.tokenDuration,
-      jsonPayload?.extensionSessionDuration,
+      payload?.sessionDuration,
+      payload?.tokenDuration,
+      payload?.extensionSessionDuration,
     ]
       .map((value) => String(value ?? "").trim())
       .find(Boolean) ?? null;
@@ -66,22 +71,48 @@ function readRequestedSessionTtl(jsonPayload: Awaited<ReturnType<typeof readJson
   return { ttlMs, ttlPreset };
 }
 
+function statusCodeForSessionState(
+  status: "unauthenticated" | "forbidden" | "inactive" | "ok",
+) {
+  if (status === "ok") return 200;
+  if (status === "unauthenticated") return 401;
+  return 403;
+}
+
+function jsonSignInFailure(error: string, status: number, code?: string) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error,
+      ...(code ? { code } : {}),
+    },
+    { status },
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const jsonMode = isJsonRequest(request);
     const jsonPayload = jsonMode ? await readJsonPayload(request) : null;
     const formData = jsonMode ? null : await request.formData();
-    const email = String((jsonPayload?.email ?? formData?.get("email")) ?? "")
+    const email = String(
+      (jsonPayload?.email ?? formData?.get("email")) ?? "",
+    )
       .trim()
       .toLowerCase();
-    const password = String((jsonPayload?.password ?? formData?.get("password")) ?? "");
-    const next = String((jsonPayload?.next ?? formData?.get("next")) ?? "").trim();
+    const password = String(
+      (jsonPayload?.password ?? formData?.get("password")) ?? "",
+    );
+    const next = String(
+      (jsonPayload?.next ?? formData?.get("next")) ?? "",
+    ).trim();
 
     if (!email || !password) {
       if (jsonMode) {
-        return NextResponse.json(
-          { ok: false, error: "Completa correo y contraseña." },
-          { status: 400 },
+        return jsonSignInFailure(
+          "Completa correo y contraseña.",
+          400,
+          "missing_credentials",
         );
       }
       return redirect(request, buildErrorUrl("Completa correo y contraseña."));
@@ -100,7 +131,12 @@ export async function POST(request: Request) {
       const message = "Demasiados intentos. Intenta de nuevo en unos minutos.";
       if (jsonMode) {
         return NextResponse.json(
-          { ok: false, error: "rate_limited", message, retryAfterMs: limiter.retryAfterMs },
+          {
+            ok: false,
+            error: "rate_limited",
+            message,
+            retryAfterMs: limiter.retryAfterMs,
+          },
           { status: 429 },
         );
       }
@@ -110,10 +146,7 @@ export async function POST(request: Request) {
     const signInPolicy = await canSignInWithEmail(email);
     if (!signInPolicy.ok) {
       if (jsonMode) {
-        return NextResponse.json(
-          { ok: false, error: signInPolicy.error },
-          { status: 403 },
-        );
+        return jsonSignInFailure(signInPolicy.error, 403, "sign_in_not_allowed");
       }
       return redirect(request, buildErrorUrl(signInPolicy.error, { email }));
     }
@@ -127,26 +160,35 @@ export async function POST(request: Request) {
       });
 
       if (!extensionSignIn.ok) {
-        return NextResponse.json(
-          { ok: false, error: extensionSignIn.error },
-          { status: 401 },
+        return jsonSignInFailure(
+          extensionSignIn.error,
+          extensionSignIn.status,
+          extensionSignIn.code,
         );
       }
 
-      const upstreamSession = await getExtensionAuthSession(extensionSignIn.sessionToken);
-      const resolvedSession = await resolveSessionStateFromAuthUser(upstreamSession?.user);
+      const upstreamSession = await getExtensionAuthSession(
+        extensionSignIn.sessionToken,
+      );
+      const resolvedSession = await resolveSessionStateFromAuthUser(
+        upstreamSession?.user,
+      );
       if (resolvedSession.status !== "ok") {
-        await revokeExtensionAuthSession(extensionSignIn.sessionToken).catch(() => false);
-        return NextResponse.json(
-          { ok: false, error: resolvedSession.status },
-          { status: resolvedSession.status === "unauthenticated" ? 401 : 403 },
+        await revokeExtensionAuthSession(extensionSignIn.sessionToken).catch(
+          () => false,
+        );
+        return jsonSignInFailure(
+          resolvedSession.status,
+          statusCodeForSessionState(resolvedSession.status),
+          `session_${resolvedSession.status}`,
         );
       }
 
       const requestedSessionTtl = readRequestedSessionTtl(jsonPayload);
       const issuedToken = await issueExtensionSessionToken({
         userId: resolvedSession.user.id,
-        client: request.headers.get("x-extension-client") ?? "chrome-sidepanel",
+        client:
+          request.headers.get("x-extension-client") ?? "chrome-sidepanel",
         extensionVersion: request.headers.get("x-extension-version"),
         userAgent: request.headers.get("user-agent"),
         scope: "extension:chrome-sidepanel",
@@ -154,8 +196,10 @@ export async function POST(request: Request) {
         ttlPreset: requestedSessionTtl.ttlPreset,
       });
 
-      // Do not keep a full Neon Auth session token in the extension.
-      await revokeExtensionAuthSession(extensionSignIn.sessionToken).catch(() => false);
+      // The extension receives only its scoped internal token, never the Neon session.
+      await revokeExtensionAuthSession(extensionSignIn.sessionToken).catch(
+        () => false,
+      );
 
       return NextResponse.json({
         ok: true,
@@ -180,23 +224,13 @@ export async function POST(request: Request) {
           ),
         );
       }
-
       return redirect(request, buildErrorUrl(message, { email }));
     }
 
-    if (jsonMode) {
-      return NextResponse.json({
-        ok: true,
-        email,
-        next: next.startsWith("/") ? next : DEFAULT_SUCCESS_PATH,
-      });
-    }
-
-    if (next.startsWith("/")) {
-      return redirect(request, next);
-    }
-
-    return redirect(request, DEFAULT_SUCCESS_PATH);
+    return redirect(
+      request,
+      next.startsWith("/") ? next : DEFAULT_SUCCESS_PATH,
+    );
   } catch (error) {
     captureException(
       error,
@@ -205,9 +239,10 @@ export async function POST(request: Request) {
     );
 
     if (isJsonRequest(request)) {
-      return NextResponse.json(
-        { ok: false, error: "No fue posible iniciar sesión." },
-        { status: 500 },
+      return jsonSignInFailure(
+        "No fue posible iniciar sesión.",
+        500,
+        "sign_in_failed",
       );
     }
 
