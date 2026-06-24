@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAdminImportSessionDetailUrl,
+  getAdminImportApplyOptions,
   getAdminImportApplyTarget,
   getAdminImportPublicationState,
   redirectAdminImportPublicationIfNeeded,
@@ -128,6 +129,71 @@ describe("admin import publication", () => {
           fileName: "sidebar.csv",
         }),
       ).toBeNull();
+    });
+  });
+
+  describe("getAdminImportApplyOptions", () => {
+    it("expone reemplazo y actualización por lote para importaciones de precios", () => {
+      expect(
+        getAdminImportApplyOptions({
+          id: "session-prices",
+          module: AdminConfigModule.PRICES,
+          fileName: "precios.csv",
+        }),
+      ).toEqual([
+        {
+          label: "Actualizar lote",
+          description: "Aplica sólo filas existentes y conserva precios fuera del lote.",
+          action: "/api/admin/prices/import/session-prices/apply?mode=update-only",
+          tone: "amber",
+        },
+        {
+          label: "Reemplazar precios",
+          description: "Sustituye la capa viva de precios base con el archivo completo.",
+          action: "/api/admin/prices/import/session-prices/apply?mode=replace",
+          tone: "emerald",
+        },
+      ]);
+    });
+
+    it("expone reemplazo y actualización por lote para importaciones de oferta", () => {
+      expect(
+        getAdminImportApplyOptions({
+          id: "session-offer",
+          module: AdminConfigModule.OFFER,
+          fileName: "oferta.xlsx",
+        }),
+      ).toEqual([
+        {
+          label: "Actualizar lote",
+          description: "Aplica sólo registros existentes y conserva oferta fuera del lote.",
+          action: "/api/admin/import-academic-offer/session-offer/apply?mode=update-only",
+          tone: "amber",
+        },
+        {
+          label: "Reemplazar oferta",
+          description: "Sustituye la oferta activa del alcance importado con el archivo completo.",
+          action: "/api/admin/import-academic-offer/session-offer/apply?mode=replace",
+          tone: "emerald",
+        },
+      ]);
+    });
+
+    it("conserva una sola acción para importaciones sin modo de lote", () => {
+      expect(
+        getAdminImportApplyOptions({
+          id: "session-benefits",
+          module: AdminConfigModule.BENEFITS,
+          fileName: "beneficios.csv",
+        }),
+      ).toEqual([
+        {
+          label: "Publicar importación",
+          description: "Aplica esta sesión validada sobre el módulo correspondiente.",
+          action: "/api/admin/benefits/import/session-benefits/apply",
+          tone: "cyan",
+        },
+      ]);
     });
   });
 

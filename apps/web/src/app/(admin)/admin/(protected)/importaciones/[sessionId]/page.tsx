@@ -12,9 +12,10 @@ import {
   type ImportDiffExample,
 } from "@/lib/importers/admin-import-diff";
 import {
-  getAdminImportApplyTarget,
+  getAdminImportApplyOptions,
   getAdminImportPublicationChecklist,
   getAdminImportPublicationState,
+  type AdminImportApplyOption,
 } from "@/lib/importers/admin-import-publication";
 import { getAdminImportSession } from "@/lib/importers/admin-import-sessions";
 import { canRollbackAdminImportSession } from "@/lib/importers/admin-import-rollbacks";
@@ -77,6 +78,12 @@ const PUBLICATION_TONE_META = {
   slate: "border-white/10 bg-slate-950/35 text-slate-50",
 };
 
+const APPLY_OPTION_BUTTON_TONE_META = {
+  cyan: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20",
+  emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20",
+  amber: "border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20",
+} satisfies Record<AdminImportApplyOption["tone"], string>;
+
 function DiffExampleList({ examples }: { examples: ImportDiffExample[] }) {
   if (!examples.length) {
     return (
@@ -113,13 +120,14 @@ function DiffExampleList({ examples }: { examples: ImportDiffExample[] }) {
 function PublicationPanel({
   state,
   checklist,
-  applyTarget,
+  applyOptions,
 }: {
   state: ReturnType<typeof getAdminImportPublicationState>;
   checklist: string[];
-  applyTarget: string | null;
+  applyOptions: AdminImportApplyOption[];
 }) {
-  const canPublishFromDetail = state.stage === "draft" && Boolean(applyTarget);
+  const canPublishFromDetail = state.stage === "draft" && applyOptions.length > 0;
+  const defaultApplyAction = applyOptions[0]?.action;
 
   return (
     <section className={`rounded-3xl border p-5 ${PUBLICATION_TONE_META[state.tone]}`}>
@@ -143,7 +151,7 @@ function PublicationPanel({
       </div>
 
       {canPublishFromDetail ? (
-        <form method="post" action={applyTarget ?? undefined} className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-4">
+        <form method="post" action={defaultApplyAction} className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-4">
           <div className="text-xs uppercase tracking-[0.24em] text-cyan-100">Confirmación explícita</div>
           <p className="mt-2 text-sm text-slate-200">
             Publicar aplicará esta sesión sobre datos productivos. Confirma que ya revisaste warnings, errores, diff y snapshots.
@@ -162,9 +170,18 @@ function PublicationPanel({
               className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
             />
           </label>
-          <button className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20">
-            {state.actionLabel}
-          </button>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {applyOptions.map((option) => (
+              <button
+                key={option.action}
+                formAction={option.action}
+                className={`rounded-2xl border px-4 py-2 text-left text-sm font-semibold transition ${APPLY_OPTION_BUTTON_TONE_META[option.tone]}`}
+              >
+                <span className="block">{option.label}</span>
+                <span className="mt-1 block text-xs font-normal opacity-80">{option.description}</span>
+              </button>
+            ))}
+          </div>
         </form>
       ) : null}
     </section>
@@ -199,7 +216,7 @@ export default async function ImportSessionDetailPage({
   const canRollback = canRollbackAdminImportSession(session);
   const publicationState = getAdminImportPublicationState(session.status);
   const publicationChecklist = getAdminImportPublicationChecklist(session.module);
-  const applyTarget = session.status === AdminImportSessionStatus.preview ? getAdminImportApplyTarget(session) : null;
+  const applyOptions = session.status === AdminImportSessionStatus.preview ? getAdminImportApplyOptions(session) : [];
 
   const diffSummary = buildImportDiffSummary({
     beforeSnapshot: session.beforeSnapshot,
@@ -245,7 +262,7 @@ export default async function ImportSessionDetailPage({
         <MetaItem label="Versión aplicada" value={session.appliedVersionId} />
       </section>
 
-      <PublicationPanel state={publicationState} checklist={publicationChecklist} applyTarget={applyTarget} />
+      <PublicationPanel state={publicationState} checklist={publicationChecklist} applyOptions={applyOptions} />
 
       {canRollback ? (
         <section className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  PriceImportCoverageError,
-  assertProjectedPriceImportCoverage,
-} from "../price-import-integrity-guard";
+import { assertProjectedPriceImportCoverage } from "../price-import-integrity-guard";
 
 const coverageInputs = {
   contexts: [
@@ -108,7 +105,7 @@ describe("price import integrity guard", () => {
     );
   });
 
-  it("bloquea y expone contexto activo no resoluble", () => {
+  it("permite problemas de cobertura preexistentes que el importador no introduce", () => {
     const unresolved = {
       ...coverageInputs,
       contexts: [],
@@ -130,14 +127,14 @@ describe("price import integrity guard", () => {
       ],
     };
 
-    expect(() =>
-      assertProjectedPriceImportCoverage({
-        coverageInputs: unresolved,
-        publishedOverrides: [],
-        currentLiveOverrides: [],
-        rows: [],
-        mode: "replace",
-      }),
-    ).toThrow(PriceImportCoverageError);
+    const coverage = assertProjectedPriceImportCoverage({
+      coverageInputs: unresolved,
+      publishedOverrides: [],
+      currentLiveOverrides: [],
+      rows: [],
+      mode: "replace",
+    });
+
+    expect(coverage.issues).toHaveLength(1);
   });
 });

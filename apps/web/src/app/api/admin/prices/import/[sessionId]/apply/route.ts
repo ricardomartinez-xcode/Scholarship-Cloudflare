@@ -181,6 +181,13 @@ export async function POST(
     );
   } catch (error) {
     if (error instanceof PriceImportCoverageError) {
+      if (sessionIdForRedirect) {
+        const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionIdForRedirect, {
+          publicationError: error.message,
+        });
+        if (redirectResponse) return redirectResponse;
+      }
+
       return adminApiError({
         requestId,
         status: error.status,

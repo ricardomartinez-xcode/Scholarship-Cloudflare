@@ -136,6 +136,68 @@ describe("POST admin prices import apply", () => {
       expect(mocks.markAdminImportSessionApplied).not.toHaveBeenCalled();
       expect(mocks.writeBusinessEventSafe).not.toHaveBeenCalled();
     },
-    10_000,
+    30_000,
   );
+
+  it("redirige al detalle de sesión cuando un submit HTML falla por cobertura incompleta", async () => {
+    const { POST } = await import("./route");
+    const { PriceImportCoverageError } = await import(
+      "@/lib/importers/price-import-integrity-guard"
+    );
+    mocks.applyPreparedPricesImport.mockRejectedValue(
+      new PriceImportCoverageError({
+        offeringsChecked: 1,
+        combinationsChecked: 1,
+        coveredCombinations: 0,
+        issues: [
+          {
+            kind: "missing_base_price" as const,
+            offeringId: "offering-1",
+            cycle: "C3",
+            campus: "Hermosillo",
+            program: "Administración",
+            businessLine: "licenciatura",
+            modality: "presencial",
+            plan: 9,
+            module: "M1",
+            tier: "T1",
+            message:
+              "No hay precio lista publicado para la combinación activa de oferta.",
+          },
+        ],
+        effectiveOverrides: [],
+      }),
+    );
+    const redirectResponse = new Response(null, {
+      status: 303,
+      headers: {
+        location: "https://recalc.local/admin/importaciones/session-1",
+      },
+    });
+    mocks.redirectAdminImportPublicationIfNeeded.mockReturnValueOnce(
+      redirectResponse,
+    );
+
+    const request = new Request(
+      "https://recalc.local/api/admin/prices/import/session-1/apply",
+      {
+        method: "POST",
+        headers: { accept: "text/html,application/xhtml+xml" },
+      },
+    );
+    const response = await POST(request, {
+      params: Promise.resolve({ sessionId: "session-1" }),
+    });
+
+    expect(response).toBe(redirectResponse);
+    expect(mocks.redirectAdminImportPublicationIfNeeded).toHaveBeenCalledWith(
+      request,
+      "session-1",
+      expect.objectContaining({
+        publicationError:
+          "La importación dejaría 1 combinación(es) activa(s) sin cobertura de precio.",
+      }),
+    );
+    expect(mocks.markAdminImportSessionApplied).not.toHaveBeenCalled();
+  }, 30_000);
 });

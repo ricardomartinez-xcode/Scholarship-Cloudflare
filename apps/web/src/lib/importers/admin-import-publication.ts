@@ -23,6 +23,13 @@ export type AdminImportPublicationConfirmationResult =
   | { ok: true }
   | { ok: false; message: string };
 
+export type AdminImportApplyOption = {
+  label: string;
+  description: string;
+  action: string;
+  tone: "cyan" | "emerald" | "amber";
+};
+
 export function getAdminImportPublicationState(status: AdminImportSessionStatus): AdminImportPublicationState {
   if (status === AdminImportSessionStatus.preview) {
     return {
@@ -153,6 +160,58 @@ export function getAdminImportApplyTarget(session: {
   }
 
   return null;
+}
+
+export function getAdminImportApplyOptions(session: {
+  id: string;
+  module: AdminConfigModule;
+  fileName?: string | null;
+}): AdminImportApplyOption[] {
+  const applyTarget = getAdminImportApplyTarget(session);
+  if (!applyTarget) return [];
+
+  if (session.module === AdminConfigModule.PRICES) {
+    return [
+      {
+        label: "Actualizar lote",
+        description: "Aplica sólo filas existentes y conserva precios fuera del lote.",
+        action: `${applyTarget}?mode=update-only`,
+        tone: "amber",
+      },
+      {
+        label: "Reemplazar precios",
+        description: "Sustituye la capa viva de precios base con el archivo completo.",
+        action: `${applyTarget}?mode=replace`,
+        tone: "emerald",
+      },
+    ];
+  }
+
+  if (session.module === AdminConfigModule.OFFER) {
+    return [
+      {
+        label: "Actualizar lote",
+        description: "Aplica sólo registros existentes y conserva oferta fuera del lote.",
+        action: `${applyTarget}?mode=update-only`,
+        tone: "amber",
+      },
+      {
+        label: "Reemplazar oferta",
+        description: "Sustituye la oferta activa del alcance importado con el archivo completo.",
+        action: `${applyTarget}?mode=replace`,
+        tone: "emerald",
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Publicar importación",
+      description: "Aplica esta sesión validada sobre el módulo correspondiente.",
+      action: applyTarget,
+      tone: "cyan",
+    },
+  ];
 }
 
 export function getAdminImportPublicationChecklist(module: AdminConfigModule) {
