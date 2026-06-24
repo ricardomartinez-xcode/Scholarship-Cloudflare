@@ -13,3 +13,8 @@ test("delegates quote validation to the live backend instead of a stale local ru
   assert.doesNotMatch(panelSource, /hasMatchingQuoteRule/);
   assert.doesNotMatch(panelSource, /No hay regla activa/);
 });
+
+test("loads quote selector data from the extension bootstrap instead of the heavy web pricing endpoint", () => {
+  assert.match(panelSource, /quoteRuntime/);
+  assert.doesNotMatch(panelSource, /\/api\/data\/pricing-options/);
+});

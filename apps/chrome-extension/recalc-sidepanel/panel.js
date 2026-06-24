@@ -473,6 +473,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
+  function applyQuoteRuntime(quoteRuntime) {
+    if (!quoteRuntime || typeof quoteRuntime !== "object") {
+      throw new Error("quote_runtime_missing");
+    }
+    state.pricingOptions = Array.isArray(quoteRuntime.combinations) ? quoteRuntime.combinations : [];
+    state.campuses = Array.isArray(quoteRuntime.campuses) ? quoteRuntime.campuses : [];
+    state.lastSyncAt = Date.now();
+    refs.syncTime.textContent = new Date(state.lastSyncAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    renderSelectors();
+  }
+
   function populate(select, options, placeholder, forceValue) {
     const current = forceValue ?? select.value;
     const fragment = document.createDocumentFragment();
@@ -545,19 +556,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadBootstrap() {
-    const { response, data } = await fetchJson("/api/data/pricing-options");
-    if (!response.ok || !data?.ok) throw new Error("sync_failed");
-    state.pricingOptions = Array.isArray(data.combinations) ? data.combinations : [];
-    state.campuses = Array.isArray(data.campuses) ? data.campuses : [];
-    state.lastSyncAt = Date.now();
-    refs.syncTime.textContent = new Date(state.lastSyncAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-    renderSelectors();
+    applyQuoteRuntime(state.extensionBootstrap?.quoteRuntime);
   }
 
   async function syncLiveRuntime({ silent = false } = {}) {
     try {
-      await loadBootstrap();
       await loadExtensionBootstrap();
+      await loadBootstrap();
       await loadBenefits();
       await loadFees();
       return true;
