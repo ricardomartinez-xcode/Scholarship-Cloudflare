@@ -626,6 +626,104 @@ describe("GET /api/data/pricing-options", () => {
     ]);
   });
 
+  it("exposes canonical prices as selectable plans when an active offering has unrestricted pricing plans", async () => {
+    prismaMock.scholarshipRule.findMany.mockResolvedValue([]);
+    prismaMock.adminPriceOverride.findMany.mockResolvedValue([
+      {
+        id: "price_psicologia_t3",
+        scope: "base_price",
+        targetKeys: {
+          nivel_key: "salud",
+          modalidad_key: "presencial",
+          plan: "9",
+          tier: "T3",
+        },
+        newPrice: 6200,
+        isActive: true,
+        notes: null,
+        updatedBy: null,
+      },
+    ]);
+    prismaMock.program.findMany.mockResolvedValue([
+      {
+        id: "program_psicologia",
+        name: "Licenciatura en Psicología",
+        nameNormalized: "licenciatura-en-psicologia",
+        category: "Salud",
+        level: "Licenciatura",
+        businessLine: "salud",
+        planPdfUrl: "https://example.com/psicologia.pdf",
+        brochurePdfUrl: null,
+        planDriveLink: null,
+        planUrl: null,
+      },
+    ]);
+    prismaMock.campus.findMany.mockResolvedValue([
+      {
+        id: "campus_hermosillo",
+        code: "HMO",
+        metaKey: "Hermosillo",
+        name: "Hermosillo",
+        tier: "T3",
+      },
+    ]);
+    prismaMock.programOffering.findMany.mockResolvedValue([
+      {
+        id: "offering_psicologia_hmo",
+        campusId: "campus_hermosillo",
+        pricingPlans: [],
+        track: null,
+        moduleCount: null,
+        subjectsByModule: null,
+        delivery: "CAMPUS",
+        escolarizado: true,
+        ejecutivo: false,
+        lineOfBusiness: "Salud",
+        program: {
+          id: "program_psicologia",
+          name: "Licenciatura en Psicología",
+          businessLine: "salud",
+          level: "Licenciatura",
+          category: "Salud",
+          planPdfUrl: "https://example.com/psicologia.pdf",
+          brochurePdfUrl: null,
+          planDriveLink: null,
+          planUrl: null,
+        },
+      },
+    ]);
+
+    const response = await GET();
+    const data = (await response.json()) as {
+      campuses: Array<{
+        value: string;
+        pricingOptions: Array<{
+          businessLine: string;
+          modality: string;
+          plan: number;
+          module: string;
+          programId: string;
+        }>;
+      }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(data.campuses).toEqual([
+      expect.objectContaining({
+        value: "Hermosillo",
+        pricingOptions: [
+          {
+            businessLine: "salud",
+            modality: "presencial",
+            plan: 9,
+            module: "Longitudinal",
+            programId: "program_psicologia",
+          },
+        ],
+      }),
+    ]);
+  });
+
   it("keeps imported offer programs selectable before a study plan PDF is assigned", async () => {
     prismaMock.scholarshipRule.findMany.mockResolvedValue([]);
     prismaMock.adminPriceOverride.findMany.mockResolvedValue([]);

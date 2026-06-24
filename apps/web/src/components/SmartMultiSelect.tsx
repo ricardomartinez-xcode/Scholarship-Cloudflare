@@ -1,7 +1,7 @@
 "use client";
 
 import * as Popover from "@radix-ui/react-popover";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 type Option = { value: string; label: string; disabled?: boolean; keywords?: string };
@@ -63,25 +63,24 @@ export default function SmartMultiSelect({
     !shouldSearch &&
     options.length <= 6 &&
     options.every((option) => option.label.length <= 36);
+  const activeDescendantId =
+    open && filteredOptions[activeIndex] ? `${listId}-option-${activeIndex}` : undefined;
 
-  const focusActiveOption = (index: number) => {
-    window.requestAnimationFrame(() => {
-      if (shouldSearch) {
-        inputRef.current?.focus();
-        return;
-      }
+  const focusActiveOption = useCallback((index: number) => {
+    if (shouldSearch) {
+      inputRef.current?.focus();
+      return;
+    }
 
-      const active = listRef.current?.querySelector(
-        `[data-index="${index}"]`
-      ) as HTMLElement | null;
-      active?.focus();
-    });
-  };
+    const active = listRef.current?.querySelector(
+      `[data-index="${index}"]`
+    ) as HTMLElement | null;
+    active?.focus();
+  }, [shouldSearch]);
 
   const openAtIndex = (index: number) => {
     setOpen(true);
     setActiveIndex(index);
-    focusActiveOption(index);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -98,8 +97,9 @@ export default function SmartMultiSelect({
     const active = listRef.current?.querySelector(
       `[data-index="${activeIndex}"]`
     ) as HTMLElement | null;
+    focusActiveOption(activeIndex);
     active?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, open]);
+  }, [activeIndex, focusActiveOption, open]);
 
   function toggleOption(opt: Option) {
     if (opt.disabled) return;
@@ -138,13 +138,16 @@ export default function SmartMultiSelect({
       event.preventDefault();
       setActiveIndex(Math.max(filteredOptions.length - 1, 0));
     }
-    if (event.key === "Enter") {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       const opt = filteredOptions[activeIndex];
       if (opt) toggleOption(opt);
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      handleOpenChange(false);
+    }
+    if (event.key === "Tab") {
       handleOpenChange(false);
     }
   }
@@ -183,6 +186,7 @@ export default function SmartMultiSelect({
             aria-expanded={open}
             aria-haspopup="listbox"
             aria-controls={listId}
+            aria-activedescendant={activeDescendantId}
             onKeyDown={handleTriggerKeyDown}
           >
             <span className="truncate">{display}</span>
@@ -220,6 +224,8 @@ export default function SmartMultiSelect({
                   }}
                   className="ui-control"
                   placeholder="Buscar..."
+                  aria-controls={listId}
+                  aria-activedescendant={activeDescendantId}
                 />
               </div>
             ) : null}
@@ -228,6 +234,7 @@ export default function SmartMultiSelect({
               ref={listRef}
               role="listbox"
               aria-multiselectable="true"
+              aria-activedescendant={activeDescendantId}
               className="ui-select-viewport ui-scrollbar"
               style={{ maxHeight: ITEM_HEIGHT * MAX_VISIBLE }}
             >
@@ -237,6 +244,7 @@ export default function SmartMultiSelect({
                 return (
                   <button
                     key={opt.value}
+                    id={`${listId}-option-${index}`}
                     type="button"
                     role="option"
                     aria-selected={checked}

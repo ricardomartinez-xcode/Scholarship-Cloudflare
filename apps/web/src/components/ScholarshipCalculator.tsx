@@ -20,6 +20,7 @@ import {
   visibleQuoteBusinessLines,
   visibleQuoteCampuses,
   visibleQuoteModalities,
+  visibleQuotePaymentPlans,
   visibleQuoteStudyPrograms,
 } from "@/lib/pricing-option-display";
 import { normalizeBusinessLine } from "@/lib/pricing-normalize";
@@ -696,18 +697,14 @@ export default function ScholarshipCalculator({
   }, [campusOptions, modalidad, nivel, studyPrograms]);
 
   const planes = useMemo(() => {
-    if (!nivel || !modalidad || !studyProgramId) return [];
-    const selectedCampus = campusOptions.find((campus) => campus.value === plantel);
-    const sourceOptions = selectedCampus?.pricingOptions?.length
-      ? selectedCampus.pricingOptions
-      : availablePricingOptions;
-    const filtered = sourceOptions.filter(
-      (option) =>
-        option.businessLine === nivel &&
-        option.modality === modalidad &&
-        option.programId === studyProgramId
-    );
-    return Array.from(new Set(filtered.map((option) => Number(option.plan)))).sort((a, b) => a - b);
+    return visibleQuotePaymentPlans({
+      campuses: campusOptions,
+      fallbackOptions: availablePricingOptions,
+      businessLine: nivel,
+      modality: modalidad,
+      plantel,
+      studyProgramId,
+    });
   }, [availablePricingOptions, campusOptions, nivel, modalidad, plantel, studyProgramId]);
 
   const planteles = useMemo(() => {

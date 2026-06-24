@@ -282,6 +282,43 @@ export function visibleQuoteCampuses(
   return filteredCampuses;
 }
 
+function campusMatchesSelectedPlantel(campus: QuoteCampusOption, plantel?: string) {
+  if (!plantel) return false;
+  if (campus.value === plantel) return true;
+  return (
+    plantel.toUpperCase() === ONLINE_QUOTE_CAMPUS.value &&
+    campus.value.toUpperCase() === ONLINE_QUOTE_CAMPUS.value
+  );
+}
+
+export function visibleQuotePaymentPlans(params: {
+  campuses: QuoteCampusOption[];
+  fallbackOptions: Array<NonNullable<QuoteCampusOption["pricingOptions"]>[number]>;
+  businessLine?: string;
+  modality?: string;
+  plantel?: string;
+  studyProgramId?: string;
+}): number[] {
+  const normalizedBusinessLine = normalizeBusinessLine(params.businessLine) ?? params.businessLine;
+  const normalizedModality = normalizeCanonicalModality(params.modality) ?? params.modality;
+  if (!normalizedBusinessLine || !normalizedModality || !params.studyProgramId) return [];
+
+  const selectedCampus = params.campuses.find((campus) =>
+    campusMatchesSelectedPlantel(campus, params.plantel),
+  );
+  const sourceOptions = selectedCampus?.pricingOptions?.length
+    ? selectedCampus.pricingOptions
+    : params.fallbackOptions;
+  const filtered = sourceOptions.filter(
+    (option) =>
+      option.businessLine === normalizedBusinessLine &&
+      option.modality === normalizedModality &&
+      option.programId === params.studyProgramId,
+  );
+
+  return Array.from(new Set(filtered.map((option) => Number(option.plan)))).sort((a, b) => a - b);
+}
+
 export function visibleQuoteModules(
   campus: QuoteCampusOption | null | undefined,
   params: {

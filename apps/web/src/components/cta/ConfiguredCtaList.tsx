@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,6 +20,8 @@ type ConfiguredCta = {
 };
 
 type CtaAppearance = "card" | "pill" | "zone" | "compact";
+
+const BACKDROP_CLOSE_DRAG_THRESHOLD_PX = 8;
 
 function isExternalUrl(url: string) {
   return /^https?:\/\//i.test(url);
@@ -207,6 +210,7 @@ function CtaPopupModal({
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const backdropPointerRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -232,12 +236,41 @@ function CtaPopupModal({
 
   if (typeof document === "undefined") return null;
 
+  function handleBackdropPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) {
+      backdropPointerRef.current = null;
+      return;
+    }
+
+    backdropPointerRef.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  function handleBackdropPointerUp(event: PointerEvent<HTMLDivElement>) {
+    const pointerStart = backdropPointerRef.current;
+    backdropPointerRef.current = null;
+
+    if (!pointerStart || pointerStart.id !== event.pointerId || event.target !== event.currentTarget) {
+      return;
+    }
+
+    const distance = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
+    if (distance <= BACKDROP_CLOSE_DRAG_THRESHOLD_PX) onClose();
+  }
+
+  function handleBackdropPointerCancel() {
+    backdropPointerRef.current = null;
+  }
+
   return createPortal(
     <div
       className="ui-cta-popup-overlay fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      onPointerDown={handleBackdropPointerDown}
+      onPointerUp={handleBackdropPointerUp}
+      onPointerCancel={handleBackdropPointerCancel}
     >
       <div
         ref={panelRef}
@@ -245,7 +278,11 @@ function CtaPopupModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-auto rounded-[22px] border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-primary)] p-5 text-[color:var(--ui-text-primary)] shadow-[0_24px_70px_rgba(15,41,61,0.28)] outline-none"
+        className="max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-auto overscroll-contain rounded-[22px] border border-[color:var(--ui-border)] bg-[color:var(--ui-surface-primary)] p-5 text-[color:var(--ui-text-primary)] shadow-[0_24px_70px_rgba(15,41,61,0.28)] outline-none"
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onPointerCancel={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -265,7 +302,7 @@ function CtaPopupModal({
         {config.image ? (
           <div
             data-testid="cta-popup-image-preview"
-            className="ui-scrollbar mt-4 max-h-[min(70dvh,520px)] overflow-auto rounded-2xl border border-[color:var(--ui-border)] bg-white"
+            className="ui-scrollbar mt-4 max-h-[min(70dvh,520px)] overflow-auto overscroll-contain rounded-2xl border border-[color:var(--ui-border)] bg-white"
           >
             <Image
               src={config.image.previewUrl}

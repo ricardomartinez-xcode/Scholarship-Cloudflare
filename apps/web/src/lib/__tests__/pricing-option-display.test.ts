@@ -4,6 +4,7 @@ import {
   visibleQuoteBusinessLines,
   visibleQuoteCampuses,
   visibleQuoteModalities,
+  visibleQuotePaymentPlans,
   visibleQuoteStudyPrograms,
 } from "@/lib/pricing-option-display";
 
@@ -275,5 +276,41 @@ describe("visibleQuoteCampuses", () => {
         pricingOptions: [],
       },
     ]);
+  });
+});
+
+describe("visibleQuotePaymentPlans", () => {
+  it("uses the normalized Online campus options when the selected plantel is ONLINE", () => {
+    expect(
+      visibleQuotePaymentPlans({
+        campuses: [
+          {
+            value: "online",
+            label: "Online",
+            pricingOptions: [
+              {
+                businessLine: "posgrado",
+                modality: "online",
+                plan: 11,
+                module: "Longitudinal",
+                programId: "program_posgrado",
+              },
+            ],
+          },
+        ],
+        fallbackOptions: [
+          {
+            businessLine: "posgrado",
+            modality: "online",
+            plan: 11,
+            module: "Longitudinal",
+          },
+        ],
+        businessLine: "posgrado",
+        modality: "online",
+        plantel: "ONLINE",
+        studyProgramId: "program_posgrado",
+      }),
+    ).toEqual([11]);
   });
 });

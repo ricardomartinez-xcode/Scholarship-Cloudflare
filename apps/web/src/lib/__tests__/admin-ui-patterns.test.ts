@@ -52,9 +52,15 @@ describe("admin UI patterns", () => {
     expect(smartSelect).toContain("function handleTriggerKeyDown");
     expect(smartSelect).toContain('event.key === "ArrowDown"');
     expect(smartSelect).toContain('event.key === "Enter"');
+    expect(smartSelect).toContain("activeDescendantId");
+    expect(smartSelect).toContain("aria-activedescendant");
+    expect(smartSelect).toContain("focusActiveOption(activeIndex)");
     expect(smartMultiSelect).toContain('sticky="always"');
     expect(smartMultiSelect).toContain("avoidCollisions");
     expect(smartMultiSelect).toContain("function handleTriggerKeyDown");
+    expect(smartMultiSelect).toContain("activeDescendantId");
+    expect(smartMultiSelect).toContain("aria-activedescendant");
+    expect(smartMultiSelect).toContain("focusActiveOption(activeIndex)");
     expect(adminDialog).toContain("max-h-[calc(100dvh-1rem)]");
   });
 

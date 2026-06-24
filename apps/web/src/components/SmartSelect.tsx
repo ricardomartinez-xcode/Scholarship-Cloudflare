@@ -1,7 +1,7 @@
 "use client";
 
 import * as Popover from "@radix-ui/react-popover";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 type Option = { value: string; label: string; keywords?: string };
@@ -47,29 +47,28 @@ export default function SmartSelect({
   }, [options, query, shouldSearch]);
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? "";
+  const activeDescendantId =
+    open && filteredOptions[activeIndex] ? `${selectId}-option-${activeIndex}` : undefined;
   const isCompactMenu =
     !shouldSearch &&
     options.length <= 6 &&
     options.every((option) => option.label.length <= 36);
 
-  const focusActiveOption = (index: number) => {
-    window.requestAnimationFrame(() => {
-      if (shouldSearch) {
-        inputRef.current?.focus();
-        return;
-      }
+  const focusActiveOption = useCallback((index: number) => {
+    if (shouldSearch) {
+      inputRef.current?.focus();
+      return;
+    }
 
-      const active = listRef.current?.querySelector(
-        `[data-index="${index}"]`
-      ) as HTMLElement | null;
-      active?.focus();
-    });
-  };
+    const active = listRef.current?.querySelector(
+      `[data-index="${index}"]`
+    ) as HTMLElement | null;
+    active?.focus();
+  }, [shouldSearch]);
 
   const openAtIndex = (index: number) => {
     setOpen(true);
     setActiveIndex(index);
-    focusActiveOption(index);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -88,8 +87,9 @@ export default function SmartSelect({
     const active = listRef.current?.querySelector(
       `[data-index="${activeIndex}"]`
     ) as HTMLElement | null;
+    focusActiveOption(activeIndex);
     active?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, open]);
+  }, [activeIndex, focusActiveOption, open]);
 
   function selectOption(opt: Option) {
     onChange(opt.value);
@@ -124,13 +124,16 @@ export default function SmartSelect({
       event.preventDefault();
       setActiveIndex(Math.max(filteredOptions.length - 1, 0));
     }
-    if (event.key === "Enter") {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       const opt = filteredOptions[activeIndex];
       if (opt) selectOption(opt);
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      handleOpenChange(false);
+    }
+    if (event.key === "Tab") {
       handleOpenChange(false);
     }
   }
@@ -164,6 +167,7 @@ export default function SmartSelect({
           aria-haspopup="listbox"
           aria-labelledby={labelId}
           aria-controls={selectId}
+          aria-activedescendant={activeDescendantId}
           onKeyDown={handleTriggerKeyDown}
         >
           <span className="min-w-0 whitespace-normal break-words">
@@ -203,6 +207,8 @@ export default function SmartSelect({
                 }}
                 className="ui-control"
                 placeholder="Buscar..."
+                aria-controls={selectId}
+                aria-activedescendant={activeDescendantId}
               />
             </div>
           ) : null}
@@ -210,6 +216,7 @@ export default function SmartSelect({
             id={selectId}
             ref={listRef}
             role="listbox"
+            aria-activedescendant={activeDescendantId}
             className="ui-select-viewport ui-scrollbar"
             style={{ maxHeight: ITEM_HEIGHT * MAX_VISIBLE }}
           >
@@ -219,6 +226,7 @@ export default function SmartSelect({
               return (
                 <button
                   key={opt.value}
+                  id={`${selectId}-option-${index}`}
                   type="button"
                   role="option"
                   aria-selected={checked}

@@ -22,11 +22,29 @@ describe("configured CTA popup", () => {
     expect(panelStart).toBeGreaterThan(overlayStart);
     expect(overlayMarkup).not.toContain('role="dialog"');
     expect(overlayMarkup).not.toContain("onClick={onClose}");
-    expect(source).toContain("event.target === event.currentTarget");
+    expect(source).toContain("event.target !== event.currentTarget");
     expect(source).toContain('role="dialog"');
     expect(source).toContain('aria-modal="true"');
     expect(source).toContain('aria-labelledby={titleId}');
     expect(source).toContain('event.key === "Escape"');
+  });
+
+  it("keeps the popup open when a backdrop gesture moves like a scroll attempt", () => {
+    const source = read("apps/web/src/components/cta/ConfiguredCtaList.tsx");
+    const overlayStart = source.indexOf('className="ui-cta-popup-overlay');
+    const panelStart = source.indexOf('role="dialog"');
+    const imageStart = source.indexOf('data-testid="cta-popup-image-preview"');
+    const overlayMarkup = source.slice(overlayStart, panelStart);
+    const panelMarkup = source.slice(panelStart, imageStart);
+
+    expect(source).toContain("BACKDROP_CLOSE_DRAG_THRESHOLD_PX");
+    expect(source).toContain("backdropPointerRef");
+    expect(overlayMarkup).toContain("onPointerDown");
+    expect(overlayMarkup).toContain("onPointerUp");
+    expect(overlayMarkup).not.toContain("onClick={(event)");
+    expect(panelMarkup).toContain("onPointerDown={(event) => event.stopPropagation()}");
+    expect(panelMarkup).toContain("onPointerUp={(event) => event.stopPropagation()}");
+    expect(panelMarkup).toContain("onWheel={(event) => event.stopPropagation()}");
   });
 
   it("renders popup images in a scrollable preview without cropping them", () => {
