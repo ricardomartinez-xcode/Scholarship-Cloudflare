@@ -15,6 +15,7 @@ function getR2ImageHostname() {
 }
 
 const r2ImageHostname = getR2ImageHostname();
+const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "1";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@relead/ui", "@relead/config", "@relead/db", "@relead/auth", "@relead/domain", "@relead/realtime"],
@@ -39,7 +40,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+const sentryConfig = withSentryConfig(nextConfig, {
   authToken: process.env.SENTRY_AUTH_TOKEN,
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
@@ -48,3 +49,5 @@ export default withSentryConfig(nextConfig, {
     disable: !process.env.SENTRY_AUTH_TOKEN,
   },
 });
+
+export default isCloudflareBuild ? nextConfig : sentryConfig;

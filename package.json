@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "npm --workspace @relead/web run dev",
     "build": "npm --workspace @relead/web run build",
+    "build:cloudflare": "npm --workspace @relead/web run build:cloudflare",
+    "preview:cloudflare": "npm --workspace @relead/web run preview:cloudflare",
+    "deploy:cloudflare": "npm --workspace @relead/web run deploy:cloudflare",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "vercel-build": "sh scripts/vercel-build.sh",
     "start": "npm --workspace @relead/web run start",
@@ -49,6 +52,7 @@
     "@neondatabase/auth": "^0.4.2-beta",
     "@neondatabase/neon-js": "^0.6.2-beta",
     "@neondatabase/serverless": "^1.0.2",
+    "@opennextjs/cloudflare": "^1.20.1",
     "@prisma/client": "^6.19.2",
     "@prisma/extension-accelerate": "^3.0.1",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -83,7 +87,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "5.9.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "wrangler": "^4.105.0"
   },
   "overrides": {
     "@better-auth/passkey": "1.6.20",

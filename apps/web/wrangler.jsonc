@@ -1,0 +1,26 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "scholarship-cloudflare",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-26",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "scholarship-cloudflare"
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_APP_ENV": "cloudflare"
+  }
+}
