@@ -58,6 +58,20 @@ CLOUDFLARE_API_TOKEN
 The token must be a Cloudflare API token with Workers deploy permissions. A
 Cloudflared tunnel token is not valid for Wrangler API calls.
 
+## Current Deploy Blocker
+
+The Cloudflare API token is valid, and GitHub Actions can authenticate with it.
+The current Cloudflare account rejected the Worker because the OpenNext bundle is
+larger than the free Workers script limit:
+
+```text
+Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB.
+```
+
+The dry-run upload is about 7.7 MiB gzipped, so the current fork likely requires
+a paid Workers plan unless the app is split or large server dependencies are
+removed from the Worker bundle.
+
 ## Secret Import Notes
 
 Use the backed up Vercel env files as the source of truth, but do not bulk-import Neon, Neon Auth, or Supabase variables into Cloudflare for this port.
