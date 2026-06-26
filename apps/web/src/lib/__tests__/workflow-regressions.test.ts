@@ -73,6 +73,14 @@ describe("workflow regressions", () => {
     expect(source).not.toContain("selectedPlanDownloadUrl");
   });
 
+  it("falls back to the lightweight extension quote runtime when pricing options cannot be fetched", () => {
+    const source = read("apps/web/src/components/ScholarshipCalculator.tsx");
+
+    expect(source).toContain("loadPricingOptionsFromExtensionBootstrap");
+    expect(source).toContain("/api/ext/bootstrap");
+    expect(source).toContain("data.quoteRuntime");
+  });
+
   it("does not render the public marketing header on auth pages", () => {
     const source = read("apps/web/src/components/public/PublicHeader.tsx");
 

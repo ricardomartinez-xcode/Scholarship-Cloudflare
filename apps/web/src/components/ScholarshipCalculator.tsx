@@ -80,6 +80,34 @@ type PricingOptionsResponse = {
   subjectCounts?: number[];
 };
 
+async function loadPricingOptionsFromWeb() {
+  const response = await fetch("/api/data/pricing-options", { cache: "no-store" });
+  if (!response.ok) throw new Error("pricing_options_fetch_failed");
+
+  return (await response.json()) as PricingOptionsResponse;
+}
+
+async function loadPricingOptionsFromExtensionBootstrap() {
+  const response = await fetch("/api/ext/bootstrap", { cache: "no-store" });
+  if (!response.ok) throw new Error("extension_bootstrap_fetch_failed");
+
+  const data = (await response.json()) as {
+    quoteRuntime?: Pick<
+      PricingOptionsResponse,
+      "combinations" | "campuses" | "subjectCounts"
+    >;
+  };
+  if (!data.quoteRuntime) throw new Error("extension_quote_runtime_missing");
+
+  return {
+    ok: true,
+    combinations: data.quoteRuntime.combinations ?? [],
+    campuses: data.quoteRuntime.campuses ?? [],
+    studyPrograms: [],
+    subjectCounts: data.quoteRuntime.subjectCounts ?? [],
+  } satisfies PricingOptionsResponse;
+}
+
 type CalculationOk = {
   base: number;
   porcentaje: number;
@@ -616,18 +644,18 @@ export default function ScholarshipCalculator({
     setLoading(true);
     setLoadError(null);
     try {
-      const response = await fetch("/api/data/pricing-options", { cache: "no-store" });
-      if (!response.ok) throw new Error("No fue posible cargar opciones de precios.");
-
-      const data = (await response.json()) as PricingOptionsResponse;
+      let data: PricingOptionsResponse;
+      try {
+        data = await loadPricingOptionsFromWeb();
+      } catch {
+        data = await loadPricingOptionsFromExtensionBootstrap();
+      }
       setPricingOptions(Array.isArray(data.combinations) ? data.combinations : []);
       setCampusOptions(Array.isArray(data.campuses) ? data.campuses : []);
       setStudyPrograms(Array.isArray(data.studyPrograms) ? data.studyPrograms : []);
       setSubjectCountOptions(Array.isArray(data.subjectCounts) ? data.subjectCounts : []);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "No fue posible cargar datos."
-      );
+    } catch {
+      setLoadError("No fue posible cargar datos del cotizador.");
     } finally {
       setLoading(false);
     }
