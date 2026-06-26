@@ -6,6 +6,7 @@ This repository is a Cloudflare/OpenNext port of `ricardomartinez-xcode/Scholars
 
 - Runtime: Cloudflare Workers via `@opennextjs/cloudflare`.
 - Build output: `apps/web/.open-next/worker.js` plus `apps/web/.open-next/assets`.
+- Production hostname: `recalc.relead.com.mx`.
 - Local preview: `npm run preview:cloudflare`.
 - Deploy: `npm run deploy:cloudflare`.
 
@@ -38,6 +39,10 @@ npm run build:cloudflare
 npm run preview:cloudflare
 npm run deploy:cloudflare
 ```
+
+`apps/web/wrangler.jsonc` includes `recalc.relead.com.mx` as a Worker Custom Domain.
+After the first successful deploy, Cloudflare should manage the DNS record and
+certificate for that hostname.
 
 ## GitHub Actions Deployment
 

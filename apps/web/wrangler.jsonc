@@ -14,6 +14,12 @@
   "observability": {
     "enabled": true
   },
+  "routes": [
+    {
+      "pattern": "recalc.relead.com.mx",
+      "custom_domain": true
+    }
+  ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
