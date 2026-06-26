@@ -39,6 +39,20 @@ npm run preview:cloudflare
 npm run deploy:cloudflare
 ```
 
+## GitHub Actions Deployment
+
+This fork includes `.github/workflows/cloudflare-workers.yml`.
+
+Set these repository secrets before using the workflow:
+
+```text
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_API_TOKEN
+```
+
+The token must be a Cloudflare API token with Workers deploy permissions. A
+Cloudflared tunnel token is not valid for Wrangler API calls.
+
 ## Secret Import Notes
 
 Use the backed up Vercel env files as the source of truth, but do not bulk-import Neon, Neon Auth, or Supabase variables into Cloudflare for this port.
