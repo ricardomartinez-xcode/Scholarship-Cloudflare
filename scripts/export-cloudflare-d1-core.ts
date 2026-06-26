@@ -113,8 +113,6 @@ async function main() {
     ]);
 
     const lines: string[] = [
-      "PRAGMA foreign_keys = OFF;",
-      "BEGIN TRANSACTION;",
       "DELETE FROM file_asset_usage;",
       "DELETE FROM file_asset;",
       "DELETE FROM bulletin;",
@@ -279,8 +277,6 @@ async function main() {
         updated_at: iso(usage.updated_at as string | Date | null),
       }));
     }
-
-    lines.push("COMMIT;", "PRAGMA foreign_keys = ON;");
 
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, `${lines.join("\n")}\n`, "utf8");
