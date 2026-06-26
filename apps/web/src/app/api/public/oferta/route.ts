@@ -10,6 +10,12 @@ import {
 } from "@/config/academicOffer";
 import { prisma } from "@/lib/prisma";
 import {
+  findD1CampusId,
+  listD1ActiveCampuses,
+  listD1OfertaOfferings,
+} from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import {
   buildPublicRequestId,
   logPublicRouteTiming,
   normalizePublicCacheKeyPart,
@@ -160,28 +166,36 @@ async function loadOfertaPayload(
     return { availableCycles, selectedCycle: null, campuses: [], programs: [], offerings: [] };
   }
 
+  const isCloudflare = isCloudflareRuntime();
   let campusId: string | null = null;
   if (campusRaw) {
-    const campus = await prisma.campus.findFirst({
-      where: {
-        isActive: true,
-        OR: [
-          { code: { equals: campusRaw, mode: "insensitive" } },
-          { metaKey: { equals: campusRaw, mode: "insensitive" } },
-          { name: { equals: campusRaw, mode: "insensitive" } },
-          { slug: { equals: campusRaw, mode: "insensitive" } },
-        ],
-      },
-      select: { id: true },
-    });
-    if (campus) {
-      campusId = campus.id;
+    if (isCloudflare) {
+      campusId = await findD1CampusId(campusRaw);
     } else {
-      const normalized = normalizeKey(campusRaw);
-      const all = await prisma.campus.findMany({
-        where: { isActive: true },
-        select: { id: true, code: true, metaKey: true, name: true, slug: true },
+      const campus = await prisma.campus.findFirst({
+        where: {
+          isActive: true,
+          OR: [
+            { code: { equals: campusRaw, mode: "insensitive" } },
+            { metaKey: { equals: campusRaw, mode: "insensitive" } },
+            { name: { equals: campusRaw, mode: "insensitive" } },
+            { slug: { equals: campusRaw, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true },
       });
+      if (campus) {
+        campusId = campus.id;
+      }
+    }
+    if (!campusId) {
+      const normalized = normalizeKey(campusRaw);
+      const all = isCloudflare
+        ? await listD1ActiveCampuses()
+        : await prisma.campus.findMany({
+            where: { isActive: true },
+            select: { id: true, code: true, metaKey: true, name: true, slug: true },
+          });
       const match = all.find(
         (item) =>
           normalizeKey(item.code) === normalized ||
@@ -238,33 +252,35 @@ async function loadOfertaPayload(
       : {}),
   };
 
-  const offeringsRaw = await prisma.programOffering.findMany({
-    where: offeringWhere,
-    orderBy: [{ program: { name: "asc" } }],
-    select: {
-      id: true,
-      programId: true,
-      delivery: true,
-      escolarizado: true,
-      ejecutivo: true,
-      escolarizadoSchedule: true,
-      ejecutivoSchedule: true,
-      lineOfBusiness: true,
-      pricingPlans: true,
-      track: true,
-      campus: {
+  const offeringsRaw = isCloudflare
+    ? await listD1OfertaOfferings({ cycle: requestedCycle, campusId })
+    : await prisma.programOffering.findMany({
+        where: offeringWhere,
+        orderBy: [{ program: { name: "asc" } }],
         select: {
           id: true,
-          code: true,
-          metaKey: true,
-          name: true,
-          slug: true,
-          tier: true,
-          kind: true,
+          programId: true,
+          delivery: true,
+          escolarizado: true,
+          ejecutivo: true,
+          escolarizadoSchedule: true,
+          ejecutivoSchedule: true,
+          lineOfBusiness: true,
+          pricingPlans: true,
+          track: true,
+          campus: {
+            select: {
+              id: true,
+              code: true,
+              metaKey: true,
+              name: true,
+              slug: true,
+              tier: true,
+              kind: true,
+            },
+          },
         },
-      },
-    },
-  });
+      });
 
   const filteredOfferings = offeringsRaw.filter((offering) => {
     const program = programMap.get(offering.programId);

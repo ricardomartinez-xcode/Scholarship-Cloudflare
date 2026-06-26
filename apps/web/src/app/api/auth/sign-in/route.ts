@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/server";
 import { canSignInWithEmail } from "@/lib/authz";
+import {
+  setCloudflareSessionCookie,
+  signInWithCloudflare,
+} from "@/lib/cloudflare/auth";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { captureException } from "@/lib/observability";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +40,18 @@ export async function POST(request: Request) {
     const signInPolicy = await canSignInWithEmail(email);
     if (!signInPolicy.ok) {
       return redirect(request, buildErrorUrl(signInPolicy.error, inviteParams));
+    }
+
+    if (isCloudflareRuntime()) {
+      const result = await signInWithCloudflare({ email, password });
+      if (!result.ok) {
+        return redirect(request, buildErrorUrl(result.error, inviteParams));
+      }
+      const response = NextResponse.redirect(new URL(next.startsWith("/") ? next : "/unidep", request.url), {
+        status: 303,
+      });
+      setCloudflareSessionCookie(response, result.token, result.expiresAt);
+      return response;
     }
 
     const result = await auth.signIn.email({ email, password });

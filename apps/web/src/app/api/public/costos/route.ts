@@ -2,6 +2,12 @@ import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import {
+  findD1CampusId,
+  listD1Bulletins,
+  listD1CampusAcademicFees,
+} from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { prisma } from "@/lib/prisma";
 import {
   buildPublicRequestId,
@@ -14,6 +20,15 @@ import {
 export const dynamic = "force-dynamic";
 
 async function loadCostosPayload(campusRaw: string) {
+  if (isCloudflareRuntime()) {
+    const campusId = campusRaw ? await findD1CampusId(campusRaw) : null;
+    const [fees, bulletins] = await Promise.all([
+      listD1CampusAcademicFees(campusId),
+      listD1Bulletins(campusRaw),
+    ]);
+    return { fees, bulletins };
+  }
+
   let campusId: string | null = null;
   if (campusRaw) {
     const campus = await prisma.campus.findFirst({

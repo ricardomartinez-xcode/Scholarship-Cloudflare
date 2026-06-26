@@ -32,5 +32,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Apply D1 migrations
+        run: npm run d1:migrations:apply
+
+      - name: Sync D1 core data
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -n "${DIRECT_URL}${DATABASE_URL_UNPOOLED}${DATABASE_URL}" ]; then
+            npm run d1:sync-core
+          else
+            echo "Skipping D1 data sync because no Postgres URL secret is configured."
+          fi
+
       - name: Deploy
         run: npm run deploy:cloudflare

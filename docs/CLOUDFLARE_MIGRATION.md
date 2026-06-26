@@ -5,6 +5,7 @@ This repository is a Cloudflare/OpenNext port of `ricardomartinez-xcode/Scholars
 ## Current Target
 
 - Runtime: Cloudflare Workers via `@opennextjs/cloudflare`.
+- Database: Cloudflare D1 database `recalc-cloudflare`.
 - Build output: `apps/web/.open-next/worker.js` plus `apps/web/.open-next/assets`.
 - Production hostname: `recalc.relead.com.mx`.
 - Local preview: `npm run preview:cloudflare`.
@@ -22,12 +23,21 @@ That folder is intentionally outside this repository and must not be committed.
 
 ## Removed Platform Direction
 
-The requested target is Cloudflare without Neon Auth, Neon, or Supabase. The original codebase still contains many imports and runtime contracts for those providers. The migration should remove those in stages:
+The requested target is Cloudflare without Neon Auth, Neon, or Supabase. This fork now separates Prisma from the Cloudflare Worker bundle and uses D1 for the core public/calculator data path.
 
-1. Replace Neon Auth routes/session helpers with a Cloudflare-compatible auth layer.
-2. Replace Prisma/Neon database access with a Cloudflare-supported persistence layer.
-3. Replace Supabase realtime/browser clients with Cloudflare-native primitives or a selected external provider.
-4. Move Vercel-provided variables into Cloudflare Worker secrets and plain vars.
+Current Cloudflare-native pieces:
+
+1. D1 migrations in `apps/web/migrations`.
+2. D1 auth/session tables and cookie-based auth for `/auth/sign-in` and `/auth/sign-up`.
+3. D1 read layer for the core UNIDEP data endpoints: `/api/data/pricing-options`, `/api/public/oferta`, `/api/public/planes`, and `/api/public/costos`.
+4. Prisma, Neon Auth, and Supabase shims for the Worker build so those packages do not ship their server runtimes into Cloudflare.
+
+Still staged for later migration:
+
+1. Admin mutations/importers.
+2. Inbox, training, WhatsApp/Meta persistence, Google sync, and quote history writes.
+3. A Cloudflare-native replacement for Supabase realtime/browser clients if those features remain required.
+4. Full Worker secret synchronization for every non-Neon/non-Supabase integration.
 
 Sentry's Next.js instrumentation files were removed in this Cloudflare fork because the OpenNext bundle failed while tracing `server/instrumentation.js`. Reintroduce observability with a Workers-native Sentry setup after the Cloudflare runtime is stable.
 
@@ -36,6 +46,8 @@ Sentry's Next.js instrumentation files were removed in this Cloudflare fork beca
 ```bash
 npm install
 npm run build:cloudflare
+npm run d1:migrations:apply
+npm run d1:sync-core
 npm run preview:cloudflare
 npm run deploy:cloudflare
 ```
@@ -53,24 +65,40 @@ Set these repository secrets before using the workflow:
 ```text
 CLOUDFLARE_ACCOUNT_ID
 CLOUDFLARE_API_TOKEN
+DIRECT_URL
+DATABASE_URL_UNPOOLED
+DATABASE_URL
 ```
 
-The token must be a Cloudflare API token with Workers deploy permissions. A
-Cloudflared tunnel token is not valid for Wrangler API calls.
+`DIRECT_URL`, `DATABASE_URL_UNPOOLED`, or `DATABASE_URL` is only used by the workflow to export the existing Prisma/Postgres data into D1 before deploy. The Worker runtime does not use Neon/Postgres.
 
-## Current Deploy Blocker
+The Cloudflare token must be an API token with Workers and D1 permissions. A Cloudflared tunnel token is not valid for Wrangler API calls.
 
-The Cloudflare API token is valid, and GitHub Actions can authenticate with it.
-The current Cloudflare account rejected the Worker because the OpenNext bundle is
-larger than the free Workers script limit:
+## Worker Size
+
+The Prisma engine has been removed from the Worker bundle. The latest dry-run upload is:
 
 ```text
-Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB.
+Total Upload: 26551.78 KiB / gzip: 5397.78 KiB
 ```
 
-The dry-run upload is about 7.7 MiB gzipped, so the current fork likely requires
-a paid Workers plan unless the app is split or large server dependencies are
-removed from the Worker bundle.
+This is still above the free Workers 3 MiB script limit, so production deploy requires a Workers plan that permits larger scripts or a later split of admin/heavy routes into separate Workers.
+
+## D1 Data Sync
+
+Generate SQL from the backed up Vercel/Postgres environment:
+
+```bash
+npm run d1:export-core -- --env-file=/home/unidep/Escritorio/vercel-env-backup-scholarship-20260626-111748/production.env
+```
+
+Apply it to D1:
+
+```bash
+npm run d1:import-core
+```
+
+The generated SQL is written to `apps/web/.tmp/d1-core-data.sql`, which is ignored by git.
 
 ## Secret Import Notes
 

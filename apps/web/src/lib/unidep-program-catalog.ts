@@ -7,6 +7,8 @@ import {
 import { normalizeBusinessLine } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 import { normalizeKey } from "@/lib/text-normalize";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import { listD1ProgramCatalog } from "@/lib/cloudflare/public-data";
 
 export const UNIDEP_PROGRAM_CATALOG_SELECT = {
   id: true,
@@ -108,11 +110,13 @@ export function matchesUnidepProgramLine(
 }
 
 export async function getUnidepProgramCatalog(filters: UnidepProgramCatalogFilters = {}) {
-  const programs = await prisma.program.findMany({
-    orderBy: [{ name: "asc" }],
-    select: UNIDEP_PROGRAM_CATALOG_SELECT,
-    take: 400,
-  });
+  const programs = isCloudflareRuntime()
+    ? await listD1ProgramCatalog()
+    : await prisma.program.findMany({
+        orderBy: [{ name: "asc" }],
+        select: UNIDEP_PROGRAM_CATALOG_SELECT,
+        take: 400,
+      });
 
   const query = String(filters.query ?? "").trim();
   const normalizedQuery = normalizeKey(query);

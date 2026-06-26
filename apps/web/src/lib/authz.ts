@@ -30,6 +30,12 @@ import {
 } from "@/lib/extension-session-tokens";
 import { prisma } from "@/lib/prisma";
 import { canAccessAdminPanel, resolveAdminCapabilities } from "@/lib/admin-capabilities";
+import {
+  canSignInWithCloudflareEmail,
+  canSignUpWithCloudflareEmail,
+  getCloudflareSessionUser,
+} from "@/lib/cloudflare/auth";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 const LAST_LOGIN_UPDATE_INTERVAL_MS = 15 * 60 * 1000;
 
@@ -234,6 +240,10 @@ export async function getSessionUserFromExtensionToken(
 }
 
 export async function getSessionUser(): Promise<SessionUserState> {
+  if (isCloudflareRuntime()) {
+    return getCloudflareSessionUser();
+  }
+
   // Dev mode: check for SKIP_AUTH_REDIRECT flag
   if (process.env.SKIP_AUTH_REDIRECT === 'true' && process.env.NODE_ENV === 'development') {
     const devEmail = process.env.DEV_USER_EMAIL?.trim();
@@ -302,6 +312,13 @@ export async function requireAdmin() {
   if (state.status !== "ok") {
     redirect("/auth/denied?reason=not-admin");
   }
+  if (isCloudflareRuntime()) {
+    const capabilities = resolveAdminCapabilities(state.user.role, []);
+    if (!canAccessAdminPanel(state.user.role, capabilities)) {
+      redirect("/auth/denied?reason=not-admin");
+    }
+    return state.user;
+  }
   const capabilities = resolveAdminCapabilities(
     state.user.role,
     await prisma.adminUserCapability.findMany({
@@ -318,6 +335,7 @@ export async function requireAdmin() {
 export async function canSignUpWithEmail(email: string) {
   const normalized = normalizeEmail(email);
   if (!normalized) return false;
+  if (isCloudflareRuntime()) return canSignUpWithCloudflareEmail(normalized);
   if (isAllowedEmail(normalized)) return true;
   return hasPendingInvite(normalized);
 }
@@ -325,6 +343,7 @@ export async function canSignUpWithEmail(email: string) {
 export async function canSignInWithEmail(email: string) {
   const normalized = normalizeEmail(email);
   if (!normalized) return { ok: false, error: "Completa correo." };
+  if (isCloudflareRuntime()) return canSignInWithCloudflareEmail(normalized);
 
   const existing = await prisma.user.findUnique({
     where: { email: normalized },

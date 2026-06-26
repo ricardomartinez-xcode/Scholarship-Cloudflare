@@ -7,6 +7,8 @@ import {
   normalizeAcademicOfferCycle,
   type AcademicOfferCycle,
 } from "@/config/academicOffer";
+import { getD1SidebarInfoValue } from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 const ACADEMIC_OFFER_VISIBLE_CYCLES_KEY = "academic_offer.visible_cycles";
 
@@ -38,6 +40,12 @@ export function serializeAcademicOfferVisibleCycles(cycles: AcademicOfferCycle[]
 }
 
 export async function getAcademicOfferVisibleCycles() {
+  if (isCloudflareRuntime()) {
+    const row = await getD1SidebarInfoValue(ACADEMIC_OFFER_VISIBLE_CYCLES_KEY);
+    if (!row?.is_active) return [...DEFAULT_ACADEMIC_OFFER_VISIBLE_CYCLES];
+    return parseAcademicOfferCycles(row.value);
+  }
+
   const row = await prisma.adminSidebarInfo.findUnique({
     where: { key: ACADEMIC_OFFER_VISIBLE_CYCLES_KEY },
     select: { value: true, isActive: true },

@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import path from "node:path";
 
 function getR2ImageHostname() {
   const endpoint = process.env.R2_ENDPOINT;
@@ -18,7 +19,45 @@ const r2ImageHostname = getR2ImageHostname();
 const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "1";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@relead/ui", "@relead/config", "@relead/db", "@relead/auth", "@relead/domain", "@relead/realtime"],
+  transpilePackages: [
+    "@relead/ui",
+    "@relead/config",
+    "@relead/db",
+    "@relead/auth",
+    "@relead/domain",
+    "@relead/realtime",
+    "@relead/matricula-sdk",
+  ],
+  webpack(config) {
+    if (isCloudflareBuild) {
+      config.resolve.alias = {
+        ...(config.resolve.alias ?? {}),
+        "@": path.resolve(process.cwd(), "src"),
+        "@relead/matricula-sdk": path.resolve(
+          process.cwd(),
+          "../../packages/matricula-sdk/src/index.ts",
+        ),
+        "@relead/matricula-sdk/client": path.resolve(
+          process.cwd(),
+          "../../packages/matricula-sdk/src/client.ts",
+        ),
+        "@prisma/client": path.resolve(
+          process.cwd(),
+          "src/lib/cloudflare/shims/prisma-client.ts",
+        ),
+        "@neondatabase/auth/next/server": path.resolve(
+          process.cwd(),
+          "src/lib/cloudflare/shims/neon-auth-server.ts",
+        ),
+        "@supabase/supabase-js": path.resolve(
+          process.cwd(),
+          "src/lib/cloudflare/shims/supabase.ts",
+        ),
+        "@/lib/prisma": path.resolve(process.cwd(), "src/lib/cloudflare/prisma.ts"),
+      };
+    }
+    return config;
+  },
   // Allow Playwright dev-server requests from either 127.0.0.1 or localhost.
   // Next expects origin-like entries; we include both with and without scheme for compatibility.
   allowedDevOrigins: [

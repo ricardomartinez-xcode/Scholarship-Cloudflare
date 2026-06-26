@@ -21,6 +21,12 @@ import {
 } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 import {
+  listD1ActiveCampuses,
+  listD1ActiveOfferingsForPricing,
+  listD1PriceOverrides,
+} from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import {
   getUnidepProgramCatalog,
   getUnidepProgramPlanUrl,
 } from "@/lib/unidep-program-catalog";
@@ -270,60 +276,67 @@ export async function GET() {
     campuses,
     activeOfferings,
     catalogPrograms,
-  ] = await Promise.all([
-    prisma.adminPriceOverride.findMany({
-      where: {
-        scope: BASE_PRICE_OVERRIDE_SCOPE,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        scope: true,
-        targetKeys: true,
-        newPrice: true,
-        isActive: true,
-        notes: true,
-        updatedBy: true,
-      },
-    }),
-    prisma.campus.findMany({
-      where: { isActive: true },
-      orderBy: [{ name: "asc" }],
-      select: { id: true, code: true, metaKey: true, name: true, slug: true, tier: true },
-    }),
-    prisma.programOffering.findMany({
-      where: {
-        isActive: true,
-        campus: { isActive: true },
-      },
-      select: {
-        id: true,
-        campusId: true,
-        pricingPlans: true,
-        track: true,
-        moduleCount: true,
-        subjectsByModule: true,
-        delivery: true,
-        escolarizado: true,
-        ejecutivo: true,
-        lineOfBusiness: true,
-        program: {
+  ] = isCloudflareRuntime()
+    ? await Promise.all([
+        listD1PriceOverrides(BASE_PRICE_OVERRIDE_SCOPE),
+        listD1ActiveCampuses(),
+        listD1ActiveOfferingsForPricing(),
+        getUnidepProgramCatalog(),
+      ])
+    : await Promise.all([
+        prisma.adminPriceOverride.findMany({
+          where: {
+            scope: BASE_PRICE_OVERRIDE_SCOPE,
+            isActive: true,
+          },
           select: {
             id: true,
-            name: true,
-            businessLine: true,
-            level: true,
-            category: true,
-            planPdfUrl: true,
-            brochurePdfUrl: true,
-            planDriveLink: true,
-            planUrl: true,
+            scope: true,
+            targetKeys: true,
+            newPrice: true,
+            isActive: true,
+            notes: true,
+            updatedBy: true,
           },
-        },
-      },
-    }),
-    getUnidepProgramCatalog(),
-  ]);
+        }),
+        prisma.campus.findMany({
+          where: { isActive: true },
+          orderBy: [{ name: "asc" }],
+          select: { id: true, code: true, metaKey: true, name: true, slug: true, tier: true },
+        }),
+        prisma.programOffering.findMany({
+          where: {
+            isActive: true,
+            campus: { isActive: true },
+          },
+          select: {
+            id: true,
+            campusId: true,
+            pricingPlans: true,
+            track: true,
+            moduleCount: true,
+            subjectsByModule: true,
+            delivery: true,
+            escolarizado: true,
+            ejecutivo: true,
+            lineOfBusiness: true,
+            program: {
+              select: {
+                id: true,
+                name: true,
+                businessLine: true,
+                level: true,
+                category: true,
+                planPdfUrl: true,
+                brochurePdfUrl: true,
+                planDriveLink: true,
+                planUrl: true,
+              },
+            },
+          },
+        }),
+        getUnidepProgramCatalog(),
+      ]);
 
   const academicOfferByCampus = new Map<string, typeof activeOfferings>();
 

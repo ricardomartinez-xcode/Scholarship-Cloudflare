@@ -15,6 +15,8 @@ import {
 } from "@/lib/unidep-program-catalog";
 import { normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
+import { listD1OfferedProgramIds } from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import {
   listFileAssetAssignmentsForTargets,
   resolveProgramR2AssetPayload,
@@ -32,6 +34,14 @@ async function getOfferedProgramIds(params: {
   if (!campus || !cycle) return null;
 
   const modality = normalizeCanonicalModality(params.modality);
+  if (isCloudflareRuntime()) {
+    return listD1OfferedProgramIds({
+      campus,
+      cycle,
+      modality,
+    });
+  }
+
   const modalityWhere =
     modality === "online"
       ? { delivery: "ONLINE" as const }

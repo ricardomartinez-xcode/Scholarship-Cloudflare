@@ -9,6 +9,11 @@ import { auth } from "@/lib/auth/server";
 import { requireAuth } from "@/lib/authz";
 import { canAccessAdminPanel, resolveAdminCapabilities } from "@/lib/admin-capabilities";
 import {
+  clearCloudflareSessionCookieFromStore,
+  signOutCloudflareSession,
+} from "@/lib/cloudflare/auth";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import {
   getNavBannerCtas,
   getSidebarBottomCtas,
   getSidebarTopCtas,
@@ -29,12 +34,15 @@ export default async function AppLayout({
   children: React.ReactNode;
 }>) {
   const user = await requireAuth();
+  const isCloudflare = isCloudflareRuntime();
   const email = user.email;
   const displayName = user.displayName?.trim() || null;
-  const adminOverrides = await prisma.adminUserCapability.findMany({
-    where: { userId: user.id },
-    select: { capability: true, enabled: true },
-  });
+  const adminOverrides = isCloudflare
+    ? []
+    : await prisma.adminUserCapability.findMany({
+        where: { userId: user.id },
+        select: { capability: true, enabled: true },
+      });
   const adminCapabilities = resolveAdminCapabilities(user.role, adminOverrides);
 
   let navAnnouncements: Awaited<ReturnType<typeof getActiveAnnouncementsByLocation>> = [];
@@ -51,6 +59,9 @@ export default async function AppLayout({
   let simulatorBottomCtas: Awaited<ReturnType<typeof getSimulatorBottomCtas>> = [];
 
   try {
+    if (isCloudflare) {
+      throw new Error("Configurable admin UI chrome is not loaded in Cloudflare runtime.");
+    }
     const [organizationIds, userCapabilities] = await Promise.all([
       getUserOrganizationIds(user.id),
       getUserCapabilitySet(user.id),
@@ -169,6 +180,11 @@ export default async function AppLayout({
 
   async function signOutAction() {
     "use server";
+    if (isCloudflareRuntime()) {
+      await signOutCloudflareSession();
+      await clearCloudflareSessionCookieFromStore();
+      redirect("/");
+    }
     await auth.signOut();
     redirect("/");
   }

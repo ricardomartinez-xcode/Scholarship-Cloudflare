@@ -1,6 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "scholarship-cloudflare",
+  "account_id": "41ffa6a1a7c184fd4308f87780a62cc4",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-06-26",
   "compatibility_flags": [
@@ -28,5 +29,12 @@
   ],
   "vars": {
     "NEXT_PUBLIC_APP_ENV": "cloudflare"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "recalc-cloudflare",
+      "database_id": "2a2bbd32-55af-4ff3-aea2-8f8b11d2a05d"
+    }
+  ]
 }

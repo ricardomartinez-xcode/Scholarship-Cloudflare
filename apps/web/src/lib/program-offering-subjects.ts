@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { listD1ProgramOfferingModuleMetaById } from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 export type ProgramOfferingModuleMeta = {
   subjectsByModule: string | null;
@@ -17,6 +19,7 @@ function emptyModuleMetaMap(ids: string[]) {
 export async function listProgramOfferingModuleMetaById(ids: string[]) {
   const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
   if (!uniqueIds.length) return new Map<string, ProgramOfferingModuleMeta>();
+  if (isCloudflareRuntime()) return listD1ProgramOfferingModuleMetaById(uniqueIds);
 
   try {
     const rows = await prisma.programOffering.findMany({
