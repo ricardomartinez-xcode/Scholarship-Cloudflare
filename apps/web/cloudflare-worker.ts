@@ -25,10 +25,15 @@ export default {
 
   async scheduled(_controller: unknown, env: ScheduledWorkerEnv) {
     const now = new Date().toISOString();
-    await env.DB.prepare(
-      "DELETE FROM google_oauth_state WHERE expires_at <= ?",
-    )
-      .bind(now)
-      .run();
+    await Promise.all([
+      env.DB.prepare("DELETE FROM google_oauth_state WHERE expires_at <= ?")
+        .bind(now)
+        .run(),
+      env.DB.prepare(
+        "DELETE FROM cloudflare_auth_rate_limit WHERE window_expires_at <= ?",
+      )
+        .bind(now)
+        .run(),
+    ]);
   },
 };

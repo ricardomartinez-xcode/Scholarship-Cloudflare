@@ -4,6 +4,7 @@ export * from "./audit-log";
 export * from "./academic-offers";
 export * from "./organizations";
 export * from "./users";
+export * from "./auth-rate-limit";
 export * from "./quotes";
 export * from "./import-jobs";
 export * from "./google-oauth";

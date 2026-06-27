@@ -22,6 +22,7 @@ const FOUNDATION_TABLES = [
   "google_oauth_state",
   "conversation",
   "outbox_event",
+  "cloudflare_auth_rate_limit",
 ] as const;
 
 type TableRow = { name: string };
@@ -99,7 +100,7 @@ export async function GET() {
         requiredForCurrentRuntime: false,
         detail:
           foundationMissing.length === 0
-            ? "Las tablas de migración 0003–0009 están disponibles."
+            ? "Las tablas de migración 0003–0010 están disponibles."
             : "Las tablas de la siguiente fase de migración todavía no están aplicadas.",
       },
       legacyProviders: {
