@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "scholarship-cloudflare",
   "account_id": "41ffa6a1a7c184fd4308f87780a62cc4",
-  "main": "./cloudflare-worker.ts",
+  "main": "./.open-next/worker.js",
   "compatibility_date": "2026-06-26",
   "compatibility_flags": [
     "nodejs_compat",
@@ -19,11 +19,6 @@
   "preview_urls": true,
   "placement": {
     "mode": "smart"
-  },
-  "triggers": {
-    "crons": [
-      "17 * * * *"
-    ]
   },
   "services": [
     {

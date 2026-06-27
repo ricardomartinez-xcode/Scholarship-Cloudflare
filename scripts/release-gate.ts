@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const rootDir = path.resolve(__dirname, "..");
+const currentFile = fileURLToPath(import.meta.url);
+const rootDir = path.resolve(path.dirname(currentFile), "..");
 const localEnvPath = path.join(rootDir, ".env.local");
 
 function readLocalEnvFile() {
@@ -140,9 +142,7 @@ async function main() {
     {
       label: "Playwright public release checks",
       command: "npx",
-      env: {
-        E2E_SERVER_MODE: "prod",
-      },
+      env: { E2E_SERVER_MODE: "prod" },
       args: [
         "playwright",
         "test",
@@ -169,9 +169,7 @@ async function main() {
     checks.push({
       label: "Playwright authenticated critical flows",
       command: "npx",
-      env: {
-        E2E_SERVER_MODE: "prod",
-      },
+      env: { E2E_SERVER_MODE: "prod" },
       args: [
         "playwright",
         "test",
