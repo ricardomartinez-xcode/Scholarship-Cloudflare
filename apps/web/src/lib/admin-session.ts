@@ -7,6 +7,11 @@ import {
   resolveAdminCapabilities,
 } from "@/lib/admin-capabilities";
 import { getSessionUser, type SessionUserState } from "@/lib/authz";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import {
+  resolveCloudflareAdminAccessUser,
+  type CloudflareAdminAccessUser,
+} from "@/lib/cloudflare/admin-access";
 import { prisma } from "@/lib/prisma";
 import { isSystemOwner } from "@/lib/system-roles";
 
@@ -28,10 +33,17 @@ export type AdminAccessUser = {
 };
 
 export type AdminAccessState =
-  | { status: Exclude<SessionUserState["status"], "ok"> | "no_admin_access"; user: null }
+  | {
+      status: Exclude<SessionUserState["status"], "ok"> | "no_admin_access";
+      user: null;
+    }
   | { status: "ok"; user: AdminAccessUser };
 
-async function resolveAdminAccessUser(sessionUserId: string) {
+function toAdminAccessUser(user: CloudflareAdminAccessUser): AdminAccessUser {
+  return user;
+}
+
+async function resolvePrismaAdminAccessUser(sessionUserId: string) {
   const user = await prisma.user.findUnique({
     where: { id: sessionUserId },
     select: {
@@ -78,13 +90,31 @@ async function resolveAdminAccessUser(sessionUserId: string) {
   } satisfies AdminAccessUser;
 }
 
+function getCloudflareAccessState(
+  session: Extract<SessionUserState, { status: "ok" }>,
+): AdminAccessState {
+  const user = resolveCloudflareAdminAccessUser(
+    session.user as unknown as Parameters<typeof resolveCloudflareAdminAccessUser>[0],
+  );
+
+  if (!user) {
+    return { status: "no_admin_access", user: null };
+  }
+
+  return { status: "ok", user: toAdminAccessUser(user) };
+}
+
 export async function getAdminAccessState(): Promise<AdminAccessState> {
   const session = await getSessionUser();
   if (session.status !== "ok") {
     return { status: session.status, user: null };
   }
 
-  const adminUser = await resolveAdminAccessUser(session.user.id);
+  if (isCloudflareRuntime()) {
+    return getCloudflareAccessState(session);
+  }
+
+  const adminUser = await resolvePrismaAdminAccessUser(session.user.id);
   if (!adminUser) {
     return { status: "inactive", user: null };
   }
@@ -109,15 +139,14 @@ export async function getAdminUser(
 ) {
   const state = await getAdminAccessState();
   if (state.status !== "ok") return null;
-  if (capability && !adminHasCapability(state.user, capability)) {
-    return null;
-  }
+  if (capability && !adminHasCapability(state.user, capability)) return null;
   return state.user;
 }
 
 export async function requireAdminAccessUser() {
   const state = await getAdminAccessState();
   if (state.status === "ok") return state.user;
+
   if (state.status === "unauthenticated") redirect("/admin/auth");
   if (state.status === "forbidden") redirect("/auth/denied");
   if (state.status === "inactive") redirect("/auth/denied?reason=inactive");
