@@ -24,7 +24,6 @@ const FOUNDATION_TABLES = [
 ] as const;
 
 type TableRow = { name: string };
-type CountRow = { count: number | string };
 
 async function listPresentTables(names: readonly string[]) {
   const placeholders = names.map(() => "?").join(", ");
@@ -43,7 +42,9 @@ function missingTables(expected: readonly string[], present: Set<string>) {
 
 /**
  * Read-only deployment health endpoint for the Cloudflare cutover.
- * It deliberately avoids Neon, Prisma, Supabase and secret values.
+ * It deliberately avoids Neon, Prisma, Supabase and secret values. This
+ * endpoint is intentionally available without a session, so it reports only
+ * aggregate status and never exposes resource identifiers or row counts.
  */
 export async function GET() {
   const timestamp = new Date().toISOString();
@@ -72,9 +73,6 @@ export async function GET() {
     const present = await listPresentTables([...CORE_TABLES, ...FOUNDATION_TABLES]);
     const coreMissing = missingTables(CORE_TABLES, present);
     const foundationMissing = missingTables(FOUNDATION_TABLES, present);
-    const users = await d1First<CountRow>(
-      "SELECT COUNT(*) AS count FROM cloudflare_auth_user",
-    );
 
     const results = {
       runtime: {
@@ -86,13 +84,13 @@ export async function GET() {
         detail:
           coreMissing.length === 0
             ? "D1 responde y el esquema núcleo está disponible."
-            : `D1 responde, pero faltan tablas núcleo: ${coreMissing.join(", ")}.`,
+            : "D1 responde, pero el esquema núcleo está incompleto.",
       },
       cloudflareAuth: {
         ok: coreMissing.length === 0,
         detail:
           coreMissing.length === 0
-            ? `${Number(users?.count ?? 0)} usuario(s) registrados en la autenticación D1.`
+            ? "El esquema de autenticación D1 está disponible."
             : "No se pudo validar autenticación D1 porque falta el esquema núcleo.",
       },
       migrationFoundation: {
@@ -101,7 +99,7 @@ export async function GET() {
         detail:
           foundationMissing.length === 0
             ? "Las tablas de migración 0003–0008 están disponibles."
-            : `Pendientes de aplicar: ${foundationMissing.join(", ")}.`,
+            : "Las tablas de la siguiente fase de migración todavía no están aplicadas.",
       },
       legacyProviders: {
         ok: true,
@@ -132,7 +130,7 @@ export async function GET() {
           },
           d1: {
             ok: false,
-            detail: error instanceof Error ? error.message : String(error),
+            detail: "No fue posible consultar D1.",
           },
         },
       },
