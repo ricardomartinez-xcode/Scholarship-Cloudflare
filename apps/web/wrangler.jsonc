@@ -15,16 +15,21 @@
   "observability": {
     "enabled": true
   },
-  "routes": [
-    {
-      "pattern": "recalc.relead.com.mx",
-      "custom_domain": true
-    }
-  ],
+  "workers_dev": true,
+  "preview_urls": true,
+  "placement": {
+    "mode": "smart"
+  },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "scholarship-cloudflare"
+      "service": "scholarship-cloudflare",
+      "environment": "production"
+    }
+  ],
+  "send_email": [
+    {
+      "name": "Recalc"
     }
   ],
   "vars": {
@@ -35,6 +40,17 @@
       "binding": "DB",
       "database_name": "recalc-cloudflare",
       "database_id": "2a2bbd32-55af-4ff3-aea2-8f8b11d2a05d"
+    },
+    {
+      "binding": "MYSQL",
+      "database_name": "recalc-cloudflare",
+      "database_id": "2a2bbd32-55af-4ff3-aea2-8f8b11d2a05d"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "Assets",
+      "bucket_name": "recalc"
     }
   ]
 }

@@ -7,9 +7,9 @@ This repository is a Cloudflare/OpenNext port of `ricardomartinez-xcode/Scholars
 - Runtime: Cloudflare Workers via `@opennextjs/cloudflare`.
 - Database: Cloudflare D1 database `recalc-cloudflare`.
 - Build output: `apps/web/.open-next/worker.js` plus `apps/web/.open-next/assets`.
-- Production hostname: `recalc.relead.com.mx`.
+- Production hostname: `recalc.relead.com.mx` (custom domain managed in the Cloudflare Dashboard).
 - Local preview: `npm run preview:cloudflare`.
-- Deploy: `npm run deploy:cloudflare`.
+- Deploy: `npm run deploy:cloudflare` (builds OpenNext, prepares a Terser-minified Worker, then deploys it with `wrangler deploy --no-bundle`).
 
 ## Environment Backup
 
@@ -76,13 +76,43 @@ The Cloudflare token must be an API token with Workers and D1 permissions. A Clo
 
 ## Worker Size
 
-The Prisma engine has been removed from the Worker bundle. The latest dry-run upload is:
+The current OpenNext build succeeds and can fit under the Workers Free 3 MiB
+gzip limit when deployed through the prepared no-bundle artifact.
+
+The latest direct Wrangler minified dry-run on 2026-06-26 is still too large:
 
 ```text
-Total Upload: 26551.78 KiB / gzip: 5397.78 KiB
+wrangler deploy --dry-run --minify
+Total Upload: 13354.61 KiB / gzip: 3218.42 KiB
 ```
 
-This is still above the free Workers 3 MiB script limit, so production deploy requires a Workers plan that permits larger scripts or a later split of admin/heavy routes into separate Workers.
+`npm run deploy:cloudflare` therefore runs `scripts/prepare-cloudflare-deploy.mjs`
+after `opennextjs-cloudflare build`. That script asks Wrangler to bundle into
+`.wrangler-bundle/worker.js`, minifies the final ESM Worker with Terser, checks
+the gzip size, and deploys `.wrangler-bundle/worker.terser.js` with
+`wrangler deploy --no-bundle`.
+
+Latest prepared artifact:
+
+```text
+.wrangler-bundle/worker.terser.js
+Total Upload: 13019.91 KiB / gzip: 2956.57 KiB
+```
+
+If this prepared artifact ever grows above 3072 KiB gzip, the script fails
+before deploy and the next options are a route split for heavy XLSX/admin
+imports or upgrading Workers to the Paid limit.
+
+The Wrangler config intentionally does not re-declare the `recalc.relead.com.mx`
+custom domain. The domain already exists in Cloudflare and re-publishing it from
+Wrangler returns a `409` conflict on `/workers/scripts/.../domains/records`.
+Deploys leave that dashboard-managed custom domain in place and publish the
+Worker version through the configured workers.dev trigger.
+
+The current Cloudflare API token can authenticate and read Worker deployments,
+but D1 operations fail with `Authentication error` / `7403`. Before applying
+migrations or deploying from CI, make sure the token has D1 edit/read
+permissions for account `41ffa6a1a7c184fd4308f87780a62cc4`.
 
 ## D1 Data Sync
 

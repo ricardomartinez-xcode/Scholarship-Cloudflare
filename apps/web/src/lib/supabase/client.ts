@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Supabase Realtime client utilities.
  *
@@ -5,9 +7,15 @@
  * Supabase is used only as the transport layer for Broadcast and Presence.
  */
 
-import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
-type ScopedRealtimeClient = ReturnType<typeof createClient>;
+type SupabaseCreateClient = typeof import("@supabase/supabase-js").createClient;
+type ScopedRealtimeClient = ReturnType<SupabaseCreateClient>;
+type ActiveRealtimeSubscription = {
+  client: ScopedRealtimeClient;
+  channel: RealtimeChannel;
+  beforeDispose?: () => Promise<void> | void;
+};
 
 type BroadcastSubscriptionOptions<TPayload> = {
   topic: string;
@@ -30,6 +38,15 @@ type PresenceSubscriptionOptions = {
   currentUser: PresenceUserState;
   onSync: (users: PresenceUserState[]) => void;
 };
+
+let createClientPromise: Promise<SupabaseCreateClient> | null = null;
+
+async function loadCreateClient() {
+  createClientPromise ??= import("@supabase/supabase-js").then(
+    (module) => module.createClient,
+  );
+  return createClientPromise;
+}
 
 function getRealtimeClientConfig() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -86,12 +103,15 @@ function buildTopicStorageKey(prefix: string, topics: string[]) {
   return topicKey ? `${prefix}-${topicKey}` : prefix;
 }
 
-function createScopedRealtimeClient(topics: string[]): ScopedRealtimeClient | null {
+async function createScopedRealtimeClient(
+  topics: string[],
+): Promise<ScopedRealtimeClient | null> {
   const config = getRealtimeClientConfig();
   if (!config) {
     return null;
   }
 
+  const createClient = await loadCreateClient();
   return createClient(config.supabaseUrl, config.supabaseClientKey, {
     auth: buildRealtimeAuthConfig(buildTopicStorageKey("recalc-realtime-private", topics)),
     accessToken: () => requestRealtimeToken(topics),
@@ -103,12 +123,13 @@ function createScopedRealtimeClient(topics: string[]): ScopedRealtimeClient | nu
   });
 }
 
-function createRealtimeClient(): ScopedRealtimeClient | null {
+async function createRealtimeClient(): Promise<ScopedRealtimeClient | null> {
   const config = getRealtimeClientConfig();
   if (!config) {
     return null;
   }
 
+  const createClient = await loadCreateClient();
   return createClient(config.supabaseUrl, config.supabaseClientKey, {
     auth: buildRealtimeAuthConfig("recalc-realtime-public"),
     realtime: {
@@ -131,38 +152,78 @@ async function disposeScopedChannel(
   await client.realtime.disconnect();
 }
 
+async function disposeRealtimeSubscription(subscription: ActiveRealtimeSubscription) {
+  await subscription.beforeDispose?.();
+  await disposeScopedChannel(subscription.client, subscription.channel);
+}
+
+function startRealtimeSubscription(
+  setup: () => Promise<ActiveRealtimeSubscription | null>,
+) {
+  let activeSubscription: ActiveRealtimeSubscription | null = null;
+  let disposed = false;
+
+  void setup()
+    .then((subscription) => {
+      if (!subscription) {
+        return;
+      }
+
+      if (disposed) {
+        void disposeRealtimeSubscription(subscription);
+        return;
+      }
+
+      activeSubscription = subscription;
+    })
+    .catch((error) => {
+      console.error("Failed to start realtime subscription:", error);
+    });
+
+  return () => {
+    disposed = true;
+    if (!activeSubscription) {
+      return;
+    }
+
+    const subscription = activeSubscription;
+    activeSubscription = null;
+    void disposeRealtimeSubscription(subscription);
+  };
+}
+
 export function subscribeToPrivateBroadcast<TPayload>({
   topic,
   event,
   onMessage,
 }: BroadcastSubscriptionOptions<TPayload>) {
-  const client = createScopedRealtimeClient([topic]);
-  if (!client) {
-    return () => {};
-  }
-
-  const channel = client.channel(topic, {
-    config: {
-      private: true,
-      broadcast: { self: false },
-    },
-  });
-
-  channel.on("broadcast", { event }, (payload) => {
-    if (payload.payload) {
-      onMessage(payload.payload as TPayload);
+  return startRealtimeSubscription(async () => {
+    const client = await createScopedRealtimeClient([topic]);
+    if (!client) {
+      return null;
     }
-  });
 
-  channel.subscribe((status, error) => {
-    if (status === "CHANNEL_ERROR") {
-      console.error(`Realtime channel error for ${topic}:`, error);
-    }
-  });
+    const channel = client.channel(topic, {
+      config: {
+        private: true,
+        broadcast: { self: false },
+      },
+    });
 
-  return () => {
-    void disposeScopedChannel(client, channel);
-  };
+    channel.on("broadcast", { event }, (payload) => {
+      if (payload.payload) {
+        onMessage(payload.payload as TPayload);
+      }
+    });
+
+    channel.subscribe((status, error) => {
+      if (status === "CHANNEL_ERROR") {
+        console.error(`Realtime channel error for ${topic}:`, error);
+      }
+    });
+
+    return { client, channel };
+  });
 }
 
 export function subscribeToBroadcast<TPayload>({
@@ -170,32 +231,32 @@ export function subscribeToBroadcast<TPayload>({
   event,
   onMessage,
 }: BroadcastSubscriptionOptions<TPayload>) {
-  const client = createRealtimeClient();
-  if (!client) {
-    return () => {};
-  }
-
-  const channel = client.channel(topic, {
-    config: {
-      broadcast: { self: false },
-    },
-  });
-
-  channel.on("broadcast", { event }, (payload) => {
-    if (payload.payload) {
-      onMessage(payload.payload as TPayload);
+  return startRealtimeSubscription(async () => {
+    const client = await createRealtimeClient();
+    if (!client) {
+      return null;
     }
-  });
 
-  channel.subscribe((status, error) => {
-    if (status === "CHANNEL_ERROR") {
-      console.error(`Realtime channel error for ${topic}:`, error);
-    }
-  });
+    const channel = client.channel(topic, {
+      config: {
+        broadcast: { self: false },
+      },
+    });
 
-  return () => {
-    void disposeScopedChannel(client, channel);
-  };
+    channel.on("broadcast", { event }, (payload) => {
+      if (payload.payload) {
+        onMessage(payload.payload as TPayload);
+      }
+    });
+
+    channel.subscribe((status, error) => {
+      if (status === "CHANNEL_ERROR") {
+        console.error(`Realtime channel error for ${topic}:`, error);
+      }
+    });
+
+    return { client, channel };
+  });
 }
 
 function buildPresenceSnapshot(channel: RealtimeChannel): PresenceUserState[] {
@@ -231,50 +292,55 @@ export function subscribeToPrivatePresence({
   currentUser,
   onSync,
 }: PresenceSubscriptionOptions) {
-  const client = createScopedRealtimeClient([topic]);
-  if (!client) {
-    return () => {};
-  }
+  return startRealtimeSubscription(async () => {
+    const client = await createScopedRealtimeClient([topic]);
+    if (!client) {
+      return null;
+    }
 
-  const channel = client.channel(topic, {
-    config: {
-      private: true,
-      presence: {
-        key: currentUser.userId,
+    const channel = client.channel(topic, {
+      config: {
+        private: true,
+        presence: {
+          key: currentUser.userId,
+        },
       },
-    },
+    });
+
+    channel.on("presence", { event: "sync" }, () => {
+      onSync(buildPresenceSnapshot(channel));
+    });
+
+    channel.on("presence", { event: "join" }, () => {
+      onSync(buildPresenceSnapshot(channel));
+    });
+
+    channel.on("presence", { event: "leave" }, () => {
+      onSync(buildPresenceSnapshot(channel));
+    });
+
+    channel.subscribe(async (status, error) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          ...currentUser,
+          onlineAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (status === "CHANNEL_ERROR") {
+        console.error(`Realtime presence error for ${topic}:`, error);
+      }
+    });
+
+    return {
+      client,
+      channel,
+      beforeDispose: async () => {
+        await channel.untrack();
+      },
+    };
   });
-
-  channel.on("presence", { event: "sync" }, () => {
-    onSync(buildPresenceSnapshot(channel));
-  });
-
-  channel.on("presence", { event: "join" }, () => {
-    onSync(buildPresenceSnapshot(channel));
-  });
-
-  channel.on("presence", { event: "leave" }, () => {
-    onSync(buildPresenceSnapshot(channel));
-  });
-
-  channel.subscribe(async (status, error) => {
-    if (status === "SUBSCRIBED") {
-      await channel.track({
-        ...currentUser,
-        onlineAt: new Date().toISOString(),
-      });
-      return;
-    }
-
-    if (status === "CHANNEL_ERROR") {
-      console.error(`Realtime presence error for ${topic}:`, error);
-    }
-  });
-
-  return () => {
-    void channel.untrack();
-    void disposeScopedChannel(client, channel);
-  };
 }
 
 export function subscribeToPresence({
@@ -282,47 +348,52 @@ export function subscribeToPresence({
   currentUser,
   onSync,
 }: PresenceSubscriptionOptions) {
-  const client = createRealtimeClient();
-  if (!client) {
-    return () => {};
-  }
+  return startRealtimeSubscription(async () => {
+    const client = await createRealtimeClient();
+    if (!client) {
+      return null;
+    }
 
-  const channel = client.channel(topic, {
-    config: {
-      presence: {
-        key: currentUser.userId,
+    const channel = client.channel(topic, {
+      config: {
+        presence: {
+          key: currentUser.userId,
+        },
       },
-    },
+    });
+
+    channel.on("presence", { event: "sync" }, () => {
+      onSync(buildPresenceSnapshot(channel));
+    });
+
+    channel.on("presence", { event: "join" }, () => {
+      onSync(buildPresenceSnapshot(channel));
+    });
+
+    channel.on("presence", { event: "leave" }, () => {
+      onSync(buildPresenceSnapshot(channel));
+    });
+
+    channel.subscribe(async (status, error) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          ...currentUser,
+          onlineAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (status === "CHANNEL_ERROR") {
+        console.error(`Realtime presence error for ${topic}:`, error);
+      }
+    });
+
+    return {
+      client,
+      channel,
+      beforeDispose: async () => {
+        await channel.untrack();
+      },
+    };
   });
-
-  channel.on("presence", { event: "sync" }, () => {
-    onSync(buildPresenceSnapshot(channel));
-  });
-
-  channel.on("presence", { event: "join" }, () => {
-    onSync(buildPresenceSnapshot(channel));
-  });
-
-  channel.on("presence", { event: "leave" }, () => {
-    onSync(buildPresenceSnapshot(channel));
-  });
-
-  channel.subscribe(async (status, error) => {
-    if (status === "SUBSCRIBED") {
-      await channel.track({
-        ...currentUser,
-        onlineAt: new Date().toISOString(),
-      });
-      return;
-    }
-
-    if (status === "CHANNEL_ERROR") {
-      console.error(`Realtime presence error for ${topic}:`, error);
-    }
-  });
-
-  return () => {
-    void channel.untrack();
-    void disposeScopedChannel(client, channel);
-  };
 }

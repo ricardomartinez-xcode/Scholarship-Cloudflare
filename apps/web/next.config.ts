@@ -27,8 +27,9 @@ const nextConfig: NextConfig = {
     "@relead/domain",
     "@relead/realtime",
     "@relead/matricula-sdk",
+    ...(isCloudflareBuild ? ["@prisma/client"] : []),
   ],
-  webpack(config) {
+  webpack(config, { isServer }) {
     if (isCloudflareBuild) {
       config.resolve.alias = {
         ...(config.resolve.alias ?? {}),
@@ -49,9 +50,21 @@ const nextConfig: NextConfig = {
           process.cwd(),
           "src/lib/cloudflare/shims/neon-auth-server.ts",
         ),
-        "@supabase/supabase-js": path.resolve(
+        ...(isServer
+          ? {
+              "@supabase/supabase-js": path.resolve(
+                process.cwd(),
+                "src/lib/cloudflare/shims/supabase.ts",
+              ),
+            }
+          : {}),
+        "exceljs$": path.resolve(
           process.cwd(),
-          "src/lib/cloudflare/shims/supabase.ts",
+          "../../node_modules/exceljs/dist/exceljs.bare.min.js",
+        ),
+        "@sentry/nextjs": path.resolve(
+          process.cwd(),
+          "src/lib/cloudflare/shims/sentry-next.ts",
         ),
         "@/lib/prisma": path.resolve(process.cwd(), "src/lib/cloudflare/prisma.ts"),
       };

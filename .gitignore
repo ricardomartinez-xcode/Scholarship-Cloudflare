@@ -20,6 +20,7 @@
 /out/
 .turbo/
 .open-next/
+.wrangler-bundle/
 .wrangler/
 .dev.vars
 .dev.vars.*
