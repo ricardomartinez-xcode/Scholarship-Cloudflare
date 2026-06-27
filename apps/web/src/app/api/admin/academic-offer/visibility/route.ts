@@ -14,7 +14,6 @@ import {
 } from "@/config/academicOffer";
 import { PUBLIC_ROUTE_CACHE_TAGS } from "@/lib/public-route-cache";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -36,7 +35,9 @@ export async function POST(request: Request) {
   const visibleCycles = Array.isArray(body?.visibleCycles)
     ? body.visibleCycles
         .map((value) => normalizeAcademicOfferCycle(value))
-        .filter((value): value is (typeof ACADEMIC_OFFER_CYCLES)[number] => Boolean(value))
+        .filter(
+          (value): value is (typeof ACADEMIC_OFFER_CYCLES)[number] => Boolean(value),
+        )
     : [];
 
   if (!visibleCycles.length) {

@@ -128,6 +128,11 @@ async function main() {
       args: ["tsc", "--noEmit"],
     },
     {
+      label: "Cloudflare Worker bundle",
+      command: "npm",
+      args: ["run", "build:cloudflare"],
+    },
+    {
       label: "Next build",
       command: "npm",
       args: ["run", "build"],

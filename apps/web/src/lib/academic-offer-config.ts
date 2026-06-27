@@ -8,6 +8,7 @@ import {
   type AcademicOfferCycle,
 } from "@/config/academicOffer";
 import { getD1SidebarInfoValue } from "@/lib/cloudflare/public-data";
+import { d1Run } from "@/lib/cloudflare/d1";
 import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 const ACADEMIC_OFFER_VISIBLE_CYCLES_KEY = "academic_offer.visible_cycles";
@@ -59,16 +60,33 @@ export async function saveAcademicOfferVisibleCycles(
   updatedBy: string,
 ) {
   const normalized = sortAcademicOfferCycles(cycles);
+  const value = serializeAcademicOfferVisibleCycles(normalized);
+
+  if (isCloudflareRuntime()) {
+    await d1Run(
+      `INSERT INTO admin_sidebar_info (
+        key, value, is_active, updated_by, created_at, updated_at
+      ) VALUES (?, ?, 1, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        is_active = 1,
+        updated_by = excluded.updated_by,
+        updated_at = CURRENT_TIMESTAMP`,
+      [ACADEMIC_OFFER_VISIBLE_CYCLES_KEY, value, updatedBy],
+    );
+    return normalized;
+  }
+
   await prisma.adminSidebarInfo.upsert({
     where: { key: ACADEMIC_OFFER_VISIBLE_CYCLES_KEY },
     update: {
-      value: serializeAcademicOfferVisibleCycles(normalized),
+      value,
       isActive: true,
       updatedBy,
     },
     create: {
       key: ACADEMIC_OFFER_VISIBLE_CYCLES_KEY,
-      value: serializeAcademicOfferVisibleCycles(normalized),
+      value,
       isActive: true,
       updatedBy,
     },

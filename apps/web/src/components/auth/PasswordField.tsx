@@ -7,11 +7,17 @@ export default function PasswordField({
   placeholder,
   autoComplete,
   className,
+  minLength,
+  maxLength,
+  required = false,
 }: {
   name: string;
   placeholder?: string;
   autoComplete?: string;
   className?: string;
+  minLength?: number;
+  maxLength?: number;
+  required?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   const label = visible ? "Ocultar contraseña" : "Mostrar contraseña";
@@ -24,6 +30,9 @@ export default function PasswordField({
         placeholder={placeholder}
         autoComplete={autoComplete}
         className={className}
+        minLength={minLength}
+        maxLength={maxLength}
+        required={required}
       />
       <button
         type="button"

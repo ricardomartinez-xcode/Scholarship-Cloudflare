@@ -6,6 +6,7 @@ import { useState } from "react";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
 import PasswordField from "@/components/auth/PasswordField";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 type AuthMethod = "passwordless" | "password";
 type AuthMode = "sign-in" | "sign-up";
@@ -31,7 +32,10 @@ export default function AuthMethodSwitcher({
   token = "",
   initialMethod = "passwordless",
 }: AuthMethodSwitcherProps) {
-  const [method, setMethod] = useState<AuthMethod>(initialMethod);
+  const cloudflareRuntime = isCloudflareRuntime();
+  const [method, setMethod] = useState<AuthMethod>(
+    cloudflareRuntime ? "password" : initialMethod,
+  );
   const isSignUp = mode === "sign-up";
   const passwordLabel = isSignUp ? "Crear contraseña" : "Contraseña";
   const passwordSubmitLabel = isSignUp ? "Crear cuenta" : "Iniciar sesión";
@@ -39,29 +43,31 @@ export default function AuthMethodSwitcher({
 
   return (
     <section className="ui-auth-method-panel">
-      <GoogleSignInButton callbackURL={callbackURL} />
+      {!cloudflareRuntime ? <GoogleSignInButton callbackURL={callbackURL} /> : null}
 
-      <div className="ui-auth-segmented" role="tablist" aria-label="Método de acceso">
-        <button
-          type="button"
-          className="ui-auth-segment"
-          aria-pressed={method === "passwordless"}
-          onClick={() => setMethod("passwordless")}
-        >
-          Sin contraseña
-        </button>
-        <button
-          type="button"
-          className="ui-auth-segment"
-          aria-pressed={method === "password"}
-          onClick={() => setMethod("password")}
-        >
-          {passwordLabel}
-        </button>
-      </div>
+      {!cloudflareRuntime ? (
+        <div className="ui-auth-segmented" role="tablist" aria-label="Método de acceso">
+          <button
+            type="button"
+            className="ui-auth-segment"
+            aria-pressed={method === "passwordless"}
+            onClick={() => setMethod("passwordless")}
+          >
+            Sin contraseña
+          </button>
+          <button
+            type="button"
+            className="ui-auth-segment"
+            aria-pressed={method === "password"}
+            onClick={() => setMethod("password")}
+          >
+            {passwordLabel}
+          </button>
+        </div>
+      ) : null}
 
-      <div role="tabpanel">
-        {method === "passwordless" ? (
+      <div role={cloudflareRuntime ? undefined : "tabpanel"}>
+        {!cloudflareRuntime && method === "passwordless" ? (
           <NeonUserAuthMethods
             callbackURL={callbackURL}
             defaultEmail={defaultEmail}
@@ -69,7 +75,11 @@ export default function AuthMethodSwitcher({
             mode={mode}
           />
         ) : (
-          <form action={isSignUp ? "/api/auth/sign-up" : "/api/auth/sign-in"} method="post" className="ui-auth-form">
+          <form
+            action={isSignUp ? "/api/auth/sign-up" : "/api/auth/sign-in"}
+            method="post"
+            className="ui-auth-form"
+          >
             {isSignUp && token ? <input type="hidden" name="token" value={token} /> : null}
             {isSignUp ? <input type="hidden" name="callbackURL" value={callbackURL} /> : null}
             {!isSignUp ? <input type="hidden" name="next" value={next} /> : null}
@@ -84,6 +94,7 @@ export default function AuthMethodSwitcher({
                 defaultValue={defaultEmail}
                 readOnly={lockedEmail}
                 autoComplete="username"
+                required
                 className="ui-control ui-auth-control read-only:cursor-not-allowed read-only:opacity-70"
               />
             </label>
@@ -95,22 +106,37 @@ export default function AuthMethodSwitcher({
                 placeholder={passwordPlaceholder}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
                 className="ui-control ui-auth-control pl-3.5 pr-12"
+                minLength={isSignUp && cloudflareRuntime ? 12 : undefined}
+                maxLength={isSignUp && cloudflareRuntime ? 128 : undefined}
+                required
               />
             </label>
 
+            {isSignUp && cloudflareRuntime ? (
+              <p className="text-xs text-slate-400">
+                Usa una contraseña de al menos 12 caracteres.
+              </p>
+            ) : null}
+
             {!isSignUp ? (
-              <div className="ui-auth-helper-row">
-                <Link
-                  href={
-                    defaultEmail
-                      ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
-                      : "/auth/forgot-password"
-                  }
-                  className="ui-auth-link text-sm"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
+              cloudflareRuntime ? (
+                <p className="text-xs text-slate-400">
+                  ¿Problemas de acceso? Contacta al administrador de tu organización.
+                </p>
+              ) : (
+                <div className="ui-auth-helper-row">
+                  <Link
+                    href={
+                      defaultEmail
+                        ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
+                        : "/auth/forgot-password"
+                    }
+                    className="ui-auth-link text-sm"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+              )
             ) : null}
 
             <button type="submit" className="ui-button-primary w-full justify-center">

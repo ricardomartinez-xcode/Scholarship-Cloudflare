@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { NextResponse } from "next/server";
 
 import { getAdminAccessApiUser } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
 export async function POST() {
   const requestId = `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -26,7 +25,7 @@ export async function POST() {
         error: "No fue posible aplicar la revalidación.",
         requestId,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
