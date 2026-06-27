@@ -1,5 +1,6 @@
 export * from "./contracts";
 export * from "./audit";
+export * from "./audit-log";
 export * from "./organizations";
 export * from "./quotes";
 export * from "./import-jobs";
