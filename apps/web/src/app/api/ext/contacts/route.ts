@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import {
   getUserContactsBootstrap,
   importUserContactsForUser,
@@ -26,6 +27,20 @@ export async function GET() {
     );
   }
 
+  if (isCloudflareRuntime()) {
+    return NextResponse.json({
+      ok: true,
+      contacts: [],
+      quoteAssignments: [],
+      google: {
+        connected: false,
+        contactsSheetName: "Contactos",
+        mode: "cloudflare-d1",
+      },
+      source: "cloudflare-d1",
+    });
+  }
+
   const payload = await getUserContactsBootstrap(session.user.id);
   return NextResponse.json({
     ok: true,
@@ -39,6 +54,17 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, error: session.status },
       { status: statusCodeForSessionState(session.status) },
+    );
+  }
+
+  if (isCloudflareRuntime()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "La libreta de contactos de extensión no está habilitada en Cloudflare.",
+        source: "cloudflare-d1",
+      },
+      { status: 501 },
     );
   }
 

@@ -16,6 +16,12 @@ function base64UrlDecode(value: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
+function toArrayBuffer(value: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(value.byteLength);
+  copy.set(value);
+  return copy.buffer;
+}
+
 export async function importAesGcmKey(encodedKey: string): Promise<CryptoKey> {
   const raw = base64UrlDecode(encodedKey.trim());
   if (raw.byteLength !== 32) {
@@ -26,7 +32,7 @@ export async function importAesGcmKey(encodedKey: string): Promise<CryptoKey> {
     );
   }
 
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+  return crypto.subtle.importKey("raw", toArrayBuffer(raw), "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 
 export async function encryptSecret(
@@ -37,7 +43,7 @@ export async function encryptSecret(
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await importAesGcmKey(encodedKey);
   const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: toArrayBuffer(iv) },
     key,
     encoder.encode(plaintext),
   );
@@ -55,10 +61,12 @@ export async function decryptSecret(
   }
 
   const key = await importAesGcmKey(encodedKey);
+  const iv = base64UrlDecode(ivEncoded);
+  const ciphertext = base64UrlDecode(ciphertextEncoded);
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64UrlDecode(ivEncoded) },
+    { name: "AES-GCM", iv: toArrayBuffer(iv) },
     key,
-    base64UrlDecode(ciphertextEncoded),
+    toArrayBuffer(ciphertext),
   );
 
   return { keyVersion, plaintext: decoder.decode(plaintext) };

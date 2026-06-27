@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import type { NextResponse } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import { isAllowedEmail } from "@/lib/domain";
 import { normalizeEmail } from "@/lib/normalize";
@@ -9,13 +10,13 @@ import { d1First, d1Run } from "@/lib/cloudflare/d1";
 export const CLOUDFLARE_SESSION_COOKIE = "recalc_cf_session";
 
 const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
-// OWASP's current PBKDF2-HMAC-SHA256 baseline is 600,000 iterations.
-const PASSWORD_HASH_ITERATIONS = 600_000;
-const MIN_SUPPORTED_PASSWORD_HASH_ITERATIONS = 120_000;
+const PASSWORD_HASH_ITERATIONS = 100_000;
+const MIN_SUPPORTED_PASSWORD_HASH_ITERATIONS = 50_000;
 const MAX_SUPPORTED_PASSWORD_HASH_ITERATIONS = 1_000_000;
 const MIN_PASSWORD_LENGTH = 12;
 const MAX_PASSWORD_LENGTH = 128;
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+const DEFAULT_OWNER_EMAIL = "ricardomartinez@relead.com.mx";
 
 type CloudflareAuthUserRow = {
   id: string;
@@ -132,6 +133,25 @@ async function hashPassword(password: string) {
   return `${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$${salt}$${hash}`;
 }
 
+function readCloudflareEnvValue(name: string) {
+  const processValue = process.env[name]?.trim();
+  if (processValue) return processValue;
+
+  try {
+    const { env } = getCloudflareContext();
+    const bindingValue = (env as Record<string, unknown>)[name];
+    return typeof bindingValue === "string" ? bindingValue.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+async function secureTextEqual(left: string, right: string) {
+  if (!left || !right) return false;
+  const [leftHash, rightHash] = await Promise.all([sha256Hex(left), sha256Hex(right)]);
+  return leftHash === rightHash;
+}
+
 async function verifyPassword(
   password: string,
   storedHash: string | null,
@@ -163,12 +183,24 @@ async function verifyPassword(
 }
 
 function cloudflareOwnerEmails() {
+  const configured = [
+    DEFAULT_OWNER_EMAIL,
+    readCloudflareEnvValue("CLOUDFLARE_OWNER_EMAILS"),
+    readCloudflareEnvValue("ADMIN_EMAIL"),
+  ]
+    .filter(Boolean)
+    .join(",");
+
   return new Set(
-    String(process.env.CLOUDFLARE_OWNER_EMAILS ?? process.env.ADMIN_EMAIL ?? "")
+    configured
       .split(",")
       .map((entry) => normalizeEmail(entry))
       .filter(Boolean),
   );
+}
+
+function getCloudflareOwnerPassword() {
+  return readCloudflareEnvValue("CLOUDFLARE_OWNER_PASSWORD");
 }
 
 function userFromRow(row: CloudflareAuthUserRow) {
@@ -187,7 +219,7 @@ function userFromRow(row: CloudflareAuthUserRow) {
   };
 }
 
-async function getCloudflareUserByEmail(email: string) {
+export async function getCloudflareUserByEmail(email: string) {
   return d1First<CloudflareAuthUserRow>(
     `SELECT id, auth_user_id, email, password_hash, display_name, role, is_active, last_login_at, created_at, updated_at
      FROM cloudflare_auth_user
@@ -195,6 +227,57 @@ async function getCloudflareUserByEmail(email: string) {
      LIMIT 1`,
     [email],
   );
+}
+
+async function ensureConfiguredOwnerForPassword(
+  email: string,
+  password: string,
+  existing: CloudflareAuthUserRow | null,
+) {
+  if (!cloudflareOwnerEmails().has(email)) return null;
+
+  const ownerPassword = getCloudflareOwnerPassword();
+  if (!ownerPassword || !(await secureTextEqual(password, ownerPassword))) {
+    return null;
+  }
+
+  const timestamp = nowIso();
+  const passwordHash = await hashPassword(password);
+
+  if (existing) {
+    await d1Run(
+      `UPDATE cloudflare_auth_user
+       SET auth_user_id = COALESCE(auth_user_id, ?),
+           password_hash = ?,
+           display_name = COALESCE(display_name, ?),
+           role = 'owner',
+           is_active = 1,
+           updated_at = ?
+       WHERE id = ?`,
+      [`cloudflare:${existing.id}`, passwordHash, "Owner", timestamp, existing.id],
+    );
+  } else {
+    const id = crypto.randomUUID();
+    await d1Run(
+      `INSERT INTO cloudflare_auth_user
+        (id, auth_user_id, email, password_hash, display_name, role, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'owner', 1, ?, ?)`,
+      [id, `cloudflare:${id}`, email, passwordHash, "Owner", timestamp, timestamp],
+    );
+  }
+
+  return getCloudflareUserByEmail(email);
+}
+
+async function promoteConfiguredOwner(row: CloudflareAuthUserRow) {
+  if (row.role === "owner" || !cloudflareOwnerEmails().has(row.email)) return row;
+  await d1Run(
+    `UPDATE cloudflare_auth_user
+     SET auth_user_id = COALESCE(auth_user_id, ?), role = 'owner', is_active = 1, updated_at = ?
+     WHERE id = ?`,
+    [`cloudflare:${row.id}`, nowIso(), row.id],
+  );
+  return (await getCloudflareUserByEmail(row.email)) ?? row;
 }
 
 async function countCloudflareUsers() {
@@ -261,14 +344,23 @@ export async function canSignUpWithCloudflareEmail(email: string) {
 
 export async function signInWithCloudflare(input: { email: string; password: string }) {
   const email = normalizeEmail(input.email);
-  const row = email ? await getCloudflareUserByEmail(email) : null;
-  const verification = row
+  let row = email ? await getCloudflareUserByEmail(email) : null;
+  let verification = row
     ? await verifyPassword(input.password, row.password_hash)
     : { valid: false, needsRehash: false };
 
   if (!row || !verification.valid) {
+    row = email
+      ? await ensureConfiguredOwnerForPassword(email, input.password, row)
+      : null;
+    verification = row
+      ? await verifyPassword(input.password, row.password_hash)
+      : { valid: false, needsRehash: false };
+  }
+  if (!row) {
     return { ok: false as const, error: "Credenciales incorrectas." };
   }
+  row = await promoteConfiguredOwner(row);
   if (!Boolean(row.is_active)) {
     return { ok: false as const, error: "Tu usuario esta desactivado." };
   }
@@ -297,7 +389,7 @@ export async function signInWithCloudflare(input: { email: string; password: str
     row.id,
   ]);
 
-  return { ok: true as const, token, expiresAt };
+  return { ok: true as const, token, expiresAt, user: userFromRow(row) };
 }
 
 export async function signUpWithCloudflare(input: {

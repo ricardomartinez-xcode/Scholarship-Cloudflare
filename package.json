@@ -5,7 +5,8 @@
   "packageManager": "npm@11.12.1",
   "scripts": {
     "dev": "npm --workspace @relead/web run dev",
-    "build": "npm --workspace @relead/web run build",
+    "build": "npm run build:cloudflare",
+    "build:next": "npm --workspace @relead/web run build",
     "build:cloudflare": "npm --workspace @relead/web run build:cloudflare",
     "preview:cloudflare": "npm --workspace @relead/web run preview:cloudflare",
     "deploy:cloudflare": "npm --workspace @relead/web run deploy:cloudflare",

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { d1All } from "@/lib/cloudflare/d1";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { prisma } from "@/lib/prisma";
 import {
   DEFAULT_EXTENSION_SELECTOR_PACK,
@@ -56,16 +58,24 @@ export function isExtensionPanelConfigKey(key: string): key is ExtensionPanelCon
 }
 
 export async function getExtensionPanelConfig(): Promise<ExtensionPanelConfig> {
-  const rows = await prisma.adminSidebarInfo.findMany({
-    where: {
-      key: { in: Object.values(EXTENSION_PANEL_CONFIG_KEYS) },
-      isActive: true,
-    },
-    select: {
-      key: true,
-      value: true,
-    },
-  });
+  const rows = isCloudflareRuntime()
+    ? await d1All<{ key: string; value: string | null }>(
+        `SELECT key, value
+         FROM admin_sidebar_info
+         WHERE is_active = 1
+           AND key IN (${Object.values(EXTENSION_PANEL_CONFIG_KEYS).map(() => "?").join(", ")})`,
+        Object.values(EXTENSION_PANEL_CONFIG_KEYS),
+      )
+    : await prisma.adminSidebarInfo.findMany({
+        where: {
+          key: { in: Object.values(EXTENSION_PANEL_CONFIG_KEYS) },
+          isActive: true,
+        },
+        select: {
+          key: true,
+          value: true,
+        },
+      });
 
   const rowMap = new Map(rows.map((row) => [row.key, row.value]));
   const selectorPackRaw = rowMap.get(EXTENSION_PANEL_CONFIG_KEYS.selectorPackJson);

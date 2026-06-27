@@ -33,7 +33,8 @@
     }
   ],
   "vars": {
-    "NEXT_PUBLIC_APP_ENV": "cloudflare"
+    "NEXT_PUBLIC_APP_ENV": "cloudflare",
+    "CLOUDFLARE_OWNER_EMAILS": "ricardomartinez@relead.com.mx"
   },
   "d1_databases": [
     {

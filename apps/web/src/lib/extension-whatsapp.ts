@@ -4,6 +4,7 @@ import {
   type SerializableWhatsappTemplate,
   type WhatsappTemplatePreviewData,
 } from "@/lib/whatsapp-templates";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 const currency = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -157,6 +158,15 @@ export async function renderActiveExtensionWhatsappDraft(params: {
   userId: string;
   quote: ExtensionQuoteDraftInput;
 }) {
+  if (isCloudflareRuntime()) {
+    const previewData = buildExtensionWhatsappPreviewData(params.quote);
+    return {
+      template: null,
+      previewData,
+      messageText: buildFallbackMessage(previewData),
+    };
+  }
+
   const collection = await listWhatsappTemplatesForUser(params.userId);
   const template = resolveActiveTemplate(
     collection.templates,

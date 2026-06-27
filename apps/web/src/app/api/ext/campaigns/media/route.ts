@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import { d1First } from "@/lib/cloudflare/d1";
+import { ensureD1ExtensionRuntimeSchema } from "@/lib/cloudflare/extension-runtime-d1";
+import {
+  extensionFromCampaignImageType,
+  getAssetsBucket,
+  isSupportedCampaignImageContentType,
+  normalizeCampaignImageContentType,
+} from "@/lib/cloudflare/r2";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +53,96 @@ function extensionFromContentType(contentType: string) {
   return "jpg";
 }
 
+function safeCampaignFileName(value: string | null | undefined) {
+  return String(value ?? "campana")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "campana";
+}
+
+function extractR2AssetKey(value: string | null | undefined, requestUrl: string) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  if (raw.startsWith("extension-campaigns/")) return raw;
+  try {
+    const url = new URL(raw, requestUrl);
+    const key = url.searchParams.get("assetKey")?.trim() ?? "";
+    return key.startsWith("extension-campaigns/") ? key : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readCloudflareCampaignMedia(params: {
+  request: Request;
+  userId: string;
+  campaignId: string;
+  assetKey: string | null;
+}) {
+  await ensureD1ExtensionRuntimeSchema();
+
+  let campaign: { campaign_name: string; media_url: string | null } | null = null;
+  if (params.campaignId) {
+    campaign = await d1First<{ campaign_name: string; media_url: string | null }>(
+      `SELECT campaign_name, media_url
+       FROM extension_campaign
+       WHERE id = ? AND owner_user_id = ?
+       LIMIT 1`,
+      [params.campaignId, params.userId],
+    );
+    if (!campaign?.media_url) {
+      return NextResponse.json(
+        { ok: false, error: "La campaña no tiene imagen asociada." },
+        { status: 404 },
+      );
+    }
+  }
+
+  const assetKey =
+    params.assetKey ??
+    extractR2AssetKey(campaign?.media_url ?? null, params.request.url);
+
+  if (!assetKey || !assetKey.startsWith(`extension-campaigns/${params.userId}/`)) {
+    return NextResponse.json(
+      { ok: false, error: "El asset R2 solicitado no pertenece a esta sesión." },
+      { status: 403 },
+    );
+  }
+
+  const object = await getAssetsBucket().get(assetKey);
+  if (!object?.body) {
+    return NextResponse.json(
+      { ok: false, error: "No fue posible recuperar la imagen de la campaña." },
+      { status: 404 },
+    );
+  }
+
+  const contentType = normalizeCampaignImageContentType(object.httpMetadata?.contentType);
+  if (!isSupportedCampaignImageContentType(contentType)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `La imagen de campaña debe ser PNG, JPG o WEBP. Se recibió: ${contentType || "desconocido"}.`,
+      },
+      { status: 415 },
+    );
+  }
+
+  const fileName =
+    object.customMetadata?.originalName ||
+    `${safeCampaignFileName(campaign?.campaign_name)}.${extensionFromCampaignImageType(contentType)}`;
+
+  return new NextResponse(object.body, {
+    status: 200,
+    headers: {
+      "content-type": contentType,
+      "cache-control": "private, no-store, max-age=0",
+      "content-disposition": `inline; filename="${fileName}"`,
+    },
+  });
+}
+
 export async function GET(request: Request) {
   const session = await getSessionUser();
   if (session.status !== "ok") {
@@ -55,11 +154,21 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const campaignId = url.searchParams.get("campaignId")?.trim() ?? "";
-  if (!campaignId) {
+  const assetKey = url.searchParams.get("assetKey")?.trim() ?? null;
+  if (!campaignId && !assetKey) {
     return NextResponse.json(
-      { ok: false, error: "Debes indicar el campaignId del asset." },
+      { ok: false, error: "Debes indicar el campaignId o assetKey del asset." },
       { status: 400 },
     );
+  }
+
+  if (isCloudflareRuntime()) {
+    return readCloudflareCampaignMedia({
+      request,
+      userId: session.user.id,
+      campaignId,
+      assetKey,
+    });
   }
 
   const campaign = await prisma.extensionCampaign.findFirst({

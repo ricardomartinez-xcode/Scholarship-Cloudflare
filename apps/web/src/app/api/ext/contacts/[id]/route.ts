@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import {
   deleteUserContactForUser,
   updateUserContactForUser,
@@ -23,6 +24,17 @@ export async function PATCH(
     return NextResponse.json(
       { ok: false, error: session.status },
       { status: statusCodeForSessionState(session.status) },
+    );
+  }
+
+  if (isCloudflareRuntime()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "La libreta de contactos de extensión no está habilitada en Cloudflare.",
+        source: "cloudflare-d1",
+      },
+      { status: 501 },
     );
   }
 
@@ -78,6 +90,17 @@ export async function DELETE(
     return NextResponse.json(
       { ok: false, error: session.status },
       { status: statusCodeForSessionState(session.status) },
+    );
+  }
+
+  if (isCloudflareRuntime()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "La libreta de contactos de extensión no está habilitada en Cloudflare.",
+        source: "cloudflare-d1",
+      },
+      { status: 501 },
     );
   }
 
