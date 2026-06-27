@@ -42,7 +42,9 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -n "${DIRECT_URL}${DATABASE_URL_UNPOOLED}${DATABASE_URL}" ]; then
-            npm run d1:sync-core
+            if ! npm run d1:sync-core; then
+              echo "::warning::D1 core data sync failed; continuing with deployment because D1 migrations already completed."
+            fi
           else
             echo "Skipping D1 data sync because no Postgres URL secret is configured."
           fi
