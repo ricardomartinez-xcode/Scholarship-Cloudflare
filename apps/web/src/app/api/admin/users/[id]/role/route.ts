@@ -1,51 +1,59 @@
-import { AdminAuditAction, AdminCapability, AdminConfigModule, Role } from "@prisma/client";
+import { AdminCapability } from "@prisma/client";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
-import { writeAdminAuditLog } from "@/lib/admin-audit";
 import {
   adminApiError,
   adminApiSuccess,
   buildAdminRequestId,
   logAdminApiFailure,
 } from "@/lib/admin-api";
-import { prisma } from "@/lib/prisma";
+import { getD1 } from "@/lib/cloudflare/d1";
+import {
+  CLOUDFLARE_AUTH_ROLES,
+  isCloudflareAuthRole,
+  updateD1AuthUserRole,
+} from "@/lib/d1/users";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function parseRole(value: unknown) {
-  if (typeof value !== "string") return null;
-  return Object.values(Role).includes(value as Role) ? (value as Role) : null;
-}
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const requestId = buildAdminRequestId("admin_user_role");
+
   try {
-    const auth = await requireAdminApiCapability(requestId, AdminCapability.manage_users);
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_users,
+    );
     if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
-    const body = (await request.json().catch(() => null)) as { role?: unknown } | null;
-    const nextRole = parseRole(body?.role);
-    if (!nextRole) {
+    const body = (await request.json().catch(() => null)) as
+      | { role?: unknown }
+      | null;
+    const role = body?.role;
+
+    if (!isCloudflareAuthRole(role)) {
       return adminApiError({
         requestId,
         status: 400,
         errorCode: "INVALID_ROLE",
         error: "Rol inválido.",
-        details: { allowedRoles: Object.values(Role) },
+        details: { allowedRoles: CLOUDFLARE_AUTH_ROLES },
         recoverable: true,
       });
     }
 
-    const current = await prisma.user.findUnique({
-      where: { id },
-      select: { id: true, email: true, role: true, isActive: true },
+    const result = await updateD1AuthUserRole(getD1(), {
+      id,
+      role,
+      actorUserId: auth.admin.id,
+      requestId,
     });
-    if (!current) {
+
+    if (!result.ok && result.reason === "not_found") {
       return adminApiError({
         requestId,
         status: 404,
@@ -54,59 +62,27 @@ export async function PATCH(
         recoverable: true,
       });
     }
-
-    if (current.role === Role.owner && nextRole !== Role.owner) {
-      const otherOwners = await prisma.user.count({
-        where: {
-          id: { not: id },
-          role: Role.owner,
-          isActive: true,
-        },
+    if (!result.ok && result.reason === "last_owner_guard") {
+      return adminApiError({
+        requestId,
+        status: 409,
+        errorCode: "LAST_OWNER_GUARD",
+        error: "No se puede dejar el sistema sin owners activos.",
+        recoverable: true,
       });
-      if (otherOwners < 1) {
-        return adminApiError({
-          requestId,
-          status: 409,
-          errorCode: "LAST_OWNER_GUARD",
-          error: "No se puede dejar el sistema sin owners activos.",
-          recoverable: true,
-        });
-      }
     }
-
-    const updated = await prisma.user.update({
-      where: { id },
-      data: { role: nextRole },
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        role: true,
-        isActive: true,
-        updatedAt: true,
-      },
-    });
-
-    await writeAdminAuditLog({
-      module: AdminConfigModule.ACCESS,
-      action: AdminAuditAction.UPDATE,
-      actor: auth.admin,
-      entityType: "User",
-      entityId: id,
-      requestId,
-      before: { role: current.role },
-      after: { role: updated.role },
-      message: `Rol de usuario actualizado de ${current.role} a ${updated.role}.`,
-    });
+    if (!result.ok) {
+      throw new Error("No fue posible actualizar el rol de usuario.");
+    }
 
     return adminApiSuccess(requestId, {
       user: {
-        id: updated.id,
-        email: updated.email,
-        displayName: updated.displayName,
-        role: updated.role,
-        status: updated.isActive ? "active" : "inactive",
-        updatedAt: updated.updatedAt.toISOString(),
+        id: result.user.id,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        role: result.user.role,
+        status: result.user.isActive ? "active" : "inactive",
+        updatedAt: result.user.updatedAt,
       },
     });
   } catch (error) {
@@ -121,7 +97,9 @@ export async function PATCH(
       status: 500,
       errorCode: "USER_ROLE_UPDATE_FAILED",
       error: "No fue posible actualizar el rol.",
-      details: { reason: error instanceof Error ? error.message : String(error) },
+      details: {
+        reason: error instanceof Error ? error.message : String(error),
+      },
       recoverable: true,
     });
   }
