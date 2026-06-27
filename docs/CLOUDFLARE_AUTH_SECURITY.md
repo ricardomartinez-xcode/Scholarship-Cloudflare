@@ -22,4 +22,4 @@ Los identificadores se guardan únicamente como hashes. Para evitar ataques de d
 wrangler secret put CLOUDFLARE_AUTH_RATE_LIMIT_PEPPER
 ```
 
-El Worker elimina contadores expirados mediante el Cron Trigger horario. Este mecanismo complementa, pero no sustituye, las reglas de WAF/rate limiting y Turnstile administradas en Cloudflare.
+Los contadores vencidos no bloquean nuevos accesos y pueden depurarse en una tarea administrativa posterior. Este mecanismo complementa, pero no sustituye, las reglas de WAF/rate limiting y Turnstile administradas en Cloudflare.
