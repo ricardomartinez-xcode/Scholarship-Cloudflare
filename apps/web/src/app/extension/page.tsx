@@ -4,6 +4,11 @@ import AppChrome from "@/components/app/AppChrome";
 import UnidepWorkspace from "@/components/unidep/UnidepWorkspace";
 import { auth } from "@/lib/auth/server";
 import { getSessionUser } from "@/lib/authz";
+import {
+  clearCloudflareSessionCookieFromStore,
+  signOutCloudflareSession,
+} from "@/lib/cloudflare/auth";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { getQuoteMode } from "@/lib/runtime-modes";
 import { loadUnidepWorkspaceData } from "@/lib/unidep-page-data";
 
@@ -51,7 +56,12 @@ export default async function ExtensionPage({
 
   async function signOutAction() {
     "use server";
-    await auth.signOut();
+    if (isCloudflareRuntime()) {
+      await signOutCloudflareSession();
+      await clearCloudflareSessionCookieFromStore();
+    } else {
+      await auth.signOut();
+    }
     redirect("/extension/auth/sign-in");
   }
 

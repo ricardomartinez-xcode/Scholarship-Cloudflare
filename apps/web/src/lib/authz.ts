@@ -218,6 +218,10 @@ export async function getSessionUserFromExtensionToken(
       return { status: "ok", user, email: user.email };
     }
 
+    if (isCloudflareRuntime()) {
+      return { status: "unauthenticated", user: null, email: null };
+    }
+
     // Backward compatibility for pre-4.6.2 extension tokens while users migrate.
     // New tokens should always use issueExtensionSessionToken().
     const extensionSession = await getExtensionAuthSession(normalizedToken);
@@ -240,10 +244,6 @@ export async function getSessionUserFromExtensionToken(
 }
 
 export async function getSessionUser(): Promise<SessionUserState> {
-  if (isCloudflareRuntime()) {
-    return getCloudflareSessionUser();
-  }
-
   // Dev mode: check for SKIP_AUTH_REDIRECT flag
   if (process.env.SKIP_AUTH_REDIRECT === 'true' && process.env.NODE_ENV === 'development') {
     const devEmail = process.env.DEV_USER_EMAIL?.trim();
@@ -285,6 +285,10 @@ export async function getSessionUser(): Promise<SessionUserState> {
       if (extensionSessionState.status !== "unauthenticated") {
         return extensionSessionState;
       }
+    }
+
+    if (isCloudflareRuntime()) {
+      return getCloudflareSessionUser();
     }
 
     const { data: session, error } = await auth.getSession();

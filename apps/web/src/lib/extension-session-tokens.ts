@@ -4,6 +4,8 @@ import crypto from "node:crypto";
 
 import type { User } from "@prisma/client";
 
+import { d1All, d1First, d1Run } from "@/lib/cloudflare/d1";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { prisma } from "@/lib/prisma";
 
 export const EXTENSION_TOKEN_PREFIX = "rx_ext_";
@@ -31,6 +33,33 @@ type ExtensionSessionTokenRow = {
   expiresAt: Date;
   revokedAt: Date | null;
 };
+
+type D1ExtensionSessionRow = {
+  id: string;
+  user_id: string;
+  scope: string;
+  client: string | null;
+  extension_version: string | null;
+  user_agent: string | null;
+  expires_at: string;
+  revoked_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type D1ExtensionSessionWithUserRow = D1ExtensionSessionRow & {
+  email: string;
+  auth_user_id: string | null;
+  display_name: string | null;
+  role: string;
+  is_active: number | boolean;
+  user_created_at: string;
+  user_updated_at: string;
+  last_login_at: string | null;
+};
+
+let d1ExtensionSessionSchemaPromise: Promise<void> | null = null;
 
 export type IssuedExtensionSession = {
   tokenId: string;
@@ -60,6 +89,19 @@ export type ResolvedExtensionSessionExpiry = {
 
 function sha256(value: string) {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function toDate(value: string | Date | null | undefined) {
+  if (!value) return null;
+  return value instanceof Date ? value : new Date(value);
+}
+
+function d1Changes(result: unknown) {
+  return Number((result as { meta?: { changes?: number } } | null)?.meta?.changes ?? 0);
 }
 
 function trimForStorage(value: string | null | undefined, maxLength: number) {
@@ -153,6 +195,155 @@ function parseIssuedExtensionToken(token: string) {
   return { id, secret };
 }
 
+function mapD1User(row: D1ExtensionSessionWithUserRow) {
+  const createdAt = toDate(row.user_created_at) ?? new Date();
+  const updatedAt = toDate(row.user_updated_at) ?? createdAt;
+  return {
+    id: row.user_id,
+    authUserId: row.auth_user_id ?? `cloudflare:${row.user_id}`,
+    email: row.email,
+    displayName: row.display_name,
+    role: row.role,
+    isActive: Boolean(row.is_active),
+    lastLoginAt: toDate(row.last_login_at),
+    createdAt,
+    updatedAt,
+  } as User;
+}
+
+async function ensureD1ExtensionSessionSchema() {
+  d1ExtensionSessionSchemaPromise ??= (async () => {
+    await d1Run(
+      `CREATE TABLE IF NOT EXISTS extension_session_token (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        scope TEXT NOT NULL DEFAULT 'extension:default',
+        client TEXT,
+        extension_version TEXT,
+        user_agent TEXT,
+        expires_at TEXT NOT NULL,
+        revoked_at TEXT,
+        last_used_at TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES cloudflare_auth_user(id) ON DELETE CASCADE
+      )`,
+    );
+    await d1Run(
+      `CREATE INDEX IF NOT EXISTS extension_session_token_user_valid_idx
+       ON extension_session_token(user_id, revoked_at, expires_at)`,
+    );
+    await d1Run(
+      `CREATE INDEX IF NOT EXISTS extension_session_token_expires_idx
+       ON extension_session_token(expires_at)`,
+    );
+  })();
+
+  return d1ExtensionSessionSchemaPromise;
+}
+
+async function issueD1ExtensionSessionToken(params: {
+  userId: string;
+  client?: string | null;
+  extensionVersion?: string | null;
+  userAgent?: string | null;
+  scope?: string | null;
+  ttlMs?: number | string | null;
+  ttlPreset?: string | null;
+}) {
+  await ensureD1ExtensionSessionSchema();
+
+  const id = crypto.randomUUID();
+  const secret = crypto.randomBytes(32).toString("base64url");
+  const token = `${EXTENSION_TOKEN_PREFIX}${id}.${secret}`;
+  const tokenHash = sha256(secret);
+  const scope = trimForStorage(params.scope, 120) ?? "extension:default";
+  const client = trimForStorage(params.client, MAX_CLIENT_LENGTH);
+  const expiry = resolveExtensionSessionExpiry({
+    ttlMs: params.ttlMs,
+    ttlPreset: params.ttlPreset,
+  });
+  const timestamp = nowIso();
+
+  await d1Run(
+    `UPDATE extension_session_token
+     SET revoked_at = COALESCE(revoked_at, ?), updated_at = ?
+     WHERE user_id = ?
+       AND scope = ?
+       AND COALESCE(client, '') = COALESCE(?, '')
+       AND revoked_at IS NULL
+       AND expires_at > ?`,
+    [timestamp, timestamp, params.userId, scope, client, timestamp],
+  );
+
+  await d1Run(
+    `INSERT INTO extension_session_token
+      (id, user_id, token_hash, scope, client, extension_version, user_agent, expires_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      params.userId,
+      tokenHash,
+      scope,
+      client,
+      trimForStorage(params.extensionVersion, MAX_VERSION_LENGTH),
+      trimForStorage(params.userAgent, MAX_UA_LENGTH),
+      expiry.expiresAt.toISOString(),
+      timestamp,
+      timestamp,
+    ],
+  );
+
+  return {
+    token,
+    expiresAt: expiry.expiresAt,
+    ttlMs: expiry.ttlMs,
+    ttlPreset: expiry.ttlPreset,
+  };
+}
+
+async function getD1IssuedExtensionSession(
+  token: string,
+): Promise<IssuedExtensionSession | null> {
+  await ensureD1ExtensionSessionSchema();
+
+  const parsed = parseIssuedExtensionToken(token);
+  if (!parsed) return null;
+  const tokenHash = sha256(parsed.secret);
+  const timestamp = nowIso();
+
+  const row = await d1First<D1ExtensionSessionWithUserRow>(
+    `SELECT
+        t.id, t.user_id, t.scope, t.client, t.extension_version, t.user_agent,
+        t.expires_at, t.revoked_at, t.last_used_at, t.created_at, t.updated_at,
+        u.email, u.auth_user_id, u.display_name, u.role, u.is_active,
+        u.created_at AS user_created_at, u.updated_at AS user_updated_at,
+        u.last_login_at
+     FROM extension_session_token t
+     INNER JOIN cloudflare_auth_user u ON u.id = t.user_id
+     WHERE t.id = ?
+       AND t.token_hash = ?
+       AND t.revoked_at IS NULL
+       AND t.expires_at > ?
+     LIMIT 1`,
+    [parsed.id, tokenHash, timestamp],
+  );
+  if (!row) return null;
+
+  await d1Run(
+    "UPDATE extension_session_token SET last_used_at = ?, updated_at = ? WHERE id = ?",
+    [timestamp, timestamp, row.id],
+  );
+
+  return {
+    tokenId: row.id,
+    scope: row.scope,
+    expiresAt: toDate(row.expires_at) ?? new Date(),
+    user: mapD1User(row),
+  };
+}
+
 export function isIssuedExtensionToken(token: string) {
   return Boolean(parseIssuedExtensionToken(token));
 }
@@ -166,6 +357,10 @@ export async function issueExtensionSessionToken(params: {
   ttlMs?: number | string | null;
   ttlPreset?: string | null;
 }) {
+  if (isCloudflareRuntime()) {
+    return issueD1ExtensionSessionToken(params);
+  }
+
   const id = crypto.randomUUID();
   const secret = crypto.randomBytes(32).toString("base64url");
   const token = `${EXTENSION_TOKEN_PREFIX}${id}.${secret}`;
@@ -209,6 +404,19 @@ export async function revokeIssuedExtensionSessionToken(token: string) {
   const parsed = parseIssuedExtensionToken(token);
   if (!parsed) return false;
   const tokenHash = sha256(parsed.secret);
+  if (isCloudflareRuntime()) {
+    await ensureD1ExtensionSessionSchema();
+
+    const timestamp = nowIso();
+    const result = await d1Run(
+      `UPDATE extension_session_token
+       SET revoked_at = COALESCE(revoked_at, ?), updated_at = ?
+       WHERE id = ? AND token_hash = ? AND revoked_at IS NULL`,
+      [timestamp, timestamp, parsed.id, tokenHash],
+    );
+    return d1Changes(result) > 0;
+  }
+
   const result = await prisma.$executeRaw`
     update recalc_admin.extension_session_token
     set "revokedAt" = coalesce("revokedAt", now()), "updatedAt" = now()
@@ -223,6 +431,22 @@ export async function revokeIssuedExtensionSessionTokenById(params: {
   scope?: string | null;
 }) {
   const scope = trimForStorage(params.scope, 120);
+  if (isCloudflareRuntime()) {
+    await ensureD1ExtensionSessionSchema();
+
+    const timestamp = nowIso();
+    const result = await d1Run(
+      `UPDATE extension_session_token
+       SET revoked_at = COALESCE(revoked_at, ?), updated_at = ?
+       WHERE id = ?
+         AND user_id = ?
+         AND (? IS NULL OR scope = ?)
+         AND revoked_at IS NULL`,
+      [timestamp, timestamp, params.tokenId, params.userId, scope, scope],
+    );
+    return d1Changes(result) > 0;
+  }
+
   const result = await prisma.$executeRaw`
     update recalc_admin.extension_session_token
     set "revokedAt" = coalesce("revokedAt", now()), "updatedAt" = now()
@@ -243,6 +467,35 @@ export async function listIssuedExtensionSessions(params: {
   const scope = trimForStorage(params.scope, 120);
   const includeRevoked = Boolean(params.includeRevoked);
   const take = Math.min(100, Math.max(1, Math.trunc(Number(params.take ?? 50))));
+
+  if (isCloudflareRuntime()) {
+    await ensureD1ExtensionSessionSchema();
+
+    const rows = await d1All<D1ExtensionSessionRow>(
+      `SELECT id, user_id, scope, client, extension_version, user_agent, expires_at,
+              revoked_at, last_used_at, created_at, updated_at
+       FROM extension_session_token
+       WHERE user_id = ?
+         AND (? IS NULL OR scope = ?)
+         AND (? = 1 OR revoked_at IS NULL)
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [params.userId, scope, scope, includeRevoked ? 1 : 0, take],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      scope: row.scope,
+      client: row.client,
+      extensionVersion: row.extension_version,
+      userAgent: row.user_agent,
+      expiresAt: toDate(row.expires_at) ?? new Date(),
+      revokedAt: toDate(row.revoked_at),
+      lastUsedAt: toDate(row.last_used_at),
+      createdAt: toDate(row.created_at) ?? new Date(),
+      updatedAt: toDate(row.updated_at) ?? new Date(),
+    }));
+  }
 
   return prisma.$queryRaw<IssuedExtensionSessionSummary[]>`
     select
@@ -268,6 +521,10 @@ export async function listIssuedExtensionSessions(params: {
 export async function getIssuedExtensionSession(
   token: string,
 ): Promise<IssuedExtensionSession | null> {
+  if (isCloudflareRuntime()) {
+    return getD1IssuedExtensionSession(token);
+  }
+
   const parsed = parseIssuedExtensionToken(token);
   if (!parsed) return null;
   const tokenHash = sha256(parsed.secret);

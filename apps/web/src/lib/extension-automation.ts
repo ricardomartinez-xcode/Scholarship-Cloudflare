@@ -1,6 +1,18 @@
 import { Prisma } from "@prisma/client";
 
 import { writeBusinessEventSafe } from "@/lib/business-events";
+import {
+  claimD1ExtensionCampaignBatch,
+  createD1ExtensionCampaign,
+  deleteD1ExtensionCampaignForUser,
+  getD1ExtensionRunnerHealth,
+  listD1ExtensionCampaignsForUser,
+  listD1ExtensionCampaignsWithRunnerHealthForUser,
+  pauseD1ExtensionCampaign,
+  recordD1ExtensionCampaignDispatch,
+  resumeD1ExtensionCampaign,
+} from "@/lib/cloudflare/extension-runtime-d1";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { renderCampaignMessageTemplate } from "@/lib/extension-campaign-template";
 import { prisma } from "@/lib/prisma";
 import {
@@ -284,6 +296,10 @@ export async function getExtensionRunnerHealth(
   userId: string,
   options?: { now?: Date; staleAfterMs?: number },
 ): Promise<ExtensionRunnerHealth> {
+  if (isCloudflareRuntime()) {
+    return getD1ExtensionRunnerHealth(userId, options);
+  }
+
   const now = options?.now ?? new Date();
   const staleAfterMs = sanitizeRunnerStaleAfterMs(options?.staleAfterMs);
   const lookbackStart = new Date(
@@ -643,6 +659,10 @@ function serializeCampaign(campaign: ExtensionCampaignRecord) {
 }
 
 export async function createExtensionCampaign(input: ExtensionCampaignInput) {
+  if (isCloudflareRuntime()) {
+    return createD1ExtensionCampaign(input);
+  }
+
   const recipients = sanitizeCampaignRecipients(input.recipients);
   if (!recipients.length) {
     throw new Error("La campaña necesita al menos un destinatario válido.");
@@ -740,6 +760,10 @@ export async function createExtensionCampaign(input: ExtensionCampaignInput) {
 }
 
 export async function listExtensionCampaignsForUser(userId: string) {
+  if (isCloudflareRuntime()) {
+    return listD1ExtensionCampaignsForUser(userId);
+  }
+
   const campaigns = await prisma.extensionCampaign.findMany({
     where: { ownerUserId: userId },
     orderBy: [{ createdAt: "desc" }],
@@ -815,6 +839,10 @@ async function reconcileExtensionCampaignStatusesForUser(params: {
 }
 
 export async function listExtensionCampaignsWithRunnerHealthForUser(userId: string) {
+  if (isCloudflareRuntime()) {
+    return listD1ExtensionCampaignsWithRunnerHealthForUser(userId);
+  }
+
   const runner = await getExtensionRunnerHealth(userId);
   await reconcileExtensionCampaignStatusesForUser({ userId, runner });
   const campaigns = await listExtensionCampaignsForUser(userId);
@@ -830,6 +858,10 @@ export async function claimExtensionCampaignBatch(params: {
   campaignId?: string | null;
   now?: Date;
 }) {
+  if (isCloudflareRuntime()) {
+    return claimD1ExtensionCampaignBatch(params);
+  }
+
   const now = params.now ?? new Date();
 
   const campaign =
@@ -1066,6 +1098,10 @@ export async function recordExtensionCampaignDispatch(params: {
     metaJson?: unknown;
   }>;
 }) {
+  if (isCloudflareRuntime()) {
+    return recordD1ExtensionCampaignDispatch(params);
+  }
+
   if (!params.results.length) {
     const campaign = await prisma.extensionCampaign.findUnique({
       where: { id: params.campaignId },
@@ -1204,6 +1240,10 @@ export async function pauseExtensionCampaign(params: {
   now?: Date;
   force?: boolean;
 }) {
+  if (isCloudflareRuntime()) {
+    return pauseD1ExtensionCampaign(params);
+  }
+
   const now = params.now ?? new Date();
   const campaign = await prisma.extensionCampaign.findFirst({
     where: {
@@ -1324,6 +1364,10 @@ export async function resumeExtensionCampaign(params: {
   campaignId: string;
   now?: Date;
 }) {
+  if (isCloudflareRuntime()) {
+    return resumeD1ExtensionCampaign(params);
+  }
+
   const now = params.now ?? new Date();
   const campaign = await prisma.extensionCampaign.findFirst({
     where: {
@@ -1396,6 +1440,10 @@ export async function deleteExtensionCampaignForUser(params: {
   userId: string;
   campaignId: string;
 }) {
+  if (isCloudflareRuntime()) {
+    return deleteD1ExtensionCampaignForUser(params);
+  }
+
   const campaign = await prisma.extensionCampaign.findFirst({
     where: {
       id: params.campaignId,

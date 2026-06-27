@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getSessionUser } from "@/lib/authz";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import {
   applyExtensionCampaignRepair,
   previewExtensionCampaignRepair,
@@ -69,6 +70,24 @@ export async function POST(request: Request) {
   }
 
   const scope = campaignId ? "campaign" : "global";
+
+  if (isCloudflareRuntime()) {
+    return NextResponse.json({
+      ok: true,
+      requestId,
+      mode: payload.data.mode,
+      scope,
+      report: {
+        ok: true,
+        source: "cloudflare-d1",
+        repaired: false,
+        campaignsAnalyzed: 0,
+        actions: [],
+        message:
+          "Las campañas Cloudflare usan recuperación perezosa de claims en /api/ext/campaigns/claim; no se requiere reparación Prisma.",
+      },
+    });
+  }
 
   try {
     const mode = payload.data.mode;

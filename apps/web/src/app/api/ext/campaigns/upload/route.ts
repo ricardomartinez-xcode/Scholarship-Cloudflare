@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import {
+  extensionFromCampaignImageType,
+  getAssetsBucket,
+  isSupportedCampaignImageContentType,
+  normalizeCampaignImageContentType,
+} from "@/lib/cloudflare/r2";
 import {
   getCloudinaryConfigState,
   uploadCampaignImageToCloudinary,
@@ -13,6 +20,44 @@ function statusCodeForSessionState(status: "unauthenticated" | "forbidden" | "in
   if (status === "ok") return 200;
   if (status === "unauthenticated") return 401;
   return 403;
+}
+
+function safeFileName(value: string | null | undefined) {
+  return String(value ?? "campaign-media")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "campaign-media";
+}
+
+async function uploadCampaignImageToR2(params: { file: File; userId: string }) {
+  const contentType = normalizeCampaignImageContentType(params.file.type);
+  if (!isSupportedCampaignImageContentType(contentType)) {
+    throw new Error("Solo se permiten imágenes PNG, JPG o WEBP para campañas de WhatsApp.");
+  }
+
+  const extension = extensionFromCampaignImageType(contentType);
+  const key = `extension-campaigns/${params.userId}/${crypto.randomUUID()}.${extension}`;
+  const bytes = await params.file.arrayBuffer();
+  await getAssetsBucket().put(key, bytes, {
+    httpMetadata: {
+      contentType,
+      contentDisposition: `inline; filename="${safeFileName(params.file.name)}"`,
+    },
+    customMetadata: {
+      userId: params.userId,
+      originalName: safeFileName(params.file.name),
+      uploadedAt: new Date().toISOString(),
+    },
+  });
+
+  return {
+    secureUrl: `/api/ext/campaigns/media?assetKey=${encodeURIComponent(key)}`,
+    publicId: key,
+    bytes: bytes.byteLength,
+    format: extension,
+    resourceType: "image",
+  };
 }
 
 export async function POST(request: Request) {
@@ -45,15 +90,21 @@ export async function POST(request: Request) {
   }
 
   try {
-    const asset = await uploadCampaignImageToCloudinary({
-      file,
-      userId: session.user.id,
-    });
+    const asset = isCloudflareRuntime()
+      ? await uploadCampaignImageToR2({
+          file,
+          userId: session.user.id,
+        })
+      : await uploadCampaignImageToCloudinary({
+          file,
+          userId: session.user.id,
+        });
 
     return NextResponse.json({
       ok: true,
       asset,
-      cloudinary: getCloudinaryConfigState(),
+      cloudinary: isCloudflareRuntime() ? { ready: false, missing: [] } : getCloudinaryConfigState(),
+      storage: isCloudflareRuntime() ? "cloudflare-r2" : "cloudinary",
     });
   } catch (error) {
     return NextResponse.json(
@@ -62,8 +113,9 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "No fue posible subir la imagen a Cloudinary.",
-        cloudinary: getCloudinaryConfigState(),
+            : "No fue posible subir la imagen.",
+        cloudinary: isCloudflareRuntime() ? { ready: false, missing: [] } : getCloudinaryConfigState(),
+        storage: isCloudflareRuntime() ? "cloudflare-r2" : "cloudinary",
       },
       { status: 400 },
     );

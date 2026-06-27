@@ -1,6 +1,12 @@
 import { type Role } from "@prisma/client";
 
 import { BASE_PRICE_OVERRIDE_SCOPE } from "@/lib/base-price-overrides";
+import { d1All, parseD1Json } from "@/lib/cloudflare/d1";
+import {
+  listD1ActiveCampuses,
+  listD1PriceOverrides,
+} from "@/lib/cloudflare/public-data";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { getExtensionPanelConfig } from "@/lib/extension-panel-config";
 import { buildQuotePricingOptions } from "@/lib/pricing-options";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +40,51 @@ function buildSubjectCountOptions(priceOverrides: Array<{ targetKeys: unknown }>
     : [];
 }
 
+async function buildCloudflareExtensionQuoteRuntime() {
+  const [priceOverrides, campuses, rules] = await Promise.all([
+    listD1PriceOverrides(BASE_PRICE_OVERRIDE_SCOPE),
+    listD1ActiveCampuses(),
+    d1All<{
+      business_line: string;
+      modality: string;
+      plan: number;
+      programa_key: string | null;
+    }>(
+      `SELECT business_line, modality, plan, programa_key
+       FROM scholarship_rule
+       WHERE source_version = 'canonical'`,
+    ).catch(() => []),
+  ]);
+
+  return {
+    combinations: buildQuotePricingOptions(
+      rules.map((rule) => ({
+        businessLine: rule.business_line,
+        modality: rule.modality,
+        plan: Number(rule.plan),
+        programaKey: rule.programa_key,
+      })),
+      priceOverrides.map((override) => ({
+        ...override,
+        targetKeys:
+          typeof override.targetKeys === "string"
+            ? parseD1Json(override.targetKeys, {})
+            : override.targetKeys,
+      })),
+    ),
+    campuses: campuses.map((campus) => ({
+      value: campus.metaKey || campus.code || campus.name,
+      label: campus.name,
+    })),
+    subjectCounts: buildSubjectCountOptions(priceOverrides),
+  };
+}
+
 async function buildExtensionQuoteRuntime() {
+  if (isCloudflareRuntime()) {
+    return buildCloudflareExtensionQuoteRuntime();
+  }
+
   const [priceOverrides, campuses] = await Promise.all([
     prisma.adminPriceOverride.findMany({
       where: {

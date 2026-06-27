@@ -19,6 +19,7 @@ const r2ImageHostname = getR2ImageHostname();
 const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "1";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
   transpilePackages: [
     "@relead/ui",
     "@relead/config",
@@ -30,18 +31,22 @@ const nextConfig: NextConfig = {
     ...(isCloudflareBuild ? ["@prisma/client"] : []),
   ],
   webpack(config, { isServer }) {
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      "@": path.resolve(process.cwd(), "src"),
+      "@relead/matricula-sdk": path.resolve(
+        process.cwd(),
+        "../../packages/matricula-sdk/src/index.ts",
+      ),
+      "@relead/matricula-sdk/client": path.resolve(
+        process.cwd(),
+        "../../packages/matricula-sdk/src/client.ts",
+      ),
+    };
+
     if (isCloudflareBuild) {
       config.resolve.alias = {
         ...(config.resolve.alias ?? {}),
-        "@": path.resolve(process.cwd(), "src"),
-        "@relead/matricula-sdk": path.resolve(
-          process.cwd(),
-          "../../packages/matricula-sdk/src/index.ts",
-        ),
-        "@relead/matricula-sdk/client": path.resolve(
-          process.cwd(),
-          "../../packages/matricula-sdk/src/client.ts",
-        ),
         "@prisma/client": path.resolve(
           process.cwd(),
           "src/lib/cloudflare/shims/prisma-client.ts",

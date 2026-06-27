@@ -1,5 +1,7 @@
 import { Prisma, type BusinessEventType } from "@prisma/client";
 
+import { writeD1BusinessEvent } from "@/lib/cloudflare/extension-runtime-d1";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { captureException, sanitizeTelemetryObject } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 
@@ -22,6 +24,19 @@ function toOptionalJson(value: JsonInput) {
 }
 
 export async function writeBusinessEvent(params: WriteBusinessEventParams) {
+  if (isCloudflareRuntime()) {
+    await writeD1BusinessEvent({
+      type: String(params.type),
+      userId: params.userId ?? null,
+      quoteSessionId: params.quoteSessionId ?? null,
+      quoteScenarioId: params.quoteScenarioId ?? null,
+      subjectType: params.subjectType ?? null,
+      subjectId: params.subjectId ?? null,
+      metadata: params.metadata ?? null,
+    });
+    return null;
+  }
+
   return prisma.businessEvent.create({
     data: {
       type: params.type,

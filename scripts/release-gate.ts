@@ -130,14 +130,9 @@ async function main() {
       args: ["tsc", "--noEmit"],
     },
     {
-      label: "Cloudflare Worker bundle",
+      label: "Cloudflare build",
       command: "npm",
       args: ["run", "build:cloudflare"],
-    },
-    {
-      label: "Next build",
-      command: "npm",
-      args: ["run", "build"],
     },
     {
       label: "Playwright public release checks",

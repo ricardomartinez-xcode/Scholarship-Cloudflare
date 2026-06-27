@@ -1,26 +1,34 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { GET, POST } from "./route";
+import { GET } from "./route";
+
+vi.mock("@/lib/api-auth", () => ({
+  getAdminAccessApiUser: vi.fn(async () => ({
+    ok: true,
+    admin: { id: "admin_1", email: "admin@example.test" },
+  })),
+}));
+
+vi.mock("@/lib/google-cloudflare-oauth", () => ({
+  getGoogleOAuthConfiguration: vi.fn(() => ({
+    configured: false,
+    missing: ["GOOGLE_CLIENT_ID"],
+  })),
+  cancelGoogleOAuth: vi.fn(),
+  completeGoogleOAuth: vi.fn(),
+  withGoogleOAuthStatus: vi.fn((returnTo: string, status: string) => `${returnTo}?google=${status}`),
+}));
 
 describe("Google OAuth callback route", () => {
-  it("keeps external OAuth callbacks temporarily disabled", async () => {
-    const response = await GET();
+  it("returns a 503 response when Google OAuth is not configured", async () => {
+    const response = await GET(
+      new Request("https://example.test/api/integrations/google/callback?state=state_1&code=code_1"),
+    );
 
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
-      disabled: true,
-      code: "oauth_integrations_temporarily_disabled",
-    });
-    expect(response.status).toBe(503);
-  });
-
-  it("uses the same disabled contract for POST", async () => {
-    const response = await POST();
-
-    await expect(response.json()).resolves.toMatchObject({
-      ok: false,
-      disabled: true,
-      code: "oauth_integrations_temporarily_disabled",
+      code: "google_oauth_not_configured",
+      missing: ["GOOGLE_CLIENT_ID"],
     });
     expect(response.status).toBe(503);
   });

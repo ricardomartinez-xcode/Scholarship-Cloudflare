@@ -97,6 +97,9 @@ async function main() {
       bulletins,
       priceOverrides,
       sidebarInfo,
+      scholarshipRules,
+      additionalBenefits,
+      additionalBenefitCampuses,
       fileAssets,
       fileAssetUsages,
     ] = await Promise.all([
@@ -108,6 +111,9 @@ async function main() {
       prisma.bulletin.findMany({ orderBy: [{ createdAt: "asc" }] }),
       prisma.adminPriceOverride.findMany({ orderBy: [{ createdAt: "asc" }] }),
       prisma.adminSidebarInfo.findMany({ orderBy: [{ key: "asc" }] }),
+      prisma.scholarshipRule.findMany({ orderBy: [{ createdAt: "asc" }] }),
+      prisma.adminAdditionalBenefit.findMany({ orderBy: [{ createdAt: "asc" }] }),
+      prisma.adminAdditionalBenefitCampus.findMany(),
       readFileAssets(prisma),
       readFileAssetUsages(prisma),
     ]);
@@ -119,6 +125,9 @@ async function main() {
       "DELETE FROM campus_academic_fee;",
       "DELETE FROM academic_fee;",
       "DELETE FROM admin_price_override;",
+      "DELETE FROM admin_additional_benefit_campus;",
+      "DELETE FROM admin_additional_benefit;",
+      "DELETE FROM scholarship_rule;",
       "DELETE FROM program_offering;",
       "DELETE FROM program;",
       "DELETE FROM campus;",
@@ -249,6 +258,56 @@ async function main() {
       }));
     }
 
+    for (const rule of scholarshipRules) {
+      lines.push(insert("scholarship_rule", {
+        id: rule.id,
+        enrollment_type: rule.enrollmentType,
+        business_line: rule.businessLine,
+        modality: rule.modality,
+        plan: rule.plan,
+        campus_tier: rule.campusTier,
+        region: rule.region,
+        plantel: rule.plantel,
+        programa_key: rule.programaKey,
+        min_average: rule.minAverage === null ? null : Number(rule.minAverage),
+        max_average: rule.maxAverage === null ? null : Number(rule.maxAverage),
+        scholarship_percent:
+          rule.scholarshipPercent === null ? null : Number(rule.scholarshipPercent),
+        discounted_price_mxn:
+          rule.discountedPriceMxn === null ? null : Number(rule.discountedPriceMxn),
+        origin: rule.origin,
+        source_version: rule.sourceVersion,
+        created_at: iso(rule.createdAt),
+        updated_at: iso(rule.updatedAt),
+      }));
+    }
+
+    for (const benefit of additionalBenefits) {
+      lines.push(insert("admin_additional_benefit", {
+        id: benefit.id,
+        applies_to_all: benefit.appliesToAll,
+        benefit_type: benefit.benefitType,
+        enrollment_type: benefit.enrollmentType,
+        extra_percent: benefit.extraPercent,
+        first_payment_amount: Number(benefit.firstPaymentAmount),
+        is_active: benefit.isActive,
+        notes: benefit.notes,
+        business_line: benefit.businessLine,
+        modality: benefit.modality,
+        duration: benefit.duration,
+        updated_by: benefit.updatedBy,
+        created_at: iso(benefit.createdAt),
+        updated_at: iso(benefit.updatedAt),
+      }));
+    }
+
+    for (const link of additionalBenefitCampuses) {
+      lines.push(insert("admin_additional_benefit_campus", {
+        benefit_id: link.benefitId,
+        campus_id: link.campusId,
+      }));
+    }
+
     for (const asset of fileAssets) {
       lines.push(insert("file_asset", {
         id: asset.id,
@@ -283,6 +342,7 @@ async function main() {
     console.log(`Wrote ${path.relative(process.cwd(), outputPath)}`);
     console.log(
       `Rows: campus=${campuses.length}, program=${programs.length}, offering=${offerings.length}, fees=${academicFees.length}, priceOverrides=${priceOverrides.length}, fileAssets=${fileAssets.length}`,
+      `Quote rows: scholarshipRules=${scholarshipRules.length}, additionalBenefits=${additionalBenefits.length}`,
     );
   } finally {
     await prisma.$disconnect();

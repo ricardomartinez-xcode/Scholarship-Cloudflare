@@ -7,6 +7,11 @@ import {
 } from "@/lib/authz";
 import { captureException } from "@/lib/observability";
 import {
+  setCloudflareSessionCookie,
+  signInWithCloudflare,
+} from "@/lib/cloudflare/auth";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import {
   getExtensionAuthSession,
   revokeExtensionAuthSession,
   signInExtensionAuthSession,
@@ -152,6 +157,35 @@ export async function POST(request: Request) {
     }
 
     if (jsonMode) {
+      if (isCloudflareRuntime()) {
+        const result = await signInWithCloudflare({ email, password });
+        if (!result.ok) {
+          return jsonSignInFailure(result.error, 401, "invalid_credentials");
+        }
+
+        const requestedSessionTtl = readRequestedSessionTtl(jsonPayload);
+        const issuedToken = await issueExtensionSessionToken({
+          userId: result.user.id,
+          client:
+            request.headers.get("x-extension-client") ?? "chrome-sidepanel",
+          extensionVersion: request.headers.get("x-extension-version"),
+          userAgent: request.headers.get("user-agent"),
+          scope: "extension:chrome-sidepanel",
+          ttlMs: requestedSessionTtl.ttlMs,
+          ttlPreset: requestedSessionTtl.ttlPreset,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          email,
+          next: next.startsWith("/") ? next : DEFAULT_SUCCESS_PATH,
+          extensionSessionToken: issuedToken.token,
+          expiresAt: issuedToken.expiresAt.toISOString(),
+          sessionDuration: issuedToken.ttlPreset,
+          sessionTtlMs: issuedToken.ttlMs,
+        });
+      }
+
       const origin = new URL(request.url).origin;
       const extensionSignIn = await signInExtensionAuthSession({
         email,
@@ -210,6 +244,19 @@ export async function POST(request: Request) {
         sessionDuration: issuedToken.ttlPreset,
         sessionTtlMs: issuedToken.ttlMs,
       });
+    }
+
+    if (isCloudflareRuntime()) {
+      const result = await signInWithCloudflare({ email, password });
+      if (!result.ok) {
+        return redirect(request, buildErrorUrl(result.error, { email }));
+      }
+      const response = NextResponse.redirect(
+        new URL(next.startsWith("/") ? next : DEFAULT_SUCCESS_PATH, request.url),
+        { status: 303 },
+      );
+      setCloudflareSessionCookie(response, result.token, result.expiresAt);
+      return response;
     }
 
     const result = await auth.signIn.email({ email, password });

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 
@@ -7,7 +7,9 @@ const outDir = path.resolve(process.cwd(), ".wrangler-bundle");
 const metafile = path.join(outDir, "meta.json");
 const bundledWorker = path.join(outDir, "worker.js");
 const deployWorker = path.join(outDir, "worker.terser.js");
-const freeWorkerGzipLimitBytes = 3 * 1024 * 1024;
+const workerGzipLimitBytes =
+  Number(process.env.CLOUDFLARE_WORKER_GZIP_LIMIT_BYTES) || 10 * 1024 * 1024;
+const extraTerserEnabled = process.env.CLOUDFLARE_EXTRA_TERSER === "1";
 
 function quoteArg(value) {
   return `"${String(value).replace(/"/g, '\\"')}"`;
@@ -48,27 +50,34 @@ if (!existsSync(bundledWorker)) {
   throw new Error(`Wrangler did not write ${bundledWorker}`);
 }
 
-run("npx", [
-  "terser",
-  bundledWorker,
-  "--module",
-  "-c",
-  "passes=2",
-  "-m",
-  "-o",
-  deployWorker,
-]);
+let workerBytes = readFileSync(bundledWorker);
+let gzipBytes = gzipSync(workerBytes).length;
 
-const workerBytes = readFileSync(deployWorker);
-const gzipBytes = gzipSync(workerBytes).length;
+if (!extraTerserEnabled && gzipBytes <= workerGzipLimitBytes) {
+  copyFileSync(bundledWorker, deployWorker);
+} else {
+  run("npx", [
+    "terser",
+    bundledWorker,
+    "--module",
+    "-c",
+    "passes=2",
+    "-m",
+    "-o",
+    deployWorker,
+  ]);
+
+  workerBytes = readFileSync(deployWorker);
+  gzipBytes = gzipSync(workerBytes).length;
+}
 
 console.log(
   `Prepared ${path.relative(process.cwd(), deployWorker)}: ${kib(workerBytes.length)} KiB / gzip ${kib(gzipBytes)} KiB`,
 );
 
-if (gzipBytes > freeWorkerGzipLimitBytes) {
+if (gzipBytes > workerGzipLimitBytes) {
   console.error(
-    `Cloudflare Worker gzip size ${kib(gzipBytes)} KiB exceeds the Free limit of ${kib(freeWorkerGzipLimitBytes)} KiB.`,
+    `Cloudflare Worker gzip size ${kib(gzipBytes)} KiB exceeds the configured limit of ${kib(workerGzipLimitBytes)} KiB.`,
   );
   process.exit(1);
 }

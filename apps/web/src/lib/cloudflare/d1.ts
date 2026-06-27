@@ -1,19 +1,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+import type { AppD1Database } from "@/lib/d1/contracts";
+
 export type D1Value = string | number | boolean | null;
 
-export type D1DatabaseBinding = {
-  prepare(sql: string): {
-    bind(...values: D1Value[]): {
-      all<T = unknown>(): Promise<{ results: T[] }>;
-      first<T = unknown>(): Promise<T | null>;
-      run(): Promise<unknown>;
-    };
-    all<T = unknown>(): Promise<{ results: T[] }>;
-    first<T = unknown>(): Promise<T | null>;
-    run(): Promise<unknown>;
-  };
-};
+export type D1DatabaseBinding = AppD1Database;
 
 type CloudflareD1Env = {
   DB: D1DatabaseBinding;
