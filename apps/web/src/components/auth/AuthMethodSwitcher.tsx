@@ -119,18 +119,24 @@ export default function AuthMethodSwitcher({
             ) : null}
 
             {!isSignUp ? (
-              <div className="ui-auth-helper-row">
-                <Link
-                  href={
-                    defaultEmail
-                      ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
-                      : "/auth/forgot-password"
-                  }
-                  className="ui-auth-link text-sm"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
+              cloudflareRuntime ? (
+                <p className="text-xs text-slate-400">
+                  ¿Problemas de acceso? Contacta al administrador de tu organización.
+                </p>
+              ) : (
+                <div className="ui-auth-helper-row">
+                  <Link
+                    href={
+                      defaultEmail
+                        ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
+                        : "/auth/forgot-password"
+                    }
+                    className="ui-auth-link text-sm"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+              )
             ) : null}
 
             <button type="submit" className="ui-button-primary w-full justify-center">
