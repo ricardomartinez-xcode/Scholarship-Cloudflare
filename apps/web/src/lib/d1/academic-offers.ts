@@ -209,7 +209,7 @@ export async function listD1AcademicOffers(
       `SELECT
         po.id, po.cycle, po.track, po.delivery, po.escolarizado, po.ejecutivo,
         po.pricing_plans, po.module_count, po.subjects_by_module,
-        po.line_of_business, po.is_active, po.archived_at, po.archive_reason,
+        po.line_of_business, po.is_active, po.archived_at, po.archived_reason,
         po.updated_by, po.created_at, po.updated_at,
         c.id AS campus_id, c.code AS campus_code, c.name AS campus_name,
         c.meta_key AS campus_meta_key, c.tier AS campus_tier, c.kind AS campus_kind,
