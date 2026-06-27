@@ -47,6 +47,7 @@ Cuando se omite, se solicitan los tres recursos para mantener compatibilidad con
 - Refresh y access tokens cifrados en D1; nunca se exponen en JSON, URL, logs o cookies.
 - La organización y la membresía activa se validan al iniciar y al terminar el callback.
 - El callback requiere que la sesión administrativa original siga activa.
+- Un Cron Trigger horario elimina estados OAuth caducados mediante el custom worker de OpenNext.
 
 ## Alcance actual
 
