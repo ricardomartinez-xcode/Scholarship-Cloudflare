@@ -9,7 +9,12 @@ import { d1First, d1Run } from "@/lib/cloudflare/d1";
 export const CLOUDFLARE_SESSION_COOKIE = "recalc_cf_session";
 
 const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
-const PASSWORD_HASH_ITERATIONS = 120_000;
+// OWASP's current PBKDF2-HMAC-SHA256 baseline is 600,000 iterations.
+const PASSWORD_HASH_ITERATIONS = 600_000;
+const MIN_SUPPORTED_PASSWORD_HASH_ITERATIONS = 120_000;
+const MAX_SUPPORTED_PASSWORD_HASH_ITERATIONS = 1_000_000;
+const MIN_PASSWORD_LENGTH = 12;
+const MAX_PASSWORD_LENGTH = 128;
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 type CloudflareAuthUserRow = {
@@ -25,6 +30,11 @@ type CloudflareAuthUserRow = {
   updated_at: string;
 };
 
+type PasswordVerification = {
+  valid: boolean;
+  needsRehash: boolean;
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -38,11 +48,46 @@ function bytesToHex(bytes: Uint8Array) {
 }
 
 function hexToBytes(hex: string) {
+  if (!/^[0-9a-f]+$/iu.test(hex) || hex.length % 2 !== 0) {
+    throw new Error("Invalid hexadecimal value.");
+  }
+
   const bytes = new Uint8Array(hex.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
     bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
   }
   return bytes;
+}
+
+/** Avoids early-exit string comparison for equal-length derived hashes. */
+function constantTimeEqual(left: string, right: string) {
+  try {
+    const leftBytes = hexToBytes(left);
+    const rightBytes = hexToBytes(right);
+    const length = Math.max(leftBytes.length, rightBytes.length);
+    let difference = leftBytes.length ^ rightBytes.length;
+
+    for (let index = 0; index < length; index += 1) {
+      difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
+    }
+
+    return difference === 0;
+  } catch {
+    return false;
+  }
+}
+
+function validateCloudflarePassword(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`;
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return `La contraseña no puede superar ${MAX_PASSWORD_LENGTH} caracteres.`;
+  }
+  if (new TextEncoder().encode(password).byteLength > 512) {
+    return "La contraseña es demasiado larga.";
+  }
+  return null;
 }
 
 function randomHex(byteLength = 32) {
@@ -56,7 +101,11 @@ async function sha256Hex(value: string) {
   return bytesToHex(new Uint8Array(digest));
 }
 
-async function derivePasswordHash(password: string, saltHex: string, iterations = PASSWORD_HASH_ITERATIONS) {
+async function derivePasswordHash(
+  password: string,
+  saltHex: string,
+  iterations = PASSWORD_HASH_ITERATIONS,
+) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -83,15 +132,34 @@ async function hashPassword(password: string) {
   return `${PASSWORD_HASH_PREFIX}$${PASSWORD_HASH_ITERATIONS}$${salt}$${hash}`;
 }
 
-async function verifyPassword(password: string, storedHash: string | null) {
-  if (!storedHash) return false;
+async function verifyPassword(
+  password: string,
+  storedHash: string | null,
+): Promise<PasswordVerification> {
+  if (!storedHash) return { valid: false, needsRehash: false };
+
   const [prefix, iterationsRaw, salt, expectedHash] = storedHash.split("$");
   const iterations = Number(iterationsRaw);
-  if (prefix !== PASSWORD_HASH_PREFIX || !Number.isFinite(iterations) || !salt || !expectedHash) {
-    return false;
+  if (
+    prefix !== PASSWORD_HASH_PREFIX ||
+    !Number.isInteger(iterations) ||
+    iterations < MIN_SUPPORTED_PASSWORD_HASH_ITERATIONS ||
+    iterations > MAX_SUPPORTED_PASSWORD_HASH_ITERATIONS ||
+    !salt ||
+    !expectedHash
+  ) {
+    return { valid: false, needsRehash: false };
   }
-  const actualHash = await derivePasswordHash(password, salt, iterations);
-  return actualHash === expectedHash;
+
+  try {
+    const actualHash = await derivePasswordHash(password, salt, iterations);
+    return {
+      valid: constantTimeEqual(actualHash, expectedHash),
+      needsRehash: iterations < PASSWORD_HASH_ITERATIONS,
+    };
+  } catch {
+    return { valid: false, needsRehash: false };
+  }
 }
 
 function cloudflareOwnerEmails() {
@@ -194,11 +262,26 @@ export async function canSignUpWithCloudflareEmail(email: string) {
 export async function signInWithCloudflare(input: { email: string; password: string }) {
   const email = normalizeEmail(input.email);
   const row = email ? await getCloudflareUserByEmail(email) : null;
-  if (!row || !(await verifyPassword(input.password, row.password_hash))) {
+  const verification = row
+    ? await verifyPassword(input.password, row.password_hash)
+    : { valid: false, needsRehash: false };
+
+  if (!row || !verification.valid) {
     return { ok: false as const, error: "Credenciales incorrectas." };
   }
   if (!Boolean(row.is_active)) {
     return { ok: false as const, error: "Tu usuario esta desactivado." };
+  }
+
+  if (verification.needsRehash) {
+    try {
+      await d1Run(
+        "UPDATE cloudflare_auth_user SET password_hash = ?, updated_at = ? WHERE id = ?",
+        [await hashPassword(input.password), nowIso(), row.id],
+      );
+    } catch (error) {
+      console.warn("Cloudflare password hash rehash failed", { userId: row.id, error });
+    }
   }
 
   const token = randomHex(32);
@@ -217,9 +300,17 @@ export async function signInWithCloudflare(input: { email: string; password: str
   return { ok: true as const, token, expiresAt };
 }
 
-export async function signUpWithCloudflare(input: { email: string; password: string; displayName?: string | null }) {
+export async function signUpWithCloudflare(input: {
+  email: string;
+  password: string;
+  displayName?: string | null;
+}) {
   const email = normalizeEmail(input.email);
   if (!email || !input.password) return { ok: false as const, error: "Completa correo y contraseña." };
+
+  const passwordError = validateCloudflarePassword(input.password);
+  if (passwordError) return { ok: false as const, error: passwordError };
+
   if (!(await canSignUpWithCloudflareEmail(email))) {
     return {
       ok: false as const,
@@ -231,24 +322,37 @@ export async function signUpWithCloudflare(input: { email: string; password: str
   if (existing) return { ok: false as const, error: "Ya existe una cuenta con este correo." };
 
   const id = crypto.randomUUID();
-  const owners = cloudflareOwnerEmails();
-  const role = owners.has(email) || (await countCloudflareUsers()) === 0 ? "owner" : "user";
+  const explicitOwner = cloudflareOwnerEmails().has(email);
   const timestamp = nowIso();
-  await d1Run(
-    `INSERT INTO cloudflare_auth_user
-      (id, auth_user_id, email, password_hash, display_name, role, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-    [
-      id,
-      `cloudflare:${id}`,
-      email,
-      await hashPassword(input.password),
-      input.displayName ?? email.split("@")[0] ?? "Usuario",
-      role,
-      timestamp,
-      timestamp,
-    ],
-  );
+
+  try {
+    await d1Run(
+      `INSERT INTO cloudflare_auth_user
+        (id, auth_user_id, email, password_hash, display_name, role, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?,
+         CASE
+           WHEN ? = 1 THEN 'owner'
+           WHEN NOT EXISTS (SELECT 1 FROM cloudflare_auth_user) THEN 'owner'
+           ELSE 'user'
+         END,
+         1, ?, ?)`,
+      [
+        id,
+        `cloudflare:${id}`,
+        email,
+        await hashPassword(input.password),
+        input.displayName ?? email.split("@")[0] ?? "Usuario",
+        explicitOwner ? 1 : 0,
+        timestamp,
+        timestamp,
+      ],
+    );
+  } catch (error) {
+    if (error instanceof Error && /unique|constraint/i.test(error.message)) {
+      return { ok: false as const, error: "Ya existe una cuenta con este correo." };
+    }
+    throw error;
+  }
 
   return signInWithCloudflare({ email, password: input.password });
 }
