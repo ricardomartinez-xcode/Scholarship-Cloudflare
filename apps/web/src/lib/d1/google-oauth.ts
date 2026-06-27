@@ -131,3 +131,46 @@ export async function readGoogleTokens(
     keyVersion: row.token_key_version,
   };
 }
+
+/**
+ * Google may omit a refresh token on a repeat authorization. In that case the
+ * existing active connection for the same Google subject may safely preserve
+ * the prior refresh token after the subject has been verified by userinfo.
+ */
+export async function readGoogleTokensForSubject(
+  db: AppD1Database,
+  input: {
+    organizationId: string;
+    providerSubject: string;
+    encryptionKey: string;
+  },
+): Promise<
+  | {
+      connectionId: string;
+      refreshToken: string;
+      accessToken: string | null;
+      keyVersion: string;
+    }
+  | null
+> {
+  const connection = await db
+    .prepare(
+      `SELECT id
+       FROM oauth_connection
+       WHERE provider = 'google'
+         AND organization_id = ?
+         AND provider_subject = ?
+         AND status = 'active'
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+    )
+    .bind(input.organizationId, input.providerSubject)
+    .first<{ id: string }>();
+
+  if (!connection) return null;
+  const tokens = await readGoogleTokens(db, {
+    connectionId: connection.id,
+    encryptionKey: input.encryptionKey,
+  });
+  return { connectionId: connection.id, ...tokens };
+}

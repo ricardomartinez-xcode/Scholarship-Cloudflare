@@ -19,6 +19,7 @@ const FOUNDATION_TABLES = [
   "quote_session",
   "import_job",
   "oauth_connection",
+  "google_oauth_state",
   "conversation",
   "outbox_event",
 ] as const;
@@ -98,7 +99,7 @@ export async function GET() {
         requiredForCurrentRuntime: false,
         detail:
           foundationMissing.length === 0
-            ? "Las tablas de migración 0003–0008 están disponibles."
+            ? "Las tablas de migración 0003–0009 están disponibles."
             : "Las tablas de la siguiente fase de migración todavía no están aplicadas.",
       },
       legacyProviders: {
@@ -118,7 +119,7 @@ export async function GET() {
         headers: { "Cache-Control": "no-store" },
       },
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         ok: false,
