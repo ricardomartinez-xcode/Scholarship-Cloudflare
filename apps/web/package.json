@@ -10,7 +10,6 @@
     "prepare:cloudflare": "node scripts/prepare-cloudflare-deploy.mjs",
     "preview:cloudflare": "npm run build:cloudflare && wrangler dev",
     "deploy:cloudflare": "npm run build:cloudflare && npm run prepare:cloudflare && node scripts/deploy-prepared-cloudflare.mjs",
-    "deploy:cloudflare:prepared": "node scripts/deploy-prepared-cloudflare.mjs",
     "d1:migrations:apply": "wrangler d1 migrations apply recalc-cloudflare --remote",
     "d1:migrations:list": "wrangler d1 migrations list recalc-cloudflare --remote",
     "d1:tables": "wrangler d1 execute recalc-cloudflare --remote --command=\"SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name\"",

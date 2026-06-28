@@ -57,11 +57,11 @@ El runtime productivo todavia depende de compatibilidad legacy:
 
 Este PR no migra datos ni aplica migraciones. Solo ajusta CI para que el flujo de Cloudflare respete la regla operativa:
 
-1. `.github/workflows/cloudflare-workers.yml` queda como `quality-gate -> cloudflare-preflight -> deploy`.
-2. El job de deploy reutiliza el artifact preparado por preflight (`apps/web/.open-next` y `apps/web/.wrangler-bundle`).
-3. Se eliminaron del deploy automatico los pasos `npm run d1:migrations:apply` y `npm run d1:sync-core`.
-4. Se agrego `.github/workflows/cloudflare-d1-migrations.yml` como flujo manual que requiere confirmacion literal `APLICAR`.
-5. Se agrego `deploy:cloudflare:prepared` para publicar el artifact validado sin reconstruir.
+1. Se verifico que `origin/main` ya separa `quality-release-gate`, `Cloudflare Preflight` y `Deploy Cloudflare Worker`.
+2. Se verifico que el deploy de `origin/main` reutiliza el artifact OpenNext validado por preflight y verifica checksum antes de preparar/desplegar.
+3. Se verifico que el deploy de `origin/main` no ejecuta `wrangler d1 migrations apply` ni sync de datos.
+4. Se agrego `.github/workflows/cloudflare-d1-migrations.yml` como flujo manual separado que requiere confirmacion literal `APLICAR`.
+5. Se documentaron inventario, riesgos, rollback y autorizaciones pendientes.
 
 ## Inventario de dependencias legacy
 
@@ -151,7 +151,7 @@ Criterios de aceptacion:
 
 Rollback:
 
-- Revertir solo los cambios de workflows/scripts de este PR.
+- Revertir solo el workflow manual D1 y los documentos de este PR.
 - No se requiere rollback de datos porque no hay escrituras remotas.
 
 ### Fase 2: Capa de datos D1

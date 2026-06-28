@@ -1,0 +1,97 @@
+name: Cloudflare Preflight
+
+on:
+  workflow_run:
+    workflows:
+      - quality-release-gate
+    branches:
+      - main
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Fuente a verificar; por seguridad sólo se admite main"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-readonly-preflight-${{ github.event.workflow_run.head_sha || inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: >-
+      (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.ref == 'main')
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout trusted source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'main' }}
+
+      - name: Verify Cloudflare credentials are configured
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Wrangler authentication
+        run: npx wrangler whoami --config apps/web/wrangler.jsonc
+
+      - name: Build OpenNext Worker artifact
+        run: npm run build:cloudflare
+
+      - name: Create OpenNext artifact integrity manifest
+        run: |
+          find apps/web/.open-next -type f -print0 | sort -z | xargs -0 sha256sum > apps/web/.open-next.sha256
+          test -s apps/web/.open-next.sha256
+
+      - name: Upload preflighted OpenNext artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-next-${{ github.event.workflow_run.head_sha || github.sha }}
+          path: |
+            apps/web/.open-next
+            apps/web/.open-next.sha256
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+          compression-level: 0
+
+      - name: Inspect remote D1 migration state
+        run: npm run d1:migrations:list
+
+      - name: Inspect remote D1 schema
+        run: npm run d1:tables
+
+      - name: Publish preflight summary
+        if: always()
+        run: |
+          {
+            echo "## Cloudflare Preflight"
+            echo
+            echo "- Source: \`${{ github.event.workflow_run.head_sha || github.sha }}\`"
+            echo "- Event: \`${{ github.event_name }}\`"
+            echo "- The validated OpenNext artifact is retained for one day for the downstream deploy."
+            echo "- This workflow performs no deploy and no D1 write operation."
+            echo "- Review the first failed step above before retrying or promoting."
+          } >> "$GITHUB_STEP_SUMMARY"

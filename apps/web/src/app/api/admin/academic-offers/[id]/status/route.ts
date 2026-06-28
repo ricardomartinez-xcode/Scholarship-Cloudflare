@@ -1,19 +1,22 @@
-import { AdminAuditAction, AdminCapability, AdminConfigModule } from "@prisma/client";
+import { AdminCapability } from "@prisma/client";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
-import { writeAdminAuditLog } from "@/lib/admin-audit";
 import {
   adminApiError,
   adminApiSuccess,
   buildAdminRequestId,
   logAdminApiFailure,
 } from "@/lib/admin-api";
-import { prisma } from "@/lib/prisma";
+import { getD1 } from "@/lib/cloudflare/d1";
+import { setD1AcademicOfferStatus } from "@/lib/d1/academic-offer-status";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parseActive(body: { active?: unknown; isActive?: unknown; status?: unknown }) {
+function parseActive(body: {
+  active?: unknown;
+  isActive?: unknown;
+  status?: unknown;
+}) {
   if (typeof body.active === "boolean") return body.active;
   if (typeof body.isActive === "boolean") return body.isActive;
   if (typeof body.status === "string") {
@@ -24,20 +27,45 @@ function parseActive(body: { active?: unknown; isActive?: unknown; status?: unkn
   return null;
 }
 
+function parseReason(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 500);
+}
+
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const requestId = buildAdminRequestId("admin_academic_offer_status");
   try {
-    const auth = await requireAdminApiCapability(requestId, AdminCapability.manage_offers);
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_offers,
+    );
     if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
     const body = (await request.json().catch(() => null)) as
-      | { active?: unknown; isActive?: unknown; status?: unknown; reason?: unknown }
+      | {
+          active?: unknown;
+          isActive?: unknown;
+          status?: unknown;
+          reason?: unknown;
+        }
       | null;
     const isActive = body ? parseActive(body) : null;
+
+    if (!id.trim()) {
+      return adminApiError({
+        requestId,
+        status: 400,
+        errorCode: "INVALID_OFFER_ID",
+        error: "El identificador de la oferta es obligatorio.",
+        recoverable: true,
+      });
+    }
     if (isActive === null) {
       return adminApiError({
         requestId,
@@ -48,11 +76,16 @@ export async function PATCH(
       });
     }
 
-    const current = await prisma.programOffering.findUnique({
-      where: { id },
-      select: { id: true, isActive: true, archivedReason: true, cycle: true },
+    const result = await setD1AcademicOfferStatus(getD1(), {
+      id: id.trim(),
+      isActive,
+      reason: parseReason(body?.reason),
+      actorUserId: auth.admin.id,
+      actorEmail: auth.admin.email,
+      requestId,
     });
-    if (!current) {
+
+    if (!result.ok) {
       return adminApiError({
         requestId,
         status: 404,
@@ -62,48 +95,15 @@ export async function PATCH(
       });
     }
 
-    const reason =
-      typeof body?.reason === "string" && body.reason.trim()
-        ? body.reason.trim()
-        : isActive
-          ? null
-          : "ADMIN_STATUS_CHANGE";
-
-    const updated = await prisma.programOffering.update({
-      where: { id },
-      data: {
-        isActive,
-        archivedAt: isActive ? null : new Date(),
-        archivedReason: reason,
-        updatedBy: auth.admin.email,
-      },
-      select: { id: true, isActive: true, archivedAt: true, archivedReason: true, updatedAt: true },
-    });
-
-    await writeAdminAuditLog({
-      module: AdminConfigModule.OFFER,
-      action: AdminAuditAction.UPDATE,
-      actor: auth.admin,
-      entityType: "ProgramOffering",
-      entityId: id,
-      requestId,
-      before: {
-        isActive: current.isActive,
-        archivedReason: current.archivedReason,
-      },
-      after: {
-        isActive: updated.isActive,
-        archivedReason: updated.archivedReason,
-      },
-      message: `Oferta académica ${isActive ? "activada" : "desactivada"} desde API admin.`,
-    });
-
     return adminApiSuccess(requestId, {
       offer: {
-        ...updated,
-        archivedAt: updated.archivedAt?.toISOString() ?? null,
-        updatedAt: updated.updatedAt.toISOString(),
+        id: result.offer.id,
+        isActive: result.offer.isActive,
+        archivedAt: result.offer.archivedAt,
+        archivedReason: result.offer.archivedReason,
+        updatedAt: result.offer.updatedAt,
       },
+      changed: result.changed,
     });
   } catch (error) {
     logAdminApiFailure({

@@ -1,89 +1,37 @@
 name: Deploy Cloudflare Worker
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Cloudflare Preflight
     branches:
       - main
-  workflow_dispatch:
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: cloudflare-production-deploy
+  cancel-in-progress: false
 
 jobs:
-  quality-gate:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Run release gate
-        run: npm run release:gate
-
-  cloudflare-preflight:
-    runs-on: ubuntu-latest
-    needs: quality-gate
-    permissions:
-      contents: read
-    env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check Cloudflare secrets
-        run: |
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test -n "$CLOUDFLARE_API_TOKEN"
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build OpenNext artifact
-        run: npm run build:cloudflare
-
-      - name: Cloudflare preflight
-        run: npm --workspace @relead/web run prepare:cloudflare
-
-      - name: Upload prepared Worker artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cloudflare-worker-artifact
-          path: |
-            apps/web/.open-next/**
-            apps/web/.wrangler-bundle/**
-            apps/web/wrangler.jsonc
-          if-no-files-found: error
-          retention-days: 1
-
   deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
-    needs: cloudflare-preflight
-    permissions:
-      contents: read
+    environment: production
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Checkout
+      - name: Checkout preflighted source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Check Cloudflare secrets
         run: |
@@ -99,11 +47,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Download prepared Worker artifact
-        uses: actions/download-artifact@v4
+      - name: Download preflighted OpenNext artifact
+        uses: actions/download-artifact@v5
         with:
-          name: cloudflare-worker-artifact
-          path: .
+          name: open-next-${{ github.event.workflow_run.head_sha }}
+          path: apps/web
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
 
-      - name: Deploy
-        run: npm run deploy:cloudflare:prepared
+      - name: Verify preflighted artifact integrity
+        run: |
+          test -d apps/web/.open-next
+          test -s apps/web/.open-next.sha256
+          sha256sum -c apps/web/.open-next.sha256
+
+      - name: Prepare preflighted Cloudflare bundle
+        working-directory: apps/web
+        run: npm run prepare:cloudflare
+
+      - name: Deploy prepared Worker
+        working-directory: apps/web
+        run: node scripts/deploy-prepared-cloudflare.mjs

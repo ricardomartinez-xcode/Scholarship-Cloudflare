@@ -62,7 +62,7 @@ No se ejecuto `wrangler d1 migrations list recalc-cloudflare --remote`; queda pe
 | --- | --- | --- | --- | --- | --- | --- |
 | `package.json` | Prisma, Neon, Supabase, Nodemailer, Vercel script | Dependencias y scripts legacy siguen instalados | Bundle y rutas pueden conservar runtime externo | D1/R2/Queues/adapters Workers | Alta | temporal |
 | `apps/web/package.json` | `wrangler d1 migrations apply`, deploy Cloudflare | Scripts manuales D1 y deploy | Si se invoca en deploy aplica migraciones remotas | Workflow manual protegido | Alta | temporal |
-| `.github/workflows/cloudflare-workers.yml` | Wrangler deploy | Deploy Worker | Antes aplicaba D1 migrations y sync automaticamente | Quality gate, preflight y deploy artifact | Alta | refactorizar |
+| `.github/workflows/cloudflare-workers.yml` | Wrangler deploy | Deploy Worker por `workflow_run` desde `Cloudflare Preflight` | Si se modifica, puede romper artifact/checksum o deploy protegido | Mantener deploy sin D1 writes | Alta | mantener |
 | `.github/workflows/cloudflare-d1-migrations.yml` | Wrangler D1 remote apply | Workflow manual nuevo | Puede escribir remoto si operador confirma | Confirmacion `APLICAR` + environment | Alta | mantener |
 | `.github/workflows/cleanup-academic-offer-neon.yml` | `DATABASE_URL`, Neon | Limpieza academica legacy | Escribe en DB externa si se dispara | Reconciliador D1 dry-run/manual | Alta | temporal |
 | `.github/workflows/fix-vercel-campus-catalog.yml` | Vercel/Prisma patch | Workflow correctivo legacy | Puede reintroducir flujo Vercel/Prisma | Documentar reemplazo y retirar | Media | retirar |
@@ -162,7 +162,7 @@ Alta:
 
 - Prisma sigue en 243 archivos runtime o paquetes.
 - `apps/web/src/lib/cloudflare/prisma.ts` aun instancia `PrismaClient`.
-- Deploy Cloudflare aplicaba migraciones D1 automaticamente antes de este PR.
+- El workflow manual `APLICAR` debe quedar protegido por environment antes de usarse.
 - Auth depende de Neon Auth.
 - Imports criticos de precios, becas y oferta aun escriben con Prisma.
 - Metadata de archivos depende ampliamente de Prisma.
