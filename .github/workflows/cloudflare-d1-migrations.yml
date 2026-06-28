@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cloudflare-d1-migrations-production
+  cancel-in-progress: false
+
 jobs:
   apply:
     if: ${{ github.ref_name == 'main' }}
