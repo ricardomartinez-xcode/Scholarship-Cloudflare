@@ -1,0 +1,56 @@
+name: Cloudflare Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Fuente a verificar; por seguridad sólo se admite main"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-readonly-preflight
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: inputs.ref == 'main'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout trusted source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify Cloudflare credentials are configured
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Wrangler authentication
+        run: npx wrangler whoami --config apps/web/wrangler.jsonc
+
+      - name: Build OpenNext Worker artifact
+        run: npm run build:cloudflare
+
+      - name: Inspect remote D1 migration state
+        run: npm run d1:migrations:list
+
+      - name: Inspect remote D1 schema
+        run: npm run d1:tables
