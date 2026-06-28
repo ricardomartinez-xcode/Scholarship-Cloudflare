@@ -2,11 +2,13 @@
 
 Fecha: 2026-06-28
 
-Rama auditada: `codex/cloudflare-d1-r2-worker-runtime`
+Rama auditada: `codex/cloudflare-migration-audit-plan`
 
 ## Alcance y evidencia local
 
-Este plan se basa en inspeccion estatica del repositorio. No se ejecutaron migraciones remotas, importaciones, escrituras de datos, rotacion de secretos ni despliegues de produccion.
+Este plan se basa en inspeccion estatica del repositorio y en lectura de configuracion local versionada. No se ejecutaron migraciones remotas, importaciones, escrituras de datos, rotacion de secretos ni despliegues de produccion.
+
+El conector Cloudflare se intento usar solo para listar metadatos D1/R2, pero respondio `Unexpected response type`. Por esa razon este documento no declara como verificado el estado remoto de D1, R2, dominios ni despliegues; cualquier evidencia remota debe salir del workflow READONLY o de Wrangler autenticado con autorizacion humana.
 
 Evidencia usada:
 
@@ -21,16 +23,16 @@ Conteos relevantes:
 
 | Categoria | Evidencia |
 | --- | --- |
-| Archivos runtime con Prisma o `@/lib/prisma` | 243 |
-| Archivos con Neon, Neon Auth o `DATABASE_URL` | 38 |
-| Archivos con Supabase o `SUPABASE_*` | 16 |
-| Archivos runtime/scripts con Node-only APIs revisadas | 20 |
+| Archivos fuente runtime con Prisma o `@/lib/prisma` | 247 |
+| Archivos fuente runtime con Neon, Neon Auth o URLs DB | 11 |
+| Archivos fuente runtime con Supabase/realtime | 26 |
+| Scripts/workflows/manifests con Prisma, Neon, Supabase o Vercel | 26 |
+| Archivos fuente runtime con imports Node-only revisados | 3 |
+| Archivos fuente runtime con correo, push, R2 o Cloudinary | 24 |
 | `route.ts` en `apps/web/src/app` | 200 |
 | Rutas API bajo `apps/web/src/app/api` | 185 |
 | Server Actions | 19 |
-| Rutas/archivos de importacion | 38 |
-| Rutas/archivos de archivos, upload, download o signed URLs | 16 |
-| Webhooks detectados por ruta | 3 |
+| Rutas con `export const runtime = "nodejs"` | 115 |
 
 ## Estado actual resumido
 
@@ -53,15 +55,18 @@ El runtime productivo todavia depende de compatibilidad legacy:
 - Nodemailer sigue siendo el adaptador de correo.
 - Vercel permanece en `vercel.json`, `scripts/vercel-build.sh` y workflows legacy.
 
-## Cambios seguros aplicados en PR 1
+## Estado seguro verificado para PR 1
 
-Este PR no migra datos ni aplica migraciones. Solo ajusta CI para que el flujo de Cloudflare respete la regla operativa:
+Este PR no migra datos ni aplica migraciones. La auditoria confirmo que el flujo versionado de Cloudflare ya respeta la regla operativa base:
 
-1. Se verifico que `origin/main` ya separa `quality-release-gate`, `Cloudflare Preflight` y `Deploy Cloudflare Worker`.
-2. Se verifico que el deploy de `origin/main` reutiliza el artifact OpenNext validado por preflight y verifica checksum antes de preparar/desplegar.
-3. Se verifico que el deploy de `origin/main` no ejecuta `wrangler d1 migrations apply` ni sync de datos.
-4. Se agrego `.github/workflows/cloudflare-d1-migrations.yml` como flujo manual separado que requiere confirmacion literal `APLICAR`.
-5. Se documentaron inventario, riesgos, rollback y autorizaciones pendientes.
+1. `quality-release-gate` corre antes del preflight.
+2. `Cloudflare Preflight` construye OpenNext, prepara bundle, genera checksum y sube artifact por un dia.
+3. `Deploy Cloudflare Worker` se dispara solo si preflight en `main` fue exitoso y reutiliza el artifact validado.
+4. El deploy Worker no ejecuta `wrangler d1 migrations apply`.
+5. `.github/workflows/cloudflare-d1-migrations.yml` es manual, limitado a `main` y requiere confirmacion literal `APLICAR`.
+6. `.github/workflows/d1-migration-readiness.yml` es manual, requiere `READONLY`, captura evidencia y no aplica SQL remoto.
+
+Los cambios de este PR son principalmente documentales: plan, inventario, riesgos, rollback y autorizaciones pendientes. Tambien se retiraron dos helpers Cloudflare sin uso para que `npm run lint` pueda pasar con `--max-warnings=0`.
 
 ## Inventario de dependencias legacy
 
@@ -72,7 +77,7 @@ Este PR no migra datos ni aplica migraciones. Solo ajusta CI para que el flujo d
 | Neon | DB URL, Neon serverless driver, Neon Auth, scripts de seed/verify/admin | Mantiene dependencia externa critica en auth y datos | D1 para datos, auth propia compatible Workers o adapter externo justificado |
 | Supabase | Realtime browser/server, broadcast de inbox/capacitacion, config/migration | SDK y broadcast externo no son final Cloudflare | Durable Objects solo si se confirma realtime compartido; si no, polling seguro + D1/outbox |
 | Nodemailer/SMTP | Envio de correos transaccionales | Node adapter puede no ser compatible con Worker final | Cloudflare Email Workers/Send Email o adapter HTTP compatible Workers |
-| Node `fs/path/child_process` | Scripts, build, algunos servicios admin/import | No disponible en Worker runtime de request | Mantener en scripts/build; refactorizar rutas productivas a R2/D1/Web APIs |
+| Node `fs/path/child_process` | Scripts, build, algunos servicios admin/import | No disponible como ruta final Worker de request salvo compatibilidad Node habilitada y validada | Mantener en scripts/build; refactorizar rutas productivas a R2/D1/Web APIs |
 
 ## Inventario funcional
 
@@ -127,6 +132,15 @@ Regla para fases siguientes: no renombrar ni modificar migraciones historicas. L
 | Cache/config no relacional | KV solo si aporta valor medible | No agregar KV por defecto |
 | Correos | Adapter compatible Workers | Cloudflare Email o proveedor HTTP |
 | CI/CD | GitHub Actions | Quality gate, Cloudflare preflight, artifact reuse, deploy Worker |
+
+## Primera fase de codigo segura
+
+Para esta primera entrega no se cambio comportamiento runtime. La unica limpieza de codigo fue retirar helpers sin uso detectados por lint en `apps/web/src/lib/cloudflare/auth.ts` y `apps/web/src/lib/cloudflare/extension-runtime-d1.ts`. La primera fase de codigo funcional queda delimitada para el siguiente PR:
+
+1. Crear interfaces de repositorio para cotizacion/precios/becas sin cambiar contratos HTTP.
+2. Hacer que `POST /api/data/quote` deje de declarar `runtime = "nodejs"` solo despues de que sus dependencias directas usen D1 o adapters compatibles Workers.
+3. Sustituir el alias `@/lib/prisma` en build Cloudflare por un facade D1 real, no por `new PrismaClient()`.
+4. Agregar pruebas unitarias de repositorios D1 antes de conectar rutas productivas.
 
 ## Orden recomendado de migracion
 
