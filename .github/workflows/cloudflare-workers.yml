@@ -47,7 +47,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Download preflighted OpenNext artifact
+      - name: Download preflighted Worker artifact
         uses: actions/download-artifact@v5
         with:
           name: open-next-${{ github.event.workflow_run.head_sha }}
@@ -55,15 +55,13 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      - name: Verify preflighted artifact integrity
+      - name: Verify preflighted Worker artifact integrity
         run: |
           test -d apps/web/.open-next
+          test -d apps/web/.wrangler-bundle
+          test -s apps/web/.wrangler-bundle/worker.terser.js
           test -s apps/web/.open-next.sha256
           sha256sum -c apps/web/.open-next.sha256
-
-      - name: Prepare preflighted Cloudflare bundle
-        working-directory: apps/web
-        run: npm run prepare:cloudflare
 
       - name: Deploy prepared Worker
         working-directory: apps/web

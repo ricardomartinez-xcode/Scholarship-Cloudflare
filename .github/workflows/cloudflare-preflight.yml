@@ -60,17 +60,22 @@ jobs:
       - name: Build OpenNext Worker artifact
         run: npm run build:cloudflare
 
-      - name: Create OpenNext artifact integrity manifest
+      - name: Prepare Cloudflare Worker bundle
+        working-directory: apps/web
+        run: npm run prepare:cloudflare
+
+      - name: Create Worker artifact integrity manifest
         run: |
-          find apps/web/.open-next -type f -print0 | sort -z | xargs -0 sha256sum > apps/web/.open-next.sha256
+          find apps/web/.open-next apps/web/.wrangler-bundle -type f -print0 | sort -z | xargs -0 sha256sum > apps/web/.open-next.sha256
           test -s apps/web/.open-next.sha256
 
-      - name: Upload preflighted OpenNext artifact
+      - name: Upload preflighted Worker artifact
         uses: actions/upload-artifact@v4
         with:
           name: open-next-${{ github.event.workflow_run.head_sha || github.sha }}
           path: |
             apps/web/.open-next
+            apps/web/.wrangler-bundle
             apps/web/.open-next.sha256
           if-no-files-found: error
           include-hidden-files: true
@@ -91,7 +96,7 @@ jobs:
             echo
             echo "- Source: \`${{ github.event.workflow_run.head_sha || github.sha }}\`"
             echo "- Event: \`${{ github.event_name }}\`"
-            echo "- The validated OpenNext artifact is retained for one day for the downstream deploy."
+            echo "- The validated OpenNext and prepared Worker artifact is retained for one day for the downstream deploy."
             echo "- This workflow performs no deploy and no D1 write operation."
             echo "- Review the first failed step above before retrying or promoting."
           } >> "$GITHUB_STEP_SUMMARY"
