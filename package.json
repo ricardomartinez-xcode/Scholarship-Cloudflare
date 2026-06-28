@@ -10,6 +10,7 @@
     "build:cloudflare": "npm --workspace @relead/web run build:cloudflare",
     "preview:cloudflare": "npm --workspace @relead/web run preview:cloudflare",
     "deploy:cloudflare": "npm --workspace @relead/web run deploy:cloudflare",
+    "deploy:cloudflare:prepared": "npm --workspace @relead/web run deploy:cloudflare:prepared",
     "d1:migrations:apply": "npm --workspace @relead/web run d1:migrations:apply",
     "d1:migrations:list": "npm --workspace @relead/web run d1:migrations:list",
     "d1:tables": "npm --workspace @relead/web run d1:tables",
