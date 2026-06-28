@@ -97,10 +97,6 @@ function toIso(value: string | Date | null | undefined) {
   return toDate(value)?.toISOString() ?? null;
 }
 
-function bool(value: unknown) {
-  return value === true || value === 1 || value === "1";
-}
-
 function json(value: unknown) {
   if (value === undefined || value === null) return null;
   return JSON.stringify(value);

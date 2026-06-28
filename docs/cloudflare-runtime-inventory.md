@@ -2,35 +2,43 @@
 
 Fecha: 2026-06-28
 
-Rama auditada: `codex/cloudflare-d1-r2-worker-runtime`
+Rama auditada: `codex/cloudflare-migration-audit-plan`
 
 ## Alcance
 
-Inventario estatico de dependencias legacy y APIs incompatibles con Cloudflare Workers. No se consultaron datos remotos ni secretos.
+Inventario estatico de dependencias legacy y APIs incompatibles con Cloudflare Workers. No se leyeron `.env*`, secretos ni datos remotos.
+
+Se intento listar metadatos D1/R2 con el conector Cloudflare, pero las llamadas devolvieron `Unexpected response type`. Por lo tanto el estado remoto de `recalc-cloudflare`, buckets R2, migraciones aplicadas y dominios no queda verificado en este inventario.
 
 Comandos base usados:
 
-```powershell
-rg -n -S '@prisma/client|\bprisma\b|@neondatabase|DATABASE_URL|\bNEON\b|@supabase|\bSUPABASE\b|\bvercel\b|\bVERCEL\b|nodemailer|child_process|worker_threads|from ["'']node:(fs|path|net|tls)|from ["''](fs|path|net|tls)|require\(["''](fs|path|net|tls)' apps packages scripts .github supabase package.json apps/web/package.json vercel.json --glob '!**/node_modules/**' --glob '!**/.next/**' --glob '!**/.open-next/**' --glob '!**/dist/**'
-rg --files apps/web/src/app | rg '(route|actions)\.(ts|tsx)$'
-rg --files apps packages scripts .github supabase | rg -i '(webhook|cron|schedule|queue|outbox|realtime|socket|poll|auth|file|upload|download|mail|email|import|export|d1|r2|wrangler|vercel|neon|supabase|prisma)'
+```bash
+rg -l --hidden --glob 'apps/web/src/**' --glob 'packages/**/src/**' --glob '!**/__tests__/**' --glob '!**/*.test.*' '@prisma/client|@/lib/prisma|@relead/db|\bprisma\.'
+rg -l --hidden --glob 'apps/web/src/**' --glob 'packages/**/src/**' --glob '!**/__tests__/**' --glob '!**/*.test.*' '@neondatabase|NEON_AUTH|NEON_|@neondatabase/auth|DATABASE_URL|DIRECT_URL|POSTGRES_'
+rg -l --hidden --glob 'apps/web/src/**' --glob 'packages/**/src/**' --glob '!**/__tests__/**' --glob '!**/*.test.*' '@supabase|SUPABASE|supabase|realtime'
+rg -l --hidden --glob 'scripts/**' --glob '.github/workflows/**' --glob 'package.json' --glob 'apps/web/package.json' --glob 'turbo.json' --glob 'vercel.json' '@prisma/client|prisma|@neondatabase|DATABASE_URL|DIRECT_URL|POSTGRES_|NEON|@supabase|SUPABASE|vercel|VERCEL'
+rg -l --hidden --glob 'apps/web/src/**' --glob 'packages/**/src/**' --glob '!**/__tests__/**' --glob '!**/*.test.*' "from ['\"]node:(fs|path|child_process|net|tls|worker_threads)|require\(['\"](fs|path|child_process|net|tls|worker_threads|node:fs|node:path|node:child_process|node:net|node:tls|node:worker_threads)['\"]\)"
+rg --files apps/web/src/app | rg 'route\.ts$'
+rg --files apps/web/src/app | rg 'actions\.ts$'
+rg -n 'export const runtime = "nodejs"' apps/web/src/app
 ```
 
 Conteos:
 
 | Categoria | Conteo |
 | --- | ---: |
-| Archivos con senales legacy/Node-only en busqueda global | 338 |
-| Archivos runtime con Prisma o `@/lib/prisma` | 243 |
-| Archivos con Neon, Neon Auth o `DATABASE_URL` | 38 |
-| Archivos con Supabase o `SUPABASE_*` | 16 |
-| Archivos runtime/scripts con Node-only APIs revisadas | 20 |
+| Archivos fuente runtime con Prisma o `@/lib/prisma` | 247 |
+| Archivos fuente runtime con Neon, Neon Auth o URLs DB | 11 |
+| Archivos fuente runtime con Supabase/realtime | 26 |
+| Scripts/workflows/manifests con Prisma, Neon, Supabase o Vercel | 26 |
+| Archivos fuente runtime con imports Node-only revisados | 3 |
+| Archivos fuente runtime con correo, push, R2 o Cloudinary | 24 |
 | `route.ts` en `apps/web/src/app` | 200 |
 | `route.ts` bajo `apps/web/src/app/api` | 185 |
 | Server Actions | 19 |
-| Rutas/archivos de importacion | 38 |
-| Rutas/archivos de archivos/upload/download/signed URLs | 16 |
-| Webhook routes | 3 |
+| Pages en `apps/web/src/app` | 69 |
+| Layouts en `apps/web/src/app` | 9 |
+| Rutas con `export const runtime = "nodejs"` | 115 |
 
 ## Orden local de migraciones D1
 
@@ -106,7 +114,7 @@ No se ejecuto `wrangler d1 migrations list recalc-cloudflare --remote`; queda pe
 | `apps/web/src/lib/d1/quotes.ts` | D1 prepared statements | Sesiones/escenarios quote | Parcial | D1 quote repository completo | Alta | mantener |
 | `apps/web/src/lib/d1/academic-offers.ts` | D1 prepared statements | Lectura ofertas | Solo read path parcial | D1 read/write repository | Alta | mantener |
 | `apps/web/src/lib/file-assets.ts` | Prisma + D1 branch parcial | Metadata de archivos | Muchas operaciones aun Prisma | D1 file metadata + R2 binding | Alta | refactorizar |
-| `apps/web/src/lib/r2-storage.ts` | Node crypto, env R2 S3 signing | URLs firmadas R2 via S3 API | Crypto Node y secretos en runtime; revisar compat Worker | R2 binding/Workers signing | Media | refactorizar |
+| `apps/web/src/lib/r2-storage.ts` | Web Crypto/Node env R2 S3 signing | URLs firmadas R2 via S3 API | Secretos R2 S3 en runtime; revisar compat Worker y politica de acceso | R2 binding/Workers signing | Media | refactorizar |
 | `apps/web/src/lib/r2-content-bucket.ts` | R2 public URL defaults | Listado/links de bucket | Defaults publicos pueden exponer activos | R2 privado/proxy segun tipo | Media | refactorizar |
 | `apps/web/src/app/api/files/presigned-upload/route.ts` | R2/File auth | Upload firmado | Debe validar MIME/tamano y metadata D1 | R2 + D1 | Alta | refactorizar |
 | `apps/web/src/app/api/files/[id]/download/route.ts` | File assets | Descarga archivo | Depende de metadata actual | R2 private signed/proxy | Alta | refactorizar |
@@ -160,7 +168,7 @@ No se ejecuto `wrangler d1 migrations list recalc-cloudflare --remote`; queda pe
 
 Alta:
 
-- Prisma sigue en 243 archivos runtime o paquetes.
+- Prisma sigue en 247 archivos fuente runtime o paquetes.
 - `apps/web/src/lib/cloudflare/prisma.ts` aun instancia `PrismaClient`.
 - El workflow manual `APLICAR` debe quedar protegido por environment antes de usarse.
 - Auth depende de Neon Auth.

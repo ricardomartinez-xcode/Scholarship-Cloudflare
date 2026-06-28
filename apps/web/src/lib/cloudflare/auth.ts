@@ -280,11 +280,6 @@ async function promoteConfiguredOwner(row: CloudflareAuthUserRow) {
   return (await getCloudflareUserByEmail(row.email)) ?? row;
 }
 
-async function countCloudflareUsers() {
-  const row = await d1First<{ count: number }>("SELECT COUNT(*) AS count FROM cloudflare_auth_user");
-  return Number(row?.count ?? 0);
-}
-
 function parseCookie(header: string, name: string) {
   const parts = header.split(";").map((part) => part.trim());
   const prefix = `${name}=`;
