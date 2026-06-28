@@ -1,6 +1,13 @@
 name: Cloudflare Preflight
 
 on:
+  workflow_run:
+    workflows:
+      - quality-release-gate
+    branches:
+      - main
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       ref:
@@ -13,12 +20,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-readonly-preflight
+  group: cloudflare-readonly-preflight-${{ github.event.workflow_run.head_sha || inputs.ref }}
   cancel-in-progress: false
 
 jobs:
   preflight:
-    if: inputs.ref == 'main'
+    if: >-
+      (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.ref == 'main')
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -27,7 +38,7 @@ jobs:
       - name: Checkout trusted source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'main' }}
 
       - name: Verify Cloudflare credentials are configured
         run: |
@@ -54,3 +65,15 @@ jobs:
 
       - name: Inspect remote D1 schema
         run: npm run d1:tables
+
+      - name: Publish preflight summary
+        if: always()
+        run: |
+          {
+            echo "## Cloudflare Preflight"
+            echo
+            echo "- Source: \\`${{ github.event.workflow_run.head_sha || github.sha }}\\`"
+            echo "- Event: \\`${{ github.event_name }}\\`"
+            echo "- This workflow performs no deploy and no D1 write operation."
+            echo "- Review the first failed step above before retrying or promoting."
+          } >> "$GITHUB_STEP_SUMMARY"

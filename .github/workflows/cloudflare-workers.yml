@@ -3,33 +3,11 @@ name: Deploy Cloudflare Worker
 on:
   workflow_run:
     workflows:
-      - quality-release-gate
+      - Cloudflare Preflight
     branches:
       - main
     types:
       - completed
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: "Solo se permite main para producción"
-        required: true
-        default: "main"
-        type: string
-      deploy_confirmation:
-        description: "Escribe DEPLOY_CLOUDFLARE para habilitar un despliegue manual"
-        required: false
-        default: ""
-        type: string
-      apply_d1_migrations:
-        description: "Aplicar migraciones D1 durante este despliegue manual"
-        required: true
-        default: false
-        type: boolean
-      migration_confirmation:
-        description: "Escribe APPLY_D1_MIGRATIONS cuando apply_d1_migrations sea true"
-        required: false
-        default: ""
-        type: string
 
 permissions:
   contents: read
@@ -41,12 +19,8 @@ concurrency:
 jobs:
   deploy:
     if: >-
-      (github.event_name == 'workflow_run' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main') ||
-      (github.event_name == 'workflow_dispatch' &&
-        inputs.ref == 'main' &&
-        inputs.deploy_confirmation == 'DEPLOY_CLOUDFLARE')
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -55,10 +29,10 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Checkout verified source
+      - name: Checkout preflighted source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.ref }}
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Check Cloudflare secrets
         run: |
@@ -76,15 +50,6 @@ jobs:
 
       - name: Validate Cloudflare bundle
         run: npm run build:cloudflare
-
-      - name: Require migration confirmation
-        if: github.event_name == 'workflow_dispatch' && inputs.apply_d1_migrations
-        run: |
-          test "${{ inputs.migration_confirmation }}" = "APPLY_D1_MIGRATIONS"
-
-      - name: Apply D1 migrations
-        if: github.event_name == 'workflow_dispatch' && inputs.apply_d1_migrations
-        run: npm run d1:migrations:apply
 
       - name: Deploy Worker
         run: npm run deploy:cloudflare
