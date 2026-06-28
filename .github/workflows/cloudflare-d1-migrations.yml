@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   apply:
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -30,8 +31,10 @@ jobs:
           CONFIRM: ${{ inputs.confirm }}
         run: test "$CONFIRM" = "APLICAR"
 
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Check Cloudflare secrets
         run: |
