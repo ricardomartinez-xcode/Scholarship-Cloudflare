@@ -51,12 +51,15 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: open-next-${{ github.event.workflow_run.head_sha }}
-          path: .
+          path: apps/web
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
       - name: Verify preflighted artifact integrity
-        run: sha256sum -c apps/web/.open-next.sha256
+        run: |
+          test -d apps/web/.open-next
+          test -s apps/web/.open-next.sha256
+          sha256sum -c apps/web/.open-next.sha256
 
       - name: Prepare preflighted Cloudflare bundle
         working-directory: apps/web
