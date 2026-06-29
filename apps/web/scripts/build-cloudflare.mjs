@@ -1,8 +1,41 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import path from "node:path";
 
+const appRoot = process.cwd();
+const repoRoot = path.resolve(appRoot, "../..");
+
+function npmCommand() {
+  return process.platform === "win32" ? "npm.cmd" : "npm";
+}
+
+function runRequired(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd ?? process.cwd(),
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      ...(options.env ?? {}),
+    },
+  });
+
+  if (result.signal) {
+    process.kill(process.pid, result.signal);
+    return;
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
+if (process.env.CLOUDFLARE_SKIP_EXPLICIT_TYPECHECK !== "1") {
+  console.log("[cloudflare-build] Running repository typecheck before OpenNext build.");
+  runRequired(npmCommand(), ["run", "typecheck"], { cwd: repoRoot });
+}
+
 process.env.CLOUDFLARE_BUILD = "1";
+process.env.CLOUDFLARE_NEXT_SKIP_TYPECHECK = "1";
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);

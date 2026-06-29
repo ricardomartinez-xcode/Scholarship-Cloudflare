@@ -11,6 +11,19 @@ This repository is a Cloudflare/OpenNext port of `ricardomartinez-xcode/Scholars
 - Local preview: `npm run preview:cloudflare`.
 - Deploy: `npm run deploy:cloudflare` (builds OpenNext, prepares a Terser-minified Worker, then deploys it with `wrangler deploy --no-bundle`).
 
+## Local Verification
+
+Latest local verification on 2026-06-29:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build:cloudflare`: passed.
+- `npm --workspace @relead/web run prepare:cloudflare`: passed as a Wrangler dry-run and produced `.wrangler-bundle/worker.terser.js`.
+
+`build:cloudflare` now runs the repository typecheck first and then skips the duplicate internal Next.js type validation only inside the Cloudflare build. This keeps the same type gate while avoiding the local OpenNext build being killed during Next's second TypeScript pass.
+
+Remote Cloudflare metadata is not verified from the connector in this checkout. Read-only calls for D1, R2 and Workers returned `Unexpected response type`, so remote D1 migrations, bucket contents, custom domain state and deployed Worker versions still need Wrangler/API confirmation with a working Cloudflare token.
+
 ## Environment Backup
 
 The original Vercel variables were exported on the workstation before this port was created:
@@ -65,43 +78,34 @@ Set these repository secrets before using the workflow:
 ```text
 CLOUDFLARE_ACCOUNT_ID
 CLOUDFLARE_API_TOKEN
-DIRECT_URL
-DATABASE_URL_UNPOOLED
-DATABASE_URL
 ```
 
-`DIRECT_URL`, `DATABASE_URL_UNPOOLED`, or `DATABASE_URL` is only used by the workflow to export the existing Prisma/Postgres data into D1 before deploy. The Worker runtime does not use Neon/Postgres.
+The deploy/preflight workflow should only require Cloudflare credentials. `DIRECT_URL`, `DATABASE_URL_UNPOOLED`, `POSTGRES_*`, `DATABASE_URL`, `NEON_*` and `SUPABASE_*` are not Worker runtime secrets for the target architecture. Use them only in a separate, explicitly authorized one-shot export/audit job before D1 cutover.
 
 The Cloudflare token must be an API token with Workers and D1 permissions. A Cloudflared tunnel token is not valid for Wrangler API calls.
 
 ## Worker Size
 
-The current OpenNext build succeeds and can fit under the Workers Free 3 MiB
-gzip limit when deployed through the prepared no-bundle artifact.
+Cloudflare's current Workers limits are 3 MB gzip on Workers Free and 10 MB gzip on Workers Paid. The prepared artifact currently targets the Paid limit unless `CLOUDFLARE_WORKER_GZIP_LIMIT_BYTES` is set.
 
-The latest direct Wrangler minified dry-run on 2026-06-26 is still too large:
-
-```text
-wrangler deploy --dry-run --minify
-Total Upload: 13354.61 KiB / gzip: 3218.42 KiB
-```
-
-`npm run deploy:cloudflare` therefore runs `scripts/prepare-cloudflare-deploy.mjs`
-after `opennextjs-cloudflare build`. That script asks Wrangler to bundle into
-`.wrangler-bundle/worker.js`, minifies the final ESM Worker with Terser, checks
-the gzip size, and deploys `.wrangler-bundle/worker.terser.js` with
-`wrangler deploy --no-bundle`.
-
-Latest prepared artifact:
+Latest prepared artifact on 2026-06-29:
 
 ```text
 .wrangler-bundle/worker.terser.js
-Total Upload: 13019.91 KiB / gzip: 2956.57 KiB
+Total Upload: 13833.71 KiB / gzip: 3337.29 KiB
 ```
 
-If this prepared artifact ever grows above 3072 KiB gzip, the script fails
-before deploy and the next options are a route split for heavy XLSX/admin
-imports or upgrading Workers to the Paid limit.
+That is deployable on Workers Paid or a higher approved limit, but it is over the 3 MB Workers Free limit. If the target account is Free, set this in CI/preflight so the release fails before deploy:
+
+```text
+CLOUDFLARE_WORKER_GZIP_LIMIT_BYTES=3145728
+```
+
+Then split heavy routes/importers or remove unused dependencies until the prepared gzip size is below the configured limit.
+
+`npm run deploy:cloudflare` runs `scripts/prepare-cloudflare-deploy.mjs` after `opennextjs-cloudflare build`. That script asks Wrangler to bundle into `.wrangler-bundle/worker.js`, optionally minifies the final ESM Worker with Terser, checks the gzip size, and deploys `.wrangler-bundle/worker.terser.js` with `wrangler deploy --no-bundle`.
+
+If this prepared artifact grows above the configured gzip limit, the script fails before deploy and the next options are route splitting for heavy XLSX/admin imports, dependency removal, Workers Paid, or a Cloudflare limit increase.
 
 The Wrangler config intentionally does not re-declare the `recalc.relead.com.mx`
 custom domain. The domain already exists in Cloudflare and re-publishing it from
@@ -113,6 +117,84 @@ The current Cloudflare API token can authenticate and read Worker deployments,
 but D1 operations fail with `Authentication error` / `7403`. Before applying
 migrations or deploying from CI, make sure the token has D1 edit/read
 permissions for account `41ffa6a1a7c184fd4308f87780a62cc4`.
+
+## Cloudflare Bindings And Secrets
+
+Versioned bindings in `apps/web/wrangler.jsonc`:
+
+- Worker: `scholarship-cloudflare`.
+- D1: `DB` bound to `recalc-cloudflare` (`2a2bbd32-55af-4ff3-aea2-8f8b11d2a05d`).
+- Temporary D1 compatibility binding: `MYSQL` points to the same D1 database.
+- R2: `Assets` bound to bucket `recalc`.
+- Static assets binding: `ASSETS`.
+- Send Email binding: `Recalc`.
+- Service binding: `WORKER_SELF_REFERENCE`.
+- Non-secret vars: `NEXT_PUBLIC_APP_ENV=cloudflare`, `CLOUDFLARE_OWNER_EMAILS`.
+
+Required Worker secrets for the current Cloudflare-native auth path:
+
+```text
+CLOUDFLARE_OWNER_PASSWORD
+CLOUDFLARE_AUTH_RATE_LIMIT_PEPPER
+```
+
+Required only if the corresponding integration is enabled before its full Cloudflare-native replacement:
+
+```text
+GOOGLE_OAUTH_CLIENT_ID
+GOOGLE_OAUTH_CLIENT_SECRET
+GOOGLE_OAUTH_REDIRECT_URI
+GOOGLE_TOKEN_ENCRYPTION_KEY
+GOOGLE_TOKEN_ENCRYPTION_KEY_VERSION
+META_APP_ID
+META_APP_SECRET
+META_INTEGRATION_SECRET
+META_WEBHOOK_VERIFY_TOKEN
+META_CONVERSIONS_DATASET_ID
+META_CONVERSIONS_ACCESS_TOKEN
+WEB_PUSH_PRIVATE_KEY
+WEB_PUSH_SUBJECT
+ASSET_HEALTH_API_TOKEN
+```
+
+Temporary compatibility secrets that should be retired from the Worker target:
+
+```text
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_ENDPOINT
+R2_BUCKET
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASS
+SMTP_FROM
+```
+
+The R2 S3 variables are only needed by legacy S3-style R2 helpers. Cloudflare binding-based R2 code should use the `Assets` binding instead. SMTP variables are only needed while `nodemailer` remains in active routes; the target is Send Email or another Worker-compatible mail adapter.
+
+Do not import these legacy provider variables into the Worker runtime for the target architecture:
+
+```text
+DATABASE_URL
+DIRECT_URL
+POSTGRES_PRISMA_URL
+POSTGRES_URL
+POSTGRES_URL_NON_POOLING
+DATABASE_URL_UNPOOLED
+NEON_API_KEY
+NEON_AUTH_BASE_URL
+NEON_AUTH_COOKIE_SECRET
+NEON_AUTH_WEBHOOK_SECRET
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_REALTIME_JWT_SECRET
+```
+
+Those names still appear in legacy routes, scripts and docs. They are blockers to a complete Cloudflare-only cutover, not required production Worker secrets.
 
 ## D1 Data Sync
 
