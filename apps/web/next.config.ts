@@ -17,8 +17,17 @@ function getR2ImageHostname() {
 
 const r2ImageHostname = getR2ImageHostname();
 const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "1";
+const skipNextTypecheckForCloudflareBuild =
+  isCloudflareBuild && process.env.CLOUDFLARE_NEXT_SKIP_TYPECHECK === "1";
 
 const nextConfig: NextConfig = {
+  ...(skipNextTypecheckForCloudflareBuild
+    ? {
+        // build-cloudflare.mjs runs the repository typecheck before OpenNext.
+        // This avoids a duplicate Next.js typecheck that can be killed by local CI memory limits.
+        typescript: { ignoreBuildErrors: true },
+      }
+    : {}),
   outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
   transpilePackages: [
     "@relead/ui",

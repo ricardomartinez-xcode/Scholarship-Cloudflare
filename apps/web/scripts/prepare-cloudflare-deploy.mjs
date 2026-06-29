@@ -7,8 +7,9 @@ const outDir = path.resolve(process.cwd(), ".wrangler-bundle");
 const metafile = path.join(outDir, "meta.json");
 const bundledWorker = path.join(outDir, "worker.js");
 const deployWorker = path.join(outDir, "worker.terser.js");
+const WORKERS_PAID_GZIP_LIMIT_BYTES = 10 * 1024 * 1024;
 const workerGzipLimitBytes =
-  Number(process.env.CLOUDFLARE_WORKER_GZIP_LIMIT_BYTES) || 10 * 1024 * 1024;
+  Number(process.env.CLOUDFLARE_WORKER_GZIP_LIMIT_BYTES) || WORKERS_PAID_GZIP_LIMIT_BYTES;
 const extraTerserEnabled = process.env.CLOUDFLARE_EXTRA_TERSER === "1";
 
 function quoteArg(value) {
@@ -73,6 +74,9 @@ if (!extraTerserEnabled && gzipBytes <= workerGzipLimitBytes) {
 
 console.log(
   `Prepared ${path.relative(process.cwd(), deployWorker)}: ${kib(workerBytes.length)} KiB / gzip ${kib(gzipBytes)} KiB`,
+);
+console.log(
+  `Configured Cloudflare Worker gzip limit: ${kib(workerGzipLimitBytes)} KiB`,
 );
 
 if (gzipBytes > workerGzipLimitBytes) {

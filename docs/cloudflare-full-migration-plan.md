@@ -55,6 +55,21 @@ El runtime productivo todavia depende de compatibilidad legacy:
 - Nodemailer sigue siendo el adaptador de correo.
 - Vercel permanece en `vercel.json`, `scripts/vercel-build.sh` y workflows legacy.
 
+## Verificacion OpenNext 2026-06-29
+
+OpenNext ya queda verificable localmente:
+
+- `npm run typecheck`: correcto.
+- `npm run lint`: correcto.
+- `npm run build:cloudflare`: correcto.
+- `npm --workspace @relead/web run prepare:cloudflare`: correcto como dry-run de Wrangler, sin deploy.
+
+El build Cloudflare ejecuta primero el typecheck del repositorio y luego evita la segunda validacion interna de TypeScript que Next.js ejecuta durante OpenNext. Esto corrige el fallo local donde el proceso era terminado durante esa segunda pasada, sin eliminar el gate de tipos.
+
+El artifact preparado fue `.wrangler-bundle/worker.terser.js` con `13833.71 KiB / gzip 3337.29 KiB`. Ese tamano queda bajo el limite Workers Paid de 10 MB gzip, pero supera el limite Workers Free de 3 MB gzip. Si el destino es una cuenta Free, el preflight debe configurar `CLOUDFLARE_WORKER_GZIP_LIMIT_BYTES=3145728` y bloquear el deploy hasta reducir/splitear el bundle.
+
+La verificacion remota sigue bloqueada: el conector Cloudflare devuelve `Unexpected response type` al listar D1, R2 y Workers. No se desplego, no se aplicaron migraciones D1 y no se leyeron ni modificaron secretos.
+
 ## Estado seguro verificado para PR 1
 
 Este PR no migra datos ni aplica migraciones. La auditoria confirmo que el flujo versionado de Cloudflare ya respeta la regla operativa base:
@@ -276,6 +291,7 @@ Rollback:
 | Migraciones D1 con prefijos duplicados | Incertidumbre contra estado remoto | Auditoria READONLY antes de nuevas migraciones |
 | R2 con rutas publicas/defaults historicos | Riesgo de privacidad | Revisar politica por tipo de archivo |
 | Node-only APIs | Build puede compilar pero fallar en Worker | Inventario continuo y pruebas Cloudflare |
+| Bundle Worker mayor a Free | Deploy falla en cuentas Workers Free | Usar Workers Paid/limite aprobado o reducir bundle antes de cutover |
 | Workflows legacy | Pueden seguir mutando Neon/Vercel | Documentar reemplazo y retirar por PR |
 
 ## Acciones que requieren autorizacion humana

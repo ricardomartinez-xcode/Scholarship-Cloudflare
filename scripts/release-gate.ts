@@ -132,6 +132,7 @@ async function main() {
     {
       label: "Cloudflare build",
       command: "npm",
+      env: { CLOUDFLARE_SKIP_EXPLICIT_TYPECHECK: "1" },
       args: ["run", "build:cloudflare"],
     },
     {
