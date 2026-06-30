@@ -29,6 +29,9 @@ function runRequired(command, args, options = {}) {
   }
 }
 
+console.log("[cloudflare-build] Generating Prisma Client from packages/db/prisma/schema.prisma.");
+runRequired(npmCommand(), ["run", "db:generate"], { cwd: repoRoot });
+
 if (process.env.CLOUDFLARE_SKIP_EXPLICIT_TYPECHECK !== "1") {
   console.log("[cloudflare-build] Running repository typecheck before OpenNext build.");
   runRequired(npmCommand(), ["run", "typecheck"], { cwd: repoRoot });
