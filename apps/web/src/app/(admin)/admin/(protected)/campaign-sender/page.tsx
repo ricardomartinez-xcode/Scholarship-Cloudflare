@@ -53,12 +53,25 @@ export default async function CampaignSenderAdminPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="ui-card ui-card-pad grid gap-2">
-        <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Campaign Sender</div>
-        <h1 className="text-lg font-semibold text-slate-100">Trazabilidad de envíos desde la extensión</h1>
-        <p className="text-sm text-slate-300">
-          Solo muestra campañas de texto registradas por perfiles locales. No gestiona imágenes ni adjuntos.
-        </p>
+      <section className="ui-card ui-card-pad grid gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Campaign Sender</div>
+          <h1 className="mt-1 text-lg font-semibold text-slate-100">Trazabilidad de envíos desde la extensión</h1>
+          <p className="mt-2 text-sm text-slate-300">
+            El historial se conserva en D1. Puedes descargar un CSV con números, emisor, campaña, fechas y resultado.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a className="secondary-action-button" href="/api/admin/campaign-sender/export">
+            Exportar todo CSV
+          </a>
+          <a className="secondary-action-button" href="/api/admin/campaign-sender/export?status=sent">
+            Exportar enviados
+          </a>
+          <a className="secondary-action-button" href="/api/admin/campaign-sender/export?status=failed">
+            Exportar fallidos
+          </a>
+        </div>
       </section>
 
       {storageError ? (
