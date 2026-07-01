@@ -1,4 +1,8 @@
-const CAMPAIGN_TEMPLATE_TOKEN = /\{\{\s*(nombre|name|numero|number|contacto|contact)\s*\}\}/gi;
+type CampaignTemplateRecipient = {
+  contactName?: string | null;
+  contactValue: string;
+  payload?: Record<string, unknown> | null;
+};
 
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -28,21 +32,62 @@ function normalizeContactValue(value: string) {
   return hasPlus ? `+${digits}` : digits;
 }
 
+function normalizeVariableKey(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+}
+
+function normalizeVariableValue(value: unknown) {
+  if (value === null || value === undefined) return "";
+  return normalizeText(String(value));
+}
+
+function buildTemplateVariables(recipient: CampaignTemplateRecipient) {
+  const name = normalizeText(recipient.contactName) || "prospecto";
+  const contactValue = normalizeContactValue(recipient.contactValue);
+  const variables: Record<string, string> = {
+    nombre: name,
+    name,
+    contacto: name,
+    contact: name,
+    nombre_completo: name,
+    contact_name: name,
+    numero: contactValue,
+    number: contactValue,
+    telefono: contactValue,
+    phone: contactValue,
+    contact_value: contactValue,
+  };
+
+  if (
+    recipient.payload &&
+    typeof recipient.payload === "object" &&
+    !Array.isArray(recipient.payload)
+  ) {
+    for (const [key, value] of Object.entries(recipient.payload)) {
+      const normalizedKey = normalizeVariableKey(key);
+      if (normalizedKey) {
+        variables[normalizedKey] = normalizeVariableValue(value);
+      }
+    }
+  }
+
+  return variables;
+}
+
 export function renderCampaignMessageTemplate(
   template: string | null | undefined,
-  recipient: {
-    contactName?: string | null;
-    contactValue: string;
-  },
+  recipient: CampaignTemplateRecipient,
 ) {
   const normalizedTemplate = normalizeMultilineText(template);
   if (!normalizedTemplate) return "";
 
-  return normalizedTemplate.replace(CAMPAIGN_TEMPLATE_TOKEN, (_match, rawToken) => {
-    const token = String(rawToken ?? "").trim().toLowerCase();
-    if (token === "nombre" || token === "name") {
-      return normalizeText(recipient.contactName) || "prospecto";
-    }
-    return normalizeContactValue(recipient.contactValue);
+  const variables = buildTemplateVariables(recipient);
+  return normalizedTemplate.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, rawToken) => {
+    return variables[normalizeVariableKey(rawToken)] ?? "";
   });
 }
