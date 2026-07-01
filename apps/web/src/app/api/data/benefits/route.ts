@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
 import { resolveAdditionalBenefits } from "@/lib/additional-benefits";
+import { resolveD1AdditionalBenefits } from "@/lib/cloudflare/additional-benefits";
+import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import {
   normalizeBusinessLine,
   normalizeCanonicalModality,
@@ -21,18 +23,22 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const benefits = await resolveAdditionalBenefits({
+    const input = {
       campus: (searchParams.get("plantel") ?? "").trim() || null,
       businessLine: normalizeBusinessLine(searchParams.get("businessLine")),
       modality: normalizeCanonicalModality(searchParams.get("modality")),
       enrollmentType: normalizeEnrollmentType(searchParams.get("enrollmentType")),
-    });
+    };
+    const benefits = isCloudflareRuntime()
+      ? await resolveD1AdditionalBenefits(input)
+      : await resolveAdditionalBenefits(input);
 
     return NextResponse.json({
       benefit: benefits.percentageBenefit,
       firstPaymentBenefit: benefits.firstPaymentBenefit,
     });
-  } catch {
-    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+  } catch (error) {
+    console.error("Benefits query failed", error);
+    return NextResponse.json({ error: "storage_unavailable" }, { status: 503 });
   }
 }
