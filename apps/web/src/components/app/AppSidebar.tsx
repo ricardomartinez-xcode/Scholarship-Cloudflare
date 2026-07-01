@@ -1,40 +1,49 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
 import type {
+  DashboardNavGroup,
   DashboardNavItem,
 } from "@/config/dashboard-navigation";
-import DashboardSidebarNav from "@/components/layout/DashboardSidebarNav";
 import {
+  adminNavGroups,
+  filterNavGroupsByCapabilities,
   workspaceFooterNavItems,
   workspaceNavGroups,
 } from "@/config/dashboard-navigation";
+import DashboardSidebarNav from "@/components/layout/DashboardSidebarNav";
 import { canAccessWorkspaceWhatsapp } from "@/lib/workspace-access";
 
 type AppSidebarProps = {
-  /**
-   * Currently active section key. When provided, the matching navigation item
-   * is highlighted. Defaults to "becas" in the workspace.
-   */
   activeKey?: string;
-  /**
-   * Callback invoked when a navigation item is selected.
-   */
   onSelect?: (item: DashboardNavItem) => void;
-  /**
-   * Callback invoked after following a navigation link. Used by drawers to close
-   * the mobile menu after navigation.
-   */
   onNavigate?: () => void;
   collapsed?: boolean;
   userEmail?: string | null;
-  /**
-   * Drawer account label contract.
-   *
-   * The nickname/user label must remain visible in the sidebar shell, rendered
-   * by AppChrome's drawer identity block. AppSidebar itself only renders nav
-   * items, but accepts this prop while the shell keeps a shared sidebar API.
-   */
   accountLabel?: string;
+};
+
+type AdminAccessResponse = {
+  ok?: boolean;
+  capabilities?: string[];
+};
+
+const campaignSenderNavGroup: DashboardNavGroup = {
+  key: "admin-campaign-sender",
+  label: "Campañas WhatsApp",
+  items: [
+    {
+      key: "campaign-sender",
+      label: "Historial de campañas",
+      shortLabel: "Campañas",
+      href: "/admin/campaign-sender",
+      icon: "whatsapp",
+      group: "admin-campaign-sender",
+      requiredAny: ["view_reports"],
+    },
+  ],
 };
 
 function filterWorkspaceNavItems(items: DashboardNavItem[], userEmail: string | null) {
@@ -61,20 +70,80 @@ export default function AppSidebar({
   collapsed = false,
   userEmail,
 }: AppSidebarProps) {
-  const filteredWorkspaceNavGroups = workspaceNavGroups.map((group) => ({
-    ...group,
-    items: filterWorkspaceNavItems(group.items, userEmail ?? null),
-  }));
+  const [adminCapabilities, setAdminCapabilities] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdminAccess() {
+      try {
+        const response = await fetch("/api/admin/access", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        const payload = (await response.json().catch(() => null)) as AdminAccessResponse | null;
+        if (!cancelled) {
+          setAdminCapabilities(payload?.ok ? payload.capabilities ?? [] : []);
+        }
+      } catch {
+        if (!cancelled) setAdminCapabilities([]);
+      }
+    }
+
+    void loadAdminAccess();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const workspaceGroups = useMemo(
+    () => workspaceNavGroups.map((group) => ({
+      ...group,
+      items: filterWorkspaceNavItems(group.items, userEmail ?? null),
+    })),
+    [userEmail],
+  );
+
+  const adminGroups = useMemo(() => {
+    if (!adminCapabilities?.length) return [];
+    return filterNavGroupsByCapabilities(
+      [...adminNavGroups, campaignSenderNavGroup],
+      adminCapabilities,
+    );
+  }, [adminCapabilities]);
 
   return (
     <div className="ui-shell-nav-layout">
       <DashboardSidebarNav
-        groups={filteredWorkspaceNavGroups}
+        groups={workspaceGroups}
         activeKey={activeKey ?? "becas"}
         collapsed={collapsed}
         onItemSelect={onSelect}
         onLinkNavigate={onNavigate}
       />
+
+      {adminGroups.length ? (
+        <div className="ui-shell-nav-footer" aria-label="Administración">
+          <div className="px-3 pb-2 pt-4 text-[0.66rem] font-extrabold uppercase tracking-[0.18em] text-slate-400">
+            Administración
+          </div>
+          <DashboardSidebarNav
+            groups={adminGroups}
+            activeKey={undefined}
+            collapsed={collapsed}
+            onItemSelect={onSelect}
+            onLinkNavigate={onNavigate}
+          />
+          <Link
+            href="/admin"
+            className="mx-3 mt-2 inline-flex min-h-10 items-center justify-center rounded-xl border border-white/10 px-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+            onClick={onNavigate}
+          >
+            Abrir panel administrativo
+          </Link>
+        </div>
+      ) : null}
+
       {workspaceFooterNavItems.length ? (
         <div className="ui-shell-nav-footer" aria-label="Navegación fija">
           <DashboardSidebarNav
