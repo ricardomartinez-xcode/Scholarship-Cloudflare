@@ -16,6 +16,7 @@
     "d1:export-core": "tsx scripts/export-cloudflare-d1-core.ts",
     "d1:import-core": "npm --workspace @relead/web run d1:import-core",
     "d1:sync-core": "npm run d1:export-core && npm run d1:import-core",
+    "check": "npm run lint && npm run typecheck && npm test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "vercel-build": "sh scripts/vercel-build.sh",
     "start": "npm --workspace @relead/web run start",
