@@ -19,7 +19,6 @@ import {
   normalizeTier,
   type CanonicalModalityValue,
 } from "@/lib/pricing-normalize";
-import { prisma } from "@/lib/prisma";
 import {
   listD1ActiveCampuses,
   listD1ActiveOfferingsForPricing,
@@ -271,111 +270,115 @@ export async function GET() {
     return NextResponse.json({ error: "inactive" }, { status: 403 });
   }
 
-  const [
-    priceOverrides,
-    campuses,
-    activeOfferings,
-    catalogPrograms,
-  ] = isCloudflareRuntime()
-    ? await Promise.all([
-        listD1PriceOverrides(BASE_PRICE_OVERRIDE_SCOPE),
-        listD1ActiveCampuses(),
-        listD1ActiveOfferingsForPricing(),
-        getUnidepProgramCatalog(),
-      ])
-    : await Promise.all([
-        prisma.adminPriceOverride.findMany({
-          where: {
-            scope: BASE_PRICE_OVERRIDE_SCOPE,
-            isActive: true,
-          },
-          select: {
-            id: true,
-            scope: true,
-            targetKeys: true,
-            newPrice: true,
-            isActive: true,
-            notes: true,
-            updatedBy: true,
-          },
-        }),
-        prisma.campus.findMany({
-          where: { isActive: true },
-          orderBy: [{ name: "asc" }],
-          select: { id: true, code: true, metaKey: true, name: true, slug: true, tier: true },
-        }),
-        prisma.programOffering.findMany({
-          where: {
-            isActive: true,
-            campus: { isActive: true },
-          },
-          select: {
-            id: true,
-            campusId: true,
-            pricingPlans: true,
-            track: true,
-            moduleCount: true,
-            subjectsByModule: true,
-            delivery: true,
-            escolarizado: true,
-            ejecutivo: true,
-            lineOfBusiness: true,
-            program: {
+  try {
+    const [
+      priceOverrides,
+      campuses,
+      activeOfferings,
+      catalogPrograms,
+    ] = isCloudflareRuntime()
+      ? await Promise.all([
+          listD1PriceOverrides(BASE_PRICE_OVERRIDE_SCOPE),
+          listD1ActiveCampuses(),
+          listD1ActiveOfferingsForPricing(),
+          getUnidepProgramCatalog(),
+        ])
+      : await (async () => {
+          const { prisma } = await import("@/lib/prisma");
+          return Promise.all([
+            prisma.adminPriceOverride.findMany({
+              where: {
+                scope: BASE_PRICE_OVERRIDE_SCOPE,
+                isActive: true,
+              },
               select: {
                 id: true,
-                name: true,
-                businessLine: true,
-                level: true,
-                category: true,
-                planPdfUrl: true,
-                brochurePdfUrl: true,
-                planDriveLink: true,
-                planUrl: true,
+                scope: true,
+                targetKeys: true,
+                newPrice: true,
+                isActive: true,
+                notes: true,
+                updatedBy: true,
               },
-            },
-          },
-        }),
-        getUnidepProgramCatalog(),
-      ]);
+            }),
+            prisma.campus.findMany({
+              where: { isActive: true },
+              orderBy: [{ name: "asc" }],
+              select: { id: true, code: true, metaKey: true, name: true, slug: true, tier: true },
+            }),
+            prisma.programOffering.findMany({
+              where: {
+                isActive: true,
+                campus: { isActive: true },
+              },
+              select: {
+                id: true,
+                campusId: true,
+                pricingPlans: true,
+                track: true,
+                moduleCount: true,
+                subjectsByModule: true,
+                delivery: true,
+                escolarizado: true,
+                ejecutivo: true,
+                lineOfBusiness: true,
+                program: {
+                  select: {
+                    id: true,
+                    name: true,
+                    businessLine: true,
+                    level: true,
+                    category: true,
+                    planPdfUrl: true,
+                    brochurePdfUrl: true,
+                    planDriveLink: true,
+                    planUrl: true,
+                  },
+                },
+              },
+            }),
+            getUnidepProgramCatalog(),
+          ]);
+        })();
 
-  const academicOfferByCampus = new Map<string, typeof activeOfferings>();
+    const academicOfferByCampus = new Map<string, typeof activeOfferings>();
 
-  const r2Assignments = await listFileAssetAssignmentsForTargets(
-    "program",
-    Array.from(
-      new Set([
-        ...activeOfferings.map((offering) => offering.program.id),
-        ...catalogPrograms.map((program) => program.id),
-      ]),
-    ),
-  );
+    const r2Assignments = await listFileAssetAssignmentsForTargets(
+      "program",
+      Array.from(
+        new Set([
+          ...activeOfferings.map((offering) => offering.program.id),
+          ...catalogPrograms.map((program) => program.id),
+        ]),
+      ),
+    );
 
-  const quotePricingOptions = buildQuotePricingOptions([], priceOverrides);
-  const offeringPricingOptions = buildConfiguredOfferingPricingOptions(
-    activeOfferings,
-    r2Assignments,
-  );
-  const pricingOptions = [...quotePricingOptions, ...offeringPricingOptions];
+    const quotePricingOptions = buildQuotePricingOptions([], priceOverrides);
+    const offeringPricingOptions = buildConfiguredOfferingPricingOptions(
+      activeOfferings,
+      r2Assignments,
+    );
+    const pricingOptions = [...quotePricingOptions, ...offeringPricingOptions];
 
-  const priceOverrideSnapshots = priceOverrides.map(
-    (override): PriceOverrideSnapshot => ({
-      id: override.id,
-      scope: override.scope,
-      targetKeys: override.targetKeys,
-      newPrice: Number(override.newPrice),
-      isActive: override.isActive,
-      notes: override.notes,
-      updatedBy: override.updatedBy,
-    }),
-  );
+    const priceOverrideSnapshots = priceOverrides.map(
+      (override): PriceOverrideSnapshot => ({
+        id: override.id,
+        scope: override.scope,
+        targetKeys: override.targetKeys,
+        newPrice: Number(override.newPrice),
+        isActive: override.isActive,
+        notes: override.notes,
+        updatedBy: override.updatedBy,
+      }),
+    );
 
-  for (const offering of activeOfferings) {
-    const entry = academicOfferByCampus.get(offering.campusId) ?? [];
-    entry.push(offering);
-    academicOfferByCampus.set(offering.campusId, entry);
-  }
+    for (const offering of activeOfferings) {
+      const entry = academicOfferByCampus.get(offering.campusId) ?? [];
+      entry.push(offering);
+      academicOfferByCampus.set(offering.campusId, entry);
+    }
 
-  const responseCampuses = campuses
+    const responseCampuses = campuses
     .map((campus) => {
       const academicOffer = academicOfferByCampus.get(campus.id) ?? [];
       const runtimeTier =
@@ -511,40 +514,44 @@ export async function GET() {
     })
     .filter((campus) => campus.studyPrograms.length > 0);
 
-  const pricedStudyPrograms = Array.from(
-    new Map(
-      responseCampuses.flatMap((campus) =>
-        campus.studyPrograms.map((program) => [program.id, program] as const),
-      ),
-    ).values(),
-  );
-  const studyPrograms = Array.from(
-    new Map(
-      [
-        ...catalogPrograms
-          .map((program) =>
-            buildStudyProgram(
-              program,
-              r2Assignments.get(program.id),
+    const pricedStudyPrograms = Array.from(
+      new Map(
+        responseCampuses.flatMap((campus) =>
+          campus.studyPrograms.map((program) => [program.id, program] as const),
+        ),
+      ).values(),
+    );
+    const studyPrograms = Array.from(
+      new Map(
+        [
+          ...catalogPrograms
+            .map((program) =>
+              buildStudyProgram(
+                program,
+                r2Assignments.get(program.id),
+              ),
+            )
+            .filter((program): program is NonNullable<ReturnType<typeof buildStudyProgram>> =>
+              Boolean(program),
             ),
-          )
-          .filter((program): program is NonNullable<ReturnType<typeof buildStudyProgram>> =>
-            Boolean(program),
-          ),
-        ...pricedStudyPrograms,
-      ].map((program) => [program.id, program] as const),
-    ).values(),
-  ).sort(
-    (left, right) =>
-      left.businessLine.localeCompare(right.businessLine, "es") ||
-      left.name.localeCompare(right.name, "es"),
-  );
+          ...pricedStudyPrograms,
+        ].map((program) => [program.id, program] as const),
+      ).values(),
+    ).sort(
+      (left, right) =>
+        left.businessLine.localeCompare(right.businessLine, "es") ||
+        left.name.localeCompare(right.name, "es"),
+    );
 
-  return NextResponse.json({
-    ok: true,
-    combinations: quotePricingOptions,
-    studyPrograms,
-    campuses: responseCampuses,
-    subjectCounts: buildSubjectCountOptions(priceOverrides),
-  });
+    return NextResponse.json({
+      ok: true,
+      combinations: quotePricingOptions,
+      studyPrograms,
+      campuses: responseCampuses,
+      subjectCounts: buildSubjectCountOptions(priceOverrides),
+    });
+  } catch (error) {
+    console.error("Pricing options query failed", error);
+    return NextResponse.json({ error: "storage_unavailable" }, { status: 503 });
+  }
 }

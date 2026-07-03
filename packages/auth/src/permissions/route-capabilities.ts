@@ -45,6 +45,7 @@ export const ADMIN_ROUTE_CAPABILITIES: Record<string, AdminCapability[]> = {
     AdminCapability.manage_ctas,
   ],
   "/admin/extension-panel": [AdminCapability.manage_ctas],
+  "/admin/campaign-sender": [AdminCapability.view_reports],
   "/admin/capacitacion": [
     AdminCapability.view_users,
     AdminCapability.manage_users,

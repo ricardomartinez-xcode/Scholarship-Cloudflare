@@ -1,7 +1,7 @@
 type CampaignTemplateRecipient = {
   contactName?: string | null;
   contactValue: string;
-  payload?: Record<string, unknown> | null;
+  payload?: unknown;
 };
 
 function normalizeText(value: string | null | undefined) {

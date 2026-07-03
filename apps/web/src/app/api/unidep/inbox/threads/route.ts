@@ -6,10 +6,6 @@ import {
   createD1InboxThreadForUser,
   listD1InboxThreadsForUser,
 } from "@/lib/cloudflare/inbox";
-import {
-  createInboxThreadForUser,
-  listInboxThreadsForUser,
-} from "@/lib/inbox-service";
 
 export async function GET() {
   try {
@@ -20,7 +16,7 @@ export async function GET() {
 
     const payload = isCloudflareRuntime()
       ? await listD1InboxThreadsForUser(session.user.id)
-      : await listInboxThreadsForUser(session.user.id);
+      : await (await import("@/lib/inbox-service")).listInboxThreadsForUser(session.user.id);
     return NextResponse.json({
       success: true,
       viewer: {
@@ -44,7 +40,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as { recipientUserId?: string; subject?: string | null };
+    let body: { recipientUserId?: string; subject?: string | null };
+    try {
+      body = (await request.json()) as { recipientUserId?: string; subject?: string | null };
+    } catch {
+      return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    }
     const recipientUserId = String(body.recipientUserId ?? "").trim();
     if (!recipientUserId) {
       return NextResponse.json({ error: "recipientUserId is required" }, { status: 400 });
@@ -52,14 +53,14 @@ export async function POST(request: NextRequest) {
 
     const threadId = isCloudflareRuntime()
       ? await createD1InboxThreadForUser({ actorUserId: session.user.id, recipientUserId, subject: body.subject ?? null })
-      : await createInboxThreadForUser({ actorUserId: session.user.id, recipientUserId, subject: body.subject ?? null });
+      : await (await import("@/lib/inbox-service")).createInboxThreadForUser({ actorUserId: session.user.id, recipientUserId, subject: body.subject ?? null });
 
     return NextResponse.json({ success: true, threadId }, { status: 201 });
   } catch (error) {
     console.error("Error creating inbox thread:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create inbox thread" },
-      { status: 500 },
+      { error: "storage_unavailable" },
+      { status: 503 },
     );
   }
 }

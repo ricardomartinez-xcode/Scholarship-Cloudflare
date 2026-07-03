@@ -1,6 +1,3 @@
-import { Prisma } from "@prisma/client";
-
-import { prisma } from "@/lib/prisma";
 import type { ContentBucketObject } from "@/lib/r2-content-bucket";
 import { d1All, type D1Value } from "@/lib/cloudflare/d1";
 import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
@@ -98,6 +95,16 @@ type RawFileAssetUsageRow = RawFileAssetRow & {
   sortOrder: number;
   isPrimary: boolean;
 };
+
+async function getPrismaClient() {
+  const { prisma } = await import("@/lib/prisma");
+  return prisma;
+}
+
+async function getPrismaNamespace() {
+  const { Prisma } = await import("@prisma/client");
+  return Prisma;
+}
 
 function toNumber(value: bigint | number | null) {
   if (value === null) return null;
@@ -268,6 +275,7 @@ export async function createFileAsset(input: {
   uploadedByUserId?: string | null;
   status?: string;
 }) {
+  const prisma = await getPrismaClient();
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     INSERT INTO "recalc_admin"."file_asset"
       ("object_key", "bucket", "file_name", "mime_type", "size_bytes", "owner_user_id", "visibility")
@@ -289,6 +297,7 @@ export async function createFileAsset(input: {
 }
 
 export async function markFileAssetUploaded(fileId: string, etag?: string | null) {
+  const prisma = await getPrismaClient();
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     UPDATE "recalc_admin"."file_asset"
     SET "updated_at" = now()
@@ -309,6 +318,7 @@ export async function markFileAssetUploaded(fileId: string, etag?: string | null
 }
 
 export async function getFileAssetById(fileId: string) {
+  const prisma = await getPrismaClient();
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     SELECT
       "id",
@@ -333,6 +343,7 @@ export async function listFileAssets(options?: {
   mimeType?: string;
   limit?: number;
 }) {
+  const prisma = await getPrismaClient();
   const limit = Math.min(Math.max(options?.limit ?? 500, 1), 1000);
   const rows = await prisma.$queryRaw<RawFileAssetRow[]>`
     SELECT
@@ -360,6 +371,8 @@ export async function syncListedR2ObjectsToFileAssets(input: {
   files: ListedR2Object[];
   ownerUserId?: string | null;
 }): Promise<SyncFileAssetsResult> {
+  const prisma = await getPrismaClient();
+  const Prisma = await getPrismaNamespace();
   const filesByKey = new Map<string, ListedR2Object>();
   for (const file of input.files) {
     const key = file.key.trim();
@@ -422,6 +435,7 @@ export async function clearFileAssetUsage(input: {
   targetId: string;
   slot: string;
 }) {
+  const prisma = await getPrismaClient();
   const key = normalizeFileAssetUsageKey(input);
   await prisma.$executeRaw`
     DELETE FROM "recalc_admin"."file_asset_usage"
@@ -441,6 +455,7 @@ export async function assignFileAssetUsage(
     sortOrder?: number;
   },
 ) {
+  const prisma = await getPrismaClient();
   const key = normalizeFileAssetUsageKey(input);
   const isPrimary = input.isPrimary ?? true;
   const sortOrder = input.sortOrder ?? 0;
@@ -487,6 +502,7 @@ export async function getFileAssetForUsage(input: {
   targetId: string;
   slot: string;
 }) {
+  const prisma = await getPrismaClient();
   const key = normalizeFileAssetUsageKey(input);
   const rows = await prisma.$queryRaw<RawFileAssetUsageRow[]>`
     SELECT
@@ -565,9 +581,11 @@ export async function listFileAssetAssignmentsForTargets(
     }
     return byTarget;
   }
+  const prisma = await getPrismaClient();
   if (typeof prisma.$queryRaw !== "function") {
     return new Map<string, Record<string, PublicFileAssetPayload>>();
   }
+  const Prisma = await getPrismaNamespace();
 
   const rows = await prisma.$queryRaw<RawFileAssetUsageRow[]>`
     SELECT
@@ -616,6 +634,7 @@ export async function listFileAssetUsagesByTargetType(
     limit?: number;
   },
 ) {
+  const prisma = await getPrismaClient();
   const normalizedTargetType = normalizeSnakeish(targetType);
   const normalizedSlotPrefix = options?.slotPrefix
     ? `${normalizeSnakeish(options.slotPrefix)}%`
