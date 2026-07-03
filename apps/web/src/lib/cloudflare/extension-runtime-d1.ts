@@ -78,6 +78,33 @@ type D1RecipientRow = {
   updated_at: string;
 };
 
+type D1ExtensionCampaignAdminRow = {
+  id: string;
+  owner_user_id: string;
+  owner_email: string | null;
+  owner_display_name: string | null;
+  campaign_name: string;
+  channel: string;
+  status: string;
+  meta: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  total: number | null;
+  queued: number | null;
+  scheduled: number | null;
+  claimed: number | null;
+  sent: number | null;
+  failed: number | null;
+};
+
+type D1ExtensionRunEventRow = {
+  user_id: string | null;
+  created_at: string;
+  subject_id: string | null;
+  metadata: string | null;
+};
+
 type D1CampaignRecord = ReturnType<typeof mapD1Campaign> & {
   recipients: ReturnType<typeof mapD1Recipient>[];
 };
@@ -792,6 +819,146 @@ export async function listD1ExtensionCampaignsWithRunnerHealthForUser(userId: st
   await reconcileD1ExtensionCampaignStatusesForUser({ userId, runner });
   const campaigns = await listD1ExtensionCampaignsForUser(userId);
   return { campaigns, runner };
+}
+
+export type D1ExtensionCampaignAdminSummary = {
+  id: string;
+  campaignName: string;
+  ownerUserId: string;
+  ownerEmail: string | null;
+  ownerDisplayName: string | null;
+  channel: string;
+  status: string;
+  businessStatus: string;
+  businessStatusLabel: string;
+  extensionVersion: string | null;
+  lastHeartbeatAt: string | null;
+  lastActivityAt: string;
+  lastEventType: string | null;
+  lastRunId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  stats: {
+    total: number;
+    queued: number;
+    scheduled: number;
+    claimed: number;
+    sent: number;
+    failed: number;
+  };
+};
+
+function readExtensionVersion(meta: unknown) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const value = (meta as Record<string, unknown>).extensionVersion;
+  const normalized = normalizeText(typeof value === "string" ? value : String(value ?? ""));
+  return normalized || null;
+}
+
+function mapLatestEventsByUser(events: D1ExtensionRunEventRow[]) {
+  const latestByUser = new Map<string, {
+    createdAt: string;
+    eventType: string | null;
+    runId: string | null;
+    extensionVersion: string | null;
+  }>();
+  const latestHeartbeatByUser = new Map<string, string>();
+
+  for (const event of events) {
+    if (!event.user_id) continue;
+    const metadata = parseD1Json<Record<string, unknown> | null>(event.metadata, null);
+    const eventType = readRunnerEventType(metadata);
+    if (!latestByUser.has(event.user_id)) {
+      latestByUser.set(event.user_id, {
+        createdAt: event.created_at,
+        eventType,
+        runId: event.subject_id,
+        extensionVersion: readExtensionVersion(metadata),
+      });
+    }
+    if (eventType === "runner_heartbeat" && !latestHeartbeatByUser.has(event.user_id)) {
+      latestHeartbeatByUser.set(event.user_id, event.created_at);
+    }
+  }
+
+  return { latestByUser, latestHeartbeatByUser };
+}
+
+export async function listD1ExtensionCampaignAdminRows(limit = 100) {
+  await ensureD1ExtensionRuntimeSchema();
+  const rows = await d1All<D1ExtensionCampaignAdminRow>(
+    `SELECT
+       c.id,
+       c.owner_user_id,
+       u.email AS owner_email,
+       u.display_name AS owner_display_name,
+       c.campaign_name,
+       c.channel,
+       c.status,
+       c.meta,
+       c.created_at,
+       c.updated_at,
+       c.completed_at,
+       (SELECT COUNT(*) FROM extension_campaign_recipient r WHERE r.campaign_id = c.id) AS total,
+       (SELECT COUNT(*) FROM extension_campaign_recipient r WHERE r.campaign_id = c.id AND r.status = 'queued') AS queued,
+       (SELECT COUNT(*) FROM extension_campaign_recipient r WHERE r.campaign_id = c.id AND r.status = 'scheduled') AS scheduled,
+       (SELECT COUNT(*) FROM extension_campaign_recipient r WHERE r.campaign_id = c.id AND r.status = 'claimed') AS claimed,
+       (SELECT COUNT(*) FROM extension_campaign_recipient r WHERE r.campaign_id = c.id AND r.status = 'sent') AS sent,
+       (SELECT COUNT(*) FROM extension_campaign_recipient r WHERE r.campaign_id = c.id AND r.status = 'failed') AS failed
+     FROM extension_campaign c
+     LEFT JOIN cloudflare_auth_user u ON u.id = c.owner_user_id
+     ORDER BY c.updated_at DESC
+     LIMIT ?`,
+    [Math.min(Math.max(limit, 1), 250)],
+  );
+
+  const userIds = Array.from(new Set(rows.map((row) => row.owner_user_id).filter(Boolean)));
+  const events = userIds.length
+    ? await d1All<D1ExtensionRunEventRow>(
+        `SELECT user_id, created_at, subject_id, metadata
+           FROM business_event
+          WHERE type = 'EXTENSION_RUN_EVENT'
+            AND user_id IN (${placeholders(userIds)})
+          ORDER BY created_at DESC
+          LIMIT 500`,
+        userIds,
+      )
+    : [];
+  const { latestByUser, latestHeartbeatByUser } = mapLatestEventsByUser(events);
+
+  return rows.map((row): D1ExtensionCampaignAdminSummary => {
+    const campaignMeta = parseD1Json<Record<string, unknown> | null>(row.meta, null);
+    const latestEvent = latestByUser.get(row.owner_user_id) ?? null;
+    return {
+      id: row.id,
+      campaignName: row.campaign_name,
+      ownerUserId: row.owner_user_id,
+      ownerEmail: row.owner_email,
+      ownerDisplayName: row.owner_display_name,
+      channel: row.channel,
+      status: row.status,
+      businessStatus: resolveExtensionCampaignBusinessStatus(row.status),
+      businessStatusLabel: resolveExtensionCampaignBusinessStatusLabel(row.status),
+      extensionVersion:
+        readExtensionVersion(campaignMeta) ?? latestEvent?.extensionVersion ?? null,
+      lastHeartbeatAt: latestHeartbeatByUser.get(row.owner_user_id) ?? null,
+      lastActivityAt: latestEvent?.createdAt ?? row.updated_at,
+      lastEventType: latestEvent?.eventType ?? null,
+      lastRunId: latestEvent?.runId ?? null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      completedAt: row.completed_at,
+      stats: {
+        total: Number(row.total ?? 0),
+        queued: Number(row.queued ?? 0),
+        scheduled: Number(row.scheduled ?? 0),
+        claimed: Number(row.claimed ?? 0),
+        sent: Number(row.sent ?? 0),
+        failed: Number(row.failed ?? 0),
+      },
+    };
+  });
 }
 
 export async function claimD1ExtensionCampaignBatch(params: {

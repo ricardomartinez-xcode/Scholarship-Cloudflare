@@ -24,4 +24,10 @@ describe("admin route capabilities", () => {
       AdminCapability.manage_ctas,
     ]);
   });
+
+  it("protects Campaign Sender admin visibility with reporting access", () => {
+    expect(requiredRouteCapabilities("/admin/campaign-sender")).toEqual([
+      AdminCapability.view_reports,
+    ]);
+  });
 });
