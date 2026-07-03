@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
-import { resolveAdditionalBenefits } from "@/lib/additional-benefits";
 import { resolveD1AdditionalBenefits } from "@/lib/cloudflare/additional-benefits";
 import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import {
@@ -31,7 +30,7 @@ export async function GET(request: Request) {
     };
     const benefits = isCloudflareRuntime()
       ? await resolveD1AdditionalBenefits(input)
-      : await resolveAdditionalBenefits(input);
+      : await (await import("@/lib/additional-benefits")).resolveAdditionalBenefits(input);
 
     return NextResponse.json({
       benefit: benefits.percentageBenefit,

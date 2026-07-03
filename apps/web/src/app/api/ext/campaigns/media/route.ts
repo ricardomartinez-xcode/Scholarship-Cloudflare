@@ -10,7 +10,6 @@ import {
   normalizeCampaignImageContentType,
 } from "@/lib/cloudflare/r2";
 import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -171,6 +170,7 @@ export async function GET(request: Request) {
     });
   }
 
+  const { prisma } = await import("@/lib/prisma");
   const campaign = await prisma.extensionCampaign.findFirst({
     where: {
       id: campaignId,
