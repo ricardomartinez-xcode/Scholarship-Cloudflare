@@ -25,7 +25,11 @@ export async function updateSupabaseSession(request: NextRequest) {
   const response = NextResponse.next({ request });
   const supabase = createSupabaseMiddlewareClient(request, response);
 
-  await supabase.auth.getClaims();
+  const { data, error } = await supabase.auth.getClaims();
   response.headers.set("Cache-Control", "private, no-store");
-  return response;
+  return {
+    response,
+    claims: data?.claims ?? null,
+    error,
+  };
 }

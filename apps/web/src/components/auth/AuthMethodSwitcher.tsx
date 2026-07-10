@@ -6,7 +6,6 @@ import { useState } from "react";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
 import PasswordField from "@/components/auth/PasswordField";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 type AuthMethod = "passwordless" | "password";
 type AuthMode = "sign-in" | "sign-up";
@@ -32,10 +31,7 @@ export default function AuthMethodSwitcher({
   token = "",
   initialMethod = "passwordless",
 }: AuthMethodSwitcherProps) {
-  const cloudflareRuntime = isCloudflareRuntime();
-  const [method, setMethod] = useState<AuthMethod>(
-    cloudflareRuntime ? "password" : initialMethod,
-  );
+  const [method, setMethod] = useState<AuthMethod>(initialMethod);
   const isSignUp = mode === "sign-up";
   const passwordLabel = isSignUp ? "Crear contraseña" : "Contraseña";
   const passwordSubmitLabel = isSignUp ? "Crear cuenta" : "Iniciar sesión";
@@ -43,31 +39,29 @@ export default function AuthMethodSwitcher({
 
   return (
     <section className="ui-auth-method-panel">
-      {!cloudflareRuntime ? <GoogleSignInButton callbackURL={callbackURL} /> : null}
+      <GoogleSignInButton callbackURL={callbackURL} />
 
-      {!cloudflareRuntime ? (
-        <div className="ui-auth-segmented" role="tablist" aria-label="Método de acceso">
-          <button
-            type="button"
-            className="ui-auth-segment"
-            aria-pressed={method === "passwordless"}
-            onClick={() => setMethod("passwordless")}
-          >
-            Sin contraseña
-          </button>
-          <button
-            type="button"
-            className="ui-auth-segment"
-            aria-pressed={method === "password"}
-            onClick={() => setMethod("password")}
-          >
-            {passwordLabel}
-          </button>
-        </div>
-      ) : null}
+      <div className="ui-auth-segmented" role="tablist" aria-label="Método de acceso">
+        <button
+          type="button"
+          className="ui-auth-segment"
+          aria-pressed={method === "passwordless"}
+          onClick={() => setMethod("passwordless")}
+        >
+          Sin contraseña
+        </button>
+        <button
+          type="button"
+          className="ui-auth-segment"
+          aria-pressed={method === "password"}
+          onClick={() => setMethod("password")}
+        >
+          {passwordLabel}
+        </button>
+      </div>
 
-      <div role={cloudflareRuntime ? undefined : "tabpanel"}>
-        {!cloudflareRuntime && method === "passwordless" ? (
+      <div role="tabpanel">
+        {method === "passwordless" ? (
           <NeonUserAuthMethods
             callbackURL={callbackURL}
             defaultEmail={defaultEmail}
@@ -106,37 +100,23 @@ export default function AuthMethodSwitcher({
                 placeholder={passwordPlaceholder}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
                 className="ui-control ui-auth-control pl-3.5 pr-12"
-                minLength={isSignUp && cloudflareRuntime ? 12 : undefined}
-                maxLength={isSignUp && cloudflareRuntime ? 128 : undefined}
                 required
               />
             </label>
 
-            {isSignUp && cloudflareRuntime ? (
-              <p className="text-xs text-slate-400">
-                Usa una contraseña de al menos 12 caracteres.
-              </p>
-            ) : null}
-
             {!isSignUp ? (
-              cloudflareRuntime ? (
-                <p className="text-xs text-slate-400">
-                  ¿Problemas de acceso? Contacta al administrador de tu organización.
-                </p>
-              ) : (
-                <div className="ui-auth-helper-row">
-                  <Link
-                    href={
-                      defaultEmail
-                        ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
-                        : "/auth/forgot-password"
-                    }
-                    className="ui-auth-link text-sm"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </div>
-              )
+              <div className="ui-auth-helper-row">
+                <Link
+                  href={
+                    defaultEmail
+                      ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
+                      : "/auth/forgot-password"
+                  }
+                  className="ui-auth-link text-sm"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
             ) : null}
 
             <button type="submit" className="ui-button-primary w-full justify-center">

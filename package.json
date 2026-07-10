@@ -53,8 +53,6 @@
     "verify:structure": "node scripts/verify-monorepo-structure.mjs"
   },
   "dependencies": {
-    "@neondatabase/auth": "^0.4.2-beta",
-    "@neondatabase/neon-js": "^0.6.2-beta",
     "@neondatabase/serverless": "^1.0.2",
     "@opennextjs/cloudflare": "^1.20.1",
     "@prisma/client": "^6.19.2",

@@ -6,7 +6,6 @@
    dark surfaces.  If a component requires a specific colour override,
    define it locally rather than globally. */
 @import "tailwindcss";
-@import "@neondatabase/auth/ui/tailwind";
 
 @theme inline {
   --font-sans: var(--font-geist-sans);

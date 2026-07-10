@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/server";
-import {
-  setCloudflareSessionCookie,
-  signInWithCloudflare,
-} from "@/lib/cloudflare/auth";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { captureException } from "@/lib/observability";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -37,16 +32,6 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return redirect(request, buildErrorUrl("Completa correo y contraseña."));
-    }
-
-    if (isCloudflareRuntime()) {
-      const result = await signInWithCloudflare({ email, password });
-      if (!result.ok) {
-        return redirect(request, buildErrorUrl("Credenciales incorrectas."));
-      }
-      const response = NextResponse.redirect(new URL("/admin", request.url), { status: 303 });
-      setCloudflareSessionCookie(response, result.token, result.expiresAt);
-      return response;
     }
 
     const result = await auth.signIn.email({ email, password });

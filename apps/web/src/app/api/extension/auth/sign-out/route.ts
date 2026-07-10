@@ -3,11 +3,6 @@ import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth/server";
 import {
-  clearCloudflareSessionCookie,
-  signOutCloudflareSession,
-} from "@/lib/cloudflare/auth";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
-import {
   EXTENSION_SESSION_TOKEN_HEADER,
   revokeExtensionAuthSession,
 } from "@/lib/extension-auth";
@@ -43,19 +38,11 @@ export async function POST() {
   }
 
   try {
-    if (isCloudflareRuntime()) {
-      await signOutCloudflareSession();
-    } else {
-      await auth.signOut();
-    }
+    await auth.signOut();
     revoked = true;
   } catch {
     // Ignore cookie sign-out failures when the extension token was already revoked.
   }
 
-  const response = NextResponse.json({ ok: revoked });
-  if (isCloudflareRuntime()) {
-    clearCloudflareSessionCookie(response);
-  }
-  return response;
+  return NextResponse.json({ ok: revoked });
 }

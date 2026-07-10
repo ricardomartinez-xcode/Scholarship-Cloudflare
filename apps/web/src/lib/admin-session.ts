@@ -7,11 +7,6 @@ import {
   resolveAdminCapabilities,
 } from "@/lib/admin-capabilities";
 import { getSessionUser, type SessionUserState } from "@/lib/authz";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
-import {
-  resolveCloudflareAdminAccessUser,
-  type CloudflareAdminAccessUser,
-} from "@/lib/cloudflare/admin-access";
 import { prisma } from "@/lib/prisma";
 import { isSystemOwner } from "@/lib/system-roles";
 
@@ -38,10 +33,6 @@ export type AdminAccessState =
       user: null;
     }
   | { status: "ok"; user: AdminAccessUser };
-
-function toAdminAccessUser(user: CloudflareAdminAccessUser): AdminAccessUser {
-  return user;
-}
 
 async function resolvePrismaAdminAccessUser(sessionUserId: string) {
   const user = await prisma.user.findUnique({
@@ -90,28 +81,10 @@ async function resolvePrismaAdminAccessUser(sessionUserId: string) {
   } satisfies AdminAccessUser;
 }
 
-function getCloudflareAccessState(
-  session: Extract<SessionUserState, { status: "ok" }>,
-): AdminAccessState {
-  const user = resolveCloudflareAdminAccessUser(
-    session.user as unknown as Parameters<typeof resolveCloudflareAdminAccessUser>[0],
-  );
-
-  if (!user) {
-    return { status: "no_admin_access", user: null };
-  }
-
-  return { status: "ok", user: toAdminAccessUser(user) };
-}
-
 export async function getAdminAccessState(): Promise<AdminAccessState> {
   const session = await getSessionUser();
   if (session.status !== "ok") {
     return { status: session.status, user: null };
-  }
-
-  if (isCloudflareRuntime()) {
-    return getCloudflareAccessState(session);
   }
 
   const adminUser = await resolvePrismaAdminAccessUser(session.user.id);

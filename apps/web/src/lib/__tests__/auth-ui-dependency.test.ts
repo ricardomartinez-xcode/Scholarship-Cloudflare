@@ -19,6 +19,29 @@ describe("auth UI dependency boundaries", () => {
     }
   });
 
+  it("keeps active auth adapters on Supabase Auth", () => {
+    for (const relativePath of [
+      "apps/web/src/lib/auth/server.ts",
+      "apps/web/src/lib/auth/client.ts",
+      "apps/web/middleware.ts",
+    ]) {
+      expect(read(relativePath)).toMatch(/supabase|Supabase/);
+    }
+
+    for (const relativePath of [
+      "apps/web/src/lib/auth/server.ts",
+      "apps/web/src/lib/auth/client.ts",
+      "apps/web/middleware.ts",
+      "apps/web/src/app/api/auth/sign-in/route.ts",
+      "apps/web/src/app/api/auth/sign-up/route.ts",
+    ]) {
+      const source = read(relativePath);
+      expect(source).not.toContain("@neondatabase/auth");
+      expect(source).not.toContain("@/lib/cloudflare/auth");
+      expect(source).not.toContain("@/lib/cloudflare/d1");
+    }
+  });
+
   it("keeps public auth pages off mutating server session reads", () => {
     for (const relativePath of [
       "apps/web/src/app/(public)/auth/sign-in/page.tsx",

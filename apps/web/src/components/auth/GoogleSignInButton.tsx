@@ -78,6 +78,12 @@ function toNextPath(absoluteUrl: string) {
   }
 }
 
+function buildSupabaseCallback(nextPath: string) {
+  const url = new URL("/auth/callback", typeof window === "undefined" ? "https://recalc.relead.com.mx" : window.location.origin);
+  url.searchParams.set("next", nextPath);
+  return url.toString();
+}
+
 export default function GoogleSignInButton({ callbackURL = "/unidep" }: { callbackURL?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +92,7 @@ export default function GoogleSignInButton({ callbackURL = "/unidep" }: { callba
   const computed = useMemo(() => {
     const cb = toAbsoluteUrl(callbackURL, "/unidep");
     const nextPath = toNextPath(cb);
+    const supabaseCallback = buildSupabaseCallback(nextPath);
 
     // New users go to /unidep?newUser=1 so you can show the "cambia tu contraseña temporal"
     const newUserCb = addQuery(cb, { newUser: "1" });
@@ -96,7 +103,7 @@ export default function GoogleSignInButton({ callbackURL = "/unidep" }: { callba
     )}&next=${encodeURIComponent(nextPath)}`;
     const errCb = toAbsoluteUrl(signInUrl, "/auth/sign-in");
 
-    return { cb, newUserCb, errCb };
+    return { cb: supabaseCallback, newUserCb, errCb };
   }, [callbackURL]);
 
   // searchParams consumed to avoid unused-variable lint warning

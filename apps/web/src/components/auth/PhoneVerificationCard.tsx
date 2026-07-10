@@ -94,7 +94,7 @@ export default function PhoneVerificationCard() {
     <section className="ui-card ui-card-pad min-w-0 self-start">
       <div className="ui-kicker">Seguridad</div>
       <h2 className="mt-2 text-lg font-semibold text-[color:var(--ui-text-primary)]">Verificación de teléfono</h2>
-      <p className="mt-2 text-sm leading-6 text-[color:var(--ui-text-secondary)]">Agrega un teléfono verificado usando OTP. Esto depende del plugin Phone Number activo en Neon Auth.</p>
+      <p className="mt-2 text-sm leading-6 text-[color:var(--ui-text-secondary)]">Agrega un teléfono verificado usando OTP de Supabase Auth.</p>
 
       {notice ? <div className="ui-note ui-note--success mt-4 text-sm">{notice}</div> : null}
       {error ? <div className="ui-note ui-note--danger mt-4 text-sm">{error}</div> : null}

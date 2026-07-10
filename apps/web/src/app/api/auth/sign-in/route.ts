@@ -2,17 +2,8 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/server";
 import { canSignInWithEmail } from "@/lib/authz";
-import { getD1 } from "@/lib/cloudflare/d1";
-import {
-  setCloudflareSessionCookie,
-  signInWithCloudflare,
-} from "@/lib/cloudflare/auth";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
-import {
-  checkCloudflareLoginRateLimit,
-  consumeCloudflareLoginFailure,
-} from "@/lib/d1/auth-rate-limit";
 import { captureException } from "@/lib/observability";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -66,36 +57,16 @@ export async function POST(request: Request) {
       return redirect(request, buildErrorUrl("Completa correo y contraseña.", inviteParams));
     }
 
-    if (isCloudflareRuntime()) {
-      const db = getD1();
-      const preflight = await checkCloudflareLoginRateLimit(db, {
-        email,
-        ip: getClientIp(request),
-      });
-      if (!preflight.allowed) {
-        return rateLimitedResponse(request, inviteParams, preflight.retryAfterSeconds);
-      }
-
-      const result = await signInWithCloudflare({ email, password });
-      if (!result.ok) {
-        const failure = await consumeCloudflareLoginFailure(db, {
-          email,
-          ip: getClientIp(request),
-        });
-        if (!failure.allowed) {
-          return rateLimitedResponse(request, inviteParams, failure.retryAfterSeconds);
-        }
-        return redirect(
-          request,
-          buildErrorUrl("Correo o contraseña incorrectos.", inviteParams),
-        );
-      }
-
-      const response = NextResponse.redirect(new URL(next.startsWith("/") ? next : "/unidep", request.url), {
-        status: 303,
-      });
-      setCloudflareSessionCookie(response, result.token, result.expiresAt);
-      return response;
+    const limiter = await checkRateLimit(`public-signin:${getClientIp(request)}:${email}`, {
+      limit: 5,
+      windowMs: 10 * 60_000,
+    });
+    if (!limiter.ok) {
+      return rateLimitedResponse(
+        request,
+        inviteParams,
+        Math.ceil(limiter.retryAfterMs / 1000),
+      );
     }
 
     const signInPolicy = await canSignInWithEmail(email);
