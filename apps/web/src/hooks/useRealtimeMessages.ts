@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {
-  subscribeToBroadcast,
-  subscribeToPrivateBroadcast,
-} from "@/lib/supabase/client";
+import { subscribeToPostgresMessages } from "@/lib/supabase/client";
 
 type UseRealtimeMessagesOptions = {
   fetchUrl: string | null;
@@ -23,6 +20,7 @@ export function useRealtimeMessages<TMessage>({
   const [messages, setMessages] = useState<TMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const silentReloadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +69,9 @@ export function useRealtimeMessages<TMessage>({
     }
 
     void loadMessages();
+    silentReloadRef.current = () => {
+      void loadMessages({ silent: true });
+    };
     const intervalId =
       fetchUrl && refreshIntervalMs
         ? window.setInterval(() => {
@@ -82,6 +83,7 @@ export function useRealtimeMessages<TMessage>({
 
     return () => {
       cancelled = true;
+      silentReloadRef.current = null;
       if (intervalId) {
         window.clearInterval(intervalId);
       }
@@ -93,26 +95,11 @@ export function useRealtimeMessages<TMessage>({
       return;
     }
 
-    const subscribe =
-      privateChannel === false ? subscribeToBroadcast : subscribeToPrivateBroadcast;
-    const unsubscribe = subscribe<TMessage>({
+    void privateChannel;
+    const unsubscribe = subscribeToPostgresMessages({
       topic,
-      event: "new_message",
-      onMessage: (message) => {
-        setMessages((current) => {
-          const messageId = (message as { id?: string }).id;
-          if (!messageId) {
-            return [...current, message];
-          }
-
-          if (
-            current.some((entry) => (entry as { id?: string }).id === messageId)
-          ) {
-            return current;
-          }
-
-          return [...current, message];
-        });
+      onChange: () => {
+        silentReloadRef.current?.();
       },
     });
 

@@ -3,14 +3,14 @@
 /**
  * Supabase Realtime client utilities.
  *
- * The source of truth for auth and persistence remains Neon + Prisma.
- * Supabase is used only as the transport layer for Broadcast and Presence.
+ * Supabase Auth provides the realtime JWT through the browser client.
+ * Persistent messages use Postgres Changes; ephemeral user state uses Presence.
  */
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-type SupabaseCreateClient = typeof import("@supabase/supabase-js").createClient;
-type ScopedRealtimeClient = ReturnType<SupabaseCreateClient>;
+type ScopedRealtimeClient = ReturnType<typeof createSupabaseBrowserClient>;
 type ActiveRealtimeSubscription = {
   client: ScopedRealtimeClient;
   channel: RealtimeChannel;
@@ -39,105 +39,12 @@ type PresenceSubscriptionOptions = {
   onSync: (users: PresenceUserState[]) => void;
 };
 
-let createClientPromise: Promise<SupabaseCreateClient> | null = null;
-
-async function loadCreateClient() {
-  createClientPromise ??= import("@supabase/supabase-js").then(
-    (module) => module.createClient,
-  );
-  return createClientPromise;
+async function createScopedRealtimeClient(): Promise<ScopedRealtimeClient> {
+  return createSupabaseBrowserClient();
 }
 
-function getRealtimeClientConfig() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseClientKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseClientKey) {
-    console.warn(
-      "Supabase Realtime is disabled because NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing.",
-    );
-    return null;
-  }
-
-  return { supabaseUrl, supabaseClientKey };
-}
-
-async function requestRealtimeToken(topics: string[]) {
-  const response = await fetch("/api/realtime/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ topics }),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as
-      | { error?: string }
-      | null;
-    throw new Error(payload?.error ?? "No se pudo autorizar el canal realtime.");
-  }
-
-  const payload = (await response.json()) as { token: string };
-  return payload.token;
-}
-
-function buildRealtimeAuthConfig(storageKey: string) {
-  return {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-    storageKey,
-  };
-}
-
-function buildTopicStorageKey(prefix: string, topics: string[]) {
-  const topicKey = topics
-    .slice()
-    .sort()
-    .join("-")
-    .replace(/[^a-zA-Z0-9_-]/g, "_")
-    .slice(0, 96);
-
-  return topicKey ? `${prefix}-${topicKey}` : prefix;
-}
-
-async function createScopedRealtimeClient(
-  topics: string[],
-): Promise<ScopedRealtimeClient | null> {
-  const config = getRealtimeClientConfig();
-  if (!config) {
-    return null;
-  }
-
-  const createClient = await loadCreateClient();
-  return createClient(config.supabaseUrl, config.supabaseClientKey, {
-    auth: buildRealtimeAuthConfig(buildTopicStorageKey("recalc-realtime-private", topics)),
-    accessToken: () => requestRealtimeToken(topics),
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
-  });
-}
-
-async function createRealtimeClient(): Promise<ScopedRealtimeClient | null> {
-  const config = getRealtimeClientConfig();
-  if (!config) {
-    return null;
-  }
-
-  const createClient = await loadCreateClient();
-  return createClient(config.supabaseUrl, config.supabaseClientKey, {
-    auth: buildRealtimeAuthConfig("recalc-realtime-public"),
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
-  });
+async function createRealtimeClient(): Promise<ScopedRealtimeClient> {
+  return createSupabaseBrowserClient();
 }
 
 async function disposeScopedChannel(
@@ -149,7 +56,6 @@ async function disposeScopedChannel(
   }
 
   await client.removeChannel(channel);
-  await client.realtime.disconnect();
 }
 
 async function disposeRealtimeSubscription(subscription: ActiveRealtimeSubscription) {
@@ -198,10 +104,7 @@ export function subscribeToPrivateBroadcast<TPayload>({
   onMessage,
 }: BroadcastSubscriptionOptions<TPayload>) {
   return startRealtimeSubscription(async () => {
-    const client = await createScopedRealtimeClient([topic]);
-    if (!client) {
-      return null;
-    }
+    const client = await createScopedRealtimeClient();
 
     const channel = client.channel(topic, {
       config: {
@@ -210,13 +113,13 @@ export function subscribeToPrivateBroadcast<TPayload>({
       },
     });
 
-    channel.on("broadcast", { event }, (payload) => {
+    channel.on("broadcast", { event }, (payload: { payload?: unknown }) => {
       if (payload.payload) {
         onMessage(payload.payload as TPayload);
       }
     });
 
-    channel.subscribe((status, error) => {
+    channel.subscribe((status: string, error?: Error) => {
       if (status === "CHANNEL_ERROR") {
         console.error(`Realtime channel error for ${topic}:`, error);
       }
@@ -233,9 +136,6 @@ export function subscribeToBroadcast<TPayload>({
 }: BroadcastSubscriptionOptions<TPayload>) {
   return startRealtimeSubscription(async () => {
     const client = await createRealtimeClient();
-    if (!client) {
-      return null;
-    }
 
     const channel = client.channel(topic, {
       config: {
@@ -243,15 +143,74 @@ export function subscribeToBroadcast<TPayload>({
       },
     });
 
-    channel.on("broadcast", { event }, (payload) => {
+    channel.on("broadcast", { event }, (payload: { payload?: unknown }) => {
       if (payload.payload) {
         onMessage(payload.payload as TPayload);
       }
     });
 
-    channel.subscribe((status, error) => {
+    channel.subscribe((status: string, error?: Error) => {
       if (status === "CHANNEL_ERROR") {
         console.error(`Realtime channel error for ${topic}:`, error);
+      }
+    });
+
+    return { client, channel };
+  });
+}
+
+function resolvePostgresMessageSubscription(topic: string) {
+  const inboxMatch = topic.match(/^inbox:thread:([^:]+):messages$/);
+  if (inboxMatch?.[1]) {
+    return {
+      table: "inbox_message",
+      filter: `threadId=eq.${inboxMatch[1]}`,
+    };
+  }
+
+  const trainingMatch = topic.match(/^training:chat:([^:]+):messages$/);
+  if (trainingMatch?.[1]) {
+    return {
+      table: "TrainingMessage",
+      filter: `chatId=eq.${trainingMatch[1]}`,
+    };
+  }
+
+  return null;
+}
+
+export function subscribeToPostgresMessages({
+  topic,
+  onChange,
+}: {
+  topic: string;
+  onChange: () => void;
+}) {
+  return startRealtimeSubscription(async () => {
+    const messageSubscription = resolvePostgresMessageSubscription(topic);
+    if (!messageSubscription) {
+      return null;
+    }
+
+    const client = await createScopedRealtimeClient();
+    const channel = client.channel(`${topic}:postgres_changes`);
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "recalc_admin",
+        table: messageSubscription.table,
+        filter: messageSubscription.filter,
+      },
+      () => {
+        onChange();
+      },
+    );
+
+    channel.subscribe((status: string, error?: Error) => {
+      if (status === "CHANNEL_ERROR") {
+        console.error(`Realtime postgres changes error for ${topic}:`, error);
       }
     });
 
@@ -293,10 +252,7 @@ export function subscribeToPrivatePresence({
   onSync,
 }: PresenceSubscriptionOptions) {
   return startRealtimeSubscription(async () => {
-    const client = await createScopedRealtimeClient([topic]);
-    if (!client) {
-      return null;
-    }
+    const client = await createScopedRealtimeClient();
 
     const channel = client.channel(topic, {
       config: {
@@ -319,7 +275,7 @@ export function subscribeToPrivatePresence({
       onSync(buildPresenceSnapshot(channel));
     });
 
-    channel.subscribe(async (status, error) => {
+    channel.subscribe(async (status: string, error?: Error) => {
       if (status === "SUBSCRIBED") {
         await channel.track({
           ...currentUser,
@@ -350,9 +306,6 @@ export function subscribeToPresence({
 }: PresenceSubscriptionOptions) {
   return startRealtimeSubscription(async () => {
     const client = await createRealtimeClient();
-    if (!client) {
-      return null;
-    }
 
     const channel = client.channel(topic, {
       config: {
@@ -374,7 +327,7 @@ export function subscribeToPresence({
       onSync(buildPresenceSnapshot(channel));
     });
 
-    channel.subscribe(async (status, error) => {
+    channel.subscribe(async (status: string, error?: Error) => {
       if (status === "SUBSCRIBED") {
         await channel.track({
           ...currentUser,
