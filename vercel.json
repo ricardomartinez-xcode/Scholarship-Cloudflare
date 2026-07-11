@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm run build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "npm install",
+  "installCommand": "npm ci --foreground-scripts",
   "git": {
     "deploymentEnabled": {
       "fix/*": false,
@@ -16,10 +16,13 @@
     }
   },
   "functions": {
-    "src/app/api/admin/**/*": {
+    "apps/web/src/app/api/admin/**/*": {
       "maxDuration": 30
     },
-    "src/app/api/invite/**/*": {
+    "apps/web/src/app/api/files/**/*": {
+      "maxDuration": 30
+    },
+    "apps/web/src/app/api/invite/**/*": {
       "maxDuration": 30
     }
   }

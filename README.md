@@ -51,24 +51,39 @@ npm run release:gate
 
 La promoción de ramas con `npm run promote` sólo aplica para releases aprobadas y limitadas a bug fixes, no para cualquier push a `development`. La guía operativa y de secretos vive en [docs/QUALITY_RELEASE_GATES.md](docs/QUALITY_RELEASE_GATES.md).
 
-## Neon (Auth + DB)
-- Auth usa **Neon Auth (Better Auth)** con `NEON_AUTH_BASE_URL`, `NEXT_PUBLIC_NEON_AUTH_BASE_URL` y `NEON_AUTH_COOKIE_SECRET`.
-- DB usa `DATABASE_URL` (Neon serverless).
-- Seed inicial: `npm run seed:neon`
+## Supabase + Vercel migration
 
-**Restricción de dominio**
-El acceso se limita a `@unidep.edu.mx` y `@*.unidep.edu.mx` en server-side.
+La rama `migration/vercel-supabase` prepara la ruta objetivo:
 
-### Vercel (recomendado)
-1. Conecta el proyecto con **Neon** desde el panel de Vercel (Integrations).
-2. Verifica que se haya creado la variable `DATABASE_URL` en el entorno.
-3. Agrega manualmente las llaves de Neon Auth:
-   - `NEON_AUTH_BASE_URL`
-   - `NEXT_PUBLIC_NEON_AUTH_BASE_URL` (mismo valor que `NEON_AUTH_BASE_URL`)
-   - `NEON_AUTH_COOKIE_SECRET` (>= 32 caracteres)
-   - Opcional: ALLOWED_EMAILS (CSV de correos extra permitidos)
-   - Opcional: ALLOWED_EMAIL_DOMAINS (CSV de dominios permitidos, ejemplo: @relead.com.mx,@partner.edu)
-4. Asegura que las variables estén activas en **Production** y **Preview**.
+- Next.js estandar con `next build`.
+- Vercel Preview desde la raiz del monorepo.
+- Supabase PostgreSQL como base de datos.
+- Supabase Auth para sesion SSR/middleware.
+- Supabase Realtime con Postgres Changes.
+- Supabase Storage para archivos administrados y media de campanas.
+
+Variables base:
+
+```bash
+NEXT_PUBLIC_APP_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+DATABASE_URL=
+DIRECT_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Documentacion de la migracion:
+
+- [Auditoria](docs/migration-audit.md)
+- [Linea base](docs/migration-baseline.md)
+- [Base de datos](docs/database-migration.md)
+- [Auth](docs/auth-migration.md)
+- [Realtime](docs/realtime-migration.md)
+- [Storage](docs/storage-migration.md)
+- [Vercel](docs/vercel-deployment.md)
+
+La produccion Cloudflare permanece intacta. No ejecutes migraciones destructivas ni cambies DNS/dominio productivo desde esta rama.
 
 ### API (datos)
 La app consume datos **solo** desde:
@@ -76,7 +91,7 @@ La app consume datos **solo** desde:
 - `/api/data/quote`
 - `/api/data/benefits`
 
-Estas rutas requieren autenticación (Neon Auth) y dominio permitido.
+Estas rutas requieren autenticacion y autorizacion server-side.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

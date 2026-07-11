@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "npm@11.12.1",
+  "engines": {
+    "node": ">=20 <25",
+    "npm": ">=11 <12"
+  },
   "scripts": {
     "dev": "npm --workspace @relead/web run dev",
     "build": "npm run build:next",
