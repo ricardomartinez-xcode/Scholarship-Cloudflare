@@ -1,22 +1,73 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import "server-only";
 
-import type { AppD1Database } from "@/lib/d1/contracts";
+import { prisma } from "@/lib/prisma";
+import type { AppD1Database, D1PreparedStatement, D1Result } from "@/lib/d1/contracts";
 
 export type D1Value = string | number | boolean | null;
 
 export type D1DatabaseBinding = AppD1Database;
 
-type CloudflareD1Env = {
-  DB: D1DatabaseBinding;
-};
+function postgresPlaceholders(sql: string) {
+  let index = 0;
+  return sql.replace(/\?/g, () => `$${++index}`);
+}
+
+class PostgresD1PreparedStatement implements D1PreparedStatement {
+  constructor(
+    private readonly sql: string,
+    private readonly values: unknown[] = [],
+  ) {}
+
+  bind(...values: unknown[]) {
+    return new PostgresD1PreparedStatement(this.sql, values);
+  }
+
+  async first<T = Record<string, unknown>>() {
+    const rows = await this.all<T>();
+    return rows.results[0] ?? null;
+  }
+
+  async all<T = Record<string, unknown>>() {
+    const rows = await prisma.$queryRawUnsafe<T[]>(
+      postgresPlaceholders(this.sql),
+      ...this.values,
+    );
+    return { results: rows, success: true };
+  }
+
+  async run<T = Record<string, unknown>>(): Promise<D1Result<T>> {
+    const changes = await prisma.$executeRawUnsafe(
+      postgresPlaceholders(this.sql),
+      ...this.values,
+    );
+    return {
+      success: true,
+      meta: {
+        changes,
+        rows_written: changes,
+      },
+    };
+  }
+}
+
+class PostgresD1CompatDatabase implements AppD1Database {
+  prepare(query: string) {
+    return new PostgresD1PreparedStatement(query);
+  }
+
+  async batch<T = unknown>(statements: D1PreparedStatement[]) {
+    const results: D1Result<T>[] = [];
+    for (const statement of statements) {
+      results.push(await statement.run<T>());
+    }
+    return results;
+  }
+}
+
+const d1Compat = new PostgresD1CompatDatabase();
 
 export function getD1() {
-  const { env } = getCloudflareContext();
-  const db = (env as unknown as CloudflareD1Env).DB;
-  if (!db) {
-    throw new Error("Cloudflare D1 binding DB is not configured.");
-  }
-  return db;
+  return d1Compat;
 }
 
 export async function d1All<T = unknown>(sql: string, params: D1Value[] = []) {
