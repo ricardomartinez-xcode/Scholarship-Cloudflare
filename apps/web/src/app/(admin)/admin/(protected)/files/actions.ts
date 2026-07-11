@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { syncListedR2ObjectsToFileAssets } from "@/lib/file-assets";
-import { getContentBucketName, listContentBucketObjects } from "@/lib/r2-content-bucket";
+import { getContentBucketName, listContentBucketObjects } from "@/lib/storage/content-bucket";
 
 function redirectWithStatus(message: string) {
   redirect(`/admin/files?status=${encodeURIComponent(message)}`);

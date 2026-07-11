@@ -12,6 +12,7 @@
     "migration:transform-d1": "tsx scripts/transform-d1-to-postgres.ts --dry-run",
     "migration:import-supabase": "tsx scripts/import-supabase-data.ts --dry-run",
     "migration:validate-data": "tsx scripts/validate-migrated-data.ts",
+    "migration:migrate-storage": "tsx scripts/migrate-r2-to-supabase-storage.ts --dry-run",
     "check": "npm run lint && npm run typecheck && npm test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "vercel-build": "sh scripts/vercel-build.sh",

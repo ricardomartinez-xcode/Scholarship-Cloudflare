@@ -2,7 +2,7 @@ import { AdminCapability } from "@prisma/client";
 
 import { requireAdminCapabilityUser } from "@/lib/admin-session";
 import { listFileAssets } from "@/lib/file-assets";
-import { listContentBucketObjects } from "@/lib/r2-content-bucket";
+import { listContentBucketObjects } from "@/lib/storage/content-bucket";
 import FilesClient from "./FilesClient";
 
 export const dynamic = "force-dynamic";

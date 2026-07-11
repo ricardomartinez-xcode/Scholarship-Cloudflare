@@ -31,7 +31,7 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Archivo no encontrado." }, { status: 404 });
   }
 
-  const signedUrl = getFileAssetRedirectUrl(file, "inline");
+  const signedUrl = await getFileAssetRedirectUrl(file, "inline");
   const redirectUrl = signedUrl.startsWith("/") ? new URL(signedUrl, request.url) : signedUrl;
 
   return NextResponse.redirect(redirectUrl, {

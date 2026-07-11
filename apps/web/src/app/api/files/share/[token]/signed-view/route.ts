@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getFileAssetByShareToken } from "@/lib/file-share-links";
-import { createR2SignedUrl } from "@/lib/r2-storage";
+import { createSignedStorageDownloadUrl } from "@/lib/storage/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,12 +11,12 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   const asset = await getFileAssetByShareToken(token);
   if (!asset) return NextResponse.json({ ok: false, error: "Link inválido o expirado." }, { status: 404 });
 
-  const signedUrl = createR2SignedUrl({
-    method: "GET",
+  const signedUrl = await createSignedStorageDownloadUrl({
+    bucket: asset.bucket,
     key: asset.r2Key,
     expiresSeconds: 600,
-    responseContentDisposition: `inline; filename="${asset.fileName.replace(/"/g, "")}"`,
-    contentType: asset.mimeType,
+    fileName: asset.fileName,
+    disposition: "inline",
   });
 
   return NextResponse.redirect(signedUrl);

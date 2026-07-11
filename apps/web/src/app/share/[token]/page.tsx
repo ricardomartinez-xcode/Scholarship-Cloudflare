@@ -2,7 +2,10 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { getFileAssetByShareToken } from "@/lib/file-share-links";
-import { createR2SignedUrl, isPreviewableMimeType } from "@/lib/r2-storage";
+import {
+  createSignedStorageDownloadUrl,
+  isPreviewableMimeType,
+} from "@/lib/storage/supabase-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +19,12 @@ export default async function SharedFilePage({ params }: PageProps) {
   const isImage = asset.mimeType.startsWith("image/");
   const canPreview = isPreviewableMimeType(asset.mimeType);
   const signedUrl = canPreview
-    ? createR2SignedUrl({
-        method: "GET",
+    ? await createSignedStorageDownloadUrl({
+        bucket: asset.bucket,
         key: asset.r2Key,
         expiresSeconds: 600,
-        responseContentDisposition: `inline; filename="${asset.fileName.replace(/"/g, "")}"`,
-        contentType: asset.mimeType,
+        fileName: asset.fileName,
+        disposition: "inline",
       })
     : null;
 

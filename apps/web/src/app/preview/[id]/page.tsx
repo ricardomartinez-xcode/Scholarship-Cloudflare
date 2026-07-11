@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 
 import { requireAdminAccessUser } from "@/lib/admin-session";
 import { getFileAssetById } from "@/lib/file-assets";
-import { createR2SignedUrl, isPreviewableMimeType } from "@/lib/r2-storage";
+import {
+  createSignedStorageDownloadUrl,
+  isPreviewableMimeType,
+} from "@/lib/storage/supabase-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +22,12 @@ export default async function FilePreviewPage({ params }: PageProps) {
   const isImage = asset.mimeType.startsWith("image/");
   const canPreview = isPreviewableMimeType(asset.mimeType);
   const signedUrl = canPreview
-    ? createR2SignedUrl({
-        method: "GET",
+    ? await createSignedStorageDownloadUrl({
+        bucket: asset.bucket,
         key: asset.r2Key,
         expiresSeconds: 600,
-        responseContentDisposition: `inline; filename="${asset.fileName.replace(/"/g, "")}"`,
-        contentType: asset.mimeType,
+        fileName: asset.fileName,
+        disposition: "inline",
       })
     : null;
 

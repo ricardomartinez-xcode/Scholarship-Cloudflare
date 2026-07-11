@@ -54,7 +54,7 @@ vi.mock("@/lib/file-assets", () => ({
   })),
 }));
 
-vi.mock("@/lib/r2-content-bucket", () => ({
+vi.mock("@/lib/storage/content-bucket", () => ({
   listContentBucketObjects: listContentBucketObjectsMock,
   findContentBucketPlanForProgram: vi.fn((programName: string, files: Array<{
     key: string;

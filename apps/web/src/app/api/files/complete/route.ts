@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { getAdminUser } from "@/lib/admin-session";
 import { assignFileAssetUsage, createFileAsset } from "@/lib/file-assets";
-import { getMaxUploadBytes, isAllowedFileMimeType } from "@/lib/r2-storage";
+import {
+  getMaxUploadBytes,
+  getStorageBucketName,
+  isAllowedFileMimeType,
+} from "@/lib/storage/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,6 +48,7 @@ export async function POST(request: Request) {
 
   const asset = await createFileAsset({
     r2Key: objectKey,
+    bucket: getStorageBucketName(),
     fileName,
     mimeType,
     sizeBytes,
