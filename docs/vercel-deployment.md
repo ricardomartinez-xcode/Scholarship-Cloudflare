@@ -49,8 +49,11 @@ Las migraciones de base de datos no se ejecutan dentro del build. Deben aplicars
 | `DATABASE_URL` | Conexion PostgreSQL runtime/Prisma mientras se termina el desacople | Preview |
 | `DIRECT_URL` | Conexion directa para Prisma y herramientas locales | Preview |
 | `SUPABASE_SERVICE_ROLE_KEY` | Operaciones administrativas server-side, migracion y Storage controlado | Preview, solo servidor |
+| `POSTGRES_COMPAT_RUNTIME` | Switch local opcional para rutas legacy D1-named respaldadas por PostgreSQL | Local opcional |
 
 No uses `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente ni con prefijo `NEXT_PUBLIC_`.
+
+Vercel define `VERCEL=1`; con eso las rutas legacy D1-named usan el adaptador PostgreSQL-compatible sin configurar `POSTGRES_COMPAT_RUNTIME`.
 
 ## Supabase Auth URLs
 
