@@ -30,6 +30,9 @@ describe("Supabase application schema migration", () => {
   const integrityMigration = read(
     "supabase/migrations/20260712200000_domain_integrity_constraints.sql",
   );
+  const dataApiMigration = read(
+    "supabase/migrations/20260712203000_expose_recalc_api_schema.sql",
+  );
 
   it("creates every Prisma model table and protects it with RLS", () => {
     const tableNames = prismaTableNames(schema);
@@ -108,5 +111,14 @@ describe("Supabase application schema migration", () => {
     expect(campusCodes).toContain("ONLINE");
     expect(seed).toContain("ON CONFLICT (code) DO UPDATE");
     expect(seed).toContain("campus_count <> 24 OR online_count <> 1");
+  });
+
+  it("exposes the custom schema without pushing unrelated Auth settings", () => {
+    expect(dataApiMigration).toContain(
+      "pgrst.db_schemas = 'public, graphql_public, recalc_admin'",
+    );
+    expect(dataApiMigration).toContain("NOTIFY pgrst, 'reload config'");
+    expect(dataApiMigration).not.toContain("site_url");
+    expect(dataApiMigration).not.toContain("config/auth");
   });
 });
