@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { getAdminAccessState } from "@/lib/admin-session";
 import { d1All, d1First } from "@/lib/cloudflare/d1";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 import { REQUIRED_D1_TABLES } from "@/lib/d1/preflight";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +10,6 @@ export async function GET() {
   const access = await getAdminAccessState();
   if (access.status !== "ok" || !access.user.capabilities.includes("view_admin_operations")) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
-  if (!isCloudflareRuntime()) {
-    return NextResponse.json({ ok: false, error: "cloudflare_runtime_required" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
   try {
     const ping = await d1First<{ ok: number }>("SELECT 1 AS ok");
@@ -31,7 +27,7 @@ export async function GET() {
       presentTables: REQUIRED_D1_TABLES.filter((name) => present.has(name)),
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("D1 diagnostics failed", error);
-    return NextResponse.json({ ok: false, error: "d1_unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    console.error("PostgreSQL compatibility diagnostics failed", error);
+    return NextResponse.json({ ok: false, error: "postgres_compat_unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
 }

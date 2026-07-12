@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "No fue posible exportar el historial. Confirma que la migración Campaign Sender está aplicada en D1.",
+        error: "No fue posible exportar el historial. Confirma que la migración Campaign Sender está aplicada en PostgreSQL.",
         code: "campaign_export_unavailable",
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },

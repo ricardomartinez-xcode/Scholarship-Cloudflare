@@ -21,7 +21,7 @@ export async function syncContentBucketFilesAction() {
 
   const contentBucketFiles = await listContentBucketObjects();
   if (!contentBucketFiles.length) {
-    redirectWithError("No se encontraron archivos listables en el bucket content.");
+    redirectWithError("No se encontraron archivos listables en el bucket de contenido.");
   }
 
   const result = await syncListedR2ObjectsToFileAssets({

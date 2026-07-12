@@ -24,7 +24,7 @@ export default async function AdminFilesPage({
   return (
     <div className="grid gap-6 p-6">
       <div>
-        <h1 className="text-xl font-semibold">Archivos R2</h1>
+        <h1 className="text-xl font-semibold">Archivos Storage</h1>
         <p className="mt-1 text-sm text-slate-300">
           Gestiona assets reutilizables para programas, previews, formatos y capacitación.
         </p>

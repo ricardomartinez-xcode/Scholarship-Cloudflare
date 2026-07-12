@@ -20,7 +20,7 @@ const IMPORT_STEPS = [
   {
     label: "1. Origen",
     title: "Prepara o ubica el archivo",
-    description: "Sube un archivo local en el importador del módulo, o sincroniza primero assets existentes desde R2.",
+    description: "Sube un archivo local en el importador del módulo, o sincroniza primero assets existentes desde Storage.",
   },
   {
     label: "2. Destino",
@@ -61,9 +61,9 @@ const IMPORT_TARGETS = [
   },
   {
     label: "Oferta académica",
-    description: "Administra programas académicos, datos base y assets R2 de planes o brochures.",
+    description: "Administra programas académicos, datos base y assets Storage de planes o brochures.",
     href: "/admin/unidep/programs",
-    format: "Catálogo / R2",
+    format: "Catálogo / Storage",
     action: "Administrar oferta académica",
   },
   {
@@ -414,7 +414,7 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
             href="/admin/files"
             className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c8d6e2] bg-[#f7fafc] px-4 text-sm font-extrabold text-[#163247] transition hover:border-[#0f4c6b]/40 hover:bg-[#0f4c6b]/10"
           >
-            Revisar archivos R2
+            Revisar archivos Storage
           </Link>
         </div>
 
@@ -427,13 +427,13 @@ export default async function ImportSessionsPage({ searchParams }: { searchParam
 
       <section className="rounded-[26px] border border-[#c8d6e2] bg-[#f7fafc] p-5">
         <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">
-          R2 como origen
+          Storage como origen
         </div>
         <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-[#102838]">
           Si el archivo ya está en el bucket, primero sincroniza o relaciónalo
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-[#536a7c]">
-          Archivos R2 administra assets y materiales. Para que un importador los use, el archivo debe estar registrado o descargarse desde R2 y después cargarse en el destino operativo. Para capacitación, selecciona `Material de capacitación` y un uso de material desde Archivos R2.
+          Archivos Storage administra assets y materiales. Para que un importador los use, el archivo debe estar registrado o descargarse desde Storage y después cargarse en el destino operativo. Para capacitación, selecciona `Material de capacitación` y un uso de material desde Archivos Storage.
         </p>
       </section>
 

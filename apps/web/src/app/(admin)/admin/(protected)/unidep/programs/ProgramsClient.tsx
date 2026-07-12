@@ -49,7 +49,7 @@ function AssetBadge({ label, r2Asset, existingUrl }: { label: string; r2Asset?: 
   if (r2Asset) {
     return (
       <a href={r2Asset.previewUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20" title={r2Asset.fileName}>
-        {label}: R2
+        {label}: Storage
       </a>
     );
   }
@@ -73,7 +73,7 @@ function AssetSelect({ label, name, assets, defaultValue }: { label: string; nam
     <label className="grid gap-2 text-sm">
       {label}
       <select name={name} defaultValue={defaultValue ?? ""} className="ui-control">
-        <option value="">Sin R2</option>
+        <option value="">Sin Storage</option>
         {assets.map((asset) => (
           <option key={asset.id} value={asset.id}>{formatAssetOption(asset)}</option>
         ))}
@@ -192,7 +192,7 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
           <div>
             <div className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#536a7c]">Programas</div>
             <h2 className="mt-1 text-xl font-black tracking-[-0.035em] text-[#102838]">Catálogo de PDFs y metadata</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">Administra campos operativos, línea de negocio y archivos R2 por programa.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#536a7c]">Administra campos operativos, línea de negocio y archivos Storage por programa.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={openCreate} className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-xs font-extrabold uppercase tracking-[0.16em] text-white transition hover:bg-[#0b3d56]">
@@ -310,7 +310,7 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
               <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">URL Brochure PDF<input name="brochurePdfUrl" defaultValue={editing.brochurePdfUrl ?? ""} className="ui-control" placeholder="https://..." /></label>
             </div>
             <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-              <div><div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Assets R2 del programa</div><p className="mt-1 text-xs text-slate-400">Selecciona archivos ya cargados en R2. Vacío limpia la relación, no borra el archivo.</p></div>
+              <div><div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Assets Storage del programa</div><p className="mt-1 text-xs text-slate-400">Selecciona archivos ya cargados en Storage. Vacío limpia la relación, no borra el archivo.</p></div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <AssetSelect label="Plan PDF" name="r2StudyPlanFileId" assets={pdfAssets} defaultValue={editing.r2Assets?.study_plan_pdf?.fileId} />
                 <AssetSelect label="Brochure PDF" name="r2BrochureFileId" assets={pdfAssets} defaultValue={editing.r2Assets?.brochure_pdf?.fileId} />
@@ -327,7 +327,7 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
           </form>
         ) : null}
       </AdminDialogShell>
-      <AdminDialogShell open={creating} onOpenChange={(open) => { if (!open) setCreating(false); }} title="Nuevo programa" description="Crea un plan de estudios manual y vincula assets R2 si ya están cargados." kicker="Programas" size="lg">
+      <AdminDialogShell open={creating} onOpenChange={(open) => { if (!open) setCreating(false); }} title="Nuevo programa" description="Crea un plan de estudios manual y vincula assets Storage si ya están cargados." kicker="Programas" size="lg">
         <form onSubmit={handleCreateSubmit} className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">Nombre del programa<input name="name" className="ui-control" placeholder="Nombre del programa" required /></label>
@@ -338,7 +338,7 @@ export default function ProgramsClient({ programs, fileAssets }: { programs: Pro
             <label className="grid gap-2 text-sm font-bold text-[#163247] sm:col-span-2">URL Brochure PDF<input name="brochurePdfUrl" className="ui-control" placeholder="https://..." /></label>
           </div>
           <div className="grid gap-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
-            <div><div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Assets R2 del programa</div><p className="mt-1 text-xs text-slate-400">Selecciona archivos ya cargados en R2. También puedes dejarlo vacío y vincularlos después.</p></div>
+            <div><div className="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Assets Storage del programa</div><p className="mt-1 text-xs text-slate-400">Selecciona archivos ya cargados en Storage. También puedes dejarlo vacío y vincularlos después.</p></div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <AssetSelect label="Plan PDF" name="r2StudyPlanFileId" assets={pdfAssets} />
               <AssetSelect label="Brochure PDF" name="r2BrochureFileId" assets={pdfAssets} />

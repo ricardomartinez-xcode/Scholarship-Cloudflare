@@ -12,6 +12,11 @@ function postgresPlaceholders(sql: string) {
   return sql.replace(/\?/g, () => `$${++index}`);
 }
 
+function sqliteMasterTableName(sql: string) {
+  const match = /\bname\s*=\s*'([^']+)'/i.exec(sql);
+  return match?.[1] ?? null;
+}
+
 class PostgresD1PreparedStatement implements D1PreparedStatement {
   constructor(
     private readonly sql: string,
@@ -28,6 +33,27 @@ class PostgresD1PreparedStatement implements D1PreparedStatement {
   }
 
   async all<T = Record<string, unknown>>() {
+    if (/^\s*PRAGMA\s+foreign_key_check/i.test(this.sql)) {
+      return { results: [] as T[], success: true };
+    }
+
+    if (/\bFROM\s+sqlite_master\b/i.test(this.sql)) {
+      const literalName = sqliteMasterTableName(this.sql);
+      const names = this.values.length ? this.values : literalName ? [literalName] : [];
+      const filters = names.length
+        ? `AND table_name IN (${names.map((_, index) => `$${index + 1}`).join(", ")})`
+        : "";
+      const rows = await prisma.$queryRawUnsafe<T[]>(
+        `SELECT table_name AS name
+           FROM information_schema.tables
+          WHERE table_schema IN ('recalc_admin', 'public')
+            AND table_type = 'BASE TABLE'
+            ${filters}`,
+        ...names,
+      );
+      return { results: rows, success: true };
+    }
+
     const rows = await prisma.$queryRawUnsafe<T[]>(
       postgresPlaceholders(this.sql),
       ...this.values,

@@ -83,7 +83,7 @@ export default async function EnrollmentFormatsAdminPage() {
         </div>
         <h1 className="mt-1 text-xl font-semibold text-slate-100">Formatos</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          Administra documentos útiles para inscripción. Selecciona un asset R2 existente
+          Administra documentos útiles para inscripción. Selecciona un asset Storage existente
           o registra un link externo.
         </p>
       </section>
@@ -130,7 +130,7 @@ export default async function EnrollmentFormatsAdminPage() {
           </label>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm">
-              Asset R2 existente
+              Asset Storage existente
               <select name="fileAssetId" className="ui-control" defaultValue="">
                 <option value="">Sin seleccionar</option>
                 {formatAssets.map((file) => (
@@ -150,7 +150,7 @@ export default async function EnrollmentFormatsAdminPage() {
             />
           </label>
           <div className="text-xs leading-5 text-slate-400">
-            Carga archivos nuevos desde Admin &gt; Archivos R2; aquí sólo se vinculan assets existentes o links externos.
+            Carga archivos nuevos desde Admin &gt; Archivos Storage; aquí sólo se vinculan assets existentes o links externos.
           </div>
           <div className="flex justify-end">
             <button type="submit" className="ui-button-info px-4 py-2 text-sm">
@@ -164,14 +164,14 @@ export default async function EnrollmentFormatsAdminPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
-              R2
+              Storage
             </div>
             <h2 className="mt-1 text-lg font-semibold text-slate-100">
               Assets disponibles para formatos
             </h2>
           </div>
           <a href="/admin/files" className="ui-button-secondary px-3 py-2 text-xs">
-            Gestionar R2
+            Gestionar Storage
           </a>
         </div>
         {formatAssets.length ? (
@@ -192,7 +192,7 @@ export default async function EnrollmentFormatsAdminPage() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-slate-400">
-            Aún no hay documentos R2 sincronizados para formatos.
+            Aún no hay documentos Storage sincronizados para formatos.
           </div>
         )}
       </section>
@@ -285,7 +285,7 @@ export default async function EnrollmentFormatsAdminPage() {
                 </label>
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="grid gap-2 text-sm">
-                    Reemplazar con asset R2
+                    Reemplazar con asset Storage
                     <select name="fileAssetId" className="ui-control" defaultValue="">
                       <option value="">
                         {format.r2Asset ? `Actual: ${format.r2Asset.fileName}` : "Sin cambio"}

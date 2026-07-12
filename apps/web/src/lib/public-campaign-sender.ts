@@ -625,9 +625,9 @@ export async function campaignHealth() {
     `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'campaign_sender_profile' LIMIT 1`,
   );
   if (!row?.name) {
-    throw new PublicCampaignError("La migración Campaign Sender aún no está aplicada en D1.", 503, "campaign_migration_pending");
+    throw new PublicCampaignError("La migración Campaign Sender aún no está aplicada en PostgreSQL.", 503, "campaign_migration_pending");
   }
-  return { storage: "d1", feature: "campaign-sender", media: false, authentication: "local-profile-key" };
+  return { storage: "postgres", feature: "campaign-sender", media: false, authentication: "local-profile-key" };
 }
 
 export type CampaignSenderAdminRow = {

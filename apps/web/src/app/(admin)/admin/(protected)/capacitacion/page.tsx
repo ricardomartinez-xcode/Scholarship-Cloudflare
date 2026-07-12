@@ -298,7 +298,7 @@ export default async function AdminCapacitacionPage({
         <TrainingKpi
           label="Materiales"
           value={materials.length}
-          description="Recursos publicados desde R2 para capacitación."
+          description="Recursos publicados desde Storage para capacitación."
         />
       </section>
 
@@ -453,16 +453,16 @@ export default async function AdminCapacitacionPage({
 
         <div className="grid gap-5 content-start">
           <TrainingSection
-            kicker="Materiales R2"
+            kicker="Materiales Storage"
             title="Recursos publicados"
-            description="Sube videos, PDFs, imágenes o documentos en Archivos R2 y relaciónalos como Material de capacitación."
+            description="Sube videos, PDFs, imágenes o documentos en Archivos Storage y relaciónalos como Material de capacitación."
           >
             <div className="grid gap-3">
               <a
                 href="/admin/files"
                 className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0f4c6b] bg-[#0f4c6b] px-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgb(15_76_107/0.16)] transition hover:bg-[#0b3d56]"
               >
-                Configurar archivos R2
+                Configurar archivos Storage
               </a>
               {materials.length === 0 ? (
                 <div className="rounded-[20px] border border-dashed border-[#c8d6e2] bg-[#f7fafc] px-4 py-6 text-sm text-[#536a7c]">

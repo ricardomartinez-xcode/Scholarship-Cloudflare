@@ -45,7 +45,7 @@ function validateUrl(raw: string | null) {
 function formatPayloadFromAsset(file: FileAssetRecord): FormatFilePayload {
   const payload = toPublicFileAssetPayload(file);
   if (!payload) {
-    throw new Error("No fue posible preparar el archivo R2.");
+    throw new Error("No fue posible preparar el archivo Storage.");
   }
 
   return {
@@ -82,7 +82,7 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
 
     const selectedAsset = fileAssetId ? await getFileAssetById(fileAssetId) : null;
     if (fileAssetId && !selectedAsset) {
-      throw new Error("El archivo R2 seleccionado no existe o no está disponible.");
+      throw new Error("El archivo Storage seleccionado no existe o no está disponible.");
     }
 
     const r2Asset = selectedAsset;
@@ -93,7 +93,7 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
     }
 
     if (!current && !r2Asset && !linkUrl) {
-      throw new Error("Selecciona un asset R2 o captura un link de descarga.");
+      throw new Error("Selecciona un asset Storage o captura un link de descarga.");
     }
 
     const nextFile: FormatFilePayload | null = r2Asset
@@ -117,7 +117,7 @@ export async function upsertEnrollmentFormatAction(formData: FormData) {
           : null;
 
     if (!nextFile) {
-      throw new Error("Selecciona un asset R2 o captura un link de descarga.");
+      throw new Error("Selecciona un asset Storage o captura un link de descarga.");
     }
 
     await upsertEnrollmentFormat({
