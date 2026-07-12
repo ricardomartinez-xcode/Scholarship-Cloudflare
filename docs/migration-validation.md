@@ -73,7 +73,7 @@ Los artefactos generados por dry-run se retiraron del working tree y no se commi
 | Proyecto Vercel | Pasa | Next.js, Node 22, raiz monorepo, comandos install/build y output verificados | GitHub enlazado; produccion Git permanece en `main`. |
 | Variables Supabase Preview | Pasa | Publicas limitadas a la rama; secretos de integracion habilitados para Preview | Vercel mantiene ocultos los valores `sensitive`. |
 | Preview inicial | Corregido | Vercel rechazo los globs `functions` que no coincidian con funciones detectadas | Se eliminaron los overrides; Vercel usa deteccion App Router. |
-| Preview final | Pasa | `Compiled successfully in 56s`, 16 paginas generadas, deployment completado | `https://scholarship-fe5vltcoe-re-lead.vercel.app`. |
+| Preview final | Pasa | `Compiled successfully`, 16 paginas generadas, deployment completado | `https://scholarship-git-migration-vercel-supabase-re-lead.vercel.app`. |
 | Supabase Auth API | Pasa parcial | health/settings `200`; email habilitado | Google y phone deshabilitados; no se creo usuario de prueba. |
 | Rutas publicas | Pasa parcial | `/`, `/legal/privacy`, `/auth/sign-in` = `200`; after-login sin sesion = `303` | Vercel Deployment Protection se valido con bypass CLI. |
 | Lectura PostgreSQL | Bloqueada | `/api/public/campuses` = `500` | Prisma: `recalc_admin.campus` no existe; requiere aplicar migraciones staging. |
