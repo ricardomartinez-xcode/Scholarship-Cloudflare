@@ -36,6 +36,9 @@ describe("Supabase application schema migration", () => {
   const dataApiReloadMigration = read(
     "supabase/migrations/20260712203500_reload_postgrest_schema.sql",
   );
+  const documentsBucketMigration = read(
+    "supabase/migrations/20260712204000_align_documents_bucket_mime_types.sql",
+  );
 
   it("creates every Prisma model table and protects it with RLS", () => {
     const tableNames = prismaTableNames(schema);
@@ -124,5 +127,22 @@ describe("Supabase application schema migration", () => {
     expect(dataApiMigration).not.toContain("site_url");
     expect(dataApiMigration).not.toContain("config/auth");
     expect(dataApiReloadMigration).toContain("NOTIFY pgrst, 'reload schema'");
+  });
+
+  it("keeps the documents bucket MIME rules aligned with the server adapter", () => {
+    for (const mimeType of [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "video/mp4",
+      "video/webm",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ]) {
+      expect(documentsBucketMigration).toContain(`'${mimeType}'`);
+    }
   });
 });
