@@ -243,9 +243,9 @@ export async function getProductReportingSnapshot() {
     crmProposal: getCrmWebhookProposal(),
     syncHealth: {
       generatedAt: syncReport?.generatedAt ?? new Date().toISOString(),
-      neonAuthAvailable: syncReport?.diagnostics.neonAuthAvailable ?? false,
-      neonAuthWarning:
-        syncReport?.diagnostics.neonAuthWarning ??
+      supabaseAuthAvailable: syncReport?.diagnostics.supabaseAuthAvailable ?? false,
+      supabaseAuthWarning:
+        syncReport?.diagnostics.supabaseAuthWarning ??
         "No se pudo construir el diagnóstico de sincronización para este snapshot.",
       totals: syncReport?.summary ?? {
         totalFindings: 0,

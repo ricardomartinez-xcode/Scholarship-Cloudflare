@@ -1,11 +1,13 @@
+import "server-only";
+
 import { Role } from "@prisma/client";
 
-import { getSql } from "@/lib/neon";
 import { prisma } from "@/lib/prisma";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type SyncSeverity = "low" | "medium" | "high" | "critical";
 
-export type NeonAuthUser = {
+export type SupabaseAuthUser = {
   id: string;
   email: string | null;
   name: string | null;
@@ -31,57 +33,49 @@ export type AppOrphanRecord = {
 
 export type AuthReferenceRecord = {
   user: AppUserSnapshot;
-  neonId: string;
-  neonEmail: string | null;
+  supabaseId: string;
+  supabaseEmail: string | null;
 };
 
 export type BrokenAuthReferenceRecord = {
   user: AppUserSnapshot;
-  suggestedNeonId: string | null;
-  suggestedNeonEmail: string | null;
+  suggestedSupabaseId: string | null;
+  suggestedSupabaseEmail: string | null;
 };
 
-export type NeonDuplicateEmailRecord = {
+export type AuthDuplicateEmailRecord = {
   email: string;
   count: number;
-  neonIds: string[];
+  supabaseIds: string[];
 };
 
 export type AuthSyncDiagnostics = {
   generatedAt: string;
-  neonAuthAvailable: boolean;
-  neonAuthWarning: string | null;
+  supabaseAuthAvailable: boolean;
+  supabaseAuthWarning: string | null;
   warnings: string[];
   appUsers: AppUserSnapshot[];
-  neonUsers: NeonAuthUser[];
-  neonOnly: NeonAuthUser[];
+  supabaseUsers: SupabaseAuthUser[];
+  supabaseOnly: SupabaseAuthUser[];
   appOrphans: AppOrphanRecord[];
   missingAuthUserIdMatches: AuthReferenceRecord[];
   brokenAuthReferences: BrokenAuthReferenceRecord[];
   mismatchedEmailByAuthUserId: AuthReferenceRecord[];
-  duplicateNeonEmails: NeonDuplicateEmailRecord[];
+  duplicateSupabaseEmails: AuthDuplicateEmailRecord[];
   privilegedOrphans: AppOrphanRecord[];
   summary: {
     appUsersTotal: number;
     appUsersAnalyzed: number;
-    neonUsersTotal: number | null;
-    neonUsersAnalyzed: number;
-    neonOnlyCount: number;
+    supabaseUsersTotal: number | null;
+    supabaseUsersAnalyzed: number;
+    supabaseOnlyCount: number;
     appOrphansCount: number;
     missingAuthUserIdMatchesCount: number;
     brokenAuthReferencesCount: number;
     mismatchedEmailByAuthUserIdCount: number;
-    duplicateNeonEmailsCount: number;
+    duplicateSupabaseEmailsCount: number;
     privilegedOrphansCount: number;
   };
-};
-
-type NeonCountRow = { count: number | string };
-type NeonUserRow = {
-  id: string;
-  email: string | null;
-  name: string | null;
-  created_at: string | Date | null;
 };
 
 function clampLimit(limit: number | undefined, fallback = 2500) {
@@ -133,16 +127,48 @@ function toAppSnapshot(user: {
   };
 }
 
-function buildNeonByEmailMap(neonUsers: NeonAuthUser[]) {
-  const map = new Map<string, NeonAuthUser[]>();
-  for (const neonUser of neonUsers) {
-    const email = normalizeEmail(neonUser.email);
+function buildSupabaseByEmailMap(supabaseUsers: SupabaseAuthUser[]) {
+  const map = new Map<string, SupabaseAuthUser[]>();
+  for (const supabaseUser of supabaseUsers) {
+    const email = normalizeEmail(supabaseUser.email);
     if (!email) continue;
     const current = map.get(email) ?? [];
-    current.push(neonUser);
+    current.push(supabaseUser);
     map.set(email, current);
   }
   return map;
+}
+
+async function listSupabaseAuthUsers(analysisLimit: number) {
+  const supabase = createSupabaseAdminClient();
+  const perPage = Math.min(analysisLimit, 1000);
+  const users: SupabaseAuthUser[] = [];
+  let page = 1;
+  let total = 0;
+
+  while (users.length < analysisLimit) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+
+    total = data.total;
+    users.push(
+      ...data.users.map((user) => {
+        const metadata = user.user_metadata as Record<string, unknown> | undefined;
+        const nameCandidate = metadata?.name ?? metadata?.display_name;
+        return {
+          id: user.id,
+          email: user.email ?? null,
+          name: typeof nameCandidate === "string" ? nameCandidate : null,
+          createdAt: toIso(user.created_at),
+        } satisfies SupabaseAuthUser;
+      }),
+    );
+
+    if (!data.nextPage || data.users.length === 0) break;
+    page = data.nextPage;
+  }
+
+  return { total, users: users.slice(0, analysisLimit) };
 }
 
 export async function getAuthSyncDiagnostics(options?: {
@@ -181,58 +207,40 @@ export async function getAuthSyncDiagnostics(options?: {
     appByAuthUserId.set(user.authUserId, user);
   }
 
-  let neonAuthAvailable = true;
-  let neonAuthWarning: string | null = null;
-  let neonUsers: NeonAuthUser[] = [];
-  let neonUsersTotal: number | null = null;
+  let supabaseAuthAvailable = true;
+  let supabaseAuthWarning: string | null = null;
+  let supabaseUsers: SupabaseAuthUser[] = [];
+  let supabaseUsersTotal: number | null = null;
 
   try {
-    const sql = getSql();
-    const [countRows, neonRows] = await Promise.all([
-      sql`SELECT COUNT(*)::int AS count FROM neon_auth."user"`,
-      sql`
-        SELECT
-          n.id::text AS id,
-          n.email,
-          n.name,
-          n."createdAt" AS created_at
-        FROM neon_auth."user" n
-        ORDER BY n."createdAt" DESC
-        LIMIT ${analysisLimit}
-      `,
-    ]);
-    neonUsersTotal = Number((countRows as NeonCountRow[])[0]?.count ?? 0);
-    neonUsers = (neonRows as NeonUserRow[]).map((row) => ({
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      createdAt: toIso(row.created_at),
-    }));
-    if (neonUsersTotal > analysisLimit) {
+    const result = await listSupabaseAuthUsers(analysisLimit);
+    supabaseUsersTotal = result.total;
+    supabaseUsers = result.users;
+    if (supabaseUsersTotal > analysisLimit) {
       warnings.push(
-        `El diagnóstico analizó ${analysisLimit} de ${neonUsersTotal} usuarios de Neon Auth.`,
+        `El diagnóstico analizó ${analysisLimit} de ${supabaseUsersTotal} usuarios de Supabase Auth.`,
       );
     }
   } catch (error) {
-    neonAuthAvailable = false;
-    neonAuthWarning =
-      "No se pudo consultar neon_auth.user. Verifica acceso al schema neon_auth y permisos SELECT.";
-    warnings.push(`${neonAuthWarning} (${describeDbError(error)})`);
+    supabaseAuthAvailable = false;
+    supabaseAuthWarning =
+      "No se pudo consultar Supabase Auth Admin API. Verifica SUPABASE_SERVICE_ROLE_KEY.";
+    warnings.push(`${supabaseAuthWarning} (${describeDbError(error)})`);
   }
 
-  const neonById = new Map(neonUsers.map((user) => [user.id, user]));
-  const neonByEmail = buildNeonByEmailMap(neonUsers);
+  const supabaseById = new Map(supabaseUsers.map((user) => [user.id, user]));
+  const supabaseByEmail = buildSupabaseByEmailMap(supabaseUsers);
 
-  const neonOnly =
-    neonAuthAvailable
-      ? neonUsers.filter((neonUser) => !appByAuthUserId.has(neonUser.id))
+  const supabaseOnly =
+    supabaseAuthAvailable
+      ? supabaseUsers.filter((supabaseUser) => !appByAuthUserId.has(supabaseUser.id))
       : [];
 
   const appOrphans: AppOrphanRecord[] = appUsers
     .filter((user) => {
       if (!user.authUserId) return true;
-      if (!neonAuthAvailable) return false;
-      return !neonById.has(user.authUserId);
+      if (!supabaseAuthAvailable) return false;
+      return !supabaseById.has(user.authUserId);
     })
     .map((user) => ({
       user,
@@ -249,16 +257,16 @@ export async function getAuthSyncDiagnostics(options?: {
     .filter((user) => !user.authUserId)
     .map((user) => {
       const email = normalizeEmail(user.email);
-      if (!email || !neonAuthAvailable) return null;
-      const matches = neonByEmail.get(email) ?? [];
+      if (!email || !supabaseAuthAvailable) return null;
+      const matches = supabaseByEmail.get(email) ?? [];
       if (matches.length !== 1) return null;
       const [match] = matches;
       if (!match) return null;
       if (appByAuthUserId.has(match.id)) return null;
       return {
         user,
-        neonId: match.id,
-        neonEmail: match.email,
+        supabaseId: match.id,
+        supabaseEmail: match.email,
       } satisfies AuthReferenceRecord;
     })
     .filter((item): item is AuthReferenceRecord => Boolean(item));
@@ -267,14 +275,14 @@ export async function getAuthSyncDiagnostics(options?: {
     .filter((user) => Boolean(user.authUserId))
     .map((user) => {
       if (!user.authUserId) return null;
-      if (!neonAuthAvailable || neonById.has(user.authUserId)) return null;
+      if (!supabaseAuthAvailable || supabaseById.has(user.authUserId)) return null;
       const email = normalizeEmail(user.email);
-      const matches = email ? neonByEmail.get(email) ?? [] : [];
+      const matches = email ? supabaseByEmail.get(email) ?? [] : [];
       const suggested = matches.length === 1 ? matches[0] : null;
       return {
         user,
-        suggestedNeonId: suggested?.id ?? null,
-        suggestedNeonEmail: suggested?.email ?? null,
+        suggestedSupabaseId: suggested?.id ?? null,
+        suggestedSupabaseEmail: suggested?.email ?? null,
       } satisfies BrokenAuthReferenceRecord;
     })
     .filter((item): item is BrokenAuthReferenceRecord => Boolean(item));
@@ -283,22 +291,22 @@ export async function getAuthSyncDiagnostics(options?: {
     .filter((user) => Boolean(user.authUserId))
     .map((user) => {
       if (!user.authUserId) return null;
-      const neonUser = neonById.get(user.authUserId);
-      if (!neonUser) return null;
-      if (normalizeEmail(neonUser.email) === normalizeEmail(user.email)) return null;
+      const supabaseUser = supabaseById.get(user.authUserId);
+      if (!supabaseUser) return null;
+      if (normalizeEmail(supabaseUser.email) === normalizeEmail(user.email)) return null;
       return {
         user,
-        neonId: neonUser.id,
-        neonEmail: neonUser.email,
+        supabaseId: supabaseUser.id,
+        supabaseEmail: supabaseUser.email,
       } satisfies AuthReferenceRecord;
     })
     .filter((item): item is AuthReferenceRecord => Boolean(item));
 
-  const duplicateNeonEmails: NeonDuplicateEmailRecord[] = Array.from(neonByEmail.entries())
+  const duplicateSupabaseEmails: AuthDuplicateEmailRecord[] = Array.from(supabaseByEmail.entries())
     .map(([email, rows]) => ({
       email,
       count: rows.length,
-      neonIds: rows.map((row) => row.id),
+      supabaseIds: rows.map((row) => row.id),
     }))
     .filter((record) => record.count > 1)
     .sort((left, right) => right.count - left.count || left.email.localeCompare(right.email, "es"));
@@ -311,29 +319,29 @@ export async function getAuthSyncDiagnostics(options?: {
 
   return {
     generatedAt: new Date().toISOString(),
-    neonAuthAvailable,
-    neonAuthWarning,
+    supabaseAuthAvailable,
+    supabaseAuthWarning,
     warnings,
     appUsers,
-    neonUsers,
-    neonOnly,
+    supabaseUsers,
+    supabaseOnly,
     appOrphans,
     missingAuthUserIdMatches,
     brokenAuthReferences,
     mismatchedEmailByAuthUserId,
-    duplicateNeonEmails,
+    duplicateSupabaseEmails,
     privilegedOrphans,
     summary: {
       appUsersTotal,
       appUsersAnalyzed: appUsers.length,
-      neonUsersTotal,
-      neonUsersAnalyzed: neonUsers.length,
-      neonOnlyCount: neonOnly.length,
+      supabaseUsersTotal,
+      supabaseUsersAnalyzed: supabaseUsers.length,
+      supabaseOnlyCount: supabaseOnly.length,
       appOrphansCount: appOrphans.length,
       missingAuthUserIdMatchesCount: missingAuthUserIdMatches.length,
       brokenAuthReferencesCount: brokenAuthReferences.length,
       mismatchedEmailByAuthUserIdCount: mismatchedEmailByAuthUserId.length,
-      duplicateNeonEmailsCount: duplicateNeonEmails.length,
+      duplicateSupabaseEmailsCount: duplicateSupabaseEmails.length,
       privilegedOrphansCount: privilegedOrphans.length,
     },
   };

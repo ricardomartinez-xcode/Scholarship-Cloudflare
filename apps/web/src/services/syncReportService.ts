@@ -63,13 +63,13 @@ export async function generateSyncOperationalReport(params: {
 
   const findings: SyncReportFinding[] = [];
 
-  if (!diagnostics.neonAuthAvailable) {
+  if (!diagnostics.supabaseAuthAvailable) {
     pushFinding(findings, {
-      id: "neon-auth-unavailable",
-      title: "Acceso a neon_auth no disponible",
+      id: "supabase-auth-unavailable",
+      title: "Supabase Auth Admin API no disponible",
       message:
-        diagnostics.neonAuthWarning ??
-        "No se pudo consultar el schema neon_auth.user para completar el diagnóstico.",
+        diagnostics.supabaseAuthWarning ??
+        "No se pudo consultar Supabase Auth Admin API para completar el diagnóstico.",
       severity: "critical",
       count: 1,
       recoverable: false,
@@ -78,15 +78,15 @@ export async function generateSyncOperationalReport(params: {
   }
 
   pushFinding(findings, {
-    id: "neon-only-users",
-    title: "Usuarios solo en Neon Auth",
+    id: "supabase-only-users",
+    title: "Usuarios solo en Supabase Auth",
     message:
       "Estas cuentas autenticadas todavía no tienen fila en recalc_admin.user o no cumplen condiciones de alta.",
     severity: "medium",
-    count: diagnostics.summary.neonOnlyCount,
+    count: diagnostics.summary.supabaseOnlyCount,
     recoverable: true,
     suggestedActions: ["auth.create_minimal_app_users"],
-    sample: diagnostics.neonOnly.map((row) => ({
+    sample: diagnostics.supabaseOnly.map((row) => ({
       id: row.id,
       email: row.email,
       createdAt: row.createdAt,
@@ -119,7 +119,7 @@ export async function generateSyncOperationalReport(params: {
     id: "missing-auth-link",
     title: "Referencias authUserId faltantes",
     message:
-      "Usuarios de app sin authUserId pero con match seguro por email en Neon Auth.",
+      "Usuarios de app sin authUserId pero con match seguro por email en Supabase Auth.",
     severity: "medium",
     count: diagnostics.summary.missingAuthUserIdMatchesCount,
     recoverable: true,
@@ -127,7 +127,7 @@ export async function generateSyncOperationalReport(params: {
     sample: diagnostics.missingAuthUserIdMatches.map((row) => ({
       userId: row.user.id,
       email: row.user.email,
-      neonId: row.neonId,
+      supabaseId: row.supabaseId,
     })),
   });
 
@@ -135,7 +135,7 @@ export async function generateSyncOperationalReport(params: {
     id: "broken-auth-reference",
     title: "Referencias authUserId rotas",
     message:
-      "authUserId apunta a un usuario inexistente en Neon Auth. Se sugiere reparar por email cuando sea un match único.",
+      "authUserId apunta a un usuario inexistente en Supabase Auth. Se sugiere reparar por email cuando sea un match único.",
     severity: "high",
     count: diagnostics.summary.brokenAuthReferencesCount,
     recoverable: true,
@@ -144,7 +144,7 @@ export async function generateSyncOperationalReport(params: {
       userId: row.user.id,
       email: row.user.email,
       authUserId: row.user.authUserId,
-      suggestedNeonId: row.suggestedNeonId,
+      suggestedSupabaseId: row.suggestedSupabaseId,
     })),
   });
 
@@ -152,7 +152,7 @@ export async function generateSyncOperationalReport(params: {
     id: "email-mismatch",
     title: "Mismatch email vs authUserId",
     message:
-      "El email guardado en app difiere del email real en Neon Auth para el mismo authUserId.",
+      "El email guardado en app difiere del email real en Supabase Auth para el mismo authUserId.",
     severity: "high",
     count: diagnostics.summary.mismatchedEmailByAuthUserIdCount,
     recoverable: true,
@@ -160,24 +160,24 @@ export async function generateSyncOperationalReport(params: {
     sample: diagnostics.mismatchedEmailByAuthUserId.map((row) => ({
       userId: row.user.id,
       appEmail: row.user.email,
-      neonEmail: row.neonEmail,
+      supabaseEmail: row.supabaseEmail,
       authUserId: row.user.authUserId,
     })),
   });
 
   pushFinding(findings, {
-    id: "duplicate-neon-emails",
-    title: "Duplicados por email en Neon Auth",
+    id: "duplicate-supabase-emails",
+    title: "Duplicados por email en Supabase Auth",
     message:
-      "Hay más de una cuenta de Neon Auth con el mismo email. Requiere revisión manual antes de autorreparar.",
+      "Hay más de una cuenta de Supabase Auth con el mismo email. Requiere revisión manual antes de autorreparar.",
     severity: "critical",
-    count: diagnostics.summary.duplicateNeonEmailsCount,
+    count: diagnostics.summary.duplicateSupabaseEmailsCount,
     recoverable: false,
     suggestedActions: [],
-    sample: diagnostics.duplicateNeonEmails.map((row) => ({
+    sample: diagnostics.duplicateSupabaseEmails.map((row) => ({
       email: row.email,
       count: row.count,
-      neonIds: row.neonIds,
+      supabaseIds: row.supabaseIds,
     })),
   });
 
@@ -185,7 +185,7 @@ export async function generateSyncOperationalReport(params: {
     id: "privileged-orphans",
     title: "Huérfanos privilegiados activos",
     message:
-      "Usuarios admin/owner activos sin vínculo válido a Neon Auth. Revisión urgente.",
+      "Usuarios admin/owner activos sin vínculo válido a Supabase Auth. Revisión urgente.",
     severity: "critical",
     count: diagnostics.summary.privilegedOrphansCount,
     recoverable: false,

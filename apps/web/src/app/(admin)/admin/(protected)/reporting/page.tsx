@@ -319,9 +319,9 @@ export default async function ReportingPage() {
         title="Diagnóstico consolidado y auto-repair"
         description={`Último cálculo: ${formatDate(snapshot.syncHealth.generatedAt)}`}
       >
-        {!snapshot.syncHealth.neonAuthAvailable && snapshot.syncHealth.neonAuthWarning ? (
+        {!snapshot.syncHealth.supabaseAuthAvailable && snapshot.syncHealth.supabaseAuthWarning ? (
           <div className="mb-4 rounded-[18px] border border-[#7a4a00]/20 bg-[#fff3d6] px-4 py-3 text-sm font-semibold text-[#7a4a00]">
-            {snapshot.syncHealth.neonAuthWarning}
+            {snapshot.syncHealth.supabaseAuthWarning}
           </div>
         ) : null}
 

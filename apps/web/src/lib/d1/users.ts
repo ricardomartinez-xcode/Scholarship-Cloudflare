@@ -73,7 +73,8 @@ function clean(value: string | null | undefined): string | null {
 
 /**
  * Lists Cloudflare-native users only. Legacy Prisma users are deliberately not
- * read in Worker runtime so this endpoint never silently falls back to Neon.
+ * read in Worker runtime so this endpoint never silently falls back to an
+ * external PostgreSQL database.
  */
 export async function listD1AuthUsers(
   db: AppD1Database,

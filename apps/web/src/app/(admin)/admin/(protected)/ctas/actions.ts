@@ -315,7 +315,7 @@ export async function upsertPublicCtaAction(formData: FormData) {
       return {
         ok: false,
         error:
-          "La ubicación seleccionada aún no existe en la base de datos. Ejecuta primero la migración Prisma/Neon para habilitar los nuevos slots de CTA.",
+          "La ubicación seleccionada aún no existe en la base de datos. Ejecuta primero la migración Prisma/Supabase para habilitar los nuevos slots de CTA.",
       };
     }
     if (process.env.NODE_ENV !== "production") {

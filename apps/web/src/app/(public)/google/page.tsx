@@ -40,7 +40,7 @@ const CONTROL_POINTS = [
 
 const CALLBACK_POINTS = [
   "El login social con Google puede usar el mismo cliente OAuth que la sincronización de Calendar, Tasks y Sheets.",
-  "Cuando se comparte el cliente OAuth, Google debe tener autorizados dos redirect URIs: el callback de Neon Auth y el callback de sincronización de ReCalc.",
+  "Cuando se comparte el cliente OAuth, Google debe tener autorizados dos redirect URIs: el callback de Supabase Auth y el callback de sincronización de ReCalc.",
   "Si se prefiere aislar riesgos, ReCalc también soporta un cliente OAuth dedicado solo para la sincronización Google.",
 ];
 

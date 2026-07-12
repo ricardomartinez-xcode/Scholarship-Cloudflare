@@ -1,7 +1,7 @@
 // Bootstrap (or promote) the protected owner user in recalc_admin.user.
 //
 // This script ensures the specified email exists in the recalc_admin.user table
-// with role=owner and isActive=true. It does NOT create a Neon Auth account —
+// with role=owner and isActive=true. It does NOT create a Supabase Auth account —
 // the user must first sign up through the app; this script only sets their role.
 //
 // Keep ADMIN_EMAIL=<email> only as a bootstrap/protection reference. The app no
@@ -50,7 +50,7 @@ async function main() {
   try {
     // Upsert the user in recalc_admin.user with ADMIN role.
     // If the user already exists (from a previous sign-in), promote them to ADMIN.
-    // If not, create a placeholder — they will be linked to their Neon Auth account
+    // If not, create a placeholder — they will be linked to their Supabase Auth account
     // automatically on their next sign-in (syncUserRecord in authz.ts).
     const user = await prisma.user.upsert({
       where: { email },

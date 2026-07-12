@@ -515,7 +515,7 @@ export default function RolplayWorkspace() {
   if (!permissions.canViewRolplay) {
     return (
       <div className="rounded-[28px] border border-[rgba(17,78,109,0.08)] bg-white/70 p-8 text-sm text-slate-600 shadow-[0_18px_40px_rgba(16,52,76,0.10)]">
-        Tu acceso a rolplay sigue resolviéndose desde Neon/Auth actual y no está
+        Tu acceso a rolplay sigue resolviéndose desde Supabase Auth y no está
         habilitado para esta organización.
       </div>
     );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type NeonOnlyRow = {
+type SupabaseOnlyRow = {
   id: string;
   email: string | null;
   name: string | null;
@@ -22,12 +22,12 @@ type AppOrphanRow = {
 
 type SyncData = {
   ok: true;
-  /** true when neon_auth.user is reachable; false when schema/table is missing or access is denied. */
-  neonAuthAvailable: boolean;
-  /** Postgres error detail when neonAuthAvailable is false. */
-  neonAuthWarning?: string | null;
-  summary: { neonOnlyCount: number; appOrphansCount: number };
-  neonOnly: NeonOnlyRow[];
+  /** true when Supabase Auth Admin API is reachable with the server-only key. */
+  supabaseAuthAvailable: boolean;
+  /** Supabase Auth error detail when supabaseAuthAvailable is false. */
+  supabaseAuthWarning?: string | null;
+  summary: { supabaseOnlyCount: number; appOrphansCount: number };
+  supabaseOnly: SupabaseOnlyRow[];
   appOrphans: AppOrphanRow[];
 };
 
@@ -75,16 +75,16 @@ type SyncReportData = {
   generatedAt: string;
   requestId: string;
   diagnostics: {
-    neonAuthAvailable: boolean;
-    neonAuthWarning: string | null;
+    supabaseAuthAvailable: boolean;
+    supabaseAuthWarning: string | null;
     warnings: string[];
     summary: {
-      neonOnlyCount: number;
+      supabaseOnlyCount: number;
       appOrphansCount: number;
       missingAuthUserIdMatchesCount: number;
       brokenAuthReferencesCount: number;
       mismatchedEmailByAuthUserIdCount: number;
-      duplicateNeonEmailsCount: number;
+      duplicateSupabaseEmailsCount: number;
       privilegedOrphansCount: number;
     };
   };
@@ -140,7 +140,7 @@ const SYSTEM_ROLE_LABELS: Record<string, string> = {
 export default function AuthSyncClient({ initial }: { initial: SyncData | ApiError }) {
   const [data, setData] = useState<SyncData | ApiError>(initial);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"neonOnly" | "appOrphans">("neonOnly");
+  const [tab, setTab] = useState<"supabaseOnly" | "appOrphans">("supabaseOnly");
   const [report, setReport] = useState<SyncReportData | ApiError | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [repairLoadingAction, setRepairLoadingAction] = useState<RepairActionId | null>(null);
@@ -270,7 +270,7 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
           <h1 className="mt-1 text-lg font-semibold">Auth · Sincronización</h1>
           <p className="mt-1 text-sm text-slate-300">
             Estado de la vinculación entre{" "}
-            <span className="font-mono text-xs text-slate-400">neon_auth.user</span>{" "}
+            <span className="font-mono text-xs text-slate-400">Supabase Auth</span>{" "}
             y <span className="font-mono text-xs text-slate-400">recalc_admin.user</span>.
           </p>
         </div>
@@ -284,14 +284,14 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
         </button>
       </div>
 
-      {/* Schema explanation */}
+      {/* Identity and domain data explanation */}
       <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-xs text-slate-400 leading-relaxed">
-        <div className="font-semibold text-slate-300 mb-1">¿Qué son estas tablas?</div>
+        <div className="font-semibold text-slate-300 mb-1">¿Qué fuentes se comparan?</div>
         <ul className="grid gap-1">
           <li>
-            <span className="font-mono text-slate-300">neon_auth.user</span> —
-            Creada automáticamente por Neon Auth cuando se activa la sincronización de base de datos
-            en la consola de Neon. Contiene todos los usuarios registrados. <strong>Solo lectura</strong> desde la app.
+            <span className="font-mono text-slate-300">Supabase Auth Admin API</span> —
+            Fuente de identidades de <span className="font-mono">auth.users</span>.
+            La app la consulta en servidor con service role y nunca expone esa clave al navegador.
           </li>
           <li>
             <span className="font-mono text-slate-300">recalc_admin.user</span> —
@@ -301,7 +301,7 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
           <li>
             <span className="font-mono text-slate-300">recalc_admin.admin_user</span> —
             <span className="text-red-400"> Eliminada.</span> Era el sistema anterior de admin con contraseñas directas,
-            reemplazado completamente por Neon Auth.
+            reemplazado por Supabase Auth y autorización de dominio en PostgreSQL/RLS.
           </li>
         </ul>
       </div>
@@ -312,47 +312,24 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
         </div>
       ) : (
         <>
-          {/* neon_auth unavailable banner */}
-          {!data.neonAuthAvailable && (
+          {/* Supabase Auth Admin API unavailable banner */}
+          {!data.supabaseAuthAvailable && (
             <div className="mt-5 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 text-sm space-y-3">
-              <div className="font-semibold text-amber-200">⚠ neon_auth.user no está disponible</div>
+              <div className="font-semibold text-amber-200">Supabase Auth Admin API no está disponible</div>
 
-              {data.neonAuthWarning && (
+              {data.supabaseAuthWarning && (
                 <p className="text-xs text-amber-300/80 font-mono leading-relaxed break-all">
-                  {data.neonAuthWarning}
+                  {data.supabaseAuthWarning}
                 </p>
               )}
 
               <div className="text-xs text-slate-300 space-y-2">
-                <p className="font-semibold text-slate-200">Pasos para resolverlo:</p>
-                <ol className="list-decimal list-inside space-y-1 text-slate-400">
-                  <li>
-                    Ve a{" "}
-                    <a
-                      href="https://console.neon.tech"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 underline hover:text-blue-300"
-                    >
-                      console.neon.tech
-                    </a>{" "}
-                    → tu proyecto → sección <strong className="text-slate-300">Auth</strong>.
-                  </li>
-                  <li>
-                    Verifica que la opción{" "}
-                    <strong className="text-slate-300">Database sync</strong> esté habilitada.
-                    Al activarla, Neon crea automáticamente el schema{" "}
-                    <code className="font-mono text-slate-300">neon_auth</code> y la tabla{" "}
-                    <code className="font-mono text-slate-300">user</code>.
-                  </li>
-                  <li>
-                    Si el schema ya existe pero el acceso falla por permisos, ejecuta en el{" "}
-                    <strong className="text-slate-300">SQL Editor de Neon</strong> (no uses el asistente AI, pega directamente):
-                    <pre className="mt-1 rounded-xl bg-black/30 p-2 text-slate-300 text-xs overflow-auto">
-                      {`GRANT USAGE ON SCHEMA neon_auth TO neondb_owner;\nGRANT SELECT ON neon_auth.user TO neondb_owner;`}
-                    </pre>
-                  </li>
-                </ol>
+                <p className="font-semibold text-slate-200">Revisión requerida:</p>
+                <p className="text-slate-400">
+                  Verifica que <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> y
+                  <code className="ml-1 font-mono">SUPABASE_SERVICE_ROLE_KEY</code> pertenezcan
+                  al mismo proyecto y estén disponibles solo en el servidor del entorno actual.
+                </p>
                 <p className="text-slate-500">
                   La sección <strong className="text-slate-400">Usuarios huérfanos</strong> sigue funcionando con datos parciales
                   (solo detecta usuarios sin <code className="font-mono">authUserId</code>).
@@ -363,29 +340,29 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
 
           {/* Summary chips */}
           <div className="mt-5 flex flex-wrap gap-3">
-            {/* neonOnly chip — disabled/neutral when neon_auth isn't available */}
+            {/* Supabase-only chip */}
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "neonOnly"}
+              aria-selected={tab === "supabaseOnly"}
               className={`cursor-pointer rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
-                !data.neonAuthAvailable
-                  ? tab === "neonOnly"
+                !data.supabaseAuthAvailable
+                  ? tab === "supabaseOnly"
                     ? "border-slate-600 bg-slate-800/60 text-slate-400"
                     : "border-white/10 bg-white/5 text-slate-500 hover:bg-white/10"
-                  : tab === "neonOnly"
-                  ? data.summary.neonOnlyCount > 0
+                  : tab === "supabaseOnly"
+                  ? data.summary.supabaseOnlyCount > 0
                     ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
                     : "border-emerald-500/50 bg-blue-950/20 text-emerald-200"
                   : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
               }`}
-              onClick={() => setTab("neonOnly")}
+              onClick={() => setTab("supabaseOnly")}
             >
-              {!data.neonAuthAvailable
-                ? "◌ Neon Auth · sin datos"
-                : data.summary.neonOnlyCount > 0
-                ? `⚠ ${data.summary.neonOnlyCount} solo en Neon Auth`
-                : `✓ ${data.summary.neonOnlyCount} solo en Neon Auth`}
+              {!data.supabaseAuthAvailable
+                ? "Supabase Auth · sin datos"
+                : data.summary.supabaseOnlyCount > 0
+                ? `${data.summary.supabaseOnlyCount} solo en Supabase Auth`
+                : `${data.summary.supabaseOnlyCount} solo en Supabase Auth`}
             </button>
 
             <button
@@ -403,7 +380,7 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
             >
               {data.summary.appOrphansCount > 0 ? "⚠ " : "✓ "}
               {data.summary.appOrphansCount} usuarios huérfanos
-              {!data.neonAuthAvailable && (
+              {!data.supabaseAuthAvailable && (
                 <span className="ml-1 text-xs font-normal text-slate-500">(parcial)</span>
               )}
             </button>
@@ -569,31 +546,30 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
             )}
           </div>
 
-          {tab === "neonOnly" && (
+          {tab === "supabaseOnly" && (
             <div className="mt-4">
-              {!data.neonAuthAvailable ? (
-                /* neon_auth not set up — show setup call-to-action instead of table */
+              {!data.supabaseAuthAvailable ? (
+                /* Supabase Auth Admin API unavailable */
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 px-4 py-4 text-sm text-slate-400">
                   <p className="font-semibold text-slate-300 mb-1">
                     Esta sección no está disponible
                   </p>
                   <p>
-                    Para ver las cuentas de Neon Auth sin registro en la app, la tabla{" "}
-                    <code className="font-mono text-slate-300">neon_auth.user</code> debe existir
-                    y ser accesible. Sigue los pasos del aviso de arriba para configurarla.
+                    Para comparar cuentas de Supabase Auth con usuarios de dominio, la service role
+                    debe estar disponible exclusivamente en el servidor.
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="mb-2 text-sm text-slate-300">
-                    <span className="font-semibold">Cuentas en Neon Auth sin registro en la app.</span>{" "}
+                    <span className="font-semibold">Cuentas en Supabase Auth sin registro en la app.</span>{" "}
                     <span className="text-slate-400">
-                      Estos usuarios pueden autenticarse en Neon Auth pero la app los rechaza
+                      Estos usuarios pueden autenticarse en Supabase Auth pero la app los rechaza
                       (sin invitación válida, dominio no permitido, o aún no han iniciado sesión).
                       No requieren acción si fue intencional.
                     </span>
                   </div>
-                  {data.neonOnly.length === 0 ? (
+                  {data.supabaseOnly.length === 0 ? (
                     <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-4 py-3 text-sm text-emerald-200">
                       Todo sincronizado — no hay cuentas bloqueadas.
                     </div>
@@ -605,11 +581,11 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
                             <th className="p-3 text-left font-semibold">Correo</th>
                             <th className="p-3 text-left font-semibold">Nombre</th>
                             <th className="p-3 text-left font-semibold">Registrado</th>
-                            <th className="p-3 text-left font-semibold">Neon Auth ID</th>
+                            <th className="p-3 text-left font-semibold">Supabase Auth ID</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {data.neonOnly.map((row) => (
+                          {data.supabaseOnly.map((row) => (
                             <tr key={row.id} className="border-t border-white/10">
                               <td className="p-3 text-slate-100">{row.email ?? "—"}</td>
                               <td className="p-3 text-slate-300">{row.name ?? "—"}</td>
@@ -633,22 +609,22 @@ export default function AuthSyncClient({ initial }: { initial: SyncData | ApiErr
           {tab === "appOrphans" && (
             <div className="mt-4">
               <div className="mb-2 text-sm text-slate-300">
-                <span className="font-semibold">Usuarios de la app sin enlace a Neon Auth.</span>{" "}
+                <span className="font-semibold">Usuarios de la app sin enlace a Supabase Auth.</span>{" "}
                 <span className="text-slate-400">
-                  Estos usuarios no pueden iniciar sesión hasta que su cuenta de Neon Auth sea vinculada.
-                  Ocurre si el usuario fue creado manualmente o si su cuenta de Neon Auth fue eliminada.
-                  {!data.neonAuthAvailable && (
+                  Estos usuarios no pueden iniciar sesión hasta que su cuenta de Supabase Auth sea vinculada.
+                  Ocurre si el usuario fue creado manualmente o si su identidad fue eliminada.
+                  {!data.supabaseAuthAvailable && (
                     <span className="text-amber-400/70">
                       {" "}(Datos parciales: solo muestra usuarios con{" "}
                       <code className="font-mono text-xs">authUserId</code> nulo porque{" "}
-                      <code className="font-mono text-xs">neon_auth</code> no está disponible.)
+                      Supabase Auth Admin API no está disponible.)
                     </span>
                   )}
                 </span>
               </div>
               {data.appOrphans.length === 0 ? (
                 <div className="rounded-2xl border border-blue-900/40 bg-blue-950/20 px-4 py-3 text-sm text-emerald-200">
-                  {data.neonAuthAvailable
+                  {data.supabaseAuthAvailable
                     ? "Todos los usuarios de la app están correctamente enlazados."
                     : "No hay usuarios con authUserId nulo."}
                 </div>

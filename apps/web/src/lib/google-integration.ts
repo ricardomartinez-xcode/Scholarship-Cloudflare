@@ -427,10 +427,11 @@ export function getGoogleIntegrationConfigState() {
   };
 }
 
-export function getNeonGoogleCallbackUri() {
-  const baseUrl = process.env.NEON_AUTH_BASE_URL?.trim();
+export function getSupabaseGoogleCallbackUri() {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
   if (!baseUrl) return null;
-  return `${baseUrl.replace(/\/+$/, "")}/callback/google`;
+  return `${baseUrl.replace(/\/+$/, "")}/auth/v1/callback`;
 }
 
 export function getGoogleOAuthSetupSummary() {
@@ -439,9 +440,9 @@ export function getGoogleOAuthSetupSummary() {
   return {
     mode: env.mode,
     syncCallbackUri: env.redirectUri || null,
-    neonLoginCallbackUri: getNeonGoogleCallbackUri(),
+    supabaseLoginCallbackUri: getSupabaseGoogleCallbackUri(),
     expectedAuthorizedRedirectUris: [
-      getNeonGoogleCallbackUri(),
+      getSupabaseGoogleCallbackUri(),
       env.redirectUri || null,
     ].filter((value): value is string => Boolean(value)),
     ready: config.ready,
