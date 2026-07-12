@@ -1,4 +1,9 @@
-import { AdminAuditAction, AdminCapability, AdminChangeSource, AdminConfigModule } from "@prisma/client";
+import {
+  AdminAuditAction,
+  AdminCapability,
+  AdminChangeSource,
+  AdminConfigModule,
+} from "@prisma/client";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
@@ -10,6 +15,7 @@ import {
 } from "@/lib/admin-api";
 import { resolveAcademicOfferRequestImport } from "@/lib/admin-academic-offer-control";
 import { prepareAcademicOfferImport } from "@/lib/importers/academic-offer";
+import { enrichAcademicOfferImportWithModuleSheet } from "@/lib/importers/academic-offer-module-sheet";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +23,16 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const requestId = buildAdminRequestId("admin_academic_offer_validate");
   try {
-    const auth = await requireAdminApiCapability(requestId, AdminCapability.manage_offers);
+    const operationsAuth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.view_admin_operations,
+    );
+    if (!operationsAuth.ok) return operationsAuth.response;
+
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_offers,
+    );
     if (!auth.ok) return auth.response;
 
     const resolved = await resolveAcademicOfferRequestImport(request);
@@ -32,9 +47,13 @@ export async function POST(request: Request) {
       });
     }
 
-    const prepared = await prepareAcademicOfferImport({
+    let prepared = await prepareAcademicOfferImport({
       input: resolved.input,
       cycle: resolved.cycle,
+    });
+    prepared = await enrichAcademicOfferImportWithModuleSheet({
+      input: resolved.input,
+      prepared,
     });
 
     await writeAdminAuditLog({

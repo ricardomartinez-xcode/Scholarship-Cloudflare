@@ -1,7 +1,14 @@
-import { AdminAuditAction, AdminCapability, AdminChangeSource, AdminConfigModule } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import {
+  AdminAuditAction,
+  AdminCapability,
+  AdminChangeSource,
+  AdminConfigModule,
+} from "@prisma/client";
 
 import { requireAdminApiCapability } from "@/lib/api-auth";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
+import { getAdminConfigModulePaths } from "@/lib/admin-config-modules";
 import {
   adminApiError,
   adminApiSuccess,
@@ -9,10 +16,13 @@ import {
   logAdminApiFailure,
 } from "@/lib/admin-api";
 import { resolveAcademicOfferRequestImport } from "@/lib/admin-academic-offer-control";
+import { prepareAcademicOfferImport } from "@/lib/importers/academic-offer";
+import { enrichAcademicOfferImportWithModuleSheet } from "@/lib/importers/academic-offer-module-sheet";
+import { applyPreparedAcademicOfferImport } from "@/lib/importers/academic-offer-replace";
 import {
-  importAcademicOfferFromExcel,
-  prepareAcademicOfferImport,
-} from "@/lib/importers/academic-offer";
+  getPublicRouteTagsForModule,
+  revalidatePublicRouteTags,
+} from "@/lib/public-route-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +30,16 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const requestId = buildAdminRequestId("admin_academic_offer_import");
   try {
-    const auth = await requireAdminApiCapability(requestId, AdminCapability.manage_offers);
+    const operationsAuth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.view_admin_operations,
+    );
+    if (!operationsAuth.ok) return operationsAuth.response;
+
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_offers,
+    );
     if (!auth.ok) return auth.response;
 
     const resolved = await resolveAcademicOfferRequestImport(request);
@@ -35,9 +54,13 @@ export async function POST(request: Request) {
       });
     }
 
-    const prepared = await prepareAcademicOfferImport({
+    let prepared = await prepareAcademicOfferImport({
       input: resolved.input,
       cycle: resolved.cycle,
+    });
+    prepared = await enrichAcademicOfferImportWithModuleSheet({
+      input: resolved.input,
+      prepared,
     });
 
     if (resolved.dryRun) {
@@ -67,10 +90,10 @@ export async function POST(request: Request) {
       });
     }
 
-    const summary = await importAcademicOfferFromExcel({
-      input: resolved.input,
-      cycle: resolved.cycle,
+    const summary = await applyPreparedAcademicOfferImport({
+      payload: prepared.payload,
       updatedBy: auth.admin.email,
+      mode: "replace",
     });
 
     await writeAdminAuditLog({
@@ -90,6 +113,22 @@ export async function POST(request: Request) {
       diffSummary: summary,
       message: "Importación aplicada de oferta académica desde API admin.",
     });
+
+    try {
+      for (const path of getAdminConfigModulePaths(AdminConfigModule.OFFER)) {
+        revalidatePath(path);
+      }
+      revalidatePublicRouteTags(
+        getPublicRouteTagsForModule(AdminConfigModule.OFFER),
+      );
+    } catch (cacheError) {
+      logAdminApiFailure({
+        requestId,
+        module: "admin-academic-offer",
+        action: "revalidate",
+        error: cacheError,
+      });
+    }
 
     return adminApiSuccess(requestId, {
       ...summary,

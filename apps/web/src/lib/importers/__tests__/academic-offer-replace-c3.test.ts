@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { prismaMock, txMock } = vi.hoisted(() => {
   const tx = {
+    program: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
     campus: {
       update: vi.fn(),
     },
@@ -16,11 +21,6 @@ const { prismaMock, txMock } = vi.hoisted(() => {
   return {
     txMock: tx,
     prismaMock: {
-      program: {
-        findUnique: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-      },
       $transaction: vi.fn(async (callback: (transaction: TxMock) => Promise<unknown>) =>
         callback(tx),
       ),
@@ -39,7 +39,7 @@ describe("applyPreparedAcademicOfferImport C3 guardrails", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    prismaMock.program.findUnique.mockResolvedValue({
+    txMock.program.findUnique.mockResolvedValue({
       id: "program-pedagogia",
       name: "Pedagogia",
       level: null,
@@ -107,7 +107,7 @@ describe("applyPreparedAcademicOfferImport C3 guardrails", () => {
     });
 
     expect(txMock.programOffering.createMany).toHaveBeenCalledTimes(1);
-    expect(prismaMock.program.update).toHaveBeenCalledWith({
+    expect(txMock.program.update).toHaveBeenCalledWith({
       where: { id: "program-pedagogia" },
       data: {
         name: "Pedagogia",
@@ -138,6 +138,13 @@ describe("applyPreparedAcademicOfferImport C3 guardrails", () => {
     );
 
     expect(summary.offerings.created).toBe(1);
+    expect(txMock.programOffering.deleteMany).toHaveBeenCalledWith({
+      where: {
+        cycle: "C3",
+        campusId: { in: ["campus-altamira"] },
+      },
+    });
+    expect(txMock.program.findUnique).toHaveBeenCalledTimes(1);
     expect(summary.perCampus).toEqual([
       expect.objectContaining({
         campusCode: "ALT",

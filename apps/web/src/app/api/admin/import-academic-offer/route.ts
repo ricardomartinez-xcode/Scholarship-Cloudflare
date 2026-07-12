@@ -2,12 +2,14 @@ import fs from "node:fs/promises";
 
 import { NextResponse } from "next/server";
 import {
+  AdminCapability,
   AdminChangeSource,
   AdminConfigModule,
   BusinessEventType,
 } from "@prisma/client";
 
-import { getAdminUser } from "@/lib/admin-session";
+import { requireAdminApiCapability } from "@/lib/api-auth";
+import { buildAdminRequestId } from "@/lib/admin-api";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import { normalizeAcademicOfferCycle } from "@/config/academicOffer";
 import {
@@ -44,13 +46,24 @@ async function normalizeUploadedFile(file: File) {
 }
 
 export async function POST(request: Request) {
+  const requestId = buildAdminRequestId("admin_academic_offer_import_preview");
   let requestedCycle: string | null = null;
+  let actor: { id: string; email: string } | null = null;
 
   try {
-    const admin = await getAdminUser();
-    if (!admin) {
-      return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
-    }
+    const operationsAuth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.view_admin_operations,
+    );
+    if (!operationsAuth.ok) return operationsAuth.response;
+
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_offers,
+    );
+    if (!auth.ok) return auth.response;
+    const admin = auth.admin;
+    actor = admin;
 
     const form = await request.formData();
     const maybeFile = form.get("file");
@@ -153,14 +166,14 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "No fue posible validar el archivo.";
-    const admin = await getAdminUser().catch(() => null);
 
     captureException(error, {
       module: "offer-import",
       action: "validate",
       result: "failure",
-      actorUserId: admin?.id ?? null,
-      actorEmail: admin?.email ?? null,
+      actorUserId: actor?.id ?? null,
+      actorEmail: actor?.email ?? null,
+      requestId,
       metadata: {
         cycle: requestedCycle,
         message,
@@ -169,7 +182,7 @@ export async function POST(request: Request) {
 
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_FAILED,
-      userId: admin?.id ?? null,
+      userId: actor?.id ?? null,
       subjectType: "AdminImportSession",
       metadata: {
         module: AdminConfigModule.OFFER,
