@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 
 import { normalizeKey } from "@/lib/text-normalize";
+import { loadExcelWorkbook } from "@/lib/importers/excel-workbook";
 import type {
   AcademicOfferPreviewRow,
   ImportAcademicOfferInput,
@@ -301,20 +302,6 @@ function detectModuleConfigSheet(workbook: ExcelJS.Workbook): HeaderDetection | 
   }
 
   return detections.sort((left, right) => right.score - left.score)[0] ?? null;
-}
-
-async function loadWorkbook(input: ImportAcademicOfferInput) {
-  const workbook = new ExcelJS.Workbook();
-  workbook.calcProperties.fullCalcOnLoad = false;
-
-  if (input.kind === "path") {
-    await workbook.xlsx.readFile(input.filePath);
-    return workbook;
-  }
-
-  const buffer = Buffer.from(input.buffer);
-  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
-  return workbook;
 }
 
 function rowIsInactive(row: ExcelJS.Row, statusColumn?: number) {
@@ -641,7 +628,7 @@ export async function enrichAcademicOfferImportWithModuleSheet<TPrepared extends
   input: ImportAcademicOfferInput;
   prepared: TPrepared;
 }): Promise<TPrepared> {
-  const workbook = await loadWorkbook(params.input);
+  const workbook = await loadExcelWorkbook(params.input);
   const detection = detectModuleConfigSheet(workbook);
 
   if (!detection) return params.prepared;

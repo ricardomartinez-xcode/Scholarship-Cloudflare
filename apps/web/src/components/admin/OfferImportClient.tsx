@@ -471,7 +471,7 @@ export default function OfferImportClient({
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
         <div>
-          <h1 className="mt-1 text-lg font-semibold">Oferta por planteles</h1>
+          <h2 className="mt-1 text-lg font-semibold">Oferta por planteles</h2>
           <p className="mt-1 text-sm text-slate-300">
             Oferta activa de la calculadora. Usa <strong className="text-slate-100">Editar</strong> para crear o actualizar
             una oferta por plantel, o actualiza oferta por reemplazo o lote desde XLSX/CSV.

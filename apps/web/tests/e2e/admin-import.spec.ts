@@ -18,7 +18,7 @@ async function findOfertaExcelPath(): Promise<string | null> {
 }
 
 test("admin import page is protected", async ({ page }) => {
-  await page.goto("/admin/oferta");
+  await page.goto("/admin/oferta?panel=imports");
   await expect(page).toHaveURL(/\/admin\/auth/);
 });
 
@@ -32,8 +32,13 @@ test("admin can import oferta excel (requires E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD
 
   await loginAdmin(page, email, password);
 
-  await page.goto("/admin/oferta");
-  await expect(page.getByRole("heading", { level: 1, name: /Oferta Acad/i })).toBeVisible();
+  await page.goto("/admin/oferta?panel=imports");
+  await expect(
+    page.locator("header").getByRole("heading", {
+      level: 1,
+      name: /Oferta por planteles/i,
+    }),
+  ).toBeVisible();
 
   const fileInput = page.locator('input[type="file"]');
   await fileInput.setInputFiles(excelPath!);

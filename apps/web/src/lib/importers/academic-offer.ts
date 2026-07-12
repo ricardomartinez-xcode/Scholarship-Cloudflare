@@ -28,6 +28,7 @@ import {
   EXCEL_SHEETS_OMIT,
   type AcademicOfferCycle,
 } from "@/config/academicOffer";
+import { loadExcelWorkbook } from "@/lib/importers/excel-workbook";
 
 type ParsedRow = {
   programName: string;
@@ -683,21 +684,6 @@ function parsePlantelesSheet(
   return result;
 }
 
-async function loadWorkbook(input: ImportAcademicOfferInput) {
-  const wb = new ExcelJS.Workbook();
-  wb.calcProperties.fullCalcOnLoad = false;
-
-  if (input.kind === "path") {
-    await wb.xlsx.readFile(input.filePath);
-    return wb;
-  }
-  const workbookBuffer = input.buffer as unknown as Parameters<
-    typeof wb.xlsx.load
-  >[0];
-  await wb.xlsx.load(workbookBuffer);
-  return wb;
-}
-
 export async function resolveDefaultOfferExcelPath(): Promise<string | null> {
   const repoRoot = process.cwd();
   const docsDir = path.join(repoRoot, "docs");
@@ -741,7 +727,7 @@ export async function importAcademicOfferFromExcel(params: {
   }
   addConfiguredCampusAliasesToLookup(campusByNormalizedKey, aliasRows);
 
-  const wb = await loadWorkbook(params.input);
+  const wb = await loadExcelWorkbook(params.input);
   const allSheetNames = wb.worksheets.map((ws) => ws.name).join(", ");
   const relevantSheets = wb.worksheets.filter((ws) => !isOmittedSheet(ws.name));
 
@@ -1085,7 +1071,7 @@ export async function prepareAcademicOfferImport(params: {
   }
   addConfiguredCampusAliasesToLookup(campusByNormalizedKey, aliasRows);
 
-  const workbook = await loadWorkbook(params.input);
+  const workbook = await loadExcelWorkbook(params.input);
   const allSheetNames = workbook.worksheets.map((worksheet) => worksheet.name).join(", ");
   const relevantSheets = workbook.worksheets.filter((worksheet) => !isOmittedSheet(worksheet.name));
 
