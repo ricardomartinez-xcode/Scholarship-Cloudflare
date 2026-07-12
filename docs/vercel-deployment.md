@@ -28,7 +28,12 @@ La configuracion se mantiene pequena:
 - `framework: nextjs`
 - `buildCommand: npm run build`
 - `outputDirectory: apps/web/.next`
-- timeouts de 30s para APIs admin/files/invite
+- deteccion automatica de funciones App Router y limites por defecto de Vercel
+
+No se definen patrones `functions` sobre rutas fuente. Vercel aplica esa
+configuracion a funciones detectadas y rechaza globs que no coinciden con el
+artefacto de build; cualquier timeout especial debe agregarse despues de medir
+una funcion concreta en Preview.
 
 Las migraciones de base de datos no se ejecutan dentro del build. Deben aplicarse explicitamente contra Supabase staging antes del Preview cuando haya credenciales.
 

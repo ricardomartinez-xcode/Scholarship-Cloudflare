@@ -14,16 +14,5 @@
       "wip/*": false,
       "internal-*": false
     }
-  },
-  "functions": {
-    "apps/web/src/app/api/admin/**/*": {
-      "maxDuration": 30
-    },
-    "apps/web/src/app/api/files/**/*": {
-      "maxDuration": 30
-    },
-    "apps/web/src/app/api/invite/**/*": {
-      "maxDuration": 30
-    }
   }
 }
