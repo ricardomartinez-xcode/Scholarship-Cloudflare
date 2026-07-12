@@ -1059,7 +1059,7 @@ function FormatosSection() {
                 <div className="grid min-w-0 gap-3 p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-200">
-                      {row.sourceType === "r2" ? "R2" : "Link"}
+                      {row.sourceType === "r2" ? "Storage" : "Link"}
                     </span>
                     {row.fileMimeType ? (
                       <span className="text-xs text-slate-500">{row.fileMimeType}</span>
