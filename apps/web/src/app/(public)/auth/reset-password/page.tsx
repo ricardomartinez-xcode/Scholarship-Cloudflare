@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import BrandedAuthShell from "@/components/auth/BrandedAuthShell";
-import { ResetPasswordCardForm } from "@/components/auth/NeonAuthForms";
+import { ResetPasswordCardForm } from "@/components/auth/SupabaseAuthForms";
 
 export const dynamic = "force-dynamic";
 

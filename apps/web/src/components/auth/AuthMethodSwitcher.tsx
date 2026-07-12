@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-import NeonUserAuthMethods from "@/components/auth/NeonUserAuthMethods";
 import PasswordField from "@/components/auth/PasswordField";
+import SupabaseUserAuthMethods from "@/components/auth/SupabaseUserAuthMethods";
 
 type AuthMethod = "passwordless" | "password";
 type AuthMode = "sign-in" | "sign-up";
@@ -36,10 +36,11 @@ export default function AuthMethodSwitcher({
   const passwordLabel = isSignUp ? "Crear contraseña" : "Contraseña";
   const passwordSubmitLabel = isSignUp ? "Crear cuenta" : "Iniciar sesión";
   const passwordPlaceholder = isSignUp ? "Crea una contraseña" : "Tu contraseña";
+  const googleEnabled = process.env.NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED === "1";
 
   return (
     <section className="ui-auth-method-panel">
-      <GoogleSignInButton callbackURL={callbackURL} />
+      {googleEnabled ? <GoogleSignInButton callbackURL={callbackURL} /> : null}
 
       <div className="ui-auth-segmented" role="tablist" aria-label="Método de acceso">
         <button
@@ -62,7 +63,7 @@ export default function AuthMethodSwitcher({
 
       <div role="tabpanel">
         {method === "passwordless" ? (
-          <NeonUserAuthMethods
+          <SupabaseUserAuthMethods
             callbackURL={callbackURL}
             defaultEmail={defaultEmail}
             lockedEmail={lockedEmail}

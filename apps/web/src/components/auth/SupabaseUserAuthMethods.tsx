@@ -121,7 +121,7 @@ function modeCopy(mode: AuthMethodsMode) {
   };
 }
 
-export default function NeonUserAuthMethods({
+export default function SupabaseUserAuthMethods({
   callbackURL = "/unidep",
   defaultEmail = "",
   mode = "sign-in",

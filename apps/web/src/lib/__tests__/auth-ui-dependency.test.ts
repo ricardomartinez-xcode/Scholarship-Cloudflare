@@ -10,10 +10,10 @@ function read(relativePath: string) {
 }
 
 describe("auth UI dependency boundaries", () => {
-  it("keeps password reset forms off the Neon auth-ui beta bundle", () => {
+  it("keeps password reset forms on the Supabase adapter", () => {
     for (const relativePath of [
-      "apps/web/src/components/auth/NeonAuthForms.tsx",
-      "apps/web/src/components/public/NeonPasswordReset.tsx",
+      "apps/web/src/components/auth/SupabaseAuthForms.tsx",
+      "apps/web/src/components/public/SupabasePasswordReset.tsx",
     ]) {
       expect(read(relativePath)).not.toContain("@neondatabase/auth/react/ui");
     }
