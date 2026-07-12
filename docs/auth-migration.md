@@ -23,7 +23,8 @@ No se usa `SUPABASE_SERVICE_ROLE_KEY` en cliente ni en flujos normales de usuari
 
 ## Flujo de sesion
 
-1. El usuario inicia sesion con email/password, magic link, OTP o Google.
+1. El usuario inicia sesion con email/password, magic link u OTP. Google se
+   muestra solo cuando el provider esta habilitado explicitamente.
 2. El cliente o route handler llama Supabase Auth.
 3. Supabase emite cookies gestionadas por `@supabase/ssr`.
 4. `apps/web/middleware.ts` llama `auth.getClaims()` para refrescar cookies y verificar sujeto autenticado.
@@ -101,6 +102,7 @@ Publicas:
 NEXT_PUBLIC_APP_URL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED=
 ```
 
 Server-only:
@@ -133,7 +135,8 @@ En Supabase staging:
    - `https://<vercel-preview>/auth/callback`
    - subdominio staging si existe.
 3. Email provider habilitado.
-4. Google OAuth solo si se mantiene el boton `Continuar con Google`.
+4. Google OAuth solo si se configura el provider y
+   `NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED=1`; el boton queda oculto por defecto.
 5. Passwordless OTP/magic link habilitado si se ofrecen en UI.
 6. Phone OTP solo si el proyecto staging tiene proveedor SMS configurado.
 

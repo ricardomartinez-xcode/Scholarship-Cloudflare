@@ -4,7 +4,7 @@
 
 - Rama: `migration/vercel-supabase`
 - Proyecto: `re-lead/scholarship` enlazado al repositorio GitHub.
-- Preview remoto: ejecutado; build bloqueado por credenciales PostgreSQL staging ausentes.
+- Preview remoto: `https://scholarship-fe5vltcoe-re-lead.vercel.app` en estado `READY`.
 - Produccion Cloudflare: no modificada.
 - Entorno objetivo inicial: Vercel Preview + Supabase staging.
 
@@ -66,13 +66,12 @@ No uses `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente ni con prefijo `NEXT_
 
 Vercel define `VERCEL=1`; con eso las rutas legacy D1-named usan el adaptador PostgreSQL-compatible sin configurar `POSTGRES_COMPAT_RUNTIME`.
 
-En Vercel quedaron configuradas solo para
-`Preview (migration/vercel-supabase)` las variables publicas
-`NEXT_PUBLIC_APP_URL` y `NEXT_PUBLIC_SUPABASE_URL`. No se cargaron placeholders
-para claves o conexiones. Faltan valores reales de staging para
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DATABASE_URL` y `DIRECT_URL`; la service role
-tambien es necesaria para aplicar migraciones, validar datos y probar Storage
-administrativo.
+La integracion Supabase habia creado sus variables solo para Vercel Production.
+Para el Preview se habilitaron los secretos administrados
+`POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING` y
+`SUPABASE_SERVICE_ROLE_KEY`; las claves publicas se limitaron a
+`Preview (migration/vercel-supabase)`. La aplicacion acepta esos nombres nativos
+como aliases de `DATABASE_URL` y `DIRECT_URL` sin copiar secretos al repositorio.
 
 ## Supabase Auth URLs
 
@@ -149,8 +148,15 @@ Rollback despues de una promocion futura:
 
 ## Limitaciones actuales
 
-- El Preview `https://scholarship-is322j1nt-re-lead.vercel.app` compilo Next.js,
-  pero termino en error durante page data con `DATABASE_URL is not set`.
+- El Preview compila y despliega correctamente. `/`, `/legal/privacy` y
+  `/auth/sign-in` responden `200`; `/auth/after-login` sin sesion redirige con
+  `303` a sign-in.
+- Supabase Auth responde `200` en health/settings y tiene email habilitado.
+  Google OAuth permanece deshabilitado, por lo que su boton se oculta hasta
+  configurar el provider y `NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED=1`.
+- La lectura `/api/public/campuses` devuelve `500` porque
+  `recalc_admin.campus` aun no existe. Las migraciones Supabase staging siguen
+  pendientes y no se ejecutaron desde el build.
 - El JWKS publico del proyecto Supabase staging responde y expone la clave ES256
   esperada; un JWKS no sustituye la publishable/anon key, las conexiones
   PostgreSQL, la service role ni un access token de administracion Supabase.

@@ -12,8 +12,8 @@ Produccion Cloudflare: no modificada
 | npm | `11.12.1` |
 | Gestor | npm con `package-lock.json` |
 | Supabase CLI | No instalado (`supabase: command not found`) |
-| Supabase staging | URL y JWKS publico verificados; faltan claves y conexiones |
-| Vercel | Proyecto `re-lead/scholarship` configurado; Preview intentado |
+| Supabase staging | Integracion conectada; Auth/JWKS verificados; esquema pendiente |
+| Vercel | Proyecto `re-lead/scholarship`; Preview `READY` |
 | Runtime compat local | `POSTGRES_COMPAT_RUNTIME=1` opcional para probar rutas legacy D1-named con PostgreSQL |
 
 No se leyeron ni imprimieron secretos. Para el smoke local se usaron placeholders no secretos.
@@ -25,8 +25,8 @@ No se leyeron ni imprimieron secretos. Para el smoke local se usaron placeholder
 | install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.72 exit=0`; `found 0 vulnerabilities`; Prisma Client generado | Warnings transitorios de paquetes deprecated y aviso de Prisma schema default antes del postinstall raiz. |
 | lint | `npm run lint` | Pasa | `duration=1:02.24 exit=0` | `eslint apps packages scripts --max-warnings=0`. |
 | typecheck | `npm run typecheck` | Pasa | `duration=0:14.35 exit=0` | `tsc --noEmit -p tsconfig.json`. |
-| test | `npm test` | Pasa | `97 passed (97)`, `376 passed (376)`, `duration=0:25.97 exit=0` | Vitest local. |
-| build | `npm run build` | Pasa | `Compiled successfully`, `Generating static pages ... (16/16)`, `duration=4:06.82 exit=0` | El build ejecuta `npm run typecheck` primero y despues `NEXT_SKIP_INTERNAL_TYPECHECK=1 next build --webpack` para evitar OOM en la validacion interna duplicada de Next. |
+| test | `npm test` | Pasa | `97 passed (97)`, `377 passed (377)`, `duration=25.13s exit=0` | Vitest local despues del ajuste Supabase/Vercel. |
+| build | `npm run build` | Pasa | `Compiled successfully in 3.2min`, `Generating static pages ... (16/16)`, `duration=6:34.1 exit=0` | El build ejecuta `npm run typecheck` primero y despues `NEXT_SKIP_INTERNAL_TYPECHECK=1 next build --webpack` para evitar OOM en la validacion interna duplicada de Next. |
 
 ## Smoke local
 
@@ -71,9 +71,12 @@ Los artefactos generados por dry-run se retiraron del working tree y no se commi
 | --- | --- | --- | --- |
 | Supabase JWKS | Pasa | Respuesta ES256/P-256 con el `kid` esperado | Verifica el endpoint publico; no concede acceso administrativo. |
 | Proyecto Vercel | Pasa | Next.js, Node 22, raiz monorepo, comandos install/build y output verificados | GitHub enlazado; produccion Git permanece en `main`. |
-| Variables publicas Preview | Pasa | `NEXT_PUBLIC_APP_URL` y `NEXT_PUBLIC_SUPABASE_URL` limitadas a `migration/vercel-supabase` | No se configuraron valores falsos para credenciales ausentes. |
+| Variables Supabase Preview | Pasa | Publicas limitadas a la rama; secretos de integracion habilitados para Preview | Vercel mantiene ocultos los valores `sensitive`. |
 | Preview inicial | Corregido | Vercel rechazo los globs `functions` que no coincidian con funciones detectadas | Se eliminaron los overrides; Vercel usa deteccion App Router. |
-| Preview posterior | Bloqueado | Next.js `Compiled successfully in 63s`; despues `DATABASE_URL is not set` al recolectar `/auth/after-login` | Requiere conexiones PostgreSQL reales de Supabase staging. |
+| Preview final | Pasa | `Compiled successfully in 56s`, 16 paginas generadas, deployment completado | `https://scholarship-fe5vltcoe-re-lead.vercel.app`. |
+| Supabase Auth API | Pasa parcial | health/settings `200`; email habilitado | Google y phone deshabilitados; no se creo usuario de prueba. |
+| Rutas publicas | Pasa parcial | `/`, `/legal/privacy`, `/auth/sign-in` = `200`; after-login sin sesion = `303` | Vercel Deployment Protection se valido con bypass CLI. |
+| Lectura PostgreSQL | Bloqueada | `/api/public/campuses` = `500` | Prisma: `recalc_admin.campus` no existe; requiere aplicar migraciones staging. |
 
 ## Validaciones no realizadas
 
@@ -89,7 +92,8 @@ cliente, conexiones PostgreSQL ni credenciales administrativas Supabase:
 - Suscripcion Realtime real con `postgres_changes`.
 - Upload/download real en Supabase Storage.
 - Pruebas Playwright autenticadas.
-- Navegacion del Vercel Preview, porque el build no llego a estado `READY`.
+- Lectura/escritura de dominio, Realtime y Storage, porque el esquema staging no
+  ha sido aplicado.
 
 ## Hallazgos
 
@@ -98,3 +102,7 @@ cliente, conexiones PostgreSQL ni credenciales administrativas Supabase:
 - Queda un script de exportacion D1 que referencia `wrangler` de forma intencional y dry-run por defecto.
 - Persisten nombres internos `D1`/`R2` en helpers de compatibilidad y pruebas; no representan bindings Cloudflare activos, pero deben renombrarse en una limpieza posterior.
 - Varias rutas siguen usando Prisma y el adaptador PostgreSQL-compatible de los antiguos repositorios D1; la consolidacion total a clientes/repositorios Supabase nativos queda pendiente antes de produccion.
+- El login, callback, refresh SSR y formularios activos usan Supabase Auth. El
+  panel administrativo `integrations/neon-auth`, su webhook legacy y el reporte
+  basado en `neon_auth.user` permanecen como deuda aislada; no son dependencias
+  del flujo de sesion.
