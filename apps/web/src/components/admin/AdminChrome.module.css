@@ -293,6 +293,7 @@
 .noticeTitle { margin-top: 0.35rem; font-weight: 850; }
 .noticeText { margin: 0.25rem 0 0; color: currentColor; line-height: 1.55; }
 .noticeText code { border-radius: 0.45rem; background: rgb(16 32 42 / 0.1); color: currentColor; padding: 0.08rem 0.35rem; font-weight: 800; }
+.noticeLink { display: inline-flex; margin-top: 0.65rem; color: currentColor; font-size: 0.82rem; font-weight: 800; text-decoration: underline; text-underline-offset: 0.2rem; }
 
 .iconButton,
 .secondaryActionButton {

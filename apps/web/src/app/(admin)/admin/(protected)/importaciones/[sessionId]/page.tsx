@@ -6,19 +6,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getAdminConfigModuleMeta } from "@/lib/admin-config-modules";
-import { requireAdminCapabilityUser } from "@/lib/admin-session";
+import {
+  adminHasCapability,
+  requireAdminCapabilityUser,
+} from "@/lib/admin-session";
 import {
   buildImportDiffSummary,
   type ImportDiffExample,
 } from "@/lib/importers/admin-import-diff";
 import {
   getAdminImportApplyOptions,
+  getAdminImportApplyCapability,
   getAdminImportPublicationChecklist,
   getAdminImportPublicationState,
   type AdminImportApplyOption,
 } from "@/lib/importers/admin-import-publication";
 import { getAdminImportSession } from "@/lib/importers/admin-import-sessions";
-import { canRollbackAdminImportSession } from "@/lib/importers/admin-import-rollbacks";
+import {
+  canRollbackAdminImportSession,
+  getAdminImportRollbackCapability,
+} from "@/lib/importers/admin-import-rollbacks";
 import { rollbackImportSessionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -121,10 +128,12 @@ function PublicationPanel({
   state,
   checklist,
   applyOptions,
+  unavailableReason,
 }: {
   state: ReturnType<typeof getAdminImportPublicationState>;
   checklist: string[];
   applyOptions: AdminImportApplyOption[];
+  unavailableReason: string | null;
 }) {
   const canPublishFromDetail = state.stage === "draft" && applyOptions.length > 0;
   const defaultApplyAction = applyOptions[0]?.action;
@@ -154,7 +163,7 @@ function PublicationPanel({
         <form method="post" action={defaultApplyAction} className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-4">
           <div className="text-xs uppercase tracking-[0.24em] text-cyan-100">Confirmación explícita</div>
           <p className="mt-2 text-sm text-slate-200">
-            Publicar aplicará esta sesión sobre datos productivos. Confirma que ya revisaste warnings, errores, diff y snapshots.
+            Publicar aplicará esta sesión sobre los datos activos del entorno. Confirma que ya revisaste warnings, errores, diff y snapshots.
           </p>
           <label className="mt-3 flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-200">
             <input required type="checkbox" name="confirmImpactReviewed" className="mt-1" />
@@ -184,6 +193,12 @@ function PublicationPanel({
           </div>
         </form>
       ) : null}
+
+      {state.stage === "draft" && unavailableReason ? (
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-200" role="status">
+          {unavailableReason}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -202,7 +217,9 @@ export default async function ImportSessionDetailPage({
   params: PageParams;
   searchParams?: PageSearchParams;
 }) {
-  await requireAdminCapabilityUser(AdminCapability.view_admin_operations);
+  const admin = await requireAdminCapabilityUser(
+    AdminCapability.view_admin_operations,
+  );
 
   const [{ sessionId }, query] = await Promise.all([
     params,
@@ -213,10 +230,30 @@ export default async function ImportSessionDetailPage({
   const publicationError = readSearchParam(query?.publicationError);
 
   const moduleMeta = getAdminConfigModuleMeta(session.module);
-  const canRollback = canRollbackAdminImportSession(session);
+  const applyCapability = getAdminImportApplyCapability(session.module);
+  const rollbackCapability = getAdminImportRollbackCapability(session.module);
+  const canPublish = Boolean(
+    applyCapability && adminHasCapability(admin, applyCapability),
+  );
+  const canRollback = Boolean(
+    rollbackCapability &&
+      adminHasCapability(admin, rollbackCapability) &&
+      canRollbackAdminImportSession(session),
+  );
   const publicationState = getAdminImportPublicationState(session.status);
   const publicationChecklist = getAdminImportPublicationChecklist(session.module);
-  const applyOptions = session.status === AdminImportSessionStatus.preview ? getAdminImportApplyOptions(session) : [];
+  const applyOptions =
+    session.status === AdminImportSessionStatus.preview && canPublish
+      ? getAdminImportApplyOptions(session)
+      : [];
+  const publicationUnavailableReason =
+    session.status !== AdminImportSessionStatus.preview
+      ? null
+      : !applyCapability
+        ? "Este tipo de sesión no tiene una acción de publicación disponible."
+        : !canPublish
+          ? "Modo de solo lectura: tu rol puede revisar esta sesión, pero no publicar cambios en este módulo."
+          : null;
 
   const diffSummary = buildImportDiffSummary({
     beforeSnapshot: session.beforeSnapshot,
@@ -262,7 +299,12 @@ export default async function ImportSessionDetailPage({
         <MetaItem label="Versión aplicada" value={session.appliedVersionId} />
       </section>
 
-      <PublicationPanel state={publicationState} checklist={publicationChecklist} applyOptions={applyOptions} />
+      <PublicationPanel
+        state={publicationState}
+        checklist={publicationChecklist}
+        applyOptions={applyOptions}
+        unavailableReason={publicationUnavailableReason}
+      />
 
       {canRollback ? (
         <section className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">

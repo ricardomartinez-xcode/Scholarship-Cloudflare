@@ -15,12 +15,11 @@ export async function GET() {
 
   try {
     const { campuses, integrity } = await getCachedPublicCampusSnapshot();
-    if (!integrity.ok) {
-      // No autocreate in production. Seed is explicit.
-      console.warn(
-        "[campus] Catalog incomplete. Run `npm run campus:seed`.",
-        integrity
-      );
+    if (integrity.available && !integrity.ok) {
+      console.warn("[campus] Active catalog is incomplete.", {
+        activeCampus: integrity.activeCampus,
+        activeOnline: integrity.activeOnline,
+      });
     }
     return NextResponse.json({ campuses, integrity });
   } catch (error) {

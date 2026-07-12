@@ -17,6 +17,24 @@ describe("workflow regressions", () => {
     expect(source).toContain("[initialPreviewRows]");
   });
 
+  it("routes academic-offer publication through the reviewed import session", () => {
+    const source = read("apps/web/src/components/admin/OfferImportClient.tsx");
+
+    expect(source).toContain("Revisar y publicar");
+    expect(source).toContain("`/admin/importaciones/${sessionId}`");
+    expect(source).not.toContain("applyImport(");
+    expect(source).not.toContain("rollbackImport(");
+    expect(source).not.toContain("/apply?mode=");
+  });
+
+  it("keeps campus integrity guidance actionable in a deployed admin panel", () => {
+    const source = read("apps/web/src/components/admin/AdminChrome.tsx");
+
+    expect(source).toContain("Estado de planteles no disponible");
+    expect(source).toContain("Revisar catálogo de planteles");
+    expect(source).not.toContain("npm run campus:seed");
+  });
+
   it("keeps inbox usable when realtime transport is unavailable and shows reply context", () => {
     const hookSource = read("apps/web/src/hooks/useRealtimeMessages.ts");
     const presenceHookSource = read("apps/web/src/hooks/useRealtimePresence.ts");

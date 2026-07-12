@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
@@ -24,9 +25,12 @@ import { SYSTEM_ROLES, getSystemRoleMeta } from "@/lib/system-roles.shared";
 import styles from "./AdminChrome.module.css";
 
 type CampusIntegrity = {
+  available: boolean;
   ok: boolean;
   activeCampus: number;
   activeOnline: number;
+  expectedCampus: number;
+  expectedOnline: number;
 };
 
 type PublicCta = {
@@ -133,13 +137,22 @@ function AdminNavPanel({
 
 function CampusIntegrityNotice({ campusIntegrity }: { campusIntegrity: CampusIntegrity }) {
   if (campusIntegrity.ok) return null;
+
+  const title = campusIntegrity.available
+    ? "Catálogo de planteles incompleto"
+    : "Estado de planteles no disponible";
+  const detail = campusIntegrity.available
+    ? `Estado actual: planteles ${campusIntegrity.activeCampus}/${campusIntegrity.expectedCampus}, online ${campusIntegrity.activeOnline}/${campusIntegrity.expectedOnline}.`
+    : "No fue posible consultar el catálogo. Verifica la conexión y que las migraciones del entorno estén aplicadas.";
+
   return (
     <div className={styles.integrityNotice} role="status">
       <div className={styles.sectionKicker}>Aviso operativo</div>
-      <div className={styles.noticeTitle}>Catálogo de planteles incompleto</div>
-      <p className={styles.noticeText}>
-        Ejecuta <code>npm run campus:seed</code>. Estado actual: campus {campusIntegrity.activeCampus}/24, online {campusIntegrity.activeOnline}/1.
-      </p>
+      <div className={styles.noticeTitle}>{title}</div>
+      <p className={styles.noticeText}>{detail}</p>
+      <Link href="/admin/unidep/campuses" className={styles.noticeLink}>
+        Revisar catálogo de planteles
+      </Link>
     </div>
   );
 }
@@ -301,8 +314,16 @@ export default function AdminChrome({
               <StatusPill label="Sesión" value={adminEmail} tone="neutral" />
               <StatusPill label="Rol" value={roleStatusLabel} tone="accent" />
               <StatusPill label="Permisos" value={`${adminCapabilities.length}`} tone="neutral" />
-              <StatusPill label="Planteles" value={`${campusIntegrity.activeCampus}/24`} tone={campusIntegrity.ok ? "success" : "warning"} />
-              <StatusPill label="Online" value={`${campusIntegrity.activeOnline}/1`} tone={campusIntegrity.ok ? "success" : "warning"} />
+              <StatusPill
+                label="Planteles"
+                value={campusIntegrity.available ? `${campusIntegrity.activeCampus}/${campusIntegrity.expectedCampus}` : "No disponible"}
+                tone={campusIntegrity.ok ? "success" : "warning"}
+              />
+              <StatusPill
+                label="Online"
+                value={campusIntegrity.available ? `${campusIntegrity.activeOnline}/${campusIntegrity.expectedOnline}` : "No disponible"}
+                tone={campusIntegrity.ok ? "success" : "warning"}
+              />
             </div>
           </header>
 

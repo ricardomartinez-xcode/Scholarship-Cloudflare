@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAdminImportSessionDetailUrl,
+  getAdminImportApplyCapability,
   getAdminImportApplyOptions,
   getAdminImportApplyTarget,
   getAdminImportPublicationState,
@@ -27,6 +28,21 @@ function buildFormRequest(values: Record<string, string>) {
 }
 
 describe("admin import publication", () => {
+  describe("getAdminImportApplyCapability", () => {
+    it("mapea cada importador publicable a su capacidad de gestión", () => {
+      expect(getAdminImportApplyCapability(AdminConfigModule.PRICES)).toBe(
+        "manage_prices",
+      );
+      expect(getAdminImportApplyCapability(AdminConfigModule.BENEFITS)).toBe(
+        "manage_benefits",
+      );
+      expect(getAdminImportApplyCapability(AdminConfigModule.OFFER)).toBe(
+        "manage_offers",
+      );
+      expect(getAdminImportApplyCapability(AdminConfigModule.SIDEBAR)).toBeNull();
+    });
+  });
+
   describe("validateAdminImportPublicationConfirmation", () => {
     it("acepta la confirmación explícita requerida para publicar", async () => {
       const result = await validateAdminImportPublicationConfirmation(

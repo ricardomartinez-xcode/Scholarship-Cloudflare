@@ -39,11 +39,17 @@ test("admin can import oferta excel (requires E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD
   await fileInput.setInputFiles(excelPath!);
 
   await page.getByRole("button", { name: /Validar archivo/i }).click();
-  await expect(page.getByText(/Resumen/i)).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText(/Borrador listo/i)).toBeVisible({ timeout: 120_000 });
   await expect(page.getByText(/Campus procesados/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Aplicar al draft/i })).toBeVisible();
-  await page.getByRole("button", { name: /Aplicar al draft/i }).click();
-  await expect(page.getByText(/aplicada al draft/i)).toBeVisible({ timeout: 120_000 });
-  await expect(page.getByRole("button", { name: /Rollback lógico/i })).toBeVisible();
-});
+  await page.getByRole("link", { name: /Revisar y publicar/i }).click();
+  await expect(page).toHaveURL(/\/admin\/importaciones\//);
+  await expect(page.getByRole("heading", { name: /Borrador listo para revisión/i })).toBeVisible();
 
+  await page.getByRole("checkbox", { name: /Confirmo que revisé el impacto/i }).check();
+  await page.getByPlaceholder("PUBLICAR").fill("PUBLICAR");
+  await page.getByRole("button", { name: /Reemplazar oferta/i }).click();
+  await expect(page.getByRole("heading", { name: /^Publicada$/i })).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect(page.getByRole("button", { name: /Restaurar snapshot anterior/i })).toBeVisible();
+});
