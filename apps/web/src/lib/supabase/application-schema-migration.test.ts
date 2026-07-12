@@ -39,6 +39,9 @@ describe("Supabase application schema migration", () => {
   const documentsBucketMigration = read(
     "supabase/migrations/20260712204000_align_documents_bucket_mime_types.sql",
   );
+  const serviceRoleFoundationGrant = read(
+    "supabase/migrations/20260712204500_grant_service_role_foundation.sql",
+  );
 
   it("creates every Prisma model table and protects it with RLS", () => {
     const tableNames = prismaTableNames(schema);
@@ -144,5 +147,23 @@ describe("Supabase application schema migration", () => {
     ]) {
       expect(documentsBucketMigration).toContain(`'${mimeType}'`);
     }
+  });
+
+  it("allows service-role administration of the RLS foundation tables", () => {
+    for (const tableName of [
+      "profiles",
+      "organizations",
+      "organization_members",
+      "file_assets",
+      "inbox_messages",
+      "training_messages",
+      "migration_batches",
+    ]) {
+      expect(serviceRoleFoundationGrant).toContain(`recalc_admin.${tableName}`);
+    }
+
+    expect(serviceRoleFoundationGrant).toContain("TO service_role");
+    expect(serviceRoleFoundationGrant).not.toContain("TO anon");
+    expect(serviceRoleFoundationGrant).not.toContain("TO authenticated");
   });
 });
