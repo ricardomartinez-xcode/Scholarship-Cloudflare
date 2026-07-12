@@ -23,11 +23,23 @@ No se leyeron ni imprimieron secretos. Para el smoke local se usaron placeholder
 | Validacion | Comando | Resultado | Evidencia | Observaciones |
 | --- | --- | --- | --- | --- |
 | install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.76 exit=0`; `found 0 vulnerabilities`; Prisma Client generado | Warnings transitorios de paquetes deprecated y aviso de Prisma schema default antes del postinstall raiz. |
-| lint | `npm run lint` | Pasa | `duration=0:59.95 exit=0` | `eslint apps packages scripts --max-warnings=0`. |
-| typecheck | `npm run typecheck` | Pasa | `duration=0:11.28 exit=0` | `tsc --noEmit -p tsconfig.json`. |
-| test | `npm test` | Pasa | `97 passed (97)`, `372 passed (372)`, `duration=37.99s exit=0` | El webhook Neon retirado queda fuera de discovery; se agrego cobertura de Supabase auth-sync. |
-| build | `npm run build` | Pasa | `Compiled successfully in 93s`, `Generating static pages ... (16/16)`, `duration=3:25.32 exit=0` | Build final con cache sobre lockfile sin Neon. Ejecuta typecheck antes de `next build --webpack` y no genera rutas Neon Auth. |
+| lint | `npm run lint` | Pasa | Revalidacion final: `duration=1:34.04 exit=0` | `eslint apps packages scripts --max-warnings=0`. |
+| typecheck | `npm run typecheck` | Pasa | Revalidacion final: `duration=1:03.00 exit=0` | `tsc --noEmit -p tsconfig.json`. |
+| test | `npm test -- --reporter=dot` | Pasa | `100 passed (100)`, `381 passed (381)`, `duration=27.33s exit=0` | Incluye permisos de importacion de oferta, transaccion atomica, alcance por plantel, cache del cotizador y regresion UI. |
+| build | `npm run build` | Pasa | Revalidacion final: `Compiled successfully in 5.4min`, `16/16`, `duration=6:37.09 exit=0` | Ejecuta typecheck antes de `next build --webpack`; manifiesto incluye admin/importaciones y no genera rutas Neon Auth. |
 | Prisma schema | `npm run db:validate` con URLs locales placeholder | Pasa | `The schema ... is valid` | El primer intento sin `DIRECT_URL` fallo con `P1012`; no hubo conexion remota. |
+
+## Panel administrativo, importaciones y cotizador
+
+| Validacion | Resultado | Evidencia | Observaciones |
+| --- | --- | --- | --- |
+| Flujo de borrador | Pasa local | `OfferImportClient` ya no invoca apply/rollback directamente; enlaza al detalle de sesion | La publicacion exige revisar impacto, checkbox y texto exacto `PUBLICAR`. |
+| Permisos de preview/apply | Pasa local | Tests de ruta comprueban `view_admin_operations` y `manage_offers` | La sesion no se consulta ni aplica cuando falta la capacidad del modulo. |
+| Atomicidad | Pasa local | Test de `academic-offer-replace` verifica que programas y ofertas usan el mismo `TransactionClient` | Evita programas parcialmente creados si falla el reemplazo de oferta. |
+| Alcance de reemplazo | Pasa local | `deleteMany` queda filtrado por ciclo y `campusId in [...]` | Un archivo parcial no elimina oferta de planteles no incluidos. |
+| Integracion con cotizador | Pasa local | La importacion escribe `programOffering`; tests de quote existentes y nuevos tags de cache pasan | Se invalidan oferta, planes, formatos y planteles tras apply o rollback. |
+| Estado del catalogo admin | Pasa por codigo | Estado `unavailable` separado de catalogo incompleto | El panel no muestra conteos falsos `0/24` ni comandos locales inaplicables en Vercel. |
+| E2E autenticado | No ejecutado | Test Playwright actualizado al flujo validar -> revisar -> confirmar -> publicar | Falta esquema staging aplicado y usuario E2E; no se marco como aprobado. |
 
 ## Smoke local
 
@@ -50,9 +62,15 @@ Resultado:
 | --- | --- |
 | `/` | `status=200 size=57442` |
 | `/legal/privacy` | `status=200 size=39139` |
-| `/auth/sign-in` | `status=200 size=25576` |
+| `/auth/sign-in` | `status=200 size=25150` |
+| `/admin/oferta` | Respuesta RSC contiene `NEXT_REDIRECT;replace;/admin/auth;307` |
+| `/admin/importaciones` | Respuesta RSC protegida sin sesion |
+| `POST /api/admin/import-academic-offer` sin sesion | `status=401` |
 
-El servidor emitio `Ready in 339ms` y no mostro errores durante los curls. El proceso se detuvo con `Ctrl-C`.
+El servidor emitio `Ready in 324ms` y no mostro errores durante los curls. El
+proceso se detuvo con `Ctrl-C`. `agent-browser` no esta instalado en el host
+(`command not found`), por lo que no se marco una inspeccion visual como
+aprobada.
 
 ## Scripts de migracion
 
@@ -94,6 +112,7 @@ prueba ni se aplico el esquema staging, por lo que siguen pendientes:
 - Suscripcion Realtime real con `postgres_changes`.
 - Upload/download real en Supabase Storage.
 - Pruebas Playwright autenticadas.
+- Captura visual del panel autenticado y del detalle de importacion con datos reales.
 - Lectura/escritura de dominio, Realtime y Storage, porque el esquema staging no
   ha sido aplicado.
 
@@ -112,3 +131,8 @@ prueba ni se aplico el esquema staging, por lo que siguen pendientes:
 - `@neondatabase/serverless`, sus aliases npm y el workflow manual de limpieza
   Neon se retiraron del proyecto activo y se preservaron en
   `legacy/neon-database/`.
+- La importacion de oferta ya no publica desde el panel sin confirmacion: crea
+  una sesion preview y dirige al detalle revisable.
+- El reemplazo de oferta es atomico y queda limitado a los planteles presentes
+  en el archivo; apply y rollback revalidan los catalogos usados por el
+  cotizador.
