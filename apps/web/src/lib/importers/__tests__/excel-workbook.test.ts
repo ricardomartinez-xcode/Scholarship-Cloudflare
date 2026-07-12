@@ -2,7 +2,11 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 
-import { loadExcelWorkbook } from "@/lib/importers/excel-workbook";
+import {
+  assertSafeExcelArchive,
+  ExcelWorkbookLimitError,
+  loadExcelWorkbook,
+} from "@/lib/importers/excel-workbook";
 
 async function workbookWithAbsoluteCommentTargets() {
   const source = new ExcelJS.Workbook();
@@ -37,5 +41,26 @@ describe("loadExcelWorkbook", () => {
 
     expect(workbook.getWorksheet("Oferta")?.getCell("A1").value).toBe("Programa");
     expect(workbook.getWorksheet("Oferta")?.getCell("A1").note).toBeUndefined();
+  });
+
+  it("rejects archives with too many entries before ExcelJS processes them", async () => {
+    const source = new JSZip();
+    source.file("first.xml", "a");
+    source.file("second.xml", "b");
+    const zip = await JSZip.loadAsync(await source.generateAsync({ type: "uint8array" }));
+
+    expect(() =>
+      assertSafeExcelArchive(zip, { maxEntries: 1, maxUncompressedBytes: 10 }),
+    ).toThrow(ExcelWorkbookLimitError);
+  });
+
+  it("rejects archives whose uncompressed content exceeds the limit", async () => {
+    const source = new JSZip();
+    source.file("large.xml", "abcd");
+    const zip = await JSZip.loadAsync(await source.generateAsync({ type: "uint8array" }));
+
+    expect(() =>
+      assertSafeExcelArchive(zip, { maxEntries: 2, maxUncompressedBytes: 3 }),
+    ).toThrow(/descomprimido supera/);
   });
 });

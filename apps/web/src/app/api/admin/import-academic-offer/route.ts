@@ -22,6 +22,10 @@ import {
   isAcademicOfferCsvFileName,
 } from "@/lib/importers/academic-offer-csv";
 import { enrichAcademicOfferImportWithModuleSheet } from "@/lib/importers/academic-offer-module-sheet";
+import {
+  ExcelWorkbookLimitError,
+  MAX_EXCEL_WORKBOOK_BYTES,
+} from "@/lib/importers/excel-workbook";
 import { captureException, logStructured } from "@/lib/observability";
 import {
   createAdminImportPreviewSession,
@@ -83,6 +87,15 @@ export async function POST(request: Request) {
 
     if (maybeFile && typeof maybeFile === "object" && "arrayBuffer" in maybeFile) {
       const file = maybeFile as File;
+      if (file.size > MAX_EXCEL_WORKBOOK_BYTES) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `El archivo supera ${Math.round(MAX_EXCEL_WORKBOOK_BYTES / 1024 / 1024)} MB.`,
+          },
+          { status: 413 },
+        );
+      }
       const { importBuffer, checksumBuffer } = await normalizeUploadedFile(file);
       input = { kind: "buffer", buffer: importBuffer, fileName: file.name };
       fileName = file.name;
@@ -148,7 +161,6 @@ export async function POST(request: Request) {
       action: "validate",
       result: "success",
       actorUserId: admin.id,
-      actorEmail: admin.email,
       subjectType: "AdminImportSession",
       subjectId: session.id,
       metadata: {
@@ -172,7 +184,6 @@ export async function POST(request: Request) {
       action: "validate",
       result: "failure",
       actorUserId: actor?.id ?? null,
-      actorEmail: actor?.email ?? null,
       requestId,
       metadata: {
         cycle: requestedCycle,
@@ -192,6 +203,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: error instanceof ExcelWorkbookLimitError ? 413 : 500 },
+    );
   }
 }

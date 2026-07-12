@@ -86,7 +86,6 @@ export async function POST(
       result: "success",
       requestId,
       actorUserId: auth.admin.id,
-      actorEmail: auth.admin.email,
       subjectType: "AdminImportSession",
       subjectId: sessionId,
     });
