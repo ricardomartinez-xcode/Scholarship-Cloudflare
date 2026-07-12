@@ -57,15 +57,6 @@ function escapeWindowsArg(value: string) {
   return `"${value.replace(/"/g, '\\"')}"`;
 }
 
-function hasAnyDatabaseUrl() {
-  return Boolean(
-    getEnvValue("DIRECT_URL") ||
-      getEnvValue("POSTGRES_URL_NON_POOLING") ||
-      getEnvValue("DATABASE_URL_UNPOOLED") ||
-      getEnvValue("DATABASE_URL"),
-  );
-}
-
 function hasAuthE2ECredentials() {
   return Boolean(
     getEnvValue("E2E_EMAIL") &&
@@ -130,10 +121,9 @@ async function main() {
       args: ["tsc", "--noEmit"],
     },
     {
-      label: "Cloudflare build",
+      label: "Next.js build",
       command: "npm",
-      env: { CLOUDFLARE_SKIP_EXPLICIT_TYPECHECK: "1" },
-      args: ["run", "build:cloudflare"],
+      args: ["run", "build"],
     },
     {
       label: "Playwright public release checks",
@@ -145,12 +135,6 @@ async function main() {
         "tests/e2e/smoke.spec.ts",
         "tests/e2e/visual-regression.spec.ts",
       ],
-    },
-    {
-      label: "Neon verification",
-      command: "npm",
-      args: ["run", "verify:neon"],
-      enabled: hasAnyDatabaseUrl(),
     },
   ];
 

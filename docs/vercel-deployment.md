@@ -4,7 +4,8 @@
 
 - Rama: `migration/vercel-supabase`
 - Proyecto: `re-lead/scholarship` enlazado al repositorio GitHub.
-- Preview remoto: `https://scholarship-fe5vltcoe-re-lead.vercel.app` en estado `READY`.
+- Preview remoto: `https://scholarship-git-migration-vercel-supabase-re-lead.vercel.app`
+  en estado `READY` (alias estable de la rama).
 - Produccion Cloudflare: no modificada.
 - Entorno objetivo inicial: Vercel Preview + Supabase staging.
 

@@ -15,7 +15,7 @@ export type ExtensionAuthSignInFailure = {
   error: string;
 };
 
-export function classifyNeonAuthSignInFailure(
+export function classifySupabaseAuthSignInFailure(
   upstreamStatus: number,
 ): ExtensionAuthSignInFailure {
   if (upstreamStatus === 401) {
@@ -76,7 +76,7 @@ export function classifyNeonAuthSignInFailure(
   };
 }
 
-export function createNeonAuthUnreachableFailure(): ExtensionAuthSignInFailure {
+export function createSupabaseAuthUnreachableFailure(): ExtensionAuthSignInFailure {
   return {
     ok: false,
     status: 503,
@@ -86,7 +86,7 @@ export function createNeonAuthUnreachableFailure(): ExtensionAuthSignInFailure {
   };
 }
 
-export function createNeonAuthSessionMissingFailure(): ExtensionAuthSignInFailure {
+export function createSupabaseAuthSessionMissingFailure(): ExtensionAuthSignInFailure {
   return {
     ok: false,
     status: 502,

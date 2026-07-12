@@ -1,5 +1,5 @@
-// Helper to run Prisma CLI using DATABASE_URL resolved from .env.local / Neon integration vars.
-// Prisma CLI expects DATABASE_URL; this helper resolves it from Vercel-Neon integration vars.
+// Helper to run Prisma CLI using DATABASE_URL resolved from local or Vercel
+// Supabase integration aliases.
 
 const { spawnSync } = require("node:child_process");
 

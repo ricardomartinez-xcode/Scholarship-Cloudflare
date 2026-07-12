@@ -1,24 +1,28 @@
 # Environment Variables (V2)
 
 ## Base de datos / Prisma
-- `DATABASE_URL`
-- `DIRECT_DATABASE_URL` (si aplica)
+- `DATABASE_URL` o alias Vercel `POSTGRES_PRISMA_URL` / `POSTGRES_URL`
+- `DIRECT_URL` o alias Vercel `POSTGRES_URL_NON_POOLING` / `DATABASE_URL_UNPOOLED`
 
 ## Auth
-- Variables Neon Auth (según `src/lib/auth/server.ts`, `src/lib/authz.ts`)
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` solo para Admin API y tareas server-only
+- `NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED=1` solo despues de habilitar Google en Supabase
 - Variables Google OAuth (`src/lib/google-integration.ts`)
+
+No se requieren variables `NEON_AUTH_*` para iniciar sesion, refrescar cookies,
+proteger rutas ni ejecutar el diagnostico de usuarios.
 
 ## Supabase Realtime
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` preferida para cliente. `NEXT_PUBLIC_SUPABASE_ANON_KEY` queda solo como fallback legacy.
-- `SUPABASE_URL` para llamadas server-side.
-- `SUPABASE_SERVICE_ROLE_KEY` (sólo servidor)
-- `SUPABASE_REALTIME_JWT_SECRET` (sólo servidor, debe ser el JWT Secret del proyecto Supabase)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` o `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 Las variables `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 son públicas por diseño: se usan en el navegador para conectar Supabase Realtime.
-No deben dar acceso a datos sin el JWT corto que emite `/api/realtime/token` y las
-políticas RLS de `realtime.messages`. Nunca crear variables con nombres como
+El cliente usa la sesion de Supabase Auth y las politicas RLS; no existe un JWT
+paralelo emitido por `/api/realtime/token`. Nunca crear variables con nombres como
 `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_SECRET_KEY` o
 `NEXT_PUBLIC_SUPABASE_REALTIME_JWT_SECRET`.
 

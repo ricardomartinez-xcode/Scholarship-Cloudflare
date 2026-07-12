@@ -1,12 +1,16 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import {
+  AdminCapability,
   AdminChangeSource,
   AdminConfigModule,
   AdminImportSessionStatus,
   BusinessEventType,
 } from "@prisma/client";
 
-import { getAdminUser } from "@/lib/admin-session";
+import { requireAdminApiCapability } from "@/lib/api-auth";
+import { buildAdminRequestId } from "@/lib/admin-api";
+import { getAdminConfigModulePaths } from "@/lib/admin-config-modules";
 import { writeBusinessEventSafe } from "@/lib/business-events";
 import {
   applyPreparedAcademicOfferImport,
@@ -23,6 +27,10 @@ import {
   markAdminImportSessionApplied,
   markAdminImportSessionFailed,
 } from "@/lib/importers/admin-import-sessions";
+import {
+  getPublicRouteTagsForModule,
+  revalidatePublicRouteTags,
+} from "@/lib/public-route-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,19 +39,39 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ sessionId: string }> },
 ) {
+  const requestId = buildAdminRequestId("admin_academic_offer_import_apply");
   let sessionId: string | null = null;
+  let actor: { id: string; email: string } | null = null;
+  let sessionMarkedApplied = false;
 
   try {
     ({ sessionId } = await context.params);
 
-    const admin = await getAdminUser();
-    if (!admin) {
+    const operationsAuth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.view_admin_operations,
+    );
+    if (!operationsAuth.ok) {
       const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
-        publicationError: "No tienes una sesión administrativa activa para publicar esta importación.",
+        publicationError: "No tienes permisos administrativos activos para publicar esta importación.",
       });
       if (redirectResponse) return redirectResponse;
-      return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
+      return operationsAuth.response;
     }
+
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_offers,
+    );
+    if (!auth.ok) {
+      const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId, {
+        publicationError: "No tienes permisos para publicar importaciones de oferta académica.",
+      });
+      if (redirectResponse) return redirectResponse;
+      return auth.response;
+    }
+    const admin = auth.admin;
+    actor = admin;
 
     const session = await getAdminImportSession({ sessionId });
 
@@ -120,9 +148,10 @@ export async function POST(
       module: AdminConfigModule.OFFER,
       actor: admin,
       result: summary,
-      requestId: null,
+      requestId,
       source: AdminChangeSource.IMPORT,
     });
+    sessionMarkedApplied = true;
 
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_APPLIED,
@@ -143,6 +172,7 @@ export async function POST(
       result: "success",
       actorUserId: admin.id,
       actorEmail: admin.email,
+      requestId,
       subjectType: "AdminImportSession",
       subjectId: sessionId,
       metadata: {
@@ -154,6 +184,26 @@ export async function POST(
       },
     });
 
+    try {
+      for (const path of getAdminConfigModulePaths(AdminConfigModule.OFFER)) {
+        revalidatePath(path);
+      }
+      revalidatePublicRouteTags(
+        getPublicRouteTagsForModule(AdminConfigModule.OFFER),
+      );
+      revalidatePath("/admin/importaciones");
+      revalidatePath(`/admin/importaciones/${sessionId}`);
+    } catch (cacheError) {
+      captureException(cacheError, {
+        module: "offer-import",
+        action: "revalidate",
+        result: "failure",
+        requestId,
+        subjectType: "AdminImportSession",
+        subjectId: sessionId,
+      }, "Academic offer import cache revalidation failed");
+    }
+
     const redirectResponse = redirectAdminImportPublicationIfNeeded(request, sessionId);
     if (redirectResponse) return redirectResponse;
 
@@ -161,16 +211,15 @@ export async function POST(
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "No fue posible aplicar la sesión.";
-    const admin = await getAdminUser().catch(() => null);
 
-    if (sessionId) {
+    if (sessionId && !sessionMarkedApplied) {
       await markAdminImportSessionFailed({
         sessionId,
         module: AdminConfigModule.OFFER,
-        actor: admin,
+        actor,
         errors: [message],
         result: { stage: "apply", message },
-        requestId: null,
+        requestId,
         source: AdminChangeSource.IMPORT,
       }).catch(() => undefined);
     }
@@ -179,14 +228,15 @@ export async function POST(
       module: "offer-import",
       action: "apply",
       result: "failure",
-      actorUserId: admin?.id ?? null,
-      actorEmail: admin?.email ?? null,
+      actorUserId: actor?.id ?? null,
+      actorEmail: actor?.email ?? null,
+      requestId,
       metadata: { message, sessionId },
     }, "Academic offer import apply failed");
 
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_FAILED,
-      userId: admin?.id ?? null,
+      userId: actor?.id ?? null,
       subjectType: "AdminImportSession",
       subjectId: sessionId ?? undefined,
       metadata: {

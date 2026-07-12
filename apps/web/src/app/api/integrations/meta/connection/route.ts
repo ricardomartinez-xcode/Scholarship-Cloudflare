@@ -9,7 +9,7 @@ function disabled() {
       disabled: true,
       code: "meta_integrations_temporarily_disabled",
       message:
-        "Las integraciones nuevas de Meta/WhatsApp estan deshabilitadas temporalmente mientras se usa el flujo legado de invitacion + Neon Auth.",
+        "Las integraciones nuevas de Meta/WhatsApp estan deshabilitadas temporalmente durante la migracion a Supabase Auth.",
     },
     { status: 503 },
   );

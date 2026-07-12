@@ -1472,7 +1472,7 @@ model AutoRepairRun {
 // ============================================================================
 // These models support the new /capacitacion/rolplay feature.
 // They integrate with Supabase Realtime for real-time chat and presence.
-// Persistence is in Neon (Prisma), Realtime layer is Supabase.
+// Persistence is in Supabase PostgreSQL through Prisma; Realtime is Supabase native.
 
 model TrainingRoom {
   id              String                   @id @default(uuid()) @db.Uuid

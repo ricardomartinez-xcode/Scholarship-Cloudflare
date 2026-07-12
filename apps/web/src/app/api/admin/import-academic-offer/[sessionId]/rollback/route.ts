@@ -1,18 +1,25 @@
-import { NextResponse } from "next/server";
 import {
-  AdminAuditAction,
-  AdminChangeSource,
+  AdminCapability,
   AdminConfigModule,
   AdminImportSessionStatus,
   BusinessEventType,
 } from "@prisma/client";
 
-import { getAdminUser } from "@/lib/admin-session";
-import { writeAdminAuditLog } from "@/lib/admin-audit";
-import { restoreDraftConfigSnapshot } from "@/lib/admin-config-snapshots";
+import { requireAdminApiCapability } from "@/lib/api-auth";
+import {
+  adminApiError,
+  adminApiSuccess,
+  buildAdminRequestId,
+  logAdminApiFailure,
+} from "@/lib/admin-api";
 import { writeBusinessEventSafe } from "@/lib/business-events";
-import { captureException, logStructured } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import {
+  getAdminImportSession,
+} from "@/lib/importers/admin-import-sessions";
+import {
+  rollbackAdminImportSessionToBeforeSnapshot,
+} from "@/lib/importers/admin-import-rollbacks";
+import { logStructured } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,59 +28,50 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ sessionId: string }> },
 ) {
+  const requestId = buildAdminRequestId("admin_academic_offer_import_rollback");
+
   try {
-    const admin = await getAdminUser();
-    if (!admin) {
-      return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
-    }
+    const operationsAuth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.view_admin_operations,
+    );
+    if (!operationsAuth.ok) return operationsAuth.response;
+
+    const auth = await requireAdminApiCapability(
+      requestId,
+      AdminCapability.manage_offers,
+    );
+    if (!auth.ok) return auth.response;
 
     const { sessionId } = await context.params;
-    const session = await prisma.adminImportSession.findFirst({
-      where: { id: sessionId, module: AdminConfigModule.OFFER },
-      select: {
-        id: true,
-        status: true,
-        beforeSnapshot: true,
-      },
-    });
-    if (!session || !session.beforeSnapshot) {
-      return NextResponse.json(
-        { ok: false, error: "La sesión no tiene rollback disponible." },
-        { status: 404 },
-      );
+    const session = await getAdminImportSession({ sessionId });
+    if (!session || session.module !== AdminConfigModule.OFFER) {
+      return adminApiError({
+        requestId,
+        status: 404,
+        errorCode: "OFFER_IMPORT_SESSION_NOT_FOUND",
+        error: "No se encontró la sesión de importación de oferta académica.",
+        recoverable: true,
+      });
     }
 
     if (session.status === AdminImportSessionStatus.rolled_back) {
-      return NextResponse.json({ ok: true, sessionId, rolledBack: true });
+      return adminApiSuccess(requestId, {
+        session,
+        sessionId,
+        rolledBack: true,
+      });
     }
 
-    await restoreDraftConfigSnapshot(
-      AdminConfigModule.OFFER,
-      session.beforeSnapshot as never,
-    );
-
-    await prisma.adminImportSession.update({
-      where: { id: sessionId },
-      data: {
-        status: AdminImportSessionStatus.rolled_back,
-        rolledBackAt: new Date(),
-      },
-    });
-
-    await writeAdminAuditLog({
-      module: AdminConfigModule.OFFER,
-      action: AdminAuditAction.IMPORT_ROLLBACK,
-      source: AdminChangeSource.IMPORT,
-      actor: admin,
-      entityType: "AdminImportSession",
-      entityId: sessionId,
-      message: "Rollback lógico del draft de oferta académica.",
-      importSessionId: sessionId,
+    const rolledBackSession = await rollbackAdminImportSessionToBeforeSnapshot({
+      sessionId,
+      actor: auth.admin,
+      requestId,
     });
 
     await writeBusinessEventSafe({
       type: BusinessEventType.IMPORT_ROLLED_BACK,
-      userId: admin.id,
+      userId: auth.admin.id,
       subjectType: "AdminImportSession",
       subjectId: sessionId,
       metadata: {
@@ -86,35 +84,34 @@ export async function POST(
       module: "offer-import",
       action: "rollback",
       result: "success",
-      actorUserId: admin.id,
-      actorEmail: admin.email,
+      requestId,
+      actorUserId: auth.admin.id,
+      actorEmail: auth.admin.email,
       subjectType: "AdminImportSession",
       subjectId: sessionId,
     });
 
-    return NextResponse.json({ ok: true, sessionId, rolledBack: true });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "No fue posible revertir la sesión.";
-    const admin = await getAdminUser().catch(() => null);
-    captureException(error, {
-      module: "offer-import",
+    return adminApiSuccess(
+      requestId,
+      { session: rolledBackSession, sessionId, rolledBack: true },
+      { message: "Rollback de oferta académica aplicado." },
+    );
+  } catch (error) {
+    logAdminApiFailure({
+      requestId,
+      module: "admin-academic-offer-import",
       action: "rollback",
-      result: "failure",
-      actorUserId: admin?.id ?? null,
-      actorEmail: admin?.email ?? null,
-      metadata: { message },
-    }, "Academic offer import rollback failed");
-    await writeBusinessEventSafe({
-      type: BusinessEventType.IMPORT_FAILED,
-      userId: admin?.id ?? null,
-      subjectType: "AdminImportSession",
-      metadata: {
-        module: AdminConfigModule.OFFER,
-        stage: "rollback",
-        message,
-      },
+      error,
     });
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return adminApiError({
+      requestId,
+      status: 500,
+      errorCode: "OFFER_IMPORT_ROLLBACK_FAILED",
+      error:
+        error instanceof Error
+          ? error.message
+          : "No fue posible revertir la sesión de importación.",
+      recoverable: true,
+    });
   }
 }

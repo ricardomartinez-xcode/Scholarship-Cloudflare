@@ -123,7 +123,6 @@ type ManualOfferDraft = {
 
 type ApiError = { ok: false; error: string };
 type OfferPanel = "list" | "imports";
-type OfferImportApplyMode = "replace" | "update-only";
 
 const PREVIEW_PAGE_SIZE = 20;
 
@@ -211,8 +210,6 @@ export default function OfferImportClient({
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [activePanel, setActivePanel] = useState<OfferPanel>("list");
   const [loading, setLoading] = useState(false);
-  const [applyLoading, setApplyLoading] = useState(false);
-  const [rollbackLoading, setRollbackLoading] = useState(false);
   const [visibilityLoading, setVisibilityLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -220,8 +217,6 @@ export default function OfferImportClient({
   const [previewQuery, setPreviewQuery] = useState("");
   const [previewPage, setPreviewPage] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [applied, setApplied] = useState(false);
-  const [rolledBack, setRolledBack] = useState(false);
   const [cycle, setCycle] = useState<AcademicOfferCycle>("C1");
   const [visibleCycles, setVisibleCycles] = useState<AcademicOfferCycle[]>(
     Array.from(new Set(initialVisibleCycles)).filter((value): value is AcademicOfferCycle =>
@@ -273,17 +268,20 @@ export default function OfferImportClient({
   );
 
   async function runImport() {
+    const file = fileRef.current?.files?.[0] ?? null;
+    if (!file) {
+      setError("Selecciona un archivo .xlsx o .csv para crear el borrador de importación.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSummary(null);
     setSessionId(null);
-    setApplied(false);
-    setRolledBack(false);
 
     try {
       const fd = new FormData();
-      const file = fileRef.current?.files?.[0] ?? null;
-      if (file) fd.set("file", file);
+      fd.set("file", file);
       fd.set("cycle", cycle);
 
       const res = await fetch("/api/admin/import-academic-offer", { method: "POST", body: fd });
@@ -322,47 +320,6 @@ export default function OfferImportClient({
       setError(err instanceof Error ? err.message : "Error al guardar visibilidad.");
     } finally {
       setVisibilityLoading(false);
-    }
-  }
-
-  async function applyImport(mode: OfferImportApplyMode = "replace") {
-    if (!sessionId) return;
-    setApplyLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/import-academic-offer/${sessionId}/apply?mode=${mode}`, { method: "POST" });
-      const data = (await res.json()) as Summary | ApiError;
-      if (!res.ok || !("ok" in data) || data.ok === false) {
-        throw new Error((data as ApiError)?.error || "Error al aplicar la sesión.");
-      }
-      setSummary(data);
-      setApplied(true);
-      setRolledBack(false);
-      router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al aplicar la sesión.");
-    } finally {
-      setApplyLoading(false);
-    }
-  }
-
-  async function rollbackImport() {
-    if (!sessionId) return;
-    setRollbackLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/import-academic-offer/${sessionId}/rollback`, { method: "POST" });
-      const data = (await res.json()) as { ok: boolean; error?: string } | ApiError;
-      if (!res.ok || !("ok" in data) || data.ok === false) {
-        throw new Error((data as ApiError)?.error || "Error al revertir la sesión.");
-      }
-      setApplied(false);
-      setRolledBack(true);
-      router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al revertir la sesión.");
-    } finally {
-      setRollbackLoading(false);
     }
   }
 
@@ -542,7 +499,7 @@ export default function OfferImportClient({
       </div>
 
       {error ? (
-        <div className="mt-5 rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <div className="mt-5 rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert" aria-live="assertive">
           {error}
         </div>
       ) : null}
@@ -751,34 +708,28 @@ export default function OfferImportClient({
               <div>
                 <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Actualizar oferta por planteles</div>
                 <p className="mt-1 text-sm text-slate-300">
-                  Importa archivos XLSX o CSV. La sesión primero valida y previsualiza; después puedes aplicar al draft y publicar cuando el diff esté aprobado.
+                  Importa archivos XLSX o CSV. La validación crea un borrador sin modificar la oferta activa; después revisa el diff y confirma la publicación desde el detalle de sesión.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/admin/importaciones" className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10">
-                  Ver validador
+                  Ver historial
                 </Link>
                 <button type="button" onClick={runImport} disabled={loading} className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:opacity-60">
                   {loading ? "Validando..." : "Validar archivo"}
                 </button>
-                {sessionId && !applied && !rolledBack ? (
-                  <>
-                    <button type="button" onClick={() => void applyImport("replace")} disabled={applyLoading} className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25 disabled:opacity-60">
-                      {applyLoading ? "Actualizando..." : "Actualizar oferta"}
-                    </button>
-                    <button type="button" onClick={() => void applyImport("update-only")} disabled={applyLoading} className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60">
-                      {applyLoading ? "Actualizando..." : "Actualizar lote"}
-                    </button>
-                  </>
+                {sessionId ? (
+                  <Link href={`/admin/importaciones/${sessionId}`} className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25">
+                    Revisar y publicar
+                  </Link>
                 ) : null}
-                {sessionId && applied && !rolledBack ? <button type="button" onClick={rollbackImport} disabled={rollbackLoading} className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/25 disabled:opacity-60">{rollbackLoading ? "Revirtiendo..." : "Rollback"}</button> : null}
               </div>
             </div>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
               <label className="grid gap-2 text-sm">
                 Archivo (.xlsx o .csv)
-                <input ref={fileRef} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="ui-control" />
-                <span className="text-xs text-slate-400">Si no seleccionas archivo, en desarrollo se intentará usar el Excel por defecto en <code className="mx-1 rounded bg-black/30 px-1">/docs</code>.</span>
+                <input ref={fileRef} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="ui-control" required />
+                <span className="text-xs text-slate-400">El archivo se valida antes de crear la sesión. No se publica ningún cambio en este paso.</span>
               </label>
               <label className="grid gap-2 text-sm">
                 Ciclo a actualizar
@@ -822,10 +773,13 @@ export default function OfferImportClient({
           </details>
 
           {sessionId ? (
-            <div className="rounded-xl border border-white/10 bg-slate-950/25 px-4 py-3 text-sm text-slate-300">
-              Sesión: <span className="font-semibold text-slate-100">{sessionId.slice(0, 8)}</span>
-              {applied ? <span className="ml-2 text-emerald-300">· actualizada</span> : null}
-              {rolledBack ? <span className="ml-2 text-amber-300">· rollback ejecutado</span> : null}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-50" role="status" aria-live="polite">
+              <div>
+                Borrador listo: <span className="font-semibold">{sessionId.slice(0, 8)}</span>. Revisa el impacto antes de publicar.
+              </div>
+              <Link href={`/admin/importaciones/${sessionId}`} className="font-semibold text-cyan-100 underline decoration-cyan-300/50 underline-offset-4 hover:text-white">
+                Abrir detalle
+              </Link>
             </div>
           ) : null}
 
@@ -842,7 +796,14 @@ export default function OfferImportClient({
                   Hojas detectadas: Online=&quot;{summary.detectedSheets.online}&quot; · Planteles=&quot;{summary.detectedSheets.planteles}&quot; · Columnas: Online[Lic={colLetter(summary.detectedColumns.online.licenciatura)}, Pos={colLetter(summary.detectedColumns.online.posgrado)}] · Planteles[Plantel={colLetter(summary.detectedColumns.planteles.plantel)}, Prog={colLetter(summary.detectedColumns.planteles.programa)}]
                 </div>
               ) : null}
-              {summary.warnings.length ? <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">{summary.warnings[0]}</div> : null}
+              {summary.warnings.length ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                  <div className="font-semibold">Advertencias ({summary.warnings.length})</div>
+                  <ul className="mt-2 grid gap-1">
+                    {summary.warnings.map((warning, index) => <li key={`${index}-${warning}`}>{warning}</li>)}
+                  </ul>
+                </div>
+              ) : null}
               <div className="ui-table-wrap ui-scrollbar max-h-[320px]">
                 <table className="ui-table ui-table--compact w-full min-w-[820px]">
                   <thead><tr><th className="text-left">Campus</th><th className="text-left">Fuente</th><th className="text-left">Filas</th><th className="text-left">Creadas</th><th className="text-left">Actualizadas</th><th className="text-left">Reactivadas</th><th className="text-left">Desactivadas</th></tr></thead>

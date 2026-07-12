@@ -25,21 +25,15 @@ Before pushing, you can run the same checks locally:
 
 ## Getting Started
 
-First, run the development server:
+Desde la raiz del monorepo:
 
 ```bash
+npm ci --foreground-scripts
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open http://localhost:3000 with your browser to see the result.
-
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+La aplicacion Next.js vive en `apps/web` y queda disponible en
+`http://localhost:3000`.
 
 ## Calidad y release
 
@@ -82,8 +76,23 @@ Documentacion de la migracion:
 - [Realtime](docs/realtime-migration.md)
 - [Storage](docs/storage-migration.md)
 - [Vercel](docs/vercel-deployment.md)
+- [Validacion](docs/migration-validation.md)
+- [Rollback](docs/migration-rollback.md)
+- [Reporte final](docs/migration-final-report.md)
 
 La produccion Cloudflare permanece intacta. No ejecutes migraciones destructivas ni cambies DNS/dominio productivo desde esta rama.
+
+### Importacion administrativa de oferta
+
+El flujo operativo es deliberadamente de dos pasos:
+
+1. En `/admin/oferta?panel=imports`, subir XLSX/CSV y crear una sesion de preview.
+2. En `/admin/importaciones/<sessionId>`, revisar warnings/diff, confirmar
+   `PUBLICAR` y elegir actualizacion por lote o reemplazo del alcance importado.
+
+El reemplazo solo afecta el ciclo y los planteles presentes en el archivo. Al
+publicar o revertir se revalidan oferta, planes, formatos y planteles usados por
+el cotizador.
 
 ### API (datos)
 La app consume datos **solo** desde:

@@ -46,7 +46,7 @@ export default function MigrateClient() {
         <h3 className="font-semibold text-amber-300">Aplicar migración de base de datos</h3>
         <p className="mt-2 text-sm text-slate-300">
           Si ves errores 500 en las APIs de UNIDEP (campuses, oferta, planes, costos), es porque las
-          nuevas columnas y tablas aún no están creadas en Neon. Haz clic en{" "}
+          nuevas columnas y tablas aún no están creadas en PostgreSQL. Haz clic en{" "}
           <strong>&quot;Aplicar migración&quot;</strong> para crearlas. La operación es{" "}
           <strong>idempotente</strong> — puedes ejecutarla varias veces sin riesgo.
         </p>

@@ -39,7 +39,9 @@ export const ADMIN_CONFIG_MODULE_META = {
     revalidatePaths: [
       "/admin/oferta",
       "/admin/unidep/formatos",
+      "/api/public/campuses",
       "/api/public/oferta",
+      "/api/public/planes",
       "/api/public/formatos",
       "/unidep",
       "/unidep/formatos",

@@ -37,7 +37,12 @@ export function getPublicRouteTagsForModule(module: AdminConfigModule) {
     case AdminConfigModule.DIRECTORY:
       return [PUBLIC_ROUTE_CACHE_TAGS.directorio];
     case AdminConfigModule.OFFER:
-      return [PUBLIC_ROUTE_CACHE_TAGS.oferta, PUBLIC_ROUTE_CACHE_TAGS.formatos];
+      return [
+        PUBLIC_ROUTE_CACHE_TAGS.oferta,
+        PUBLIC_ROUTE_CACHE_TAGS.planes,
+        PUBLIC_ROUTE_CACHE_TAGS.formatos,
+        PUBLIC_ROUTE_CACHE_TAGS.campuses,
+      ];
     default:
       return [];
   }

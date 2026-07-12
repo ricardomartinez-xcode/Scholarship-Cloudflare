@@ -10,10 +10,10 @@ type SyncInitial =
   | { ok: false; error: string }
   | {
       ok: true;
-      neonAuthAvailable: boolean;
-      neonAuthWarning?: string | null;
-      summary: { neonOnlyCount: number; appOrphansCount: number };
-      neonOnly: Array<{
+      supabaseAuthAvailable: boolean;
+      supabaseAuthWarning?: string | null;
+      summary: { supabaseOnlyCount: number; appOrphansCount: number };
+      supabaseOnly: Array<{
         id: string;
         email: string | null;
         name: string | null;
@@ -55,13 +55,13 @@ async function loadSyncData(): Promise<SyncInitial> {
 
   return {
     ok: true,
-    neonAuthAvailable: diagnostics.neonAuthAvailable,
-    neonAuthWarning: diagnostics.neonAuthWarning,
+    supabaseAuthAvailable: diagnostics.supabaseAuthAvailable,
+    supabaseAuthWarning: diagnostics.supabaseAuthWarning,
     summary: {
-      neonOnlyCount: diagnostics.summary.neonOnlyCount,
+      supabaseOnlyCount: diagnostics.summary.supabaseOnlyCount,
       appOrphansCount: diagnostics.summary.appOrphansCount,
     },
-    neonOnly: diagnostics.neonOnly.map((row) => ({
+    supabaseOnly: diagnostics.supabaseOnly.map((row) => ({
       id: row.id,
       email: row.email,
       name: row.name,

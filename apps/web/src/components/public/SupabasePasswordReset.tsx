@@ -1,6 +1,6 @@
 "use client";
 
 export {
-  ForgotPasswordCardForm as NeonForgotPasswordForm,
-  ResetPasswordCardForm as NeonResetPasswordForm,
+  ForgotPasswordCardForm as SupabaseForgotPasswordForm,
+  ResetPasswordCardForm as SupabaseResetPasswordForm,
 } from "@/components/auth/SupabaseAuthForms";

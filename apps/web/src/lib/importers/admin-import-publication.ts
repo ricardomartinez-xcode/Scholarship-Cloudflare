@@ -1,4 +1,5 @@
 import {
+  AdminCapability,
   AdminConfigModule,
   AdminImportSessionStatus,
 } from "@prisma/client";
@@ -29,6 +30,16 @@ export type AdminImportApplyOption = {
   action: string;
   tone: "cyan" | "emerald" | "amber";
 };
+
+const APPLY_CAPABILITY_BY_MODULE: Partial<Record<AdminConfigModule, AdminCapability>> = {
+  [AdminConfigModule.BENEFITS]: AdminCapability.manage_benefits,
+  [AdminConfigModule.PRICES]: AdminCapability.manage_prices,
+  [AdminConfigModule.OFFER]: AdminCapability.manage_offers,
+} satisfies Partial<Record<AdminConfigModule, AdminCapability>>;
+
+export function getAdminImportApplyCapability(module: AdminConfigModule) {
+  return APPLY_CAPABILITY_BY_MODULE[module] ?? null;
+}
 
 export function getAdminImportPublicationState(status: AdminImportSessionStatus): AdminImportPublicationState {
   if (status === AdminImportSessionStatus.preview) {

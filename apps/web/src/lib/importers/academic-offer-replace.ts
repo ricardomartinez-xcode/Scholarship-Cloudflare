@@ -1,4 +1,4 @@
-import { ProgramOfferingDelivery } from "@prisma/client";
+import { Prisma, ProgramOfferingDelivery } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type {
@@ -59,6 +59,7 @@ function getProgramSeeds(payload: PreparedAcademicOfferImportPayload) {
 }
 
 async function upsertProgramsForImport(
+  tx: Prisma.TransactionClient,
   seeds: Map<string, ProgramSeed>,
   summary: ImportAcademicOfferSummary,
   options?: { allowCreate?: boolean },
@@ -66,7 +67,7 @@ async function upsertProgramsForImport(
   const programIds = new Map<string, string>();
 
   for (const [nameNormalized, program] of seeds) {
-    const existing = await prisma.program.findUnique({
+    const existing = await tx.program.findUnique({
       where: { nameNormalized },
       select: { id: true, name: true, level: true, businessLine: true },
     });
@@ -76,7 +77,7 @@ async function upsertProgramsForImport(
         throw new Error(`Actualizar lote no puede crear programas nuevos: ${program.name}.`);
       }
 
-      const created = await prisma.program.create({
+      const created = await tx.program.create({
         data: {
           name: program.name,
           nameNormalized,
@@ -97,7 +98,7 @@ async function upsertProgramsForImport(
       existing.level !== nextLevel ||
       existing.businessLine !== nextBusinessLine
     ) {
-      await prisma.program.update({
+      await tx.program.update({
         where: { id: existing.id },
         data: {
           name: program.name,
@@ -186,7 +187,7 @@ function buildReplacementOfferRows(
 }
 
 /**
- * Applies an academic-offer import as a full replacement for the imported cycle.
+ * Applies an academic-offer import as a replacement for the imported campus scope.
  *
  * The importer UI stores a prepared payload after validation. Applying the session must
  * use that payload as source of truth. For C3 and future cycle templates, multiple CSV
@@ -214,12 +215,12 @@ export async function applyPreparedAcademicOfferImport(params: {
 
   const mode = params.mode ?? "replace";
   const programSeeds = getProgramSeeds(params.payload);
-  const programIds = await upsertProgramsForImport(programSeeds, summary, {
-    allowCreate: mode !== "update-only",
-  });
-  const replacementRows = buildReplacementOfferRows(params.payload, programIds);
 
   await prisma.$transaction(async (tx) => {
+    const programIds = await upsertProgramsForImport(tx, programSeeds, summary, {
+      allowCreate: mode !== "update-only",
+    });
+    const replacementRows = buildReplacementOfferRows(params.payload, programIds);
     const previousCountsByCampus = new Map<string, number>();
     for (const campus of params.payload.parsed) {
       const count = await tx.programOffering.count({
@@ -305,8 +306,14 @@ export async function applyPreparedAcademicOfferImport(params: {
       return;
     }
 
+    const importedCampusIds = Array.from(
+      new Set(params.payload.parsed.map((campus) => campus.campusId)),
+    );
     const deleted = await tx.programOffering.deleteMany({
-      where: { cycle: params.payload.cycle },
+      where: {
+        cycle: params.payload.cycle,
+        campusId: { in: importedCampusIds },
+      },
     });
 
     if (replacementRows.length > 0) {

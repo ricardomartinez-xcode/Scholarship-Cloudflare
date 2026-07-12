@@ -29,7 +29,7 @@ export async function GET() {
 
     const diagnostics = await getAuthSyncDiagnostics({ analysisLimit: 2500 });
 
-    const neonOnly = diagnostics.neonOnly.map((row) => ({
+    const supabaseOnly = diagnostics.supabaseOnly.map((row) => ({
       id: row.id,
       email: row.email,
       name: row.name,
@@ -49,14 +49,14 @@ export async function GET() {
     return adminApiSuccess(
       requestId,
       {
-        neonAuthAvailable: diagnostics.neonAuthAvailable,
-        neonAuthWarning: diagnostics.neonAuthWarning,
+        supabaseAuthAvailable: diagnostics.supabaseAuthAvailable,
+        supabaseAuthWarning: diagnostics.supabaseAuthWarning,
         warnings: diagnostics.warnings,
         summary: {
-          neonOnlyCount: diagnostics.summary.neonOnlyCount,
+          supabaseOnlyCount: diagnostics.summary.supabaseOnlyCount,
           appOrphansCount: diagnostics.summary.appOrphansCount,
         },
-        neonOnly,
+        supabaseOnly,
         appOrphans,
       },
       {

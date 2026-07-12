@@ -34,12 +34,34 @@ describe("auth UI dependency boundaries", () => {
       "apps/web/middleware.ts",
       "apps/web/src/app/api/auth/sign-in/route.ts",
       "apps/web/src/app/api/auth/sign-up/route.ts",
+      "apps/web/src/services/authSyncService.ts",
     ]) {
       const source = read(relativePath);
       expect(source).not.toContain("@neondatabase/auth");
+      expect(source).not.toContain("NEON_AUTH");
+      expect(source).not.toContain("neon_auth.user");
       expect(source).not.toContain("@/lib/cloudflare/auth");
       expect(source).not.toContain("@/lib/cloudflare/d1");
     }
+  });
+
+  it("keeps retired Neon Auth endpoints outside the active Next.js tree", () => {
+    expect(
+      fs.existsSync(
+        path.join(
+          rootDir,
+          "apps/web/src/app/api/integrations/neon-auth/webhook/route.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      fs.existsSync(
+        path.join(
+          rootDir,
+          "legacy/neon-auth/apps/web/src/app/api/integrations/neon-auth/webhook/route.ts",
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("keeps public auth pages off mutating server session reads", () => {

@@ -256,9 +256,10 @@ Bloque 6 (Extensión Chrome MV3)
 ## Contexto técnico actual
 
 ### Arquitectura
-- **Framework**: Next.js 16.1.6 (App Router)
-- **Database**: PostgreSQL (Neon) con Prisma 6.19.2
-- **Auth**: Neon Auth (Better Auth)
+- **Framework**: Next.js 16.2.6 (App Router)
+- **Database**: Supabase PostgreSQL con Prisma como cliente transitorio
+- **Auth**: Supabase Auth SSR
+- **Realtime**: Supabase Postgres Changes y Presence
 - **UI**: Tailwind CSS 4 + Radix UI
 - **Testing**: Playwright e2e
 

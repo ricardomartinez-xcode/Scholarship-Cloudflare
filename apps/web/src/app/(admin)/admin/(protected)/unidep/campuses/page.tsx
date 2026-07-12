@@ -57,7 +57,7 @@ function NeedsMigration({ title }: { title: string }) {
       <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
         <div className="font-semibold">Base de datos desactualizada</div>
         <div className="mt-1">
-          Las columnas nuevas de UNIDEP aún no existen en Neon. Aplica la migración con el botón de abajo.
+          Las columnas nuevas de UNIDEP aún no existen en PostgreSQL. Aplica la migración con el botón de abajo.
         </div>
       </div>
       <MigrateClient />

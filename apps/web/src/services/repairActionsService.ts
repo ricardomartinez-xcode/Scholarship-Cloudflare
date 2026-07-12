@@ -63,16 +63,16 @@ type RepairActor = {
 type LinkByEmailCandidate = {
   userId: string;
   userEmail: string;
-  neonId: string;
-  neonEmail: string | null;
+  supabaseId: string;
+  supabaseEmail: string | null;
 };
 
 type BrokenReferenceCandidate = {
   userId: string;
   userEmail: string;
   currentAuthUserId: string;
-  suggestedNeonId: string;
-  suggestedNeonEmail: string | null;
+  suggestedSupabaseId: string;
+  suggestedSupabaseEmail: string | null;
 };
 
 type OrphanDeactivationCandidate = {
@@ -82,8 +82,8 @@ type OrphanDeactivationCandidate = {
 };
 
 type MissingAppUserCandidate = {
-  neonId: string;
-  neonEmail: string;
+  supabaseId: string;
+  supabaseEmail: string;
 };
 
 type StuckCampaignCandidate = {
@@ -105,10 +105,10 @@ const REPAIR_ACTIONS: RepairActionDefinition[] = [
     id: "auth.link_missing_by_email",
     name: "Vincular authUserId por email",
     description:
-      "Asigna authUserId cuando existe match único por email entre app y Neon Auth.",
+      "Asigna authUserId cuando existe match único por email entre app y Supabase Auth.",
     severity: "safe_auto_fix",
     preconditions: [
-      "El email de app coincide con exactamente un usuario en Neon Auth.",
+      "El email de app coincide con exactamente un usuario en Supabase Auth.",
       "Ese authUserId aún no está enlazado a otro usuario de app.",
     ],
     module: AdminConfigModule.ACCESS,
@@ -120,8 +120,8 @@ const REPAIR_ACTIONS: RepairActionDefinition[] = [
       "Corrige authUserId cuando la referencia actual no existe pero hay match único por email.",
     severity: "safe_auto_fix",
     preconditions: [
-      "La referencia authUserId actual no existe en Neon Auth.",
-      "Existe un match único por email en Neon Auth.",
+      "La referencia authUserId actual no existe en Supabase Auth.",
+      "Existe un match único por email en Supabase Auth.",
     ],
     module: AdminConfigModule.ACCESS,
   },
@@ -141,10 +141,10 @@ const REPAIR_ACTIONS: RepairActionDefinition[] = [
     id: "auth.create_minimal_app_users",
     name: "Regenerar usuarios mínimos",
     description:
-      "Crea filas mínimas en recalc_admin.user para cuentas Neon Auth permitidas sin registro en app.",
+      "Crea filas mínimas en recalc_admin.user para cuentas Supabase Auth permitidas sin registro en app.",
     severity: "review_required",
     preconditions: [
-      "El usuario existe en Neon Auth y no existe en recalc_admin.user.",
+      "El usuario existe en Supabase Auth y no existe en recalc_admin.user.",
       "El correo cumple reglas de dominio permitido para acceso.",
     ],
     module: AdminConfigModule.ACCESS,
@@ -212,8 +212,8 @@ async function getLinkByEmailCandidates(
   return diagnostics.missingAuthUserIdMatches.map((record) => ({
     userId: record.user.id,
     userEmail: record.user.email,
-    neonId: record.neonId,
-    neonEmail: record.neonEmail,
+    supabaseId: record.supabaseId,
+    supabaseEmail: record.supabaseEmail,
   }));
 }
 
@@ -221,13 +221,13 @@ async function getBrokenReferenceCandidates(
   diagnostics: AuthSyncDiagnostics,
 ): Promise<BrokenReferenceCandidate[]> {
   return diagnostics.brokenAuthReferences
-    .filter((record) => Boolean(record.suggestedNeonId))
+    .filter((record) => Boolean(record.suggestedSupabaseId))
     .map((record) => ({
       userId: record.user.id,
       userEmail: record.user.email,
       currentAuthUserId: record.user.authUserId ?? "",
-      suggestedNeonId: record.suggestedNeonId ?? "",
-      suggestedNeonEmail: record.suggestedNeonEmail,
+      suggestedSupabaseId: record.suggestedSupabaseId ?? "",
+      suggestedSupabaseEmail: record.suggestedSupabaseEmail,
     }));
 }
 
@@ -251,17 +251,17 @@ async function getOrphanDeactivationCandidates(
 async function getMissingAppUserCandidates(
   diagnostics: AuthSyncDiagnostics,
 ): Promise<MissingAppUserCandidate[]> {
-  if (!diagnostics.neonAuthAvailable) return [];
+  if (!diagnostics.supabaseAuthAvailable) return [];
   const appByEmail = buildAppLookupByEmail(diagnostics);
-  return diagnostics.neonOnly
-    .map((neonUser) => {
-      const email = String(neonUser.email ?? "").trim().toLowerCase();
+  return diagnostics.supabaseOnly
+    .map((supabaseUser) => {
+      const email = String(supabaseUser.email ?? "").trim().toLowerCase();
       if (!email) return null;
       if (!isAllowedEmail(email)) return null;
       if (appByEmail.has(email)) return null;
       return {
-        neonId: neonUser.id,
-        neonEmail: email,
+        supabaseId: supabaseUser.id,
+        supabaseEmail: email,
       } satisfies MissingAppUserCandidate;
     })
     .filter((candidate): candidate is MissingAppUserCandidate => Boolean(candidate));
@@ -351,9 +351,9 @@ export async function previewRepairAction(params: {
 
   if (params.actionId.startsWith("auth.")) {
     const diagnostics = await resolveAuthDiagnostics(params.diagnostics);
-    if (!diagnostics.neonAuthAvailable) {
+    if (!diagnostics.supabaseAuthAvailable) {
       warnings.push(
-        "No se puede previsualizar esta acción porque neon_auth.user no está disponible.",
+        "No se puede previsualizar esta acción porque Supabase Auth Admin API no está disponible.",
       );
       return { ...action, warnings, previewCount: 0, sample: [] };
     }
@@ -364,8 +364,8 @@ export async function previewRepairAction(params: {
       previewCount = candidates.length;
       sample = limitSample(candidates, previewLimit).map((candidate) =>
         toSample(candidate.userEmail, candidate.userId, {
-          neonId: candidate.neonId,
-          neonEmail: candidate.neonEmail,
+          supabaseId: candidate.supabaseId,
+          supabaseEmail: candidate.supabaseEmail,
         }),
       );
     } else if (params.actionId === "auth.repair_broken_auth_reference") {
@@ -374,7 +374,7 @@ export async function previewRepairAction(params: {
       sample = limitSample(candidates, previewLimit).map((candidate) =>
         toSample(candidate.userEmail, candidate.userId, {
           currentAuthUserId: candidate.currentAuthUserId,
-          suggestedNeonId: candidate.suggestedNeonId,
+          suggestedSupabaseId: candidate.suggestedSupabaseId,
         }),
       );
     } else if (params.actionId === "auth.deactivate_orphans") {
@@ -387,7 +387,7 @@ export async function previewRepairAction(params: {
       const candidates = await getMissingAppUserCandidates(diagnostics);
       previewCount = candidates.length;
       sample = limitSample(candidates, previewLimit).map((candidate) =>
-        toSample(candidate.neonEmail, candidate.neonId),
+        toSample(candidate.supabaseEmail, candidate.supabaseId),
       );
     }
   } else if (params.actionId === "campaigns.reset_stuck_processing") {
@@ -482,7 +482,7 @@ export async function executeRepairAction(params: {
     for (const candidate of candidates) {
       const update = await prisma.user.updateMany({
         where: { id: candidate.userId, authUserId: null },
-        data: { authUserId: candidate.neonId },
+        data: { authUserId: candidate.supabaseId },
       });
       if (update.count > 0) appliedCount += 1;
       else skippedCount += 1;
@@ -496,7 +496,7 @@ export async function executeRepairAction(params: {
           id: candidate.userId,
           authUserId: candidate.currentAuthUserId,
         },
-        data: { authUserId: candidate.suggestedNeonId },
+        data: { authUserId: candidate.suggestedSupabaseId },
       });
       if (update.count > 0) appliedCount += 1;
       else skippedCount += 1;
@@ -522,8 +522,8 @@ export async function executeRepairAction(params: {
     if (candidates.length) {
       const created = await prisma.user.createMany({
         data: candidates.map((candidate) => ({
-          authUserId: candidate.neonId,
-          email: candidate.neonEmail,
+          authUserId: candidate.supabaseId,
+          email: candidate.supabaseEmail,
           role: Role.user,
           isActive: true,
           lastLoginAt: null,

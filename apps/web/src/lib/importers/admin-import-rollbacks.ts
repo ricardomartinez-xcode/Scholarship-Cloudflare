@@ -18,6 +18,11 @@ import {
   type AdminImportSessionSerialized,
   type ImportSessionActor,
 } from "@/lib/importers/admin-import-sessions";
+import {
+  getPublicRouteTagsForModule,
+  revalidatePublicRouteTags,
+} from "@/lib/public-route-cache";
+import { captureException } from "@/lib/observability";
 
 const ROLLBACK_CAPABILITY_BY_MODULE: Partial<Record<AdminConfigModule, AdminCapability>> = {
   [AdminConfigModule.BENEFITS]: AdminCapability.manage_benefits,
@@ -69,11 +74,23 @@ export async function rollbackAdminImportSessionToBeforeSnapshot(input: {
   const beforeSnapshot = session.beforeSnapshot as AdminConfigSnapshot;
   await restoreDraftConfigSnapshot(session.module, beforeSnapshot);
 
-  for (const path of getAdminConfigModulePaths(session.module)) {
-    revalidatePath(path);
+  try {
+    for (const path of getAdminConfigModulePaths(session.module)) {
+      revalidatePath(path);
+    }
+    revalidatePublicRouteTags(getPublicRouteTagsForModule(session.module));
+    revalidatePath("/admin/importaciones");
+    revalidatePath(`/admin/importaciones/${session.id}`);
+  } catch (error) {
+    captureException(error, {
+      module: "admin-import-sessions",
+      action: "rollback-revalidate",
+      result: "failure",
+      requestId: input.requestId ?? null,
+      subjectType: "AdminImportSession",
+      subjectId: session.id,
+    }, "Admin import rollback cache revalidation failed");
   }
-  revalidatePath("/admin/importaciones");
-  revalidatePath(`/admin/importaciones/${session.id}`);
 
   return markAdminImportSessionRolledBack({
     sessionId: session.id,

@@ -34,6 +34,20 @@ export type PublicCampusRow = CampusRow & {
   whatsapp: string | null;
 };
 
+export const EXPECTED_ACTIVE_CAMPUS_COUNT = 24;
+export const EXPECTED_ACTIVE_ONLINE_COUNT = 1;
+
+export type CampusIntegrity = {
+  available: boolean;
+  ok: boolean;
+  total: number;
+  active: number;
+  activeCampus: number;
+  activeOnline: number;
+  expectedCampus: number;
+  expectedOnline: number;
+};
+
 export async function getActiveCampuses(): Promise<CampusRow[]> {
   const rows = await prisma.campus.findMany({
     where: { isActive: true },
@@ -53,7 +67,7 @@ export async function getActiveCampuses(): Promise<CampusRow[]> {
   return rows as CampusRow[];
 }
 
-export async function getCampusIntegrity() {
+export async function getCampusIntegrity(): Promise<CampusIntegrity> {
   try {
     const total = await prisma.campus.count();
     const active = await prisma.campus.count({ where: { isActive: true } });
@@ -64,16 +78,31 @@ export async function getCampusIntegrity() {
       where: { isActive: true, kind: "online" },
     });
 
-    const ok = activeCampus === 24 && activeOnline === 1 && active >= 25;
+    const ok =
+      activeCampus === EXPECTED_ACTIVE_CAMPUS_COUNT &&
+      activeOnline === EXPECTED_ACTIVE_ONLINE_COUNT &&
+      active >= EXPECTED_ACTIVE_CAMPUS_COUNT + EXPECTED_ACTIVE_ONLINE_COUNT;
     return {
+      available: true,
       ok,
       total,
       active,
       activeCampus,
       activeOnline,
+      expectedCampus: EXPECTED_ACTIVE_CAMPUS_COUNT,
+      expectedOnline: EXPECTED_ACTIVE_ONLINE_COUNT,
     };
   } catch {
-    return { ok: false, total: 0, active: 0, activeCampus: 0, activeOnline: 0 };
+    return {
+      available: false,
+      ok: false,
+      total: 0,
+      active: 0,
+      activeCampus: 0,
+      activeOnline: 0,
+      expectedCampus: EXPECTED_ACTIVE_CAMPUS_COUNT,
+      expectedOnline: EXPECTED_ACTIVE_ONLINE_COUNT,
+    };
   }
 }
 
