@@ -33,6 +33,9 @@ describe("Supabase application schema migration", () => {
   const dataApiMigration = read(
     "supabase/migrations/20260712203000_expose_recalc_api_schema.sql",
   );
+  const dataApiReloadMigration = read(
+    "supabase/migrations/20260712203500_reload_postgrest_schema.sql",
+  );
 
   it("creates every Prisma model table and protects it with RLS", () => {
     const tableNames = prismaTableNames(schema);
@@ -120,5 +123,6 @@ describe("Supabase application schema migration", () => {
     expect(dataApiMigration).toContain("NOTIFY pgrst, 'reload config'");
     expect(dataApiMigration).not.toContain("site_url");
     expect(dataApiMigration).not.toContain("config/auth");
+    expect(dataApiReloadMigration).toContain("NOTIFY pgrst, 'reload schema'");
   });
 });
