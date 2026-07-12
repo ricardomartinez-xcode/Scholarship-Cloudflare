@@ -5,7 +5,8 @@
 - Rama: `migration/vercel-supabase`
 - Runtime objetivo: Next.js en Vercel, Node.js Runtime
 - Storage objetivo: Supabase Storage
-- Estado remoto: no ejecutado. No se copiaron objetos remotos ni se modificaron buckets remotos.
+- Estado remoto: buckets/politicas y flujo de archivo validados solo en Supabase
+  staging. No se leyeron ni copiaron objetos R2 productivos.
 - Entorno permitido: Supabase staging.
 
 ## Flujo anterior
@@ -140,14 +141,27 @@ Locales ejecutadas:
 | `npm run lint` | Paso |
 | Pruebas enfocadas Storage/archivos/rutas publicas | Paso: 6 archivos, 23 tests |
 
-Pendientes por falta de credenciales staging:
+Staging ejecutado:
 
-- subir un objeto real al bucket `documents`;
-- descargar mediante `/api/files/:id/auth-view`;
-- crear signed URL en preview/share;
-- subir media de campana al bucket `attachments`;
-- verificar RLS de Storage entre dos usuarios/organizaciones;
-- ejecutar migracion real R2 a Supabase Storage.
+| Caso | Resultado |
+| --- | --- |
+| Upload `documents` | Permitido para usuario/organizacion autorizados |
+| Metadata y signed URL | Creacion, redireccion y descarga de 12 bytes correctas |
+| MIME invalido | Rechazado con `400`/politica de bucket |
+| Limite | Bucket privado, maximo 50 MB y 10 MIME permitidos |
+| Acceso cruzado | Organizacion ajena bloqueada por RLS |
+| Delete | Objeto y metadata eliminados |
+| Rutas de aplicacion | presign `200`, upload `200`, complete `200`, signed-view `307` |
+
+Los objetos y filas temporales se eliminaron al finalizar; conteo residual del
+usuario/organizacion de prueba: `0`.
+
+Pendiente:
+
+- ejecutar la migracion real R2 -> Storage solo con manifiesto aprobado y
+  credenciales de origen de staging;
+- validar media real de campana en `attachments` cuando exista un fixture no
+  productivo aprobado.
 
 ## Rollback
 

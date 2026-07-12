@@ -6,7 +6,8 @@
 - Presencia: Supabase Presence.
 - Broadcast server-side legacy: eliminado de la ruta principal; los hooks de servidor quedan como no-op de compatibilidad.
 - Endpoint JWT propio `/api/realtime/token`: eliminado.
-- Estado remoto: no validado contra Supabase staging.
+- Estado remoto: `postgres_changes` y el WebSocket del navegador validados
+  contra Supabase staging y Vercel Preview.
 
 ## Eventos actuales encontrados
 
@@ -68,14 +69,14 @@ La migracion base ya incluye RLS para las tablas nuevas `recalc_admin.inbox_mess
 
 | Prueba | Estado |
 | --- | --- |
-| Suscripcion a INSERT inbox | Pendiente Supabase staging |
-| Suscripcion a UPDATE inbox | Pendiente Supabase staging |
-| Suscripcion a DELETE inbox | Pendiente Supabase staging |
-| Filtro por thread | Pendiente Supabase staging |
-| Suscripcion training por chat | Pendiente Supabase staging |
-| Limpieza de canal al desmontar | Cubierto por implementacion; pendiente browser |
-| Reconexión | Pendiente browser/staging |
-| Ausencia de duplicados | El hook recarga historial autorizado; pendiente E2E |
+| Suscripcion a INSERT inbox | Validada en staging |
+| Suscripcion a UPDATE inbox | Validada en staging |
+| Suscripcion a DELETE inbox | Validada en staging |
+| Filtro por thread | Validado entre dos organizaciones |
+| Suscripcion training por chat | Validada en staging |
+| Limpieza de canal al desmontar | Validada con `removeChannel` |
+| Reconexión | Validada: un evento antes y otro despues de reconectar |
+| Ausencia de duplicados | Validada: una entrega por cambio |
 | Presence join/leave/sync | Pendiente staging |
 
 ## Validaciones locales
@@ -84,10 +85,18 @@ La migracion base ya incluye RLS para las tablas nuevas `recalc_admin.inbox_mess
 | --- | --- | --- |
 | Typecheck tras cambio realtime | `npm run typecheck` | OK |
 
+## Validaciones staging
+
+- La publicacion `supabase_realtime` contiene las cuatro tablas persistentes
+  necesarias: singular heredada y plural fundacional para Inbox/Training.
+- INSERT, UPDATE y DELETE se recibieron con filtro de recurso y RLS activo.
+- El navegador del Preview abrio el WebSocket contra
+  `eocpoygtcetjieglkxnt.supabase.co` sin errores de consola, pagina o red.
+- La configuracion publica usa referencias estaticas
+  `process.env.NEXT_PUBLIC_SUPABASE_*`, por lo que Next.js las inyecta al bundle.
+
 ## Pendientes
 
-- Ejecutar migraciones en Supabase staging.
-- Confirmar que `supabase_realtime` publication incluye las tablas activas.
-- Definir RLS final para tablas Prisma heredadas o completar corte a tablas SQL nuevas.
-- Ejecutar prueba con dos sesiones autenticadas en Vercel Preview/local.
+- Presence de usuarios simultaneos no se probo con dos navegadores; no bloquea
+  los eventos persistentes del cotizador/importador.
 - Retirar componentes de diagnóstico `outbox_event` cuando se confirme que no sirven a integraciones/webhooks.

@@ -43,6 +43,19 @@ Para staging:
 
 Los scripts de esta rama son dry-run por defecto. Cualquier ejecucion con `--apply` o `--remote` debe quedar registrada con fecha, proyecto y responsable.
 
+La exposicion temporal del esquema custom en PostgREST puede revertirse solo en
+staging con un rol de base autorizado:
+
+```sql
+ALTER ROLE authenticator RESET pgrst.db_schemas;
+ALTER ROLE authenticator RESET pgrst.db_extra_search_path;
+NOTIFY pgrst, 'reload config';
+NOTIFY pgrst, 'reload schema';
+```
+
+No ejecutar este bloque en una base compartida sin registrar primero los
+consumidores del esquema `recalc_admin`.
+
 ## Rollback de Storage staging
 
 1. No borrar buckets productivos R2.
@@ -89,6 +102,18 @@ Los artefactos Cloudflare historicos estan aislados en `legacy/cloudflare/` para
 - shims Cloudflare no usados por la ruta principal
 
 No ejecutar esos scripts desde esta rama salvo que se este haciendo diagnostico controlado y documentado.
+
+## Rollback de la validacion ejecutada
+
+La importacion de oferta de staging fue revertida desde el panel antes de cerrar
+la prueba. Se eliminaron por UUID exacto la sesion, versiones, auditorias,
+usuarios, organizaciones, mensajes, objetos y metadata temporales. El estado
+final comprobado fue 25 planteles canonicos, 0 programas y 0 ofertas de prueba.
+
+La migracion `20260712204500_grant_service_role_foundation.sql` solo concede
+DML a `service_role`; no desactiva RLS ni concede acceso a `anon`. Si se revierte
+en staging, usar `REVOKE` sobre las mismas tablas listadas en la migracion y
+verificar primero que no existan jobs administrativos que dependan de ella.
 
 Los paneles, webhooks y scripts Neon Auth retirados estan aislados en
 `legacy/neon-auth/`. El helper de base Neon retirado esta en

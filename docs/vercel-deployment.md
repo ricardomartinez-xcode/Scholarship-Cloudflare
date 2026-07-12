@@ -52,14 +52,15 @@ Las migraciones de base de datos no se ejecutan dentro del build. Deben aplicars
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | URL base de la app para redirects y callbacks | Preview, Production futura |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase | Preview |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key para navegador y SSR | Preview |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | clave publica recomendada para navegador/SSR | Preview |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | alias legacy aceptado si la integracion no entrega publishable key | Preview |
 
 ### Server-only
 
 | Variable | Uso | Entornos |
 | --- | --- | --- |
-| `DATABASE_URL` | Conexion PostgreSQL runtime/Prisma mientras se termina el desacople | Preview |
-| `DIRECT_URL` | Conexion directa para Prisma y herramientas locales | Preview |
+| `DATABASE_URL` o `POSTGRES_PRISMA_URL` | Conexion PostgreSQL runtime/Prisma mientras se termina el desacople | Preview |
+| `DIRECT_URL` o `POSTGRES_URL_NON_POOLING` | Conexion directa para Prisma y herramientas | Preview |
 | `SUPABASE_SERVICE_ROLE_KEY` | Operaciones administrativas server-side, migracion y Storage controlado | Preview, solo servidor |
 | `POSTGRES_COMPAT_RUNTIME` | Switch local opcional para rutas legacy D1-named respaldadas por PostgreSQL | Local opcional |
 
@@ -88,10 +89,11 @@ Cuando se genere un nuevo Preview, agregar su dominio a Redirect URLs si Supabas
 
 ## Supabase staging
 
-Antes del Preview real:
+El proyecto staging ya esta enlazado. Para aplicar solo migraciones pendientes:
 
 ```bash
-supabase db push --project-ref <staging-ref>
+npx supabase migration list --linked
+npx supabase migration up --linked --yes
 ```
 
 o aplicar manualmente las migraciones versionadas de `supabase/migrations` contra staging. No ejecutar contra produccion.
@@ -147,19 +149,16 @@ Rollback despues de una promocion futura:
 4. Comparar conteos y timestamps de los datos escritos durante la ventana.
 5. Reconciliar manualmente cualquier dato creado solo en Supabase antes de volver a abrir escrituras.
 
-## Limitaciones actuales
+## Estado validado y limitaciones
 
-- El Preview compila y despliega correctamente. `/`, `/legal/privacy` y
-  `/auth/sign-in` responden `200`; `/auth/after-login` sin sesion redirige con
-  `303` a sign-in.
-- Supabase Auth responde `200` en health/settings y tiene email habilitado.
-  Google OAuth permanece deshabilitado, por lo que su boton se oculta hasta
-  configurar el provider y `NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED=1`.
-- La lectura `/api/public/campuses` devuelve `500` porque
-  `recalc_admin.campus` aun no existe. Las migraciones Supabase staging siguen
-  pendientes y no se ejecutaron desde el build.
-- El JWKS publico del proyecto Supabase staging responde y expone la clave ES256
-  esperada; un JWKS no sustituye la publishable/anon key, las conexiones
-  PostgreSQL, la service role ni un access token de administracion Supabase.
-- Algunas rutas de dominio siguen usando Prisma temporalmente.
-- Workflows manuales heredados relacionados con Neon deben revisarse antes de habilitar automatizaciones de deployment.
+- Preview de rama: `https://scholarship-git-migration-vercel-supabase-re-lead.vercel.app`.
+- Las rutas publicas y APIs de oferta/costos/beneficios respondieron `200` tras
+  aplicar el esquema; login, cookie SSR, logout y panel admin se validaron.
+- No existen variables Neon activas en el Preview. La integracion entrega
+  variables Supabase publicas y aliases PostgreSQL administrados por Vercel.
+- Supabase Realtime abre el WebSocket del proyecto correcto desde el bundle.
+- Google OAuth permanece deshabilitado; email/password es el proveedor probado.
+- Algunas rutas de dominio conservan Prisma como cliente PostgreSQL transitorio.
+- El calculo monetario del cotizador requiere cargar tarifas/beneficios reales
+  de staging; no se inventaron valores.
+- El Preview no se promovio y no se agrego ningun dominio productivo.
