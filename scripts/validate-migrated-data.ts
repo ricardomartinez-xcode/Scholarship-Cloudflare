@@ -40,7 +40,15 @@ async function readJson<T>(filePath: string): Promise<T> {
 }
 
 async function countJsonl(filePath: string) {
-  const source = await fs.readFile(filePath, "utf8");
+  let source: string;
+  try {
+    source = await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return 0;
+    }
+    throw error;
+  }
   return source.split("\n").filter((line) => line.trim()).length;
 }
 
