@@ -10,12 +10,35 @@ function read(relativePath: string) {
 }
 
 describe("auth UI dependency boundaries", () => {
-  it("keeps password reset forms off the Neon auth-ui beta bundle", () => {
+  it("keeps password reset forms on the Supabase adapter", () => {
     for (const relativePath of [
-      "apps/web/src/components/auth/NeonAuthForms.tsx",
-      "apps/web/src/components/public/NeonPasswordReset.tsx",
+      "apps/web/src/components/auth/SupabaseAuthForms.tsx",
+      "apps/web/src/components/public/SupabasePasswordReset.tsx",
     ]) {
       expect(read(relativePath)).not.toContain("@neondatabase/auth/react/ui");
+    }
+  });
+
+  it("keeps active auth adapters on Supabase Auth", () => {
+    for (const relativePath of [
+      "apps/web/src/lib/auth/server.ts",
+      "apps/web/src/lib/auth/client.ts",
+      "apps/web/middleware.ts",
+    ]) {
+      expect(read(relativePath)).toMatch(/supabase|Supabase/);
+    }
+
+    for (const relativePath of [
+      "apps/web/src/lib/auth/server.ts",
+      "apps/web/src/lib/auth/client.ts",
+      "apps/web/middleware.ts",
+      "apps/web/src/app/api/auth/sign-in/route.ts",
+      "apps/web/src/app/api/auth/sign-up/route.ts",
+    ]) {
+      const source = read(relativePath);
+      expect(source).not.toContain("@neondatabase/auth");
+      expect(source).not.toContain("@/lib/cloudflare/auth");
+      expect(source).not.toContain("@/lib/cloudflare/d1");
     }
   });
 

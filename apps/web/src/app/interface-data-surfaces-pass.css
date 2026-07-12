@@ -73,7 +73,7 @@ body td :is(button, a[role="button"], .ui-button, .ui-shell-icon-button) {
   min-height: 2.25rem !important;
 }
 
-/* File/upload preview surfaces from the R2/file-preview flow. */
+/* File/upload preview surfaces from the Storage/file-preview flow. */
 body :is([data-file-list], [data-upload-list], [data-preview-list], [data-file-preview], .ui-file-list, .ui-upload-list, .ui-preview-list) {
   max-width: 100%;
   overflow: hidden;

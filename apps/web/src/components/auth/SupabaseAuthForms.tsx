@@ -47,7 +47,7 @@ export function ForgotPasswordCardForm() {
     try {
       const result = await getPasswordAuthClient().requestPasswordReset({
         email: cleanEmail,
-        redirectTo: `${getPublicBaseUrl()}/auth/reset-password`,
+        redirectTo: `${getPublicBaseUrl()}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
         fetchOptions: { throw: true },
       });
       if (result?.error) {

@@ -22,9 +22,7 @@ export default async function ExtensionSignInPage({
   const params = searchParams ? await searchParams : undefined;
 
   let session: Awaited<ReturnType<typeof auth.getSession>>["data"] | null = null;
-  if (process.env.NEON_AUTH_BASE_URL?.trim()) {
-    ({ data: session } = await auth.getSession());
-  }
+  ({ data: session } = await auth.getSession());
   if (session?.user) {
     redirect("/extension");
   }

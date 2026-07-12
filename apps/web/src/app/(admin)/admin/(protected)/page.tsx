@@ -108,7 +108,7 @@ const SUMMARY_SECTIONS: SummarySection[] = [
         capability: AdminCapability.manage_offers,
       },
       {
-        title: "Archivos R2",
+        title: "Archivos Storage",
         description: "Assets, PDFs e imágenes vinculadas a oferta y programas.",
         href: "/admin/files",
         eyebrow: "Assets",

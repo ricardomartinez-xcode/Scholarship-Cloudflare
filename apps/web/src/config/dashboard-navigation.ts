@@ -349,7 +349,7 @@ export const adminNavGroups: DashboardNavGroup[] = [
           },
           {
             key: "admin-files",
-            label: "Archivos R2",
+            label: "Archivos Storage",
             icon: "plan",
             href: "/admin/files",
             group: "admin-academics",

@@ -69,8 +69,8 @@ function addQuery(path: string, params: Record<string, string>) {
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
-function buildAfterLoginCallback(nextPath: string, extra: Record<string, string> = {}) {
-  return absoluteUrl(addQuery("/auth/after-login", { next: nextPath, ...extra }));
+function buildAuthCallback(nextPath: string, extra: Record<string, string> = {}) {
+  return absoluteUrl(addQuery("/auth/callback", { next: nextPath, ...extra }));
 }
 
 function buildAuthErrorCallback(mode: AuthMethodsMode, nextPath: string, message: string) {
@@ -121,7 +121,7 @@ function modeCopy(mode: AuthMethodsMode) {
   };
 }
 
-export default function NeonUserAuthMethods({
+export default function SupabaseUserAuthMethods({
   callbackURL = "/unidep",
   defaultEmail = "",
   mode = "sign-in",
@@ -169,8 +169,8 @@ export default function NeonUserAuthMethods({
       const client = authClient as AuthClientWithPasswordless;
       const result = await client.signIn.magicLink({
         email: cleanEmail,
-        callbackURL: buildAfterLoginCallback(nextPath),
-        newUserCallbackURL: buildAfterLoginCallback(nextPath, { newUser: "1" }),
+        callbackURL: buildAuthCallback(nextPath),
+        newUserCallbackURL: buildAuthCallback(nextPath, { newUser: "1" }),
         errorCallbackURL: buildAuthErrorCallback(mode, nextPath, "No se pudo validar el enlace mágico."),
       });
       assertNoAuthError(result, "No se pudo enviar el enlace mágico.");
@@ -224,7 +224,7 @@ export default function NeonUserAuthMethods({
         ...(mode === "sign-up" ? { name: displayNameFromEmail(cleanEmail) } : {}),
       });
       assertNoAuthError(result, "No se pudo validar el código OTP.");
-      window.location.assign(buildAfterLoginCallback(nextPath, mode === "sign-up" ? { newUser: "1" } : {}));
+      window.location.assign(addQuery("/auth/after-login", { next: nextPath, ...(mode === "sign-up" ? { newUser: "1" } : {}) }));
     } catch (err) {
       setError(getErrorMessage(err, "Código inválido o expirado."));
     } finally {

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { DashboardIcon, type DashboardIconName } from "@/components/layout/DashboardIcons";
 import { buildFileAssetLinks, type FileAssetRecord } from "@/lib/file-assets.shared";
-import type { ContentBucketObject } from "@/lib/r2-content-bucket";
+import type { ContentBucketObject } from "@/lib/storage/content-bucket";
 import { syncContentBucketFilesAction } from "./actions";
 
 type PresignResponse =
@@ -90,7 +90,7 @@ function FileRows({ files }: { files: FileAssetRecord[] }) {
     return (
       <tr>
         <td className="p-4 text-slate-400" colSpan={5}>
-          Aún no hay archivos R2.
+          Aún no hay archivos en Storage.
         </td>
       </tr>
     );
@@ -223,7 +223,7 @@ export default function FilesClient({
           headers: presign.uploadHeaders ?? { "Content-Type": file.type },
           body: file,
         });
-        if (!uploadRes.ok) throw new Error(`R2 rechazó la carga (${uploadRes.status}).`);
+        if (!uploadRes.ok) throw new Error(`Storage rechazó la carga (${uploadRes.status}).`);
 
         const completeRes = await fetch(`/api/files/${presign.asset.id}/complete`, {
           method: "POST",
@@ -258,7 +258,7 @@ export default function FilesClient({
           }
         }
 
-        setNotice(hasUsage ? "Archivo cargado y relacionado en R2." : "Archivo cargado en R2.");
+        setNotice(hasUsage ? "Archivo cargado y relacionado en Storage." : "Archivo cargado en Storage.");
         if (inputRef.current) inputRef.current.value = "";
         router.refresh();
       } catch (err) {
@@ -272,7 +272,7 @@ export default function FilesClient({
       <div className="ui-card grid gap-4 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.28em] text-slate-400">R2</div>
+            <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Storage</div>
             <h2 className="mt-1 text-lg font-semibold">Assets y materiales</h2>
             <p className="mt-1 max-w-2xl text-sm text-slate-300">
               Carga PDFs, imágenes, videos y documentos. Puedes dejarlos libres o relacionarlos con programas, formatos y materiales.
@@ -362,9 +362,9 @@ export default function FilesClient({
       <div className="ui-card grid gap-3 p-4 sm:p-5">
         <div>
           <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Siguiente paso</div>
-          <h2 className="mt-1 text-lg font-semibold text-slate-100">Usar R2 dentro de importaciones</h2>
+          <h2 className="mt-1 text-lg font-semibold text-slate-100">Usar Storage dentro de importaciones</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
-            R2 guarda y expone archivos, pero la importación de datos ocurre en el módulo destino. Si el archivo ya existe en el bucket, sincronízalo a assets o descárgalo, luego vuelve al centro de importación para abrir el importador correcto.
+            Supabase Storage guarda y expone archivos, pero la importación de datos ocurre en el módulo destino. Si el archivo ya existe en el bucket, sincronízalo a assets o descárgalo, luego vuelve al centro de importación para abrir el importador correcto.
           </p>
         </div>
         <div>
@@ -402,7 +402,7 @@ export default function FilesClient({
           <div>
             <div className="text-sm font-semibold text-slate-100">Bucket content: planes-de-estudio</div>
             <div className="mt-1 text-xs text-slate-400">
-              Lectura directa desde R2 público/Data Catalog para validar archivos antes de relacionarlos.
+              Lectura directa desde Supabase Storage/Data Catalog para validar archivos antes de relacionarlos.
             </div>
           </div>
           <form action={syncContentBucketFilesAction}>

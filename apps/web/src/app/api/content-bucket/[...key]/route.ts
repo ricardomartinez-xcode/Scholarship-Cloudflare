@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/authz";
 import {
   getSignedContentBucketGetUrl,
   buildContentBucketPublicUrl,
-} from "@/lib/r2-content-bucket";
+} from "@/lib/storage/content-bucket";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,7 +57,7 @@ export async function GET(
   const disposition = url.searchParams.get("download") === "1" ? "attachment" : "inline";
 
   try {
-    const signedUrl = getSignedContentBucketGetUrl({
+    const signedUrl = await getSignedContentBucketGetUrl({
       key,
       fileName,
       contentType,

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { d1All, d1First } from "@/lib/cloudflare/d1";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -43,32 +42,13 @@ function missingTables(expected: readonly string[], present: Set<string>) {
 }
 
 /**
- * Read-only deployment health endpoint for the Cloudflare cutover.
- * It deliberately avoids Neon, Prisma, Supabase and secret values. This
+ * Read-only deployment health endpoint for the Vercel/Supabase migration.
+ * It deliberately avoids external network calls and secret values. This
  * endpoint is intentionally available without a session, so it reports only
  * aggregate status and never exposes resource identifiers or row counts.
  */
 export async function GET() {
   const timestamp = new Date().toISOString();
-
-  if (!isCloudflareRuntime()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        timestamp,
-        results: {
-          runtime: {
-            ok: false,
-            detail: "Este diagnóstico sólo se ejecuta dentro del runtime Cloudflare.",
-          },
-        },
-      },
-      {
-        status: 503,
-        headers: { "Cache-Control": "no-store" },
-      },
-    );
-  }
 
   try {
     const ping = await d1First<{ ok: number }>("SELECT 1 AS ok");
@@ -79,21 +59,21 @@ export async function GET() {
     const results = {
       runtime: {
         ok: true,
-        detail: "Cloudflare Worker runtime activo.",
+        detail: "Runtime Next.js Node activo.",
       },
-      d1: {
+      database: {
         ok: ping?.ok === 1 && coreMissing.length === 0,
         detail:
           coreMissing.length === 0
-            ? "D1 responde y el esquema núcleo está disponible."
-            : "D1 responde, pero el esquema núcleo está incompleto.",
+            ? "PostgreSQL responde y el esquema núcleo está disponible."
+            : "PostgreSQL responde, pero el esquema núcleo está incompleto.",
       },
-      cloudflareAuth: {
+      domainAuth: {
         ok: coreMissing.length === 0,
         detail:
           coreMissing.length === 0
-            ? "El esquema de autenticación D1 está disponible."
-            : "No se pudo validar autenticación D1 porque falta el esquema núcleo.",
+            ? "El esquema de identidad de dominio está disponible."
+            : "No se pudo validar identidad de dominio porque falta el esquema núcleo.",
       },
       migrationFoundation: {
         ok: foundationMissing.length === 0,
@@ -105,13 +85,13 @@ export async function GET() {
       },
       legacyProviders: {
         ok: true,
-        detail: "Neon, Prisma y Supabase no se consultan por diseño en este diagnóstico.",
+        detail: "Este diagnóstico no imprime secretos ni datos de usuario.",
       },
     };
 
     return NextResponse.json(
       {
-        ok: results.runtime.ok && results.d1.ok && results.cloudflareAuth.ok,
+        ok: results.runtime.ok && results.database.ok && results.domainAuth.ok,
         timestamp,
         results,
       },
@@ -128,11 +108,11 @@ export async function GET() {
         results: {
           runtime: {
             ok: true,
-            detail: "Cloudflare Worker runtime activo.",
+            detail: "Runtime Next.js Node activo.",
           },
-          d1: {
+          database: {
             ok: false,
-            detail: "No fue posible consultar D1.",
+            detail: "No fue posible consultar PostgreSQL.",
           },
         },
       },

@@ -228,7 +228,7 @@ export default function CtasClient({
         headers: presign.uploadHeaders ?? { "Content-Type": file.type },
         body: file,
       });
-      if (!putResponse.ok) throw new Error("No fue posible subir la imagen a R2.");
+      if (!putResponse.ok) throw new Error("No fue posible subir la imagen a Storage.");
 
       const completeResponse = await fetch(`/api/files/${presign.asset.id}/complete`, {
         method: "POST",
@@ -678,7 +678,7 @@ export default function CtasClient({
                         <div className="font-medium text-[#123348]">Imagen</div>
                         <div className="flex flex-wrap items-center gap-3">
                           <label className="inline-flex cursor-pointer items-center rounded-full border border-[#B9CCD9] bg-white px-3 py-2 text-xs font-bold text-[#0F3C55]">
-                            {uploadingActionImage ? "Subiendo..." : "Subir imagen R2"}
+                            {uploadingActionImage ? "Subiendo..." : "Subir imagen Storage"}
                             <input
                               type="file"
                               accept="image/*"

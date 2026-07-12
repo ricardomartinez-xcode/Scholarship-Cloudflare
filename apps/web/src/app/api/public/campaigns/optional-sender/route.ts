@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   PublicCampaignError,
-  createCampagn,
+  createCampaign,
   requireCampaignProfile,
 } from "@/lib/public-campaign-sender";
 

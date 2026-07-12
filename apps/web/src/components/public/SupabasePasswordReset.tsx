@@ -3,4 +3,4 @@
 export {
   ForgotPasswordCardForm as NeonForgotPasswordForm,
   ResetPasswordCardForm as NeonResetPasswordForm,
-} from "@/components/auth/NeonAuthForms";
+} from "@/components/auth/SupabaseAuthForms";

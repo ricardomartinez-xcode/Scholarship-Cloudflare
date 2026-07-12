@@ -17,10 +17,10 @@ describe("repo operations", () => {
   it("pins npm in Node 22 GitHub Actions workflows", () => {
     const workflowPaths = [
       ".github/workflows/quality-release-gate.yml",
-      ".github/workflows/cloudflare-preflight.yml",
-      ".github/workflows/cloudflare-workers.yml",
-      ".github/workflows/cloudflare-d1-migrations.yml",
-      ".github/workflows/d1-migration-readiness.yml",
+      "legacy/cloudflare/workflows/cloudflare-preflight.yml",
+      "legacy/cloudflare/workflows/cloudflare-workers.yml",
+      "legacy/cloudflare/workflows/cloudflare-d1-migrations.yml",
+      "legacy/cloudflare/workflows/d1-migration-readiness.yml",
     ];
 
     for (const workflowPath of workflowPaths) {

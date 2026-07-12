@@ -1,6 +1,4 @@
-import type { ContentBucketObject } from "@/lib/r2-content-bucket";
-import { d1All, type D1Value } from "@/lib/cloudflare/d1";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+import type { ContentBucketObject } from "@/lib/storage/content-bucket";
 
 export type FileAssetSlot =
   | "study_plan_pdf"
@@ -541,46 +539,6 @@ export async function listFileAssetAssignmentsForTargets(
   const normalizedTargetType = normalizeSnakeish(targetType);
   const uniqueTargetIds = Array.from(new Set(targetIds.filter(Boolean)));
   if (!uniqueTargetIds.length) return new Map<string, Record<string, PublicFileAssetPayload>>();
-  if (isCloudflareRuntime()) {
-    const params: D1Value[] = [normalizedTargetType, ...uniqueTargetIds];
-    const rows = await d1All<RawFileAssetUsageRow>(
-      `SELECT
-        u.id AS usageId,
-        u.file_id AS fileId,
-        u.target_type AS targetType,
-        u.target_id AS targetId,
-        u.slot,
-        u.sort_order AS sortOrder,
-        u.is_primary AS isPrimary,
-        f.id,
-        f.object_key AS r2Key,
-        f.bucket,
-        f.file_name AS fileName,
-        f.mime_type AS mimeType,
-        f.size_bytes AS sizeBytes,
-        NULL AS etag,
-        'uploaded' AS status,
-        f.created_at AS createdAt,
-        f.updated_at AS updatedAt
-       FROM file_asset_usage u
-       INNER JOIN file_asset f ON f.id = u.file_id
-       WHERE u.target_type = ?
-         AND u.target_id IN (${uniqueTargetIds.map(() => "?").join(", ")})
-         AND u.is_primary = 1
-       ORDER BY u.target_id ASC, u.slot ASC, u.sort_order ASC`,
-      params,
-    );
-
-    const byTarget = new Map<string, Record<string, PublicFileAssetPayload>>();
-    for (const usage of rows.map(mapUsage)) {
-      const targetAssets = byTarget.get(usage.targetId) ?? {};
-      if (!targetAssets[usage.slot]) {
-        targetAssets[usage.slot] = toPublicFileAssetPayload(usage.file) as PublicFileAssetPayload;
-      }
-      byTarget.set(usage.targetId, targetAssets);
-    }
-    return byTarget;
-  }
   const prisma = await getPrismaClient();
   if (typeof prisma.$queryRaw !== "function") {
     return new Map<string, Record<string, PublicFileAssetPayload>>();

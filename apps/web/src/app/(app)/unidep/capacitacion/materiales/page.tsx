@@ -62,7 +62,7 @@ export default async function MaterialesPage() {
         <div>
           <h1 className="text-lg font-semibold">Materiales</h1>
           <p className="mt-1 text-sm text-slate-300">
-            Recursos publicados desde Admin &gt; Archivos R2 con relación de
+            Recursos publicados desde Admin &gt; Archivos Storage con relación de
             capacitación.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default async function MaterialesPage() {
         <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-slate-950/30 px-4 py-8 text-sm text-slate-400">
           <p className="font-semibold text-slate-200">Sin materiales publicados.</p>
           <p className="mt-2">
-            Para subirlos, entra a Admin &gt; Archivos R2, carga o sincroniza el
+            Para subirlos, entra a Admin &gt; Archivos Storage, carga o sincroniza el
             archivo, selecciona Relacionar con: Material de capacitación y usa
             uno de estos slots: Material capacitación, Video capacitación, PDF
             capacitación, Imagen capacitación o Archivo capacitación.

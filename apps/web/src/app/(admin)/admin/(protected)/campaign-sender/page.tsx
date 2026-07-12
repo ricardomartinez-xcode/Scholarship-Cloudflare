@@ -5,7 +5,6 @@ import {
   listD1ExtensionCampaignAdminRows,
   type D1ExtensionCampaignAdminSummary,
 } from "@/lib/cloudflare/extension-runtime-d1";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -42,14 +41,11 @@ export default async function CampaignSenderAdminPage() {
   let rows: D1ExtensionCampaignAdminSummary[] = [];
   let storageError: string | null = null;
 
-  if (!isCloudflareRuntime()) {
-    storageError = "Este panel se habilita en el runtime de Cloudflare con D1.";
-  } else {
-    try {
-      rows = await listD1ExtensionCampaignAdminRows();
-    } catch {
-      storageError = "Campaign Sender no está disponible. Confirma el binding D1 y las migraciones de extension_campaign.";
-    }
+  try {
+    rows = await listD1ExtensionCampaignAdminRows();
+  } catch {
+    storageError =
+      "Campaign Sender no está disponible. Confirma la conexión PostgreSQL y las migraciones de extension_campaign.";
   }
 
   const totals = rows.reduce(
@@ -77,7 +73,7 @@ export default async function CampaignSenderAdminPage() {
         <dl className="grid gap-3 text-sm text-slate-300 md:grid-cols-3">
           <div>
             <dt className="text-xs uppercase tracking-[0.18em] text-slate-500">Backend</dt>
-            <dd className="mt-1 text-slate-100">{storageError ? "No disponible" : "D1 conectado"}</dd>
+            <dd className="mt-1 text-slate-100">{storageError ? "No disponible" : "PostgreSQL conectado"}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-[0.18em] text-slate-500">Autenticación</dt>

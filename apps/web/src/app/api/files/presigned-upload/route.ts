@@ -4,12 +4,11 @@ import { NextResponse } from "next/server";
 import { requireAdminApiCapability } from "@/lib/api-auth";
 import { createFileAsset } from "@/lib/file-assets";
 import {
-  createR2ObjectKey,
+  createStorageObjectKey,
   getMaxUploadBytes,
-  getR2BucketName,
-  getSignedR2PutUrl,
+  getStorageBucketName,
   isAllowedFileMimeType,
-} from "@/lib/r2-storage";
+} from "@/lib/storage/supabase-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,10 +49,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
   }
 
-  const key = createR2ObjectKey(parsed.fileName);
+  const key = createStorageObjectKey(parsed.fileName, {
+    userId: auth.admin.id,
+    prefix: "documents",
+    resourceId: "admin-files",
+  });
   const asset = await createFileAsset({
     r2Key: key,
-    bucket: getR2BucketName(),
+    bucket: getStorageBucketName(),
     fileName: parsed.fileName,
     mimeType: parsed.mimeType,
     sizeBytes: parsed.sizeBytes,
@@ -64,10 +67,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     asset,
-    uploadUrl: getSignedR2PutUrl({
-      key,
-      contentType: parsed.mimeType,
-    }),
+    uploadUrl: new URL(`/api/files/${asset.id}/upload`, request.url).toString(),
     uploadHeaders: {
       "Content-Type": parsed.mimeType,
     },

@@ -32,10 +32,10 @@ describe("workflow regressions", () => {
     expect(inboxSource).toContain("Respondiendo en");
     expect(dockSource).toContain("dispatchInboxMessageCreated");
     expect(dockSource).toContain("aria-pressed={selected}");
+    expect(hookSource).toContain("subscribeToPostgresMessages");
     expect(serverRealtimeSource).toContain("broadcastTrainingMessage");
-    expect(serverRealtimeSource).toContain("privateChannel: true");
     expect(serverRealtimeSource).toContain("broadcastInboxMessage");
-    expect(serverRealtimeSource).toContain("privateChannel: false");
+    expect(serverRealtimeSource).toContain("Postgres Changes");
   });
 
   it("keeps desktop density and drawer widths compact at 100 percent browser zoom", () => {

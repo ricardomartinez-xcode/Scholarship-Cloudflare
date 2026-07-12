@@ -2,32 +2,12 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import path from "node:path";
 
-function getR2ImageHostname() {
-  const endpoint = process.env.R2_ENDPOINT;
-  if (endpoint) {
-    try {
-      return new URL(endpoint).hostname;
-    } catch {
-      return null;
-    }
-  }
-  const accountId = process.env.R2_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
-  return accountId ? `${accountId}.r2.cloudflarestorage.com` : null;
-}
-
-const r2ImageHostname = getR2ImageHostname();
-const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "1";
-const skipNextTypecheckForCloudflareBuild =
-  isCloudflareBuild && process.env.CLOUDFLARE_NEXT_SKIP_TYPECHECK === "1";
-
 const nextConfig: NextConfig = {
-  ...(skipNextTypecheckForCloudflareBuild
-    ? {
-        // build-cloudflare.mjs runs the repository typecheck before OpenNext.
-        // This avoids a duplicate Next.js typecheck that can be killed by local CI memory limits.
-        typescript: { ignoreBuildErrors: true },
-      }
-    : {}),
+  // The build script runs `npm run typecheck` first. Skipping Next's duplicate
+  // internal pass avoids local/Vercel OOM in this large monorepo build.
+  typescript: {
+    ignoreBuildErrors: process.env.NEXT_SKIP_INTERNAL_TYPECHECK === "1",
+  },
   outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
   transpilePackages: [
     "@relead/ui",
@@ -37,9 +17,8 @@ const nextConfig: NextConfig = {
     "@relead/domain",
     "@relead/realtime",
     "@relead/matricula-sdk",
-    ...(isCloudflareBuild ? ["@prisma/client"] : []),
   ],
-  webpack(config, { isServer }) {
+  webpack(config) {
     config.resolve.alias = {
       ...(config.resolve.alias ?? {}),
       "@": path.resolve(process.cwd(), "src"),
@@ -52,37 +31,6 @@ const nextConfig: NextConfig = {
         "../../packages/matricula-sdk/src/client.ts",
       ),
     };
-
-    if (isCloudflareBuild) {
-      config.resolve.alias = {
-        ...(config.resolve.alias ?? {}),
-        "@prisma/client": path.resolve(
-          process.cwd(),
-          "src/lib/cloudflare/shims/prisma-client.ts",
-        ),
-        "@neondatabase/auth/next/server": path.resolve(
-          process.cwd(),
-          "src/lib/cloudflare/shims/neon-auth-server.ts",
-        ),
-        ...(isServer
-          ? {
-              "@supabase/supabase-js": path.resolve(
-                process.cwd(),
-                "src/lib/cloudflare/shims/supabase.ts",
-              ),
-            }
-          : {}),
-        "exceljs$": path.resolve(
-          process.cwd(),
-          "../../node_modules/exceljs/dist/exceljs.bare.min.js",
-        ),
-        "@sentry/nextjs": path.resolve(
-          process.cwd(),
-          "src/lib/cloudflare/shims/sentry-next.ts",
-        ),
-        "@/lib/prisma": path.resolve(process.cwd(), "src/lib/cloudflare/prisma.ts"),
-      };
-    }
     return config;
   },
   // Allow Playwright dev-server requests from either 127.0.0.1 or localhost.
@@ -95,25 +43,25 @@ const nextConfig: NextConfig = {
   ],
   images: {
     qualities: [100, 75],
-    remotePatterns: r2ImageHostname
-      ? [
-          {
-            protocol: "https",
-            hostname: r2ImageHostname,
-          },
-        ]
-      : [],
   },
 };
 
-const sentryConfig = withSentryConfig(nextConfig, {
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent: true,
-  sourcemaps: {
-    disable: !process.env.SENTRY_AUTH_TOKEN,
-  },
-});
+const shouldEnableSentryBuildPlugin = Boolean(
+  process.env.SENTRY_AUTH_TOKEN &&
+    process.env.SENTRY_ORG &&
+    process.env.SENTRY_PROJECT,
+);
 
-export default isCloudflareBuild ? nextConfig : sentryConfig;
+const sentryConfig = shouldEnableSentryBuildPlugin
+  ? withSentryConfig(nextConfig, {
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      silent: true,
+      sourcemaps: {
+        disable: !process.env.SENTRY_AUTH_TOKEN,
+      },
+    })
+  : nextConfig;
+
+export default sentryConfig;

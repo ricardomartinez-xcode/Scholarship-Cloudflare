@@ -3,19 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "npm@11.12.1",
+  "engines": {
+    "node": ">=20 <25",
+    "npm": ">=11 <12"
+  },
   "scripts": {
     "dev": "npm --workspace @relead/web run dev",
-    "build": "npm run build:cloudflare",
+    "build": "npm run build:next",
     "build:next": "npm --workspace @relead/web run build",
-    "build:cloudflare": "npm --workspace @relead/web run build:cloudflare",
-    "preview:cloudflare": "npm --workspace @relead/web run preview:cloudflare",
-    "deploy:cloudflare": "npm --workspace @relead/web run deploy:cloudflare",
-    "d1:migrations:apply": "npm --workspace @relead/web run d1:migrations:apply",
-    "d1:migrations:list": "npm --workspace @relead/web run d1:migrations:list",
-    "d1:tables": "npm --workspace @relead/web run d1:tables",
     "d1:export-core": "tsx scripts/export-cloudflare-d1-core.ts",
-    "d1:import-core": "npm --workspace @relead/web run d1:import-core",
-    "d1:sync-core": "npm run d1:export-core && npm run d1:import-core",
+    "migration:export-d1": "tsx scripts/export-d1-data.ts --dry-run",
+    "migration:transform-d1": "tsx scripts/transform-d1-to-postgres.ts --dry-run",
+    "migration:import-supabase": "tsx scripts/import-supabase-data.ts --dry-run",
+    "migration:validate-data": "tsx scripts/validate-migrated-data.ts",
+    "migration:migrate-storage": "tsx scripts/migrate-r2-to-supabase-storage.ts --dry-run",
     "check": "npm run lint && npm run typecheck && npm test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "vercel-build": "sh scripts/vercel-build.sh",
@@ -57,16 +58,14 @@
     "verify:structure": "node scripts/verify-monorepo-structure.mjs"
   },
   "dependencies": {
-    "@neondatabase/auth": "^0.4.2-beta",
-    "@neondatabase/neon-js": "^0.6.2-beta",
     "@neondatabase/serverless": "^1.0.2",
-    "@opennextjs/cloudflare": "^1.20.1",
     "@prisma/client": "^6.19.2",
     "@prisma/extension-accelerate": "^3.0.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@sentry/nextjs": "^10.42.0",
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.103.2",
     "exceljs": "^4.4.0",
     "geist": "^1.7.0",
@@ -95,8 +94,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "5.9.3",
-    "vitest": "^4.1.9",
-    "wrangler": "^4.105.0"
+    "vitest": "^4.1.9"
   },
   "overrides": {
     "@better-auth/passkey": "1.6.20",

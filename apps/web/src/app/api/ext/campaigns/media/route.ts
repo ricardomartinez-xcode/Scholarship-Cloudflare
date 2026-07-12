@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/authz";
-import { d1First } from "@/lib/cloudflare/d1";
-import { ensureD1ExtensionRuntimeSchema } from "@/lib/cloudflare/extension-runtime-d1";
 import {
-  extensionFromCampaignImageType,
-  getAssetsBucket,
-  isSupportedCampaignImageContentType,
-  normalizeCampaignImageContentType,
-} from "@/lib/cloudflare/r2";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
+  STORAGE_BUCKETS,
+  downloadStorageObject,
+  extensionFromImageContentType,
+  isSupportedImageContentType,
+  normalizeImageContentType,
+} from "@/lib/storage/supabase-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +40,6 @@ function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: 
   return "application/octet-stream";
 }
 
-function isSupportedExtensionMediaContentType(contentType: string) {
-  return contentType === "image/jpeg" || contentType === "image/png" || contentType === "image/webp";
-}
-
 function extensionFromContentType(contentType: string) {
   if (contentType === "image/png") return "png";
   if (contentType === "image/webp") return "webp";
@@ -60,7 +54,7 @@ function safeCampaignFileName(value: string | null | undefined) {
     .slice(0, 48) || "campana";
 }
 
-function extractR2AssetKey(value: string | null | undefined, requestUrl: string) {
+function extractStorageAssetKey(value: string | null | undefined, requestUrl: string) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
   if (raw.startsWith("extension-campaigns/")) return raw;
@@ -73,52 +67,31 @@ function extractR2AssetKey(value: string | null | undefined, requestUrl: string)
   }
 }
 
-async function readCloudflareCampaignMedia(params: {
-  request: Request;
+async function readStorageCampaignMedia(params: {
   userId: string;
-  campaignId: string;
   assetKey: string | null;
+  campaignName?: string | null;
 }) {
-  await ensureD1ExtensionRuntimeSchema();
-
-  let campaign: { campaign_name: string; media_url: string | null } | null = null;
-  if (params.campaignId) {
-    campaign = await d1First<{ campaign_name: string; media_url: string | null }>(
-      `SELECT campaign_name, media_url
-       FROM extension_campaign
-       WHERE id = ? AND owner_user_id = ?
-       LIMIT 1`,
-      [params.campaignId, params.userId],
-    );
-    if (!campaign?.media_url) {
-      return NextResponse.json(
-        { ok: false, error: "La campaña no tiene imagen asociada." },
-        { status: 404 },
-      );
-    }
-  }
-
-  const assetKey =
-    params.assetKey ??
-    extractR2AssetKey(campaign?.media_url ?? null, params.request.url);
-
-  if (!assetKey || !assetKey.startsWith(`extension-campaigns/${params.userId}/`)) {
+  if (!params.assetKey || !params.assetKey.startsWith(`extension-campaigns/${params.userId}/`)) {
     return NextResponse.json(
-      { ok: false, error: "El asset R2 solicitado no pertenece a esta sesión." },
+      { ok: false, error: "El asset solicitado no pertenece a esta sesión." },
       { status: 403 },
     );
   }
 
-  const object = await getAssetsBucket().get(assetKey);
-  if (!object?.body) {
+  const object = await downloadStorageObject({
+    bucket: STORAGE_BUCKETS.attachments,
+    key: params.assetKey,
+  });
+  if (!object) {
     return NextResponse.json(
       { ok: false, error: "No fue posible recuperar la imagen de la campaña." },
       { status: 404 },
     );
   }
 
-  const contentType = normalizeCampaignImageContentType(object.httpMetadata?.contentType);
-  if (!isSupportedCampaignImageContentType(contentType)) {
+  const contentType = normalizeImageContentType(object.type) || normalizeMediaContentType(null, params.assetKey);
+  if (!isSupportedImageContentType(contentType)) {
     return NextResponse.json(
       {
         ok: false,
@@ -129,10 +102,9 @@ async function readCloudflareCampaignMedia(params: {
   }
 
   const fileName =
-    object.customMetadata?.originalName ||
-    `${safeCampaignFileName(campaign?.campaign_name)}.${extensionFromCampaignImageType(contentType)}`;
+    `${safeCampaignFileName(params.campaignName)}.${extensionFromImageContentType(contentType)}`;
 
-  return new NextResponse(object.body, {
+  return new NextResponse(object.stream(), {
     status: 200,
     headers: {
       "content-type": contentType,
@@ -161,26 +133,36 @@ export async function GET(request: Request) {
     );
   }
 
-  if (isCloudflareRuntime()) {
-    return readCloudflareCampaignMedia({
-      request,
-      userId: session.user.id,
-      campaignId,
-      assetKey,
-    });
+  const { prisma } = await import("@/lib/prisma");
+  const campaign = campaignId
+    ? await prisma.extensionCampaign.findFirst({
+        where: {
+          id: campaignId,
+          ownerUserId: session.user.id,
+        },
+        select: {
+          campaignName: true,
+          mediaUrl: true,
+        },
+      })
+    : null;
+
+  if (campaignId && !campaign?.mediaUrl) {
+    return NextResponse.json(
+      { ok: false, error: "La campaña no tiene imagen asociada." },
+      { status: 404 },
+    );
   }
 
-  const { prisma } = await import("@/lib/prisma");
-  const campaign = await prisma.extensionCampaign.findFirst({
-    where: {
-      id: campaignId,
-      ownerUserId: session.user.id,
-    },
-    select: {
-      campaignName: true,
-      mediaUrl: true,
-    },
-  });
+  const storageAssetKey =
+    assetKey ?? extractStorageAssetKey(campaign?.mediaUrl ?? null, request.url);
+  if (storageAssetKey) {
+    return readStorageCampaignMedia({
+      userId: session.user.id,
+      assetKey: storageAssetKey,
+      campaignName: campaign?.campaignName ?? null,
+    });
+  }
 
   if (!campaign?.mediaUrl) {
     return NextResponse.json(
@@ -205,7 +187,7 @@ export async function GET(request: Request) {
       upstream.headers.get("content-type"),
       campaign.mediaUrl,
     );
-    if (!isSupportedExtensionMediaContentType(contentType)) {
+    if (!isSupportedImageContentType(contentType)) {
       return NextResponse.json(
         {
           ok: false,

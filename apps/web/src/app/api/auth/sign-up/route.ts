@@ -2,11 +2,6 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/server";
 import { canSignUpWithEmail } from "@/lib/authz";
-import {
-  setCloudflareSessionCookie,
-  signUpWithCloudflare,
-} from "@/lib/cloudflare/auth";
-import { isCloudflareRuntime } from "@/lib/cloudflare/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -81,14 +76,6 @@ export async function POST(request: Request) {
   }
 
   const name = email.split("@")[0] || "Usuario";
-  if (isCloudflareRuntime()) {
-    const result = await signUpWithCloudflare({ email, password, displayName: name });
-    if (!result.ok) return redirect(request, buildErrorUrl(result.error, token));
-    const response = NextResponse.redirect(new URL(callbackPath, request.url), { status: 303 });
-    setCloudflareSessionCookie(response, result.token, result.expiresAt);
-    return response;
-  }
-
   const origin = new URL(request.url).origin;
   const result = await auth.signUp.email({
     email,
