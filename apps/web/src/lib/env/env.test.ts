@@ -1,8 +1,20 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { parseClientEnv, parseServerEnv } from "./shared";
 
 describe("environment validation", () => {
+  it("uses static NEXT_PUBLIC references that Next.js can inline in client bundles", () => {
+    const source = fs.readFileSync(path.join(__dirname, "client.ts"), "utf8");
+
+    expect(source).toContain("process.env.NEXT_PUBLIC_SUPABASE_URL");
+    expect(source).toContain("process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    expect(source).toContain("process.env.NEXT_PUBLIC_APP_URL");
+    expect(source).not.toContain("parseClientEnv(process.env)");
+  });
+
   it("requires public Supabase variables for browser clients", () => {
     expect(() => parseClientEnv({})).toThrow(
       "Missing required public environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY",

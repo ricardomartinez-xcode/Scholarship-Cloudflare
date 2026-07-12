@@ -31,10 +31,19 @@ export function requireAdminCredentials() {
 
 export async function loginUser(page: Page, email: string, password: string) {
   await page.goto("/auth/sign-in");
+  const passwordMode = page.getByRole("button", {
+    name: "Contraseña",
+    exact: true,
+  });
+  if (await passwordMode.isVisible().catch(() => false)) {
+    await passwordMode.click();
+  }
   const emailField = page.getByLabel(/Correo/i);
   if (await emailField.isVisible().catch(() => false)) {
     await emailField.fill(email);
-    await page.locator('input[name="password"]').fill(password);
+    const passwordField = page.locator('input[name="password"]');
+    await expect(passwordField).toBeVisible();
+    await passwordField.fill(password);
     await page.getByRole("button", { name: /Iniciar sesi/i }).click();
   }
   await expect(page).toHaveURL(/\/unidep/, { timeout: 20_000 });
@@ -69,7 +78,7 @@ export async function loginAdmin(page: Page, email: string, password: string) {
 
 export async function waitForCalculatorReady(page: Page) {
   await expect(
-    page.getByRole("heading", { name: /Calculadora/i }),
+    page.getByRole("heading", { name: /Cotizador|Calculadora/i }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole("combobox", { name: /Tipo de inscripción/i }),

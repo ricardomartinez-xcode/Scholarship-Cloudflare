@@ -38,6 +38,8 @@ test("sign-in works and /unidep loads app chrome (requires E2E_EMAIL/E2E_PASSWOR
   await page.getByRole("button", { name: /Iniciar sesi/i }).click();
 
   await expect(page).toHaveURL(/\/unidep/);
-  await expect(page.getByRole("heading", { name: /Calculadora/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Cotizador|Calculadora/i }),
+  ).toBeVisible();
   await expect(page.getByRole("navigation", { name: /Navegación/i })).toBeVisible();
 });
