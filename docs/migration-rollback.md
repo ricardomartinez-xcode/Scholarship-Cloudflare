@@ -89,3 +89,8 @@ Los artefactos Cloudflare historicos estan aislados en `legacy/cloudflare/` para
 - shims Cloudflare no usados por la ruta principal
 
 No ejecutar esos scripts desde esta rama salvo que se este haciendo diagnostico controlado y documentado.
+
+Los paneles, webhooks y scripts Neon Auth retirados estan aislados en
+`legacy/neon-auth/`. El helper de base Neon retirado esta en
+`legacy/neon-database/` junto con sus scripts y workflow manual. Ninguno forma
+parte del runtime Vercel ni de `.github/workflows`.

@@ -22,11 +22,12 @@ No se leyeron ni imprimieron secretos. Para el smoke local se usaron placeholder
 
 | Validacion | Comando | Resultado | Evidencia | Observaciones |
 | --- | --- | --- | --- | --- |
-| install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.72 exit=0`; `found 0 vulnerabilities`; Prisma Client generado | Warnings transitorios de paquetes deprecated y aviso de Prisma schema default antes del postinstall raiz. |
-| lint | `npm run lint` | Pasa | `duration=1:02.24 exit=0` | `eslint apps packages scripts --max-warnings=0`. |
-| typecheck | `npm run typecheck` | Pasa | `duration=0:14.35 exit=0` | `tsc --noEmit -p tsconfig.json`. |
-| test | `npm test` | Pasa | `97 passed (97)`, `377 passed (377)`, `duration=25.13s exit=0` | Vitest local despues del ajuste Supabase/Vercel. |
-| build | `npm run build` | Pasa | `Compiled successfully in 3.2min`, `Generating static pages ... (16/16)`, `duration=6:34.1 exit=0` | El build ejecuta `npm run typecheck` primero y despues `NEXT_SKIP_INTERNAL_TYPECHECK=1 next build --webpack` para evitar OOM en la validacion interna duplicada de Next. |
+| install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.76 exit=0`; `found 0 vulnerabilities`; Prisma Client generado | Warnings transitorios de paquetes deprecated y aviso de Prisma schema default antes del postinstall raiz. |
+| lint | `npm run lint` | Pasa | `duration=0:59.95 exit=0` | `eslint apps packages scripts --max-warnings=0`. |
+| typecheck | `npm run typecheck` | Pasa | `duration=0:11.28 exit=0` | `tsc --noEmit -p tsconfig.json`. |
+| test | `npm test` | Pasa | `97 passed (97)`, `372 passed (372)`, `duration=37.99s exit=0` | El webhook Neon retirado queda fuera de discovery; se agrego cobertura de Supabase auth-sync. |
+| build | `npm run build` | Pasa | `Compiled successfully in 93s`, `Generating static pages ... (16/16)`, `duration=3:25.32 exit=0` | Build final con cache sobre lockfile sin Neon. Ejecuta typecheck antes de `next build --webpack` y no genera rutas Neon Auth. |
+| Prisma schema | `npm run db:validate` con URLs locales placeholder | Pasa | `The schema ... is valid` | El primer intento sin `DIRECT_URL` fallo con `P1012`; no hubo conexion remota. |
 
 ## Smoke local
 
@@ -80,8 +81,9 @@ Los artefactos generados por dry-run se retiraron del working tree y no se commi
 
 ## Validaciones no realizadas
 
-No se ejecutaron estas pruebas porque el acceso aportado no incluye claves de
-cliente, conexiones PostgreSQL ni credenciales administrativas Supabase:
+Vercel inyecta las variables de la integracion Supabase en Preview, pero sus
+valores sensibles no se descargaron al entorno local. No se creo un usuario de
+prueba ni se aplico el esquema staging, por lo que siguen pendientes:
 
 - Aplicar migraciones a Supabase staging.
 - Seed real de staging.
@@ -102,7 +104,11 @@ cliente, conexiones PostgreSQL ni credenciales administrativas Supabase:
 - Queda un script de exportacion D1 que referencia `wrangler` de forma intencional y dry-run por defecto.
 - Persisten nombres internos `D1`/`R2` en helpers de compatibilidad y pruebas; no representan bindings Cloudflare activos, pero deben renombrarse en una limpieza posterior.
 - Varias rutas siguen usando Prisma y el adaptador PostgreSQL-compatible de los antiguos repositorios D1; la consolidacion total a clientes/repositorios Supabase nativos queda pendiente antes de produccion.
-- El login, callback, refresh SSR y formularios activos usan Supabase Auth. El
-  panel administrativo `integrations/neon-auth`, su webhook legacy y el reporte
-  basado en `neon_auth.user` permanecen como deuda aislada; no son dependencias
-  del flujo de sesion.
+- El login, callback, refresh SSR, formularios y diagnostico `auth-sync` usan
+  Supabase Auth. El panel, webhook y scripts Neon Auth se retiraron de App
+  Router y permanecen solo en `legacy/neon-auth/` para referencia de rollback.
+- El manifiesto de `next build` conserva `/admin/auth-sync` y no contiene
+  `/admin/integrations/neon-auth` ni `/api/integrations/neon-auth/*`.
+- `@neondatabase/serverless`, sus aliases npm y el workflow manual de limpieza
+  Neon se retiraron del proyecto activo y se preservaron en
+  `legacy/neon-database/`.

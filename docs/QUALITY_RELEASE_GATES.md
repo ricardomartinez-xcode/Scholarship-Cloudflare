@@ -27,8 +27,7 @@ El gate ejecuta, en orden:
 2. `npx tsc --noEmit`
 3. `npm run build`
 4. `npx playwright test tests/e2e/smoke.spec.ts tests/e2e/visual-regression.spec.ts`
-5. `npm run verify:neon` si existe conexión DB disponible
-6. Suite autenticada si existen `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`
+5. Suite autenticada si existen `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`
 
 Para volver obligatoria la suite autenticada:
 
@@ -50,14 +49,13 @@ RELEASE_REQUIRE_AUTH_E2E=true npm run release:gate
 - No registrar correos completos, tokens, secretos, cookies ni URLs con tokens en logs o breadcrumbs.
 - No subir snapshots visuales con datos reales si no están enmascarados o provienen de pantallas públicas.
 - Los eventos de negocio deben usar IDs internos y metadata sanitizada.
-- `verify:neon` sólo debe correr contra el entorno correcto; nunca reutilizar URLs de otro ambiente.
-- `verify:neon` debe validar no sólo los conteos legacy, sino también tablas canónicas, enum values y constraints del rollout activo.
+- La validacion objetivo usa `migration:validate-data` y consultas de integridad contra Supabase staging.
 
 ## Entornos y secretos
 
 | Grupo | Variables | Entornos | Owner sugerido | Notas |
 | --- | --- | --- | --- | --- |
-| Auth | `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`, `ADMIN_EMAIL` | dev / preview / prod | App owner | Secretos separados por ambiente |
+| Auth | `NEXT_PUBLIC_SUPABASE_URL`, anon/publishable key, `ADMIN_EMAIL` | dev / preview / prod | App owner | Service role solo server-side |
 | Base de datos | `DATABASE_URL`, `DIRECT_URL` | dev / preview / prod | DB owner | No mezclar pooler y direct URL |
 | Correo | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | preview / prod | Ops / Growth Ops | `SMTP_PASS` nunca compartido entre ambientes |
 | Observabilidad | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_ENVIRONMENT` | preview / prod | Platform | `NEXT_PUBLIC_SENTRY_DSN` sólo para cliente |
@@ -67,7 +65,7 @@ RELEASE_REQUIRE_AUTH_E2E=true npm run release:gate
 ## Checklist mínimo antes de push de release
 
 - `npm run release:gate`
-- `npm run verify:neon` si hay acceso DB
+- `npm run migration:validate-data` y `--remote` solo contra staging autorizado
 - Health check operativo sin errores críticos
 - No hay secretos de producción en `.env.local`
 - La documentación del ambiente coincide con Vercel

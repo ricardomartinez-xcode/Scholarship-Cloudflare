@@ -4,7 +4,7 @@
 
 ReCalc usa un modelo híbrido:
 
-- `Neon` conserva el índice operativo mínimo de contactos.
+- `Supabase PostgreSQL` conserva el índice operativo mínimo de contactos.
 - `Google Sheets` guarda una libreta editable por usuario en el Drive de la cuenta Google conectada.
 
 Cuando la sincronización está activa:
@@ -13,7 +13,7 @@ Cuando la sincronización está activa:
 2. el sistema escribe una copia estructurada en un workbook con `Campañas`, `Seguimiento`, `Contactos` y `Metadatos`;
 3. si el usuario aún no tiene `spreadsheetId`, ReCalc crea el archivo automáticamente con el OAuth de ese usuario.
 
-No se usa una hoja pública compartida para operación diaria. Cada usuario ve solo el archivo creado en su propia cuenta conectada; Neon sigue siendo la fuente de verdad y Sheets es la copia operativa editable/exportable.
+No se usa una hoja pública compartida para operación diaria. Cada usuario ve solo el archivo creado en su propia cuenta conectada; Supabase PostgreSQL sigue siendo la fuente de verdad y Sheets es la copia operativa editable/exportable.
 
 ## Requisitos previos
 
@@ -29,18 +29,18 @@ Debes tener estas variables de entorno disponibles en la app:
 La app ya soporta dos modos:
 
 1. `Cliente compartido` `recomendado`
-   - Neon Auth usa tus credenciales OAuth de Google para el login social.
+   - Supabase Auth usa tus credenciales OAuth de Google para el login social.
    - La sincronización Google de ReCalc usa ese mismo cliente.
    - En este caso debes cargar en la app:
      - `GOOGLE_CLIENT_ID`
      - `GOOGLE_CLIENT_SECRET`
      - `GOOGLE_OAUTH_REDIRECT_URI`
    - Importante:
-     - en Neon Console, el proveedor Google debe estar en modo `custom client credentials`;
-     - si Neon Auth sigue usando credenciales compartidas de Neon, entonces ese flujo ya no es el mismo cliente OAuth y no cuenta como cliente compartido.
+     - en Supabase Dashboard, configura el proveedor Google con ese mismo client ID y secret;
+     - el redirect URI de login debe apuntar al callback Auth del proyecto Supabase.
 
 2. `Cliente dedicado para sync`
-   - Neon Auth sigue usando su cliente configurado en Neon Console.
+   - Supabase Auth sigue usando su cliente configurado en Supabase Dashboard.
    - La sincronización Google usa otro cliente distinto.
    - En ese caso debes cargar:
      - `GOOGLE_SYNC_CLIENT_ID`
@@ -86,16 +86,16 @@ En [Google Cloud Console](https://console.cloud.google.com/):
 Ese mismo cliente debe tener autorizados estos dos redirect URIs:
 
 ```text
-${NEON_AUTH_BASE_URL}/callback/google
+${NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback
 https://recalc.relead.com.mx/api/integrations/google/callback
 ```
 
-El primero lo usa Neon Auth para `Continuar con Google`. En producción se deriva directamente de `NEON_AUTH_BASE_URL`.
+El primero lo usa Supabase Auth para `Continuar con Google`. Se deriva de `NEXT_PUBLIC_SUPABASE_URL`.
 El segundo lo usa ReCalc para Calendar, Tasks y Sheets.
 
 ### Si usas cliente dedicado para sync
 
-El cliente del login se queda en Neon Auth y el cliente nuevo de sync debe tener:
+El cliente del login se queda en Supabase Auth y el cliente nuevo de sync debe tener:
 
 ```text
 https://recalc.relead.com.mx/api/integrations/google/callback
@@ -181,7 +181,7 @@ Y `recalc_admin.agenda_sync_preference` debe mostrar:
 
 Cuando guardas, importas o actualizas contactos:
 
-1. ReCalc actualiza el índice operativo en Neon;
+1. ReCalc actualiza el índice operativo en Supabase PostgreSQL;
 2. si Google Sheets está activo, reescribe la hoja `Contactos`;
 3. si hay error con Google, la operación local no se pierde, pero el error queda visible como `lastSyncError`.
 

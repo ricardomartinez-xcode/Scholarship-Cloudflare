@@ -7,7 +7,7 @@
 - Cliente server: `apps/web/src/lib/auth/server.ts` sobre `createSupabaseServerClient`.
 - Cliente middleware: `apps/web/src/lib/supabase/middleware.ts`.
 - Callback SSR: `apps/web/src/app/(public)/auth/callback/route.ts`.
-- Estado remoto: no validado contra Supabase staging.
+- Estado remoto: health/settings de Supabase Auth validados en staging; login real pendiente.
 
 ## Modelo de identidad
 
@@ -39,7 +39,7 @@ No se usa `SUPABASE_SERVICE_ROLE_KEY` en cliente ni en flujos normales de usuari
 | Browser | `apps/web/src/lib/auth/client.ts` | OAuth, magic link, OTP, reset, phone OTP | Solo anon key publica |
 | Server | `apps/web/src/lib/auth/server.ts` | password sign-in/sign-up, sign-out, password change, user lookup | Solo anon key via cookies |
 | Middleware | `apps/web/src/lib/supabase/middleware.ts` | Refresh de cookies y claims | Solo anon key publica |
-| Admin | `apps/web/src/lib/supabase/admin.ts` | Migraciones/scripts o tareas privilegiadas puntuales | Service role, server-only |
+| Admin | `apps/web/src/lib/supabase/admin.ts` | Diagnostico auth-sync, migraciones y tareas privilegiadas puntuales | Service role, server-only |
 
 ## Rutas y redirecciones
 
@@ -149,6 +149,10 @@ En Supabase staging:
 - Rutas `sign-in`/`sign-up`/admin/extension: eliminadas ramas Cloudflare/D1/Neon del flujo principal.
 - `apps/web/src/app/globals.css`: removida importacion `@neondatabase/auth/ui/tailwind`.
 - Dependencias: removidos `@neondatabase/auth` y `@neondatabase/neon-js`.
+- `apps/web/src/services/authSyncService.ts`: reemplazada la consulta a
+  `neon_auth.user` por `supabase.auth.admin.listUsers()` desde un modulo server-only.
+- Panel, webhook y scripts administrativos Neon Auth retirados de App Router y
+  preservados solo en `legacy/neon-auth/` para referencia de rollback.
 
 ## Casos de prueba
 
@@ -174,11 +178,12 @@ En Supabase staging:
 | --- | --- | --- |
 | TypeScript despues de migracion auth | `npm run typecheck` | OK |
 | Lint despues de migracion auth | `npm run lint` | OK |
+| Diagnostico Supabase Auth | `npm test -- apps/web/src/services/__tests__/authSyncService.test.ts` | OK |
+| Suite local | `npm test` | 97 archivos, 372 pruebas OK |
+| Build Next.js | `npm run build` | OK; sin rutas Neon Auth |
 
 ## Pendientes
 
 - Ejecutar flujos reales contra Supabase staging.
-- Actualizar o retirar paneles administrativos legacy `neon-auth`.
-- Migrar servicios de diagnostico `neon_auth.user` a reportes Supabase Auth.
 - Confirmar plantillas de email/OTP en Supabase staging.
 - Validar que cookies SSR se refrescan correctamente en Vercel Preview.

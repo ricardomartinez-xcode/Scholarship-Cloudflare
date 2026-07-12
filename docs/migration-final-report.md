@@ -20,6 +20,15 @@ aplicar el esquema `recalc_admin`. Tambien queda pendiente terminar el reemplazo
 nombres/repositorios heredados `D1`/`R2` por repositorios PostgreSQL/Supabase
 nativos.
 
+El diagnostico administrativo de identidad ahora consulta Supabase Auth Admin
+API. Las rutas, panel y scripts Neon Auth se retiraron del runtime y quedaron
+aislados en `legacy/neon-auth/`; la aplicacion ya no requiere variables
+`NEON_AUTH_*` para autenticacion.
+
+Los scripts y el workflow manual de la base Neon anterior se aislaron en
+`legacy/neon-database/`; `@neondatabase/serverless` ya no es dependencia del
+monorepo ni existe una verificacion Neon dentro de `release:gate`.
+
 ## Cambios por area
 
 | Area | Cambio | Estado |
@@ -43,6 +52,7 @@ nativos.
 | `apps/web/middleware.ts` | Middleware Supabase SSR. | Refresh seguro de sesion/cookies. | Alto |
 | `apps/web/src/lib/supabase/*` | Clientes browser/server/middleware/admin. | Evitar duplicacion y secretos en cliente. | Alto |
 | `apps/web/src/lib/auth/*` | Auth migrado a Supabase. | Reemplazar Neon/Cloudflare auth. | Alto |
+| `apps/web/src/services/authSyncService.ts` | Compara usuarios de dominio con Supabase Auth Admin API. | Retirar consulta a `neon_auth.user`. | Medio |
 | `apps/web/src/lib/cloudflare/d1.ts` | Adaptador PostgreSQL-compatible para call sites D1 heredados. | Mantener UI/reglas sin Worker/D1. | Alto |
 | `apps/web/src/lib/cloudflare/runtime.ts` | Alias historico activa la ruta PostgreSQL-compatible en Vercel o con `POSTGRES_COMPAT_RUNTIME=1`. | Evitar que Vercel deshabilite flujos heredados sin romper tests locales. | Medio |
 | `supabase/migrations/20260710204000_recalc_admin_core.sql` | Esquema, RLS, buckets y politicas Storage. | Fuente SQL Supabase. | Alto |
@@ -53,16 +63,19 @@ nativos.
 | `scripts/validate-migrated-data.ts` | Conteos locales/remotos; tolera JSONL ausente con 0 filas. | Validacion reproducible. | Bajo |
 | `scripts/migrate-r2-to-supabase-storage.ts` | Migracion Storage dry-run. | Reemplazar R2 con Supabase Storage. | Medio |
 | `legacy/cloudflare/` | Config/scripts/workflows/shims Cloudflare aislados. | Rollback y referencia historica. | Bajo |
+| `legacy/neon-auth/` | Panel, webhook, scripts y documentacion Neon Auth retirados. | Evitar rutas y variables Auth heredadas en Vercel. | Bajo |
+| `legacy/neon-database/` | Driver, scripts y workflow Neon retirados. | Evitar dependencias y acciones remotas heredadas. | Bajo |
 
 ## Validaciones
 
 | Validacion | Comando | Resultado | Evidencia | Observaciones |
 | --- | --- | --- | --- | --- |
-| install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.72 exit=0` | Warnings deprecated; Prisma Client generado. |
-| lint | `npm run lint` | Pasa | `duration=1:02.24 exit=0` | Sin warnings permitidos. |
-| typecheck | `npm run typecheck` | Pasa | `duration=0:14.35 exit=0` | TypeScript repo. |
-| test | `npm test` | Pasa | `97 passed`, `377 passed`, `duration=25.13s exit=0` | Vitest. |
-| build | `npm run build` | Pasa | `Compiled successfully in 3.2min`, `16/16 static pages`, `duration=6:34.1 exit=0` | Next.js 16.2.6 webpack. |
+| install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.76 exit=0`; 0 vulnerabilidades | Warnings deprecated; Prisma Client generado. |
+| lint | `npm run lint` | Pasa | `duration=0:59.95 exit=0` | Sin warnings permitidos. |
+| typecheck | `npm run typecheck` | Pasa | `duration=0:11.28 exit=0` | TypeScript repo. |
+| test | `npm test` | Pasa | `97 passed`, `372 passed`, `duration=37.99s exit=0` | Incluye diagnostico Supabase Auth; test del webhook Neon retirado queda legacy. |
+| build | `npm run build` | Pasa | `Compiled successfully in 93s`, `16/16 static pages`, `duration=3:25.32 exit=0` | Build final Next.js 16.2.6 con cache y lockfile sin Neon; sin rutas Neon Auth. |
+| Prisma schema | `npm run db:validate` con URLs locales placeholder | Pasa | Schema valido | Primer intento sin `DIRECT_URL`: `P1012`; no conecto remoto. |
 | start local | `npm run start` con placeholders | Pasa | `/`, `/legal/privacy`, `/auth/sign-in` devuelven 200 | Sin credenciales reales. |
 | export dry-run | `npm run migration:export-d1` | Pasa | imprime `wrangler d1 execute` en dry-run | No ejecuta remoto. |
 | transform dry-run | `npm run migration:transform-d1` | Pasa | mapea 8 tablas, omite `outbox_event` | No escribe datos. |
@@ -87,7 +100,7 @@ nativos.
 - No se valido login real, refresh real, RLS remoto, Realtime real ni Storage real.
 - Persisten nombres internos `D1`/`R2` en helpers de compatibilidad, tests y columnas legacy como `r2Key`.
 - Algunas rutas siguen usando Prisma/adaptador compatible en vez de repositorios Supabase/Postgres nativos.
-- Workflows historicos de Neon/GitHub siguen en el repo y deben revisarse antes de activar automatizaciones de deployment.
+- Workflows GitHub historicos no relacionados con Neon deben revisarse antes de activar automatizaciones de deployment.
 
 ## Riesgos pendientes
 
