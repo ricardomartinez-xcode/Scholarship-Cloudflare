@@ -3,9 +3,11 @@
 ## Estado
 
 - Rama: `migration/vercel-supabase`
-- Fuente de verdad propuesta: `supabase/migrations`
-- Migracion principal: `supabase/migrations/20260710204000_recalc_admin_core.sql`
-- Estado remoto: no ejecutado. No se aplicaron migraciones en Supabase remoto.
+- Fuente de verdad: `supabase/migrations`
+- Migraciones principales: fundacion `20260710204000`, esquema de aplicacion
+  `20260712195500` y cambios incrementales hasta `20260712204500`.
+- Estado remoto: aplicadas y validadas exclusivamente en Supabase staging
+  `eocpoygtcetjieglkxnt` el 2026-07-12.
 - Entorno permitido para ejecucion: Supabase staging.
 
 La aplicacion anterior conserva dependencias de Cloudflare D1, Neon y Prisma. Para la ruta Vercel/Supabase se define un esquema PostgreSQL versionado en `recalc_admin`, protegido con RLS y preparado para Supabase Auth, Realtime y Storage.
@@ -232,10 +234,32 @@ No ejecutar contra produccion. Si ya existe data real en Supabase, preferir crea
 | Fixture D1 -> JSONL | `npx tsx scripts/transform-d1-to-postgres.ts --input=.tmp/migration-fixture/d1 --out=.tmp/migration-fixture/pg` | OK, 7 filas |
 | Validacion local fixture | `npx tsx scripts/validate-migrated-data.ts --input=.tmp/migration-fixture/pg` | OK, conteos coinciden |
 
+## Validacion Supabase staging
+
+Antes de aplicar cambios se genero el respaldo de esquema
+`/tmp/recalc-staging-before-20260712.sql` (25,503 bytes, SHA-256
+`ecbce2727ecd948b708a974487126dc1248ee3bcd89c21d97a2228df28521c56`).
+El archivo es evidencia local temporal y no contiene credenciales.
+
+| Validacion | Resultado |
+| --- | --- |
+| Historial remoto | 11 migraciones alineadas hasta `20260712204500` |
+| Tablas | 76 tablas de aplicacion/fundacion |
+| RLS | 76 tablas con RLS y 23 politicas |
+| Catalogo base | 25 planteles: 24 fisicos y `ONLINE` |
+| Integridad multi-organizacion | lectura propia permitida; acceso cruzado `0` filas/`42501` |
+| Realtime publication | `inbox_message`, `inbox_messages`, `TrainingMessage`, `training_messages` |
+| Importacion real | 35 programas y 172 ofertas C1 creadas y luego revertidas |
+| Estado posterior a pruebas | 25 planteles, 0 programas y 0 ofertas temporales |
+
+La migracion `20260712204500_grant_service_role_foundation.sql` corrige los
+privilegios DML de `service_role` sobre las tablas fundacionales. RLS permanece
+activo para `authenticated`; no se amplio acceso a `anon`.
+
 ## Pendientes
 
-- Ejecutar `supabase db reset` local cuando el CLI este disponible.
-- Aplicar migracion en Supabase staging.
-- Validar RLS con usuarios reales de staging.
-- Validar publicaciones Realtime contra Postgres changes.
-- Ejecutar import remoto solo con credenciales staging.
+- Obtener un snapshot D1 productivo revisado antes de ejecutar una migracion de
+  datos; no se exporto ni modifico D1 produccion.
+- Cargar tarifas y beneficios reales en staging para validar el calculo
+  monetario completo del cotizador.
+- Ejecutar el traslado R2 solo cuando exista un manifiesto de staging aprobado.

@@ -47,7 +47,7 @@ La promoción de ramas con `npm run promote` sólo aplica para releases aprobada
 
 ## Supabase + Vercel migration
 
-La rama `migration/vercel-supabase` prepara la ruta objetivo:
+La rama `migration/vercel-supabase` implementa y valida en staging la ruta objetivo:
 
 - Next.js estandar con `next build`.
 - Vercel Preview desde la raiz del monorepo.
@@ -61,11 +61,22 @@ Variables base:
 ```bash
 NEXT_PUBLIC_APP_URL=
 NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 DATABASE_URL=
 DIRECT_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
+
+La integracion Vercel/Supabase puede suministrar `POSTGRES_PRISMA_URL` y
+`POSTGRES_URL_NON_POOLING` como aliases server-only de `DATABASE_URL` y
+`DIRECT_URL`. No hay variables Neon activas en el flujo de autenticacion.
+
+Preview de la rama:
+`https://scholarship-git-migration-vercel-supabase-re-lead.vercel.app`.
+El esquema, Auth, RLS, Realtime, Storage y la importacion/rollback de oferta se
+probaron en Supabase staging. Falta cargar tarifas y beneficios reales de
+staging para aprobar el calculo monetario completo.
 
 Documentacion de la migracion:
 

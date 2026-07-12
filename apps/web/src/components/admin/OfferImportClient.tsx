@@ -471,7 +471,7 @@ export default function OfferImportClient({
     <section className="ui-card ui-card-pad">
       <div className="ui-toolbar">
         <div>
-          <h1 className="mt-1 text-lg font-semibold">Oferta por planteles</h1>
+          <h2 className="mt-1 text-lg font-semibold">Oferta por planteles</h2>
           <p className="mt-1 text-sm text-slate-300">
             Oferta activa de la calculadora. Usa <strong className="text-slate-100">Editar</strong> para crear o actualizar
             una oferta por plantel, o actualiza oferta por reemplazo o lote desde XLSX/CSV.
@@ -493,7 +493,7 @@ export default function OfferImportClient({
           onChange={(panel) => setActivePanel(panel as OfferPanel)}
           items={[
             { id: "list", label: `Listado (${filteredPreviewRows.length})` },
-            { id: "imports", label: "Actualizacion" },
+            { id: "imports", label: "Importación" },
           ]}
         />
       </div>
@@ -766,7 +766,7 @@ export default function OfferImportClient({
           <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-slate-200">Formato esperado</summary>
             <div className="mt-3 grid gap-3 text-xs text-slate-400">
-              <p><strong className="text-slate-200">XLSX:</strong> mantiene el formato actual con hojas Online y Planteles.</p>
+              <p><strong className="text-slate-200">XLSX:</strong> acepta hojas Online y Planteles, o una hoja por campus con bloques C1, C2 o C3.</p>
               <p><strong className="text-slate-200">CSV:</strong> usa columnas: Ciclo, Plantel, Programa, Línea, Modalidad, Plan, Modulo, No. de modulos, Materias por módulo, Horario escolarizado, Horario ejecutivo y Estado.</p>
               <p>Modalidad acepta presencial, escolarizado, ejecutivo, mixta u online. Estado acepta Activo/Inactivo, true/false, si/no o 1/0.</p>
             </div>

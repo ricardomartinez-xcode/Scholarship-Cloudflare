@@ -1,6 +1,8 @@
 import { AdminCapability } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { MAX_EXCEL_WORKBOOK_BYTES } from "@/lib/importers/excel-workbook";
+
 const mocks = vi.hoisted(() => ({
   requireAdminApiCapability: vi.fn(),
   prepareAcademicOfferImport: vi.fn(),
@@ -75,6 +77,27 @@ describe("POST admin academic-offer import preview", () => {
       ["request-offer-preview", AdminCapability.view_admin_operations],
       ["request-offer-preview", AdminCapability.manage_offers],
     ]);
+    expect(mocks.prepareAcademicOfferImport).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized workbooks before reading their contents", async () => {
+    mocks.requireAdminApiCapability.mockResolvedValue({
+      ok: true,
+      admin: { id: "admin-1", email: "admin@example.com" },
+    });
+    const form = new FormData();
+    form.set("cycle", "C1");
+    form.set(
+      "file",
+      new File([new Uint8Array(MAX_EXCEL_WORKBOOK_BYTES + 1)], "offer.xlsx", {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+    );
+
+    const { POST } = await import("./route");
+    const response = await POST({ formData: async () => form } as unknown as Request);
+
+    expect(response.status).toBe(413);
     expect(mocks.prepareAcademicOfferImport).not.toHaveBeenCalled();
   });
 });

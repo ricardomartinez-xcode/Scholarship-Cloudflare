@@ -7,7 +7,8 @@
 - Cliente server: `apps/web/src/lib/auth/server.ts` sobre `createSupabaseServerClient`.
 - Cliente middleware: `apps/web/src/lib/supabase/middleware.ts`.
 - Callback SSR: `apps/web/src/app/(public)/auth/callback/route.ts`.
-- Estado remoto: health/settings de Supabase Auth validados en staging; login real pendiente.
+- Estado remoto: login email/password, recuperacion de sesion SSR, ruta
+  protegida y logout validados en Vercel Preview contra Supabase staging.
 
 ## Modelo de identidad
 
@@ -160,17 +161,17 @@ En Supabase staging:
 | --- | --- |
 | Usuario no autenticado en `/admin` | Cubierto por middleware con claims |
 | Usuario no autenticado en `/api/admin/*` | Cubierto por middleware con 401 |
-| Email/password publico | Typecheck/lint; remoto pendiente |
-| Email/password admin | Typecheck/lint; remoto pendiente |
+| Email/password publico | Validado en Vercel Preview |
+| Email/password admin | Validado en Vercel Preview y panel de importaciones |
 | Magic link | Implementado; requiere email provider staging |
 | OTP email | Implementado; requiere template OTP staging |
 | Google OAuth | Implementado; requiere provider staging |
-| Cierre de sesion | Implementado server action/API |
+| Cierre de sesion | Validado; el acceso posterior a `/unidep` vuelve a sign-in |
 | Recuperacion de password | Implementado con recovery callback; remoto pendiente |
-| Usuario sin organizacion | Debe validarse con seed staging |
-| Usuario sin permisos | Debe validarse con seed staging |
-| Administrador | Debe validarse con seed staging |
-| RLS por organizacion | SQL preparado; requiere Supabase staging |
+| Usuario sin organizacion | Validado como acceso denegado por autorizacion de dominio |
+| Usuario sin permisos | Validado por capability/rol y RLS |
+| Administrador | Validado en panel, importacion, rollback y Storage |
+| RLS por organizacion | Validado con dos organizaciones aisladas en staging |
 
 ## Validaciones ejecutadas
 
@@ -182,8 +183,14 @@ En Supabase staging:
 | Suite local | `npm test` | 97 archivos, 372 pruebas OK |
 | Build Next.js | `npm run build` | OK; sin rutas Neon Auth |
 
+| Smoke Auth Preview | `npx playwright test apps/web/tests/e2e/smoke.spec.ts` | 3/3: login, recarga, logout y ruta protegida |
+| Aislamiento RLS | consultas autenticadas con usuario miembro/externo | Propio permitido; organizacion ajena bloqueada |
+
+El usuario Auth y sus filas de dominio usados para la prueba fueron eliminados
+al terminar. No se conservaron contrasenas ni tokens en Git.
+
 ## Pendientes
 
-- Ejecutar flujos reales contra Supabase staging.
-- Confirmar plantillas de email/OTP en Supabase staging.
-- Validar que cookies SSR se refrescan correctamente en Vercel Preview.
+- Validar el envio real de magic link, OTP y recuperacion de contrasena cuando
+  se aprueben plantillas y correo de staging.
+- Google OAuth permanece opcional y deshabilitado hasta configurar el proveedor.

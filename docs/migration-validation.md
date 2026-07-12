@@ -2,137 +2,137 @@
 
 Fecha: 2026-07-12  
 Rama: `migration/vercel-supabase`  
-Produccion Cloudflare: no modificada
+Preview: `https://scholarship-git-migration-vercel-supabase-re-lead.vercel.app`
 
-## Entorno local
+## Alcance
 
-| Elemento | Valor |
-| --- | --- |
-| Node | `v24.15.0` |
-| npm | `11.12.1` |
-| Gestor | npm con `package-lock.json` |
-| Supabase CLI | No instalado (`supabase: command not found`) |
-| Supabase staging | Integracion conectada; Auth/JWKS verificados; esquema pendiente |
-| Vercel | Proyecto `re-lead/scholarship`; Preview `READY` |
-| Runtime compat local | `POSTGRES_COMPAT_RUNTIME=1` opcional para probar rutas legacy D1-named con PostgreSQL |
+La validacion uso Vercel Preview y el proyecto Supabase staging
+`eocpoygtcetjieglkxnt`. Cloudflare produccion, D1, R2, DNS y el dominio
+productivo no fueron modificados.
 
-No se leyeron ni imprimieron secretos. Para el smoke local se usaron placeholders no secretos.
+Antes de aplicar SQL se genero un respaldo de esquema local de 25,503 bytes con
+SHA-256 `ecbce2727ecd948b708a974487126dc1248ee3bcd89c21d97a2228df28521c56`.
 
 ## Validaciones obligatorias
 
-| Validacion | Comando | Resultado | Evidencia | Observaciones |
-| --- | --- | --- | --- | --- |
-| install | `npm ci --foreground-scripts` | Pasa | `duration=3:34.76 exit=0`; `found 0 vulnerabilities`; Prisma Client generado | Warnings transitorios de paquetes deprecated y aviso de Prisma schema default antes del postinstall raiz. |
-| lint | `npm run lint` | Pasa | Revalidacion final: `duration=1:34.04 exit=0` | `eslint apps packages scripts --max-warnings=0`. |
-| typecheck | `npm run typecheck` | Pasa | Revalidacion final: `duration=1:03.00 exit=0` | `tsc --noEmit -p tsconfig.json`. |
-| test | `npm test -- --reporter=dot` | Pasa | `100 passed (100)`, `381 passed (381)`, `duration=27.33s exit=0` | Incluye permisos de importacion de oferta, transaccion atomica, alcance por plantel, cache del cotizador y regresion UI. |
-| build | `npm run build` | Pasa | Revalidacion final: `Compiled successfully in 5.4min`, `16/16`, `duration=6:37.09 exit=0` | Ejecuta typecheck antes de `next build --webpack`; manifiesto incluye admin/importaciones y no genera rutas Neon Auth. |
-| Prisma schema | `npm run db:validate` con URLs locales placeholder | Pasa | `The schema ... is valid` | El primer intento sin `DIRECT_URL` fallo con `P1012`; no hubo conexion remota. |
-
-## Panel administrativo, importaciones y cotizador
-
-| Validacion | Resultado | Evidencia | Observaciones |
+| Validacion | Comando | Resultado | Evidencia |
 | --- | --- | --- | --- |
-| Flujo de borrador | Pasa local | `OfferImportClient` ya no invoca apply/rollback directamente; enlaza al detalle de sesion | La publicacion exige revisar impacto, checkbox y texto exacto `PUBLICAR`. |
-| Permisos de preview/apply | Pasa local | Tests de ruta comprueban `view_admin_operations` y `manage_offers` | La sesion no se consulta ni aplica cuando falta la capacidad del modulo. |
-| Atomicidad | Pasa local | Test de `academic-offer-replace` verifica que programas y ofertas usan el mismo `TransactionClient` | Evita programas parcialmente creados si falla el reemplazo de oferta. |
-| Alcance de reemplazo | Pasa local | `deleteMany` queda filtrado por ciclo y `campusId in [...]` | Un archivo parcial no elimina oferta de planteles no incluidos. |
-| Integracion con cotizador | Pasa local | La importacion escribe `programOffering`; tests de quote existentes y nuevos tags de cache pasan | Se invalidan oferta, planes, formatos y planteles tras apply o rollback. |
-| Estado del catalogo admin | Pasa por codigo | Estado `unavailable` separado de catalogo incompleto | El panel no muestra conteos falsos `0/24` ni comandos locales inaplicables en Vercel. |
-| E2E autenticado | No ejecutado | Test Playwright actualizado al flujo validar -> revisar -> confirmar -> publicar | Falta esquema staging aplicado y usuario E2E; no se marco como aprobado. |
+| Install | `npm ci --foreground-scripts` | Pasa | `7:04.76`, Prisma Client generado, 0 vulnerabilidades |
+| Lint | `npm run lint` | Pasa | `1:17.80`, 0 warnings permitidos |
+| Typecheck | `npm run typecheck` | Pasa | `46.03 s` |
+| Tests | `npm test -- --reporter=dot` | Pasa | 103 archivos, 400 pruebas, `41.93 s` |
+| Build | `npm run build` | Pasa | Next 16.2.6, 16/16 paginas, `5:31.76` |
+| Start | `next start --hostname 127.0.0.1 --port 3001` | Pasa | Ready en 404 ms |
+| Smoke local | Playwright sobre `127.0.0.1:3001` | Pasa | landing/login 1/1, sin error del servidor |
 
-## Smoke local
+La primera suite Vitest ejecutada en paralelo con lint tuvo un timeout de 15 s
+al importar `recalc-public-control-api`: 102 archivos y 396 pruebas pasaron. La
+prueba aislada paso en 1.63 s y la suite completa secuencial paso; se
+clasifica como saturacion local, no como regresion funcional.
 
-Servidor:
+## Seguridad del diff
 
-```bash
-PORT=3100 \
-NEXT_PUBLIC_APP_URL=http://127.0.0.1:3100 \
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
-NEXT_PUBLIC_SUPABASE_ANON_KEY=local-anon-placeholder \
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
-DIRECT_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
-POSTGRES_COMPAT_RUNTIME=1 \
-npm run start
-```
+- `npm audit --audit-level=high --omit=dev`: 0 vulnerabilidades;
+- busqueda de tokens, service keys, private keys y connection strings: sin
+  secretos reales versionados; solo placeholders de pruebas/documentacion;
+- `SUPABASE_SERVICE_ROLE_KEY` permanece en modulos `server-only`;
+- RLS no se desactiva y no existen grants nuevos a `anon`;
+- se retiro el correo completo de logs/excepciones del flujo de importacion;
+- el parser XLSX limita upload a 10 MB, 2,048 entradas ZIP y 64 MB
+  descomprimidos; el endpoint responde `413` antes de leer uploads excedidos;
+- pruebas de hardening: 9/9 enfocadas y suite completa 400/400.
 
-Resultado:
+## Supabase PostgreSQL
 
-| Ruta | Resultado |
+| Caso | Resultado |
 | --- | --- |
-| `/` | `status=200 size=57442` |
-| `/legal/privacy` | `status=200 size=39139` |
-| `/auth/sign-in` | `status=200 size=25150` |
-| `/admin/oferta` | Respuesta RSC contiene `NEXT_REDIRECT;replace;/admin/auth;307` |
-| `/admin/importaciones` | Respuesta RSC protegida sin sesion |
-| `POST /api/admin/import-academic-offer` sin sesion | `status=401` |
+| Migraciones | 11 versiones remotas alineadas hasta `20260712204500` |
+| Esquema | 76 tablas; RLS activo en 76; 23 politicas |
+| Seed | 25 planteles: 24 fisicos y `ONLINE` |
+| Foreign keys/constraints | Aplicadas y verificadas por importacion/rollback |
+| Aislamiento | Lectura propia permitida; organizacion ajena devuelve 0 o `42501` |
+| Escritura | Importacion C1 creo 35 programas y 172 ofertas en una transaccion |
+| Rollback | Sesion marcada `rolled_back`; ofertas 172 -> 0 |
 
-El servidor emitio `Ready in 324ms` y no mostro errores durante los curls. El
-proceso se detuvo con `Ctrl-C`. `agent-browser` no esta instalado en el host
-(`command not found`), por lo que no se marco una inspeccion visual como
-aprobada.
+La migracion de privilegios de `service_role` se detecto durante la limpieza,
+se versiono, probo y aplico en staging. No concede acceso a `anon` ni desactiva
+RLS.
 
-## Scripts de migracion
+## Auth y autorizacion
 
-| Script | Comando | Resultado | Observaciones |
-| --- | --- | --- | --- |
-| Export D1 | `npm run migration:export-d1` | Pasa, dry-run | Imprime comandos `wrangler d1 execute` sin ejecutarlos; escribe manifiesto local temporal. |
-| Transform D1 -> Postgres | `npm run migration:transform-d1` | Pasa, dry-run | Mapea tablas conocidas y omite `outbox_event` para realtime. |
-| Import Supabase | `npm run migration:import-supabase` | Pasa, dry-run | Detecta 0 filas en el manifiesto dry-run; no escribe remoto. |
-| Validate data | `npm run migration:validate-data` | Pasa local | Cuenta JSONL locales; remoto omitido sin `--remote`. |
-| Migrate Storage | `npm run migration:migrate-storage` | Pasa, dry-run | Sin manifest R2, genera reporte vacio local. |
+- usuario no autenticado: rutas protegidas redirigen a sign-in;
+- email/password: login publico y administrativo correctos;
+- recuperacion de sesion: la cookie SSR sobrevivio recarga del Preview;
+- logout: redireccion a `/` y nuevo acceso a `/unidep` bloqueado;
+- administrador: acceso al panel/importacion/rollback permitido;
+- usuario externo: datos de la otra organizacion bloqueados;
+- `service_role`: usado solo en scripts/operaciones server-side de staging.
 
-Los artefactos generados por dry-run se retiraron del working tree y no se commitearon.
+Playwright de Auth sobre Preview: 3/3 pruebas. Magic link, OTP, recovery email y
+Google OAuth no se ejecutaron porque requieren configuracion de proveedores y
+correo de staging separada.
 
-## Validacion remota parcial
+## Realtime
 
-| Validacion | Resultado | Evidencia | Observaciones |
-| --- | --- | --- | --- |
-| Supabase JWKS | Pasa | Respuesta ES256/P-256 con el `kid` esperado | Verifica el endpoint publico; no concede acceso administrativo. |
-| Proyecto Vercel | Pasa | Next.js, Node 22, raiz monorepo, comandos install/build y output verificados | GitHub enlazado; produccion Git permanece en `main`. |
-| Variables Supabase Preview | Pasa | Publicas limitadas a la rama; secretos de integracion habilitados para Preview | Vercel mantiene ocultos los valores `sensitive`. |
-| Preview inicial | Corregido | Vercel rechazo los globs `functions` que no coincidian con funciones detectadas | Se eliminaron los overrides; Vercel usa deteccion App Router. |
-| Preview final | Pasa | `Compiled successfully`, 16 paginas generadas, deployment completado | `https://scholarship-git-migration-vercel-supabase-re-lead.vercel.app`. |
-| Supabase Auth API | Pasa parcial | health/settings `200`; email habilitado | Google y phone deshabilitados; no se creo usuario de prueba. |
-| Rutas publicas | Pasa parcial | `/`, `/legal/privacy`, `/auth/sign-in` = `200`; after-login sin sesion = `303` | Vercel Deployment Protection se valido con bypass CLI. |
-| Lectura PostgreSQL | Bloqueada | `/api/public/campuses` = `500` | Prisma: `recalc_admin.campus` no existe; requiere aplicar migraciones staging. |
+- publication: `inbox_message`, `inbox_messages`, `TrainingMessage` y
+  `training_messages`;
+- INSERT, UPDATE y DELETE recibidos por `postgres_changes`;
+- filtro por organizacion/recurso validado;
+- listener removido al desmontar;
+- un evento antes y otro despues de reconexion, sin duplicados;
+- navegador del Preview conectado por WebSocket al host Supabase correcto;
+- 0 errores de consola, pagina o respuestas fallidas en la verificacion final.
+
+Presence con dos navegadores simultaneos no se ejecuto.
+
+## Storage
+
+| Caso | Resultado |
+| --- | --- |
+| Upload permitido | Pasa |
+| MIME invalido | Rechazado |
+| Signed URL/download | Pasa; descarga de 12 bytes |
+| Acceso cruzado | Bloqueado por organizacion/RLS |
+| Delete | Objeto y metadata eliminados |
+| Ruta aplicacion | presign 200, upload 200, complete 200, signed-view 307 |
+| Limites bucket | privado, 50 MB, 10 MIME permitidos |
+
+No se ejecuto una copia R2 -> Storage: no se uso acceso R2 productivo ni se
+proporciono un manifiesto staging aprobado.
+
+## Admin, importacion y cotizador
+
+Se uso el archivo real `docs/Oferta Acade#U0301mica.xlsx`:
+
+- 26 hojas procesadas; Online y 24 planteles reconocidos;
+- se eligieron bloques C1/C2/C3 vigentes y se ignoraron comparativos historicos;
+- preview: 172 filas, 0 warnings;
+- modulos: 53 longitudinales y 119 modulares;
+- publicacion: 35 programas y 172 ofertas C1;
+- el cotizador mostro ciclo, linea, modalidad, programa, plantel y horario;
+- rollback desde el panel restaurado y verificado;
+- UI desktop 1440 px y mobile 390 px sin overflow horizontal ni H1 duplicado.
+
+El calculo monetario no se aprueba: staging no contiene archivos/datos reales de
+precios y beneficios. La UI informa `Sin precio para este plantel` y solicita
+completar plan de pago. No se inventaron tarifas.
+
+## Limpieza staging
+
+Despues de las pruebas se eliminaron por UUID exacto usuarios Auth/dominio,
+organizaciones, membresias, mensajes, salas, sesion de importacion, auditorias,
+versiones, objetos y metadata temporales.
+
+Estado final: 25 planteles, 0 programas, 0 ofertas, 0 fixtures de Auth/RLS,
+0 objetos y 0 metadata de prueba.
 
 ## Validaciones no realizadas
 
-Vercel inyecta las variables de la integracion Supabase en Preview, pero sus
-valores sensibles no se descargaron al entorno local. No se creo un usuario de
-prueba ni se aplico el esquema staging, por lo que siguen pendientes:
+- migracion de datos productivos D1 -> PostgreSQL;
+- migracion de objetos productivos R2 -> Storage;
+- calculo monetario con tarifas/beneficios reales;
+- email delivery para magic link/OTP/recovery y Google OAuth;
+- Presence con dos sesiones simultaneas;
+- promocion Vercel Production, DNS o dominio productivo.
 
-- Aplicar migraciones a Supabase staging.
-- Seed real de staging.
-- Inicio de sesion real con Supabase Auth.
-- Recuperacion de sesion autenticada con cookies reales.
-- Lectura/escritura real contra Supabase PostgreSQL staging.
-- Validacion RLS remota por organizacion/rol.
-- Suscripcion Realtime real con `postgres_changes`.
-- Upload/download real en Supabase Storage.
-- Pruebas Playwright autenticadas.
-- Captura visual del panel autenticado y del detalle de importacion con datos reales.
-- Lectura/escritura de dominio, Realtime y Storage, porque el esquema staging no
-  ha sido aplicado.
-
-## Hallazgos
-
-- El build principal ya no usa OpenNext ni Wrangler.
-- No hay imports activos de `@opennextjs/cloudflare` ni `getCloudflareContext` fuera de `legacy/cloudflare`.
-- Queda un script de exportacion D1 que referencia `wrangler` de forma intencional y dry-run por defecto.
-- Persisten nombres internos `D1`/`R2` en helpers de compatibilidad y pruebas; no representan bindings Cloudflare activos, pero deben renombrarse en una limpieza posterior.
-- Varias rutas siguen usando Prisma y el adaptador PostgreSQL-compatible de los antiguos repositorios D1; la consolidacion total a clientes/repositorios Supabase nativos queda pendiente antes de produccion.
-- El login, callback, refresh SSR, formularios y diagnostico `auth-sync` usan
-  Supabase Auth. El panel, webhook y scripts Neon Auth se retiraron de App
-  Router y permanecen solo en `legacy/neon-auth/` para referencia de rollback.
-- El manifiesto de `next build` conserva `/admin/auth-sync` y no contiene
-  `/admin/integrations/neon-auth` ni `/api/integrations/neon-auth/*`.
-- `@neondatabase/serverless`, sus aliases npm y el workflow manual de limpieza
-  Neon se retiraron del proyecto activo y se preservaron en
-  `legacy/neon-database/`.
-- La importacion de oferta ya no publica desde el panel sin confirmacion: crea
-  una sesion preview y dirige al detalle revisable.
-- El reemplazo de oferta es atomico y queda limitado a los planteles presentes
-  en el archivo; apply y rollback revalidan los catalogos usados por el
-  cotizador.
+Estas pruebas no se marcan como aprobadas.

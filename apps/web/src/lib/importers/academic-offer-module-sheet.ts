@@ -1,6 +1,8 @@
 import ExcelJS from "exceljs";
 
+import { EXCEL_SHEETS_OMIT } from "@/config/academicOffer";
 import { normalizeKey } from "@/lib/text-normalize";
+import { loadExcelWorkbook } from "@/lib/importers/excel-workbook";
 import type {
   AcademicOfferPreviewRow,
   ImportAcademicOfferInput,
@@ -280,10 +282,19 @@ function scoreDetection(sheetName: string, columns: HeaderDetection["columns"]) 
   return score;
 }
 
+function isIgnoredModuleSheet(sheetName: string) {
+  const key = normalizeKey(sheetName);
+  return (
+    key.includes(" vs ") ||
+    EXCEL_SHEETS_OMIT.some((ignoredName) => normalizeKey(ignoredName) === key)
+  );
+}
+
 function detectModuleConfigSheet(workbook: ExcelJS.Workbook): HeaderDetection | null {
   const detections: HeaderDetection[] = [];
 
   for (const sheet of workbook.worksheets) {
+    if (isIgnoredModuleSheet(sheet.name)) continue;
     const maxHeaderRows = Math.min(Math.max(sheet.rowCount, 1), 10);
     for (let rowNumber = 1; rowNumber <= maxHeaderRows; rowNumber += 1) {
       const row = sheet.getRow(rowNumber);
@@ -291,7 +302,14 @@ function detectModuleConfigSheet(workbook: ExcelJS.Workbook): HeaderDetection | 
       const headers = Array.from({ length: maxColumns }, (_, index) => cleanText(row.getCell(index + 1).value));
       const columns = detectColumns(headers);
       const score = scoreDetection(sheet.name, columns);
-      const hasModuleSignal = Boolean(columns.module || columns.moduleCount || columns.subjectsByModule || columns.content.length);
+      const sheetKey = normalizeKey(sheet.name);
+      const hasDedicatedSheetName =
+        sheetKey.includes("modulo") || sheetKey.includes("contenido");
+      const hasExplicitModuleColumn = Boolean(
+        columns.module || columns.moduleCount || columns.subjectsByModule,
+      );
+      const hasModuleSignal =
+        hasExplicitModuleColumn || (hasDedicatedSheetName && columns.content.length > 0);
       const hasUsefulIdentity = Boolean(columns.program || normalizeKey(sheet.name).includes("modulo"));
 
       if (score >= 4 && hasModuleSignal && hasUsefulIdentity) {
@@ -301,20 +319,6 @@ function detectModuleConfigSheet(workbook: ExcelJS.Workbook): HeaderDetection | 
   }
 
   return detections.sort((left, right) => right.score - left.score)[0] ?? null;
-}
-
-async function loadWorkbook(input: ImportAcademicOfferInput) {
-  const workbook = new ExcelJS.Workbook();
-  workbook.calcProperties.fullCalcOnLoad = false;
-
-  if (input.kind === "path") {
-    await workbook.xlsx.readFile(input.filePath);
-    return workbook;
-  }
-
-  const buffer = Buffer.from(input.buffer);
-  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
-  return workbook;
 }
 
 function rowIsInactive(row: ExcelJS.Row, statusColumn?: number) {
@@ -641,7 +645,7 @@ export async function enrichAcademicOfferImportWithModuleSheet<TPrepared extends
   input: ImportAcademicOfferInput;
   prepared: TPrepared;
 }): Promise<TPrepared> {
-  const workbook = await loadWorkbook(params.input);
+  const workbook = await loadExcelWorkbook(params.input);
   const detection = detectModuleConfigSheet(workbook);
 
   if (!detection) return params.prepared;

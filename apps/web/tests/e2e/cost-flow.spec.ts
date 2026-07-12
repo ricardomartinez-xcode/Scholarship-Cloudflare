@@ -34,7 +34,9 @@ test("cost flow works for several valid combinations (no false 'no cost' error)"
   test.setTimeout(120_000);
   const { email, password } = requireUserCredentials();
   await loginUser(page, email, password);
-  await expect(page.getByRole("heading", { name: /Calculadora/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Cotizador|Calculadora/i }),
+  ).toBeVisible();
 
   // No native selects are allowed in /unidep.
   await expect(page.locator("select")).toHaveCount(0);

@@ -171,7 +171,6 @@ export async function POST(
       action: "apply",
       result: "success",
       actorUserId: admin.id,
-      actorEmail: admin.email,
       requestId,
       subjectType: "AdminImportSession",
       subjectId: sessionId,
@@ -229,7 +228,6 @@ export async function POST(
       action: "apply",
       result: "failure",
       actorUserId: actor?.id ?? null,
-      actorEmail: actor?.email ?? null,
       requestId,
       metadata: { message, sessionId },
     }, "Academic offer import apply failed");
