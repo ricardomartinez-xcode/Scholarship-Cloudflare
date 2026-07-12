@@ -684,6 +684,375 @@ function parsePlantelesSheet(
   return result;
 }
 
+type ImportCampus = {
+  id: string;
+  code: string;
+  name: string;
+  metaKey: string;
+  kind: CampusKind;
+};
+
+type CampusCycleBlock = {
+  headerRow: number;
+  program: number;
+  escolarizado: number;
+  ejecutivo: number;
+  module: number | null;
+  escolarizadoSchedules: number[];
+  ejecutivoSchedules: number[];
+};
+
+function inferLegacyProgramLevel(programName: string) {
+  const key = normalizeKey(programName);
+  if (key.includes("maestr") || key.includes("posgrado") || key.includes("doctorado")) {
+    return "POSGRADO";
+  }
+  if (key.includes("bachiller") || key.includes("prepa")) return "BACHILLERATO";
+  return "LICENCIATURA";
+}
+
+function inferLegacyBusinessLine(
+  programName: string,
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+): CanonicalBusinessLine {
+  const level = inferLegacyProgramLevel(programName);
+  if (level === "POSGRADO") return "posgrado";
+  if (level === "BACHILLERATO") return "prepa";
+
+  const key = normalizeKey(programName);
+  if (
+    [
+      "enfermer",
+      "fisioter",
+      "medicina",
+      "nutric",
+      "odontolog",
+      "psicolog",
+      "rehabilit",
+      "salud",
+    ].some((term) => key.includes(term))
+  ) {
+    return "salud";
+  }
+
+  return normalizeBusinessLineWithAliases(level, aliasRows) ?? "licenciatura";
+}
+
+function isLegacyOnlineCatalog(ws: ExcelJS.Worksheet) {
+  const maxRows = Math.min(Math.max(ws.rowCount, 1), 100);
+  for (let rowNumber = 1; rowNumber <= maxRows; rowNumber += 1) {
+    const value = normalizeKey(cleanText(ws.getRow(rowNumber).getCell(1).value));
+    if (value.includes("online actual")) return true;
+  }
+  return false;
+}
+
+function parseLegacyOnlineCatalog(
+  ws: ExcelJS.Worksheet,
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+): ParsedRow[] {
+  const rows = new Map<string, ParsedRow>();
+  let level: "LICENCIATURA" | "POSGRADO" | null = null;
+
+  for (let rowNumber = 1; rowNumber <= ws.rowCount; rowNumber += 1) {
+    const sourceName = cleanText(ws.getRow(rowNumber).getCell(1).value);
+    const key = normalizeKey(sourceName);
+    if (key.includes("licenciatura online actual")) {
+      level = "LICENCIATURA";
+      continue;
+    }
+    if (key.includes("posgrado online actual")) {
+      level = "POSGRADO";
+      continue;
+    }
+    if (!level || !sourceName) continue;
+
+    const lineOfBusiness = level === "POSGRADO" ? "posgrado" : "licenciatura";
+    const programAliasText = canonicalImportText(aliasRows, "program", sourceName);
+    const normalizedProgram = normalizeAcademicProgramName(programAliasText, {
+      level,
+      businessLine: lineOfBusiness,
+      delivery: "ONLINE",
+    });
+    const programNormalized = normalizedProgram.nameNormalized || normalizeKey(sourceName);
+    rows.set(programNormalized, {
+      programName: normalizedProgram.name,
+      programNormalized,
+      level,
+      lineOfBusiness,
+      escolarizado: false,
+      ejecutivo: false,
+      escolarizadoSchedule: null,
+      ejecutivoSchedule: null,
+      delivery: "ONLINE",
+      pricingPlans: null,
+      module: "Longitudinal",
+      moduleCount: null,
+      subjectsByModule: null,
+    });
+  }
+
+  return Array.from(rows.values());
+}
+
+function detectCampusCycleBlock(
+  ws: ExcelJS.Worksheet,
+  cycle: AcademicOfferCycle,
+): CampusCycleBlock | null {
+  const candidates: CampusCycleBlock[] = [];
+  const maxRows = Math.min(Math.max(ws.rowCount, 1), 200);
+  const maxColumns = Math.min(Math.max(ws.columnCount, 1), 24);
+  const cycleKey = normalizeKey(cycle);
+
+  for (let rowNumber = 1; rowNumber < maxRows; rowNumber += 1) {
+    const row = ws.getRow(rowNumber);
+    const nextRow = ws.getRow(rowNumber + 1);
+    const values = Array.from({ length: maxColumns }, (_, index) =>
+      normalizeKey(cleanText(row.getCell(index + 1).value)),
+    );
+    const programIndex = values.findIndex(
+      (value) => value === cycleKey || value.startsWith(`${cycleKey} `),
+    );
+    if (programIndex < 0) continue;
+
+    const headers = Array.from({ length: maxColumns }, (_, index) =>
+      normalizeKey(cleanText(nextRow.getCell(index + 1).value)),
+    );
+    const escolarizadoColumns = headers
+      .map((header, index) => (header.includes("escolariz") ? index + 1 : null))
+      .filter((column): column is number => column !== null);
+    const ejecutivoColumns = headers
+      .map((header, index) => (header.includes("ejecutiv") ? index + 1 : null))
+      .filter((column): column is number => column !== null);
+    if (!escolarizadoColumns.length || !ejecutivoColumns.length) continue;
+
+    candidates.push({
+      headerRow: rowNumber + 1,
+      program: programIndex + 1,
+      escolarizado: escolarizadoColumns[0],
+      ejecutivo: ejecutivoColumns[0],
+      module: programIndex > 0 ? programIndex : null,
+      escolarizadoSchedules: escolarizadoColumns.slice(1),
+      ejecutivoSchedules: ejecutivoColumns.slice(1),
+    });
+  }
+
+  return candidates.at(-1) ?? null;
+}
+
+function firstCellText(row: ExcelJS.Row, columns: number[]) {
+  for (const column of columns) {
+    const value = cleanText(row.getCell(column).value);
+    if (value) return value;
+  }
+  return null;
+}
+
+function parseCampusCycleSheet(
+  ws: ExcelJS.Worksheet,
+  block: CampusCycleBlock,
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>,
+): ParsedRow[] {
+  const rows = new Map<string, ParsedRow>();
+  let emptyStreak = 0;
+
+  for (let rowNumber = block.headerRow + 1; rowNumber <= ws.rowCount; rowNumber += 1) {
+    const row = ws.getRow(rowNumber);
+    const sourceName = cleanText(row.getCell(block.program).value);
+    if (!sourceName) {
+      emptyStreak += 1;
+      if (emptyStreak >= 3) break;
+      continue;
+    }
+    emptyStreak = 0;
+
+    const escolarizado = cellTruthy(row.getCell(block.escolarizado).value);
+    const ejecutivo = cellTruthy(row.getCell(block.ejecutivo).value);
+    if (!escolarizado && !ejecutivo) continue;
+
+    const level = inferLegacyProgramLevel(sourceName);
+    const lineOfBusiness = inferLegacyBusinessLine(sourceName, aliasRows);
+    const programAliasText = canonicalImportText(aliasRows, "program", sourceName);
+    const normalizedProgram = normalizeAcademicProgramName(programAliasText, {
+      level,
+      businessLine: lineOfBusiness,
+      delivery: "CAMPUS",
+    });
+    const programNormalized = normalizedProgram.nameNormalized || normalizeKey(sourceName);
+    const academicModule = academicModuleOrBlank(
+      block.module ? row.getCell(block.module).value : null,
+    );
+    const next: ParsedRow = {
+      programName: normalizedProgram.name,
+      programNormalized,
+      level,
+      lineOfBusiness,
+      escolarizado,
+      ejecutivo,
+      escolarizadoSchedule: escolarizado
+        ? firstCellText(row, block.escolarizadoSchedules)
+        : null,
+      ejecutivoSchedule: ejecutivo
+        ? firstCellText(row, block.ejecutivoSchedules)
+        : null,
+      delivery: "CAMPUS",
+      pricingPlans: null,
+      module: academicModule,
+      moduleCount: null,
+      subjectsByModule: null,
+    };
+
+    const rowKey = `${programNormalized}|${academicModule}`;
+    const previous = rows.get(rowKey);
+    if (!previous) {
+      rows.set(rowKey, next);
+      continue;
+    }
+    previous.escolarizado ||= next.escolarizado;
+    previous.ejecutivo ||= next.ejecutivo;
+    previous.escolarizadoSchedule ||= next.escolarizadoSchedule;
+    previous.ejecutivoSchedule ||= next.ejecutivoSchedule;
+  }
+
+  return Array.from(rows.values());
+}
+
+function parseAcademicOfferWorkbook(params: {
+  workbook: ExcelJS.Workbook;
+  cycle: AcademicOfferCycle;
+  campuses: ImportCampus[];
+  campusByNormalizedKey: Map<string, ImportCampus>;
+  aliasRows: Awaited<ReturnType<typeof loadImporterAliasRows>>;
+  warnings: string[];
+}) {
+  const { workbook, cycle, campuses, campusByNormalizedKey, aliasRows, warnings } = params;
+  const allSheetNames = workbook.worksheets.map((worksheet) => worksheet.name).join(", ");
+  const relevantSheets = workbook.worksheets.filter((worksheet) => !isOmittedSheet(worksheet.name));
+  const onlineSheet = detectOnlineSheet(relevantSheets);
+  if (!onlineSheet) {
+    throw new Error(
+      `No se encontró la hoja de programas Online. Hojas en el archivo: [${allSheetNames}].`,
+    );
+  }
+
+  const onlineCampus = campuses.find((campus) => campus.code === "ONLINE");
+  if (!onlineCampus) {
+    throw new Error('No existe Campus code="ONLINE" en la BD. Ejecuta seed de campus.');
+  }
+
+  const legacyOnline = isLegacyOnlineCatalog(onlineSheet);
+  const onlineCols = legacyOnline
+    ? { licenciatura: 1, posgrado: 1, licenciaturaPlanes: null, posgradoPlanes: null }
+    : detectOnlineColumns(onlineSheet);
+  const onlineRows = legacyOnline
+    ? parseLegacyOnlineCatalog(onlineSheet, aliasRows)
+    : parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
+  const parsed: CampusParseResult[] = [
+    {
+      campusId: onlineCampus.id,
+      campusCode: onlineCampus.code,
+      sheetName: onlineSheet.name,
+      campusNameFromExcel: null,
+      rows: onlineRows,
+      source: "online-sheet",
+    },
+  ];
+  const usedCampusIds = new Set<string>([onlineCampus.id]);
+  const unknownCampusNames: string[] = [];
+  const plantelesSheet = detectPlantelesSheet(relevantSheets, onlineSheet);
+  let detectedColumns: ImportAcademicOfferSummary["detectedColumns"] = null;
+  let plantelesSheetLabel: string;
+
+  if (plantelesSheet) {
+    const plantelesCols = detectPlantelesColumns(plantelesSheet);
+    const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
+    for (const [campusKey, entry] of plantelesRows) {
+      const campus = campusByNormalizedKey.get(campusKey);
+      if (!campus) {
+        unknownCampusNames.push(entry.originalName);
+        continue;
+      }
+      parsed.push({
+        campusId: campus.id,
+        campusCode: campus.code,
+        sheetName: plantelesSheet.name,
+        campusNameFromExcel: entry.originalName,
+        rows: entry.rows,
+        source: "campus-sheet",
+      });
+      usedCampusIds.add(campus.id);
+    }
+    detectedColumns = { online: onlineCols, planteles: plantelesCols };
+    plantelesSheetLabel = plantelesSheet.name;
+  } else {
+    const sheetsWithoutCycle: string[] = [];
+    let matchedSheets = 0;
+
+    for (const sheet of relevantSheets) {
+      if (sheet === onlineSheet) continue;
+      const campusKey =
+        canonicalImportKey(aliasRows, "campus", sheet.name) || normalizeKey(sheet.name);
+      const campus = campusByNormalizedKey.get(campusKey);
+      if (!campus || campus.kind === "online") {
+        unknownCampusNames.push(sheet.name);
+        continue;
+      }
+
+      const block = detectCampusCycleBlock(sheet, cycle);
+      if (!block) {
+        sheetsWithoutCycle.push(sheet.name);
+        continue;
+      }
+
+      matchedSheets += 1;
+      parsed.push({
+        campusId: campus.id,
+        campusCode: campus.code,
+        sheetName: sheet.name,
+        campusNameFromExcel: sheet.name,
+        rows: parseCampusCycleSheet(sheet, block, aliasRows),
+        source: "campus-sheet",
+      });
+      usedCampusIds.add(campus.id);
+    }
+
+    if (!matchedSheets) {
+      throw new Error(
+        `No se encontró una hoja Planteles ni bloques ${cycle} por campus. Hojas en el archivo: [${allSheetNames}].`,
+      );
+    }
+    if (sheetsWithoutCycle.length) {
+      warnings.push(
+        `Hojas sin bloque ${cycle} (quedan sin cambios): ${sheetsWithoutCycle.join(", ")}`,
+      );
+    }
+    plantelesSheetLabel = `Hojas por plantel (${matchedSheets})`;
+  }
+
+  if (!onlineRows.length) {
+    warnings.push(`Hoja "${onlineSheet.name}" no produjo programas Online.`);
+  }
+  if (unknownCampusNames.length) {
+    warnings.push(
+      `Hojas o planteles no reconocidos en BD (se omitieron): ${unknownCampusNames.join(", ")}`,
+    );
+  }
+  const missingCampuses = campuses.filter((campus) => !usedCampusIds.has(campus.id));
+  if (missingCampuses.length) {
+    warnings.push(
+      `Campus activos no cubiertos por el Excel (quedan sin cambios): ${missingCampuses
+        .map((campus) => campus.code)
+        .join(", ")}`,
+    );
+  }
+
+  return {
+    parsed,
+    detectedSheets: { online: onlineSheet.name, planteles: plantelesSheetLabel },
+    detectedColumns,
+  };
+}
+
 export async function resolveDefaultOfferExcelPath(): Promise<string | null> {
   const repoRoot = process.cwd();
   const docsDir = path.join(repoRoot, "docs");
@@ -727,90 +1096,16 @@ export async function importAcademicOfferFromExcel(params: {
   }
   addConfiguredCampusAliasesToLookup(campusByNormalizedKey, aliasRows);
 
-  const wb = await loadExcelWorkbook(params.input);
-  const allSheetNames = wb.worksheets.map((ws) => ws.name).join(", ");
-  const relevantSheets = wb.worksheets.filter((ws) => !isOmittedSheet(ws.name));
-
-  const onlineSheet = detectOnlineSheet(relevantSheets);
-  const plantelesSheet = detectPlantelesSheet(relevantSheets, onlineSheet);
-
-  if (!onlineSheet) {
-    throw new Error(
-      `No se encontró la hoja de programas Online. ` +
-        `Hojas en el archivo: [${allSheetNames}]. ` +
-        `Nombra la hoja "Online" o asegúrate de que la primera fila tenga encabezados "Licenciatura" y "Posgrado".`
-    );
-  }
-  if (!plantelesSheet) {
-    throw new Error(
-      `No se encontró la hoja de Planteles. ` +
-        `Hojas en el archivo: [${allSheetNames}]. ` +
-        `Nombra la hoja "Planteles" o asegúrate de que la primera fila tenga encabezados "Plantel" y "Programa".`
-    );
-  }
-
-  const onlineCols = detectOnlineColumns(onlineSheet);
-  const plantelesCols = detectPlantelesColumns(plantelesSheet);
-
-  const parsed: CampusParseResult[] = [];
-  const usedCampusIds = new Set<string>();
-
-  const onlineCampus = campuses.find((c) => c.code === "ONLINE");
-  if (!onlineCampus) {
-    throw new Error('No existe Campus code="ONLINE" en la BD. Ejecuta seed de campus.');
-  }
-
-  const onlineRows = parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
-  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
-  const plantelesIncludeOnline = Array.from(plantelesRows.keys()).some(
-    (campusKey) => campusByNormalizedKey.get(campusKey)?.code === "ONLINE",
-  );
-  if (onlineRows.length === 0 && !plantelesIncludeOnline) {
-    warnings.push(
-      `Hoja "${onlineSheet.name}" no produjo programas. Verifica que las columnas Licenciatura (${onlineCols.licenciatura}) y Posgrado (${onlineCols.posgrado}) tengan datos.`
-    );
-  }
-  parsed.push({
-    campusId: onlineCampus.id,
-    campusCode: onlineCampus.code,
-    sheetName: onlineSheet.name,
-    campusNameFromExcel: null,
-    rows: onlineRows,
-    source: "online-sheet",
+  const workbook = await loadExcelWorkbook(params.input);
+  const workbookOffer = parseAcademicOfferWorkbook({
+    workbook,
+    cycle,
+    campuses,
+    campusByNormalizedKey,
+    aliasRows,
+    warnings,
   });
-  usedCampusIds.add(onlineCampus.id);
-
-  const unknownCampusNames: string[] = [];
-
-  for (const [campusKey, entry] of plantelesRows) {
-    const campus = campusByNormalizedKey.get(campusKey);
-    if (!campus) {
-      unknownCampusNames.push(entry.originalName);
-      continue; // Always skip unrecognized campuses with a warning
-    }
-    parsed.push({
-      campusId: campus.id,
-      campusCode: campus.code,
-      sheetName: plantelesSheet.name,
-      campusNameFromExcel: entry.originalName,
-      rows: entry.rows,
-      source: "campus-sheet",
-    });
-    usedCampusIds.add(campus.id);
-  }
-
-  if (unknownCampusNames.length > 0) {
-    warnings.push(
-      `Planteles no reconocidos en BD (se omitieron): ${unknownCampusNames.join(", ")}`
-    );
-  }
-
-  const missingCampuses = campuses.filter((c) => !usedCampusIds.has(c.id));
-  if (missingCampuses.length > 0) {
-    warnings.push(
-      `Campus activos no cubiertos por el Excel (quedan sin cambios): ${missingCampuses.map((c) => c.code).join(", ")}`
-    );
-  }
+  const { parsed } = workbookOffer;
 
   const summary: ImportAcademicOfferSummary = {
     ok: true,
@@ -819,14 +1114,8 @@ export async function importAcademicOfferFromExcel(params: {
     programs: { created: 0, updated: 0 },
     offerings: { created: 0, updated: 0, reactivated: 0, deactivated: 0 },
     warnings,
-    detectedSheets: {
-      online: onlineSheet.name,
-      planteles: plantelesSheet.name,
-    },
-    detectedColumns: {
-      online: onlineCols,
-      planteles: plantelesCols,
-    },
+    detectedSheets: workbookOffer.detectedSheets,
+    detectedColumns: workbookOffer.detectedColumns,
     perCampus: [],
   };
 
@@ -1072,87 +1361,15 @@ export async function prepareAcademicOfferImport(params: {
   addConfiguredCampusAliasesToLookup(campusByNormalizedKey, aliasRows);
 
   const workbook = await loadExcelWorkbook(params.input);
-  const allSheetNames = workbook.worksheets.map((worksheet) => worksheet.name).join(", ");
-  const relevantSheets = workbook.worksheets.filter((worksheet) => !isOmittedSheet(worksheet.name));
-
-  const onlineSheet = detectOnlineSheet(relevantSheets);
-  const plantelesSheet = detectPlantelesSheet(relevantSheets, onlineSheet);
-
-  if (!onlineSheet) {
-    throw new Error(
-      `No se encontró la hoja de programas Online. Hojas en el archivo: [${allSheetNames}].`,
-    );
-  }
-  if (!plantelesSheet) {
-    throw new Error(
-      `No se encontró la hoja de Planteles. Hojas en el archivo: [${allSheetNames}].`,
-    );
-  }
-
-  const onlineCols = detectOnlineColumns(onlineSheet);
-  const plantelesCols = detectPlantelesColumns(plantelesSheet);
-
-  const parsed: CampusParseResult[] = [];
-  const usedCampusIds = new Set<string>();
-
-  const onlineCampus = campuses.find((campus) => campus.code === "ONLINE");
-  if (!onlineCampus) {
-    throw new Error('No existe Campus code="ONLINE" en la BD. Ejecuta seed de campus.');
-  }
-
-  const onlineRows = parseOnlineSheet(onlineSheet, onlineCols, aliasRows);
-  const plantelesRows = parsePlantelesSheet(plantelesSheet, plantelesCols, aliasRows);
-  const plantelesIncludeOnline = Array.from(plantelesRows.keys()).some(
-    (campusKey) => campusByNormalizedKey.get(campusKey)?.code === "ONLINE",
-  );
-  if (onlineRows.length === 0 && !plantelesIncludeOnline) {
-    warnings.push(
-      `Hoja "${onlineSheet.name}" no produjo programas. Verifica que las columnas Licenciatura y Posgrado tengan datos.`,
-    );
-  }
-  parsed.push({
-    campusId: onlineCampus.id,
-    campusCode: onlineCampus.code,
-    sheetName: onlineSheet.name,
-    campusNameFromExcel: null,
-    rows: onlineRows,
-    source: "online-sheet",
+  const workbookOffer = parseAcademicOfferWorkbook({
+    workbook,
+    cycle,
+    campuses,
+    campusByNormalizedKey,
+    aliasRows,
+    warnings,
   });
-  usedCampusIds.add(onlineCampus.id);
-
-  const unknownCampusNames: string[] = [];
-
-  for (const [campusKey, entry] of plantelesRows) {
-    const campus = campusByNormalizedKey.get(campusKey);
-    if (!campus) {
-      unknownCampusNames.push(entry.originalName);
-      continue;
-    }
-    parsed.push({
-      campusId: campus.id,
-      campusCode: campus.code,
-      sheetName: plantelesSheet.name,
-      campusNameFromExcel: entry.originalName,
-      rows: entry.rows,
-      source: "campus-sheet",
-    });
-    usedCampusIds.add(campus.id);
-  }
-
-  if (unknownCampusNames.length > 0) {
-    warnings.push(
-      `Planteles no reconocidos en BD (se omitieron): ${unknownCampusNames.join(", ")}`,
-    );
-  }
-
-  const missingCampuses = campuses.filter((campus) => !usedCampusIds.has(campus.id));
-  if (missingCampuses.length > 0) {
-    warnings.push(
-      `Campus activos no cubiertos por el Excel (quedan sin cambios): ${missingCampuses
-        .map((campus) => campus.code)
-        .join(", ")}`,
-    );
-  }
+  const { parsed } = workbookOffer;
 
   const summary: ImportAcademicOfferSummary = {
     ok: true,
@@ -1161,14 +1378,8 @@ export async function prepareAcademicOfferImport(params: {
     programs: { created: 0, updated: 0 },
     offerings: { created: 0, updated: 0, reactivated: 0, deactivated: 0 },
     warnings,
-    detectedSheets: {
-      online: onlineSheet.name,
-      planteles: plantelesSheet.name,
-    },
-    detectedColumns: {
-      online: onlineCols,
-      planteles: plantelesCols,
-    },
+    detectedSheets: workbookOffer.detectedSheets,
+    detectedColumns: workbookOffer.detectedColumns,
     perCampus: [],
   };
 

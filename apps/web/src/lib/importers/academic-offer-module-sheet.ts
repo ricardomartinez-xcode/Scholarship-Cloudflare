@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 
+import { EXCEL_SHEETS_OMIT } from "@/config/academicOffer";
 import { normalizeKey } from "@/lib/text-normalize";
 import { loadExcelWorkbook } from "@/lib/importers/excel-workbook";
 import type {
@@ -281,10 +282,19 @@ function scoreDetection(sheetName: string, columns: HeaderDetection["columns"]) 
   return score;
 }
 
+function isIgnoredModuleSheet(sheetName: string) {
+  const key = normalizeKey(sheetName);
+  return (
+    key.includes(" vs ") ||
+    EXCEL_SHEETS_OMIT.some((ignoredName) => normalizeKey(ignoredName) === key)
+  );
+}
+
 function detectModuleConfigSheet(workbook: ExcelJS.Workbook): HeaderDetection | null {
   const detections: HeaderDetection[] = [];
 
   for (const sheet of workbook.worksheets) {
+    if (isIgnoredModuleSheet(sheet.name)) continue;
     const maxHeaderRows = Math.min(Math.max(sheet.rowCount, 1), 10);
     for (let rowNumber = 1; rowNumber <= maxHeaderRows; rowNumber += 1) {
       const row = sheet.getRow(rowNumber);
@@ -292,7 +302,14 @@ function detectModuleConfigSheet(workbook: ExcelJS.Workbook): HeaderDetection | 
       const headers = Array.from({ length: maxColumns }, (_, index) => cleanText(row.getCell(index + 1).value));
       const columns = detectColumns(headers);
       const score = scoreDetection(sheet.name, columns);
-      const hasModuleSignal = Boolean(columns.module || columns.moduleCount || columns.subjectsByModule || columns.content.length);
+      const sheetKey = normalizeKey(sheet.name);
+      const hasDedicatedSheetName =
+        sheetKey.includes("modulo") || sheetKey.includes("contenido");
+      const hasExplicitModuleColumn = Boolean(
+        columns.module || columns.moduleCount || columns.subjectsByModule,
+      );
+      const hasModuleSignal =
+        hasExplicitModuleColumn || (hasDedicatedSheetName && columns.content.length > 0);
       const hasUsefulIdentity = Boolean(columns.program || normalizeKey(sheet.name).includes("modulo"));
 
       if (score >= 4 && hasModuleSignal && hasUsefulIdentity) {

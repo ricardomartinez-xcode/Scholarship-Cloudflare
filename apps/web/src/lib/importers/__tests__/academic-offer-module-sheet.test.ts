@@ -94,6 +94,28 @@ function previewModules(prepared: ReturnType<typeof preparedOffer>) {
 }
 
 describe("enrichAcademicOfferImportWithModuleSheet", () => {
+  it("ignores historical comparison sheets when detecting module configuration", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Comparativo 22 vs 24");
+    sheet.addRow(["Programa", "M1", "M2", "M3"]);
+    sheet.addRow(["Derecho", true, true, true]);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const prepared = preparedOffer();
+
+    const enriched = await enrichAcademicOfferImportWithModuleSheet({
+      input: {
+        kind: "buffer",
+        buffer: Uint8Array.from(buffer as unknown as ArrayLike<number>),
+        fileName: "oferta.xlsx",
+      },
+      prepared,
+    });
+
+    expect(payloadModules(enriched)).toEqual(["Longitudinal"]);
+    expect(previewModules(enriched)).toEqual(["Longitudinal"]);
+    expect(enriched.summary.warnings).toEqual([]);
+  });
+
   it("preserves explicitly selected M1 and M2 instead of collapsing them to Modular", async () => {
     const prepared = preparedOffer();
 
