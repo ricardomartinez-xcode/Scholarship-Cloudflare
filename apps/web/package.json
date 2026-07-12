@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev-with-root-env.mjs",
-    "build": "next build --webpack",
+    "build": "npm run typecheck && NEXT_SKIP_INTERNAL_TYPECHECK=1 next build --webpack",
     "start": "next start",
     "lint": "eslint . ../../packages --max-warnings=0",
     "typecheck": "tsc --noEmit -p tsconfig.json",

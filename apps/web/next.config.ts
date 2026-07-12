@@ -3,6 +3,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  // The build script runs `npm run typecheck` first. Skipping Next's duplicate
+  // internal pass avoids local/Vercel OOM in this large monorepo build.
+  typescript: {
+    ignoreBuildErrors: process.env.NEXT_SKIP_INTERNAL_TYPECHECK === "1",
+  },
   outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
   transpilePackages: [
     "@relead/ui",
@@ -41,14 +46,22 @@ const nextConfig: NextConfig = {
   },
 };
 
-const sentryConfig = withSentryConfig(nextConfig, {
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent: true,
-  sourcemaps: {
-    disable: !process.env.SENTRY_AUTH_TOKEN,
-  },
-});
+const shouldEnableSentryBuildPlugin = Boolean(
+  process.env.SENTRY_AUTH_TOKEN &&
+    process.env.SENTRY_ORG &&
+    process.env.SENTRY_PROJECT,
+);
+
+const sentryConfig = shouldEnableSentryBuildPlugin
+  ? withSentryConfig(nextConfig, {
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      silent: true,
+      sourcemaps: {
+        disable: !process.env.SENTRY_AUTH_TOKEN,
+      },
+    })
+  : nextConfig;
 
 export default sentryConfig;
