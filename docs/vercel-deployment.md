@@ -3,7 +3,8 @@
 ## Estado
 
 - Rama: `migration/vercel-supabase`
-- Deploy remoto: no ejecutado.
+- Proyecto: `re-lead/scholarship` enlazado al repositorio GitHub.
+- Preview remoto: ejecutado; build bloqueado por credenciales PostgreSQL staging ausentes.
 - Produccion Cloudflare: no modificada.
 - Entorno objetivo inicial: Vercel Preview + Supabase staging.
 
@@ -18,6 +19,11 @@
 | Output Directory | `apps/web/.next` |
 | Node | `>=20 <25`, recomendado Node 22 en CI/Vercel |
 | Package manager | npm 11 |
+
+La configuracion remota verificada usa `framework=nextjs`, Node `22.x`, raiz del
+monorepo, `npm ci --foreground-scripts`, `npm run build` y
+`apps/web/.next`. La rama de produccion Git de Vercel sigue siendo `main`; no se
+promovio ningun Preview ni se agrego un dominio productivo.
 
 La raiz queda en el monorepo porque `apps/web` depende de paquetes internos en `packages/*` y del Prisma client generado desde `packages/db/prisma/schema.prisma`.
 
@@ -59,6 +65,14 @@ Las migraciones de base de datos no se ejecutan dentro del build. Deben aplicars
 No uses `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente ni con prefijo `NEXT_PUBLIC_`.
 
 Vercel define `VERCEL=1`; con eso las rutas legacy D1-named usan el adaptador PostgreSQL-compatible sin configurar `POSTGRES_COMPAT_RUNTIME`.
+
+En Vercel quedaron configuradas solo para
+`Preview (migration/vercel-supabase)` las variables publicas
+`NEXT_PUBLIC_APP_URL` y `NEXT_PUBLIC_SUPABASE_URL`. No se cargaron placeholders
+para claves o conexiones. Faltan valores reales de staging para
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DATABASE_URL` y `DIRECT_URL`; la service role
+tambien es necesaria para aplicar migraciones, validar datos y probar Storage
+administrativo.
 
 ## Supabase Auth URLs
 
@@ -135,6 +149,10 @@ Rollback despues de una promocion futura:
 
 ## Limitaciones actuales
 
-- No se genero Preview porque no hay credenciales Vercel/Supabase staging en esta sesion.
+- El Preview `https://scholarship-is322j1nt-re-lead.vercel.app` compilo Next.js,
+  pero termino en error durante page data con `DATABASE_URL is not set`.
+- El JWKS publico del proyecto Supabase staging responde y expone la clave ES256
+  esperada; un JWKS no sustituye la publishable/anon key, las conexiones
+  PostgreSQL, la service role ni un access token de administracion Supabase.
 - Algunas rutas de dominio siguen usando Prisma temporalmente.
 - Workflows manuales heredados relacionados con Neon deben revisarse antes de habilitar automatizaciones de deployment.

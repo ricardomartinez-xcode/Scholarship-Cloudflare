@@ -13,7 +13,11 @@ Se reutilizo la mayor parte de UI, App Router, paquetes internos, reglas de nego
 
 Se elimino la dependencia activa de OpenNext/Wrangler del build y se aislaron artefactos Cloudflare en `legacy/cloudflare/`.
 
-Queda pendiente validar contra Supabase staging y Vercel Preview, ademas de terminar el reemplazo de nombres/repositorios heredados `D1`/`R2` por repositorios PostgreSQL/Supabase nativos.
+El proyecto Vercel y el endpoint JWKS de Supabase staging ya se verificaron. El
+Preview compila Next.js y queda bloqueado al recolectar page data porque falta
+`DATABASE_URL`. Tambien queda pendiente terminar el reemplazo de
+nombres/repositorios heredados `D1`/`R2` por repositorios PostgreSQL/Supabase
+nativos.
 
 ## Cambios por area
 
@@ -64,13 +68,20 @@ Queda pendiente validar contra Supabase staging y Vercel Preview, ademas de term
 | import dry-run | `npm run migration:import-supabase` | Pasa | 0 filas por manifiesto dry-run | No escribe Supabase. |
 | validate local | `npm run migration:validate-data` | Pasa | `[local:ok]` para todas las tablas | Remoto omitido. |
 | storage dry-run | `npm run migration:migrate-storage` | Pasa | reporte vacio al no existir manifest R2 | No escribe Supabase. |
+| Supabase JWKS | `curl` al endpoint publico | Pasa | ES256/P-256 y `kid` esperado | No equivale a credenciales de API o DB. |
+| Vercel project | Vercel CLI/API | Pasa | Next.js, Node 22, monorepo y GitHub verificados | Sin dominio productivo agregado. |
+| Vercel Preview | `vercel deploy` sin `--prod` | Bloqueado | Next compila en 63s; `DATABASE_URL is not set` | Preview no queda navegable. |
 
 ## Limitaciones
 
 - No hay Supabase CLI local: `supabase: command not found`.
-- No hay credenciales Supabase staging ni Vercel en esta sesion.
+- El acceso Vercel esta configurado, pero Supabase solo cuenta con URL/JWKS
+  publico. Faltan publishable/anon key, `DATABASE_URL`, `DIRECT_URL`, service
+  role para operaciones administrativas y access token para configurar/aplicar
+  cambios mediante Management API/CLI.
 - No se aplicaron migraciones remotas.
-- No se ejecuto Vercel Preview.
+- Se ejecuto Vercel Preview, pero fallo antes de quedar `READY` por la ausencia
+  de `DATABASE_URL`.
 - No se valido login real, refresh real, RLS remoto, Realtime real ni Storage real.
 - Persisten nombres internos `D1`/`R2` en helpers de compatibilidad, tests y columnas legacy como `r2Key`.
 - Algunas rutas siguen usando Prisma/adaptador compatible en vez de repositorios Supabase/Postgres nativos.
@@ -135,7 +146,7 @@ Usar `docs/migration-rollback.md`. Mientras no haya cutover, el rollback princip
 La rama esta:
 
 - lista para revision tecnica;
-- lista para configurar Supabase staging;
-- lista para intentar Vercel Preview cuando existan variables;
+- proyecto Vercel configurado y rama Preview aislada;
+- bloqueada para completar el Preview hasta recibir credenciales Supabase staging;
 - no lista para migracion de datos productiva;
 - no lista para cutover productivo.

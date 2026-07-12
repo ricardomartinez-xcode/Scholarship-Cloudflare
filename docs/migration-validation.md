@@ -12,7 +12,8 @@ Produccion Cloudflare: no modificada
 | npm | `11.12.1` |
 | Gestor | npm con `package-lock.json` |
 | Supabase CLI | No instalado (`supabase: command not found`) |
-| Credenciales staging | No disponibles en esta sesion |
+| Supabase staging | URL y JWKS publico verificados; faltan claves y conexiones |
+| Vercel | Proyecto `re-lead/scholarship` configurado; Preview intentado |
 | Runtime compat local | `POSTGRES_COMPAT_RUNTIME=1` opcional para probar rutas legacy D1-named con PostgreSQL |
 
 No se leyeron ni imprimieron secretos. Para el smoke local se usaron placeholders no secretos.
@@ -64,9 +65,20 @@ El servidor emitio `Ready in 339ms` y no mostro errores durante los curls. El pr
 
 Los artefactos generados por dry-run se retiraron del working tree y no se commitearon.
 
+## Validacion remota parcial
+
+| Validacion | Resultado | Evidencia | Observaciones |
+| --- | --- | --- | --- |
+| Supabase JWKS | Pasa | Respuesta ES256/P-256 con el `kid` esperado | Verifica el endpoint publico; no concede acceso administrativo. |
+| Proyecto Vercel | Pasa | Next.js, Node 22, raiz monorepo, comandos install/build y output verificados | GitHub enlazado; produccion Git permanece en `main`. |
+| Variables publicas Preview | Pasa | `NEXT_PUBLIC_APP_URL` y `NEXT_PUBLIC_SUPABASE_URL` limitadas a `migration/vercel-supabase` | No se configuraron valores falsos para credenciales ausentes. |
+| Preview inicial | Corregido | Vercel rechazo los globs `functions` que no coincidian con funciones detectadas | Se eliminaron los overrides; Vercel usa deteccion App Router. |
+| Preview posterior | Bloqueado | Next.js `Compiled successfully in 63s`; despues `DATABASE_URL is not set` al recolectar `/auth/after-login` | Requiere conexiones PostgreSQL reales de Supabase staging. |
+
 ## Validaciones no realizadas
 
-No se ejecutaron estas pruebas por falta de Supabase staging, Supabase CLI y Vercel Preview configurados:
+No se ejecutaron estas pruebas porque el acceso aportado no incluye claves de
+cliente, conexiones PostgreSQL ni credenciales administrativas Supabase:
 
 - Aplicar migraciones a Supabase staging.
 - Seed real de staging.
@@ -77,7 +89,7 @@ No se ejecutaron estas pruebas por falta de Supabase staging, Supabase CLI y Ver
 - Suscripcion Realtime real con `postgres_changes`.
 - Upload/download real en Supabase Storage.
 - Pruebas Playwright autenticadas.
-- Vercel Preview Deployment.
+- Navegacion del Vercel Preview, porque el build no llego a estado `READY`.
 
 ## Hallazgos
 
