@@ -59,4 +59,18 @@ describe("environment validation", () => {
     expect(env.databaseUrl).toContain("postgresql://");
     expect(env.supabaseAnonKey).toBe("anon-key");
   });
+
+  it("accepts database variables provisioned by the Vercel Supabase integration", () => {
+    const env = parseServerEnv({
+      NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-key",
+      POSTGRES_PRISMA_URL: "postgresql://pooler.example.test/postgres",
+      POSTGRES_URL_NON_POOLING: "postgresql://db.example.test/postgres",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role",
+    });
+
+    expect(env.databaseUrl).toBe("postgresql://pooler.example.test/postgres");
+    expect(env.directUrl).toBe("postgresql://db.example.test/postgres");
+    expect(env.supabaseAnonKey).toBe("publishable-key");
+  });
 });

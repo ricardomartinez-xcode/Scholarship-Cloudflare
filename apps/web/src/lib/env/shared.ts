@@ -40,6 +40,22 @@ function resolveSupabaseAnonKey(env: EnvSource) {
   );
 }
 
+function resolveDatabaseUrl(env: EnvSource) {
+  return (
+    readTrimmed(env, "DATABASE_URL") ??
+    readTrimmed(env, "POSTGRES_PRISMA_URL") ??
+    readTrimmed(env, "POSTGRES_URL")
+  );
+}
+
+function resolveDirectUrl(env: EnvSource) {
+  return (
+    readTrimmed(env, "DIRECT_URL") ??
+    readTrimmed(env, "POSTGRES_URL_NON_POOLING") ??
+    readTrimmed(env, "DATABASE_URL_UNPOOLED")
+  );
+}
+
 export function parseClientEnv(env: EnvSource, options: ParseOptions = {}): ClientEnv {
   const missing: string[] = [];
   const supabaseUrl = readTrimmed(env, "NEXT_PUBLIC_SUPABASE_URL");
@@ -64,8 +80,8 @@ export function parseClientEnv(env: EnvSource, options: ParseOptions = {}): Clie
 
 export function parseServerEnv(env: EnvSource, options: ParseOptions = {}): ServerEnv {
   const clientEnv = parseClientEnv(env, options);
-  const databaseUrl = readTrimmed(env, "DATABASE_URL");
-  const directUrl = readTrimmed(env, "DIRECT_URL");
+  const databaseUrl = resolveDatabaseUrl(env);
+  const directUrl = resolveDirectUrl(env);
   const missing: string[] = [];
 
   if (!databaseUrl) missing.push("DATABASE_URL");

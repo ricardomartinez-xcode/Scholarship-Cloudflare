@@ -8,6 +8,9 @@
       "env": [
         "DATABASE_URL",
         "DIRECT_URL",
+        "POSTGRES_PRISMA_URL",
+        "POSTGRES_URL",
+        "POSTGRES_URL_NON_POOLING",
         "NEXT_PUBLIC_*",
         "SENTRY_*",
         "SUPABASE_*"

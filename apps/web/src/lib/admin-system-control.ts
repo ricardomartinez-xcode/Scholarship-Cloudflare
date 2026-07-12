@@ -3,17 +3,51 @@ import path from "node:path";
 
 import { AdminConfigModule, BusinessEventType, Prisma } from "@prisma/client";
 
-import { buildEnvPresence } from "@/lib/admin-control-api";
 import { normalizeBusinessLine, normalizeCanonicalModality } from "@/lib/pricing-normalize";
 import { prisma } from "@/lib/prisma";
 import { resolveCanonicalQuote } from "@relead/domain/calculator/quote-service";
 
-const ENV_GROUPS = {
-  database: ["DATABASE_URL", "DIRECT_URL"],
-  auth: ["NEON_AUTH_BASE_URL", "NEON_AUTH_COOKIE_SECRET"],
-  github: ["GITHUB_TOKEN", "GITHUB_OWNER", "GITHUB_REPO"],
-  vercel: ["VERCEL", "VERCEL_ENV", "VERCEL_GIT_COMMIT_SHA"],
+type EnvRequirement = {
+  name: string;
+  anyOf: readonly string[];
+};
+
+const ENV_GROUPS: Record<string, readonly EnvRequirement[]> = {
+  database: [
+    { name: "DATABASE_URL", anyOf: ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"] },
+    {
+      name: "DIRECT_URL",
+      anyOf: ["DIRECT_URL", "POSTGRES_URL_NON_POOLING", "DATABASE_URL_UNPOOLED"],
+    },
+  ],
+  auth: [
+    { name: "NEXT_PUBLIC_SUPABASE_URL", anyOf: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"] },
+    {
+      name: "NEXT_PUBLIC_SUPABASE_KEY",
+      anyOf: [
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      ],
+    },
+  ],
+  github: [
+    { name: "GITHUB_TOKEN", anyOf: ["GITHUB_TOKEN"] },
+    { name: "GITHUB_OWNER", anyOf: ["GITHUB_OWNER"] },
+    { name: "GITHUB_REPO", anyOf: ["GITHUB_REPO"] },
+  ],
+  vercel: [
+    { name: "VERCEL", anyOf: ["VERCEL"] },
+    { name: "VERCEL_ENV", anyOf: ["VERCEL_ENV"] },
+    { name: "VERCEL_GIT_COMMIT_SHA", anyOf: ["VERCEL_GIT_COMMIT_SHA"] },
+  ],
 } as const;
+
+function buildRequirementPresence(requirements: readonly EnvRequirement[]) {
+  return requirements.map((requirement) => ({
+    name: requirement.name,
+    present: requirement.anyOf.some((name) => Boolean(process.env[name]?.trim())),
+  }));
+}
 
 async function readVersion() {
   try {
@@ -34,12 +68,12 @@ function currentBranch() {
 
 export function getAdminEnvCheck() {
   return Object.fromEntries(
-    Object.entries(ENV_GROUPS).map(([group, names]) => [
+    Object.entries(ENV_GROUPS).map(([group, requirements]) => [
       group,
-      {
-        ok: buildEnvPresence([...names]).every((entry) => entry.present),
-        vars: buildEnvPresence([...names]),
-      },
+      (() => {
+        const vars = buildRequirementPresence(requirements);
+        return { ok: vars.every((entry) => entry.present), vars };
+      })(),
     ]),
   );
 }
