@@ -3,6 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm ci --foreground-scripts",
+  "outputDirectory": "apps/web/.next",
   "git": {
     "deploymentEnabled": {
       "fix/*": false,
