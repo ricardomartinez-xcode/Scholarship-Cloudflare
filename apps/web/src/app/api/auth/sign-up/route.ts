@@ -30,9 +30,7 @@ function buildInviteSignInUrl(params: {
   success?: string;
   error?: string;
 }) {
-  const search = new URLSearchParams({
-    email: params.email,
-  });
+  const search = new URLSearchParams({ email: params.email });
 
   if (params.token) {
     search.set("fromInvite", "1");
@@ -70,18 +68,21 @@ export async function POST(request: Request) {
       request,
       buildErrorUrl(
         "Correo no autorizado. Necesitas invitación o dominio @unidep.edu.mx.",
-        token
-      )
+        token,
+      ),
     );
   }
 
   const name = email.split("@")[0] || "Usuario";
-  const origin = new URL(request.url).origin;
+  const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const callbackUrl = new URL("/auth/callback", origin);
+  callbackUrl.searchParams.set("next", callbackPath);
+
   const result = await auth.signUp.email({
     email,
     name,
     password,
-    callbackURL: `${origin}${callbackPath}`,
+    callbackURL: callbackUrl.toString(),
   });
 
   if (result?.error) {
@@ -99,26 +100,18 @@ export async function POST(request: Request) {
       );
     }
 
-    return redirect(
-      request,
-      buildErrorUrl(message, token)
-    );
+    return redirect(request, buildErrorUrl(message, token));
   }
 
-  if (token) {
-    return redirect(
-      request,
-      buildInviteSignInUrl({
-        token,
-        email,
-        success:
-          "Cuenta creada. Revisa tu correo para verificar y luego inicia sesión.",
-      }),
-    );
-  }
+  const success =
+    "Cuenta creada. Revisa tu correo para confirmar la cuenta y después inicia sesión.";
 
   return redirect(
     request,
-    "/auth/sign-in?success=Cuenta%20creada.%20Revisa%20tu%20correo%20para%20verificar%20y%20luego%20inicia%20sesión."
+    buildInviteSignInUrl({
+      token,
+      email,
+      success,
+    }),
   );
 }
