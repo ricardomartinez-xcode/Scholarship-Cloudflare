@@ -44,8 +44,8 @@ export default function AuthMethodSwitcher({
       >
         {isSignUp && token ? <input type="hidden" name="token" value={token} /> : null}
         {isSignUp ? <input type="hidden" name="callbackURL" value={callbackURL} /> : null}
-        {!isSignUp ? <input type="hidden" name="next" value={next} /> : null}
-        {!isSignUp && fromInvite ? <input type="hidden" name="fromInvite" value="1" /> : null}
+        {isSignUp ? <input type="hidden" name="next" value={next} /> : null}
+        {isSignUp && fromInvite ? <input type="hidden" name="fromInvite" value="1" /> : null}
 
         <label className="ui-auth-form-label">
           Correo
@@ -77,12 +77,12 @@ export default function AuthMethodSwitcher({
             <Link
               href={
                 defaultEmail
-                  ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
+                  ? `/iuth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
                   : "/auth/forgot-password"
               }
               className="ui-auth-link text-sm"
             >
-              ÜOlvidaste tu contraseña?
+              ¿Olvidaste tu contraseña?
             </Link>
           </div>
         ) : null}
