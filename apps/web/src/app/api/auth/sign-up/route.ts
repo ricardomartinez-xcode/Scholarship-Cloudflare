@@ -77,6 +77,8 @@ export async function POST(request: Request) {
   const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
   const callbackUrl = new URL("/auth/callback", origin);
   callbackUrl.searchParams.set("next", callbackPath);
+  callbackUrl.searchParams.set("email", email);
+  callbackUrl.searchParams.set("newUser", "1");
 
   const result = await auth.signUp.email({
     email,

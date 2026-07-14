@@ -31,38 +31,85 @@ function redirectTo(request: NextRequest, path: string) {
   return NextResponse.redirect(new URL(path, request.url), { status: 303 });
 }
 
+function buildSignInPath(params: {
+  nextPath: string;
+  error?: string;
+  success?: string;
+  email?: string;
+  forcePassword?: boolean;
+}) {
+  const search = new URLSearchParams({ next: params.nextPath });
+
+  if (params.error) search.set("error", params.error);
+  if (params.success) search.set("success", params.success);
+  if (params.email) search.set("email", params.email);
+  if (params.forcePassword) {
+    search.set("method", "password");
+    search.set("verified", "1");
+  }
+
+  return `/auth/sign-in?${search.toString()}`;
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const error = request.nextUrl.searchParams.get("error_description") ??
     request.nextUrl.searchParams.get("error");
   const nextPath = safeNextPath(request.nextUrl.searchParams.get("next"));
+  const email = request.nextUrl.searchParams.get("email")?.trim().toLowerCase() || undefined;
   const newUser = request.nextUrl.searchParams.get("newUser") === "1";
 
   if (error) {
     return redirectTo(
       request,
-      `/auth/sign-in?error=${encodeURIComponent(error)}&next=${encodeURIComponent(nextPath)}`,
+      buildSignInPath({
+        nextPath,
+        error,
+        email,
+      }),
     );
   }
 
   if (!code) {
     return redirectTo(
       request,
-      `/auth/sign-in?error=${encodeURIComponent("No se pudo completar la sesion.")}&next=${encodeURIComponent(nextPath)}`,
+      buildSignInPath({
+        nextPath,
+        error: "No se pudo completar la sesión.",
+        email,
+      }),
     );
   }
 
   const supabase = await createSupabaseServerClient();
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
   if (exchangeError) {
+    // Supabase verifies the email before redirecting here. When the confirmation
+    // is opened from another browser or an in-app mail browser, the PKCE
+    // code_verifier cookie may be unavailable, so a session cannot be exchanged.
+    // The account is still confirmed and can sign in normally with its password.
+    console.error("Supabase PKCE session exchange failed after email confirmation", {
+      message: exchangeError.message,
+      name: exchangeError.name,
+      status: exchangeError.status,
+    });
+
     return redirectTo(
       request,
-      `/auth/sign-in?error=${encodeURIComponent("No se pudo completar la sesion.")}&next=${encodeURIComponent(nextPath)}`,
+      buildSignInPath({
+        nextPath,
+        email,
+        forcePassword: true,
+        success: "Correo verificado correctamente. Inicia sesión con tu contraseña para continuar.",
+      }),
     );
   }
 
   return redirectTo(
     request,
-    `/auth/after-login?next=${encodeURIComponent(newUser ? appendQuery(nextPath, "newUser", "1") : nextPath)}`,
+    `/auth/after-login?next=${encodeURIComponent(
+      newUser ? appendQuery(nextPath, "newUser", "1") : nextPath,
+    )}`,
   );
 }
