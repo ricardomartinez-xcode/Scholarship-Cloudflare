@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import PasswordField from "@/components/auth/PasswordField";
 
@@ -29,7 +30,7 @@ export default function AuthMethodSwitcher({
 }: AuthMethodSwitcherProps) {
   const isSignUp = mode === "sign-up";
   const passwordSubmitLabel = isSignUp ? "Crear cuenta" : "Iniciar sesión";
-  const passworPlaceholder = isSignUp ? "Crea una contraseña" : "Tu contraseña";
+  const passwordPlaceholder = isSignUp ? "Crea una contraseña" : "Tu contraseña";
   const googleFlag = process.env.NEXT_PUBLIC_SUPABASE_GOOGLE_ENABLED?.toLowerCase();
   const googleEnabled = googleFlag === "1" || googleFlag === "true";
 
@@ -77,7 +78,7 @@ export default function AuthMethodSwitcher({
             <Link
               href={
                 defaultEmail
-                  ? `/iuth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
+                  ? `/auth/forgot-password?email=${encodeURIComponent(defaultEmail)}`
                   : "/auth/forgot-password"
               }
               className="ui-auth-link text-sm"
