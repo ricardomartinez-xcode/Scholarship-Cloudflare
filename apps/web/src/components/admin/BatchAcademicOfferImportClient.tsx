@@ -5,6 +5,22 @@ import { useMemo, useState, type ChangeEvent, type DragEvent } from "react";
 
 type Cycle = "C1" | "C2" | "C3";
 type ItemStatus = "queued" | "validating" | "ready" | "error";
+type ImportModuleId =
+  | "academic-offer"
+  | "prices"
+  | "benefits"
+  | "base-scholarships";
+
+type ImportModuleDefinition = {
+  id: ImportModuleId;
+  label: string;
+  description: string;
+  endpoint: string;
+  formats: string;
+  accept: string;
+  allowedExtensions: string[];
+  needsCycle: boolean;
+};
 
 type BatchItem = {
   id: string;
@@ -12,19 +28,70 @@ type BatchItem = {
   status: ItemStatus;
   sessionId: string | null;
   error: string;
-  campusesProcessed: number;
+  processed: number;
   warningCount: number;
+  errorCount: number;
 };
 
 type ImportPayload = {
+  ok?: boolean;
   sessionId?: string;
+  processed?: number;
+  ready?: number;
   campusesProcessed?: number;
   warnings?: unknown[];
+  errors?: unknown[];
   error?: string;
+  message?: string;
 };
 
 const MAX_FILES = 50;
 const CONCURRENCY = 2;
+
+const IMPORT_MODULES: ImportModuleDefinition[] = [
+  {
+    id: "academic-offer",
+    label: "Oferta académica",
+    description: "Planteles, programas, ciclo, modalidades, planes, módulos, materias y horarios.",
+    endpoint: "/api/admin/import-academic-offer",
+    formats: "XLSX o CSV",
+    accept:
+      ".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    allowedExtensions: [".xlsx", ".csv"],
+    needsCycle: true,
+  },
+  {
+    id: "prices",
+    label: "Precios",
+    description: "Precios por alcance, programa, nivel, modalidad, plan, módulo y tier.",
+    endpoint: "/api/admin/prices/import",
+    formats: "XLSX o CSV",
+    accept:
+      ".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    allowedExtensions: [".xlsx", ".csv"],
+    needsCycle: false,
+  },
+  {
+    id: "benefits",
+    label: "Beneficios adicionales",
+    description: "Porcentajes adicionales, primer pago y reglas por línea, modalidad y duración.",
+    endpoint: "/api/admin/benefits/import",
+    formats: "CSV",
+    accept: ".csv,text/csv",
+    allowedExtensions: [".csv"],
+    needsCycle: false,
+  },
+  {
+    id: "base-scholarships",
+    label: "Becas base",
+    description: "Porcentajes base por promedio, ingreso, línea, modalidad, plan y alcance.",
+    endpoint: "/api/admin/benefits/base-scholarships/import",
+    formats: "CSV",
+    accept: ".csv,text/csv",
+    allowedExtensions: [".csv"],
+    needsCycle: false,
+  },
+];
 
 function fileKey(file: File) {
   return `${file.name}:${file.size}:${file.lastModified}`;
@@ -49,13 +116,25 @@ function statusLabel(status: ItemStatus) {
   }
 }
 
-export default function BatchAcademicOfferImportClient() {
+function extensionOf(fileName: string) {
+  const index = fileName.lastIndexOf(".");
+  return index >= 0 ? fileName.slice(index).toLowerCase() : "";
+}
+
+function countUnknown(value: unknown) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+export default function BatchAdminImportClient() {
+  const [moduleId, setModuleId] = useState<ImportModuleId>("academic-offer");
   const [cycle, setCycle] = useState<Cycle>("C1");
   const [items, setItems] = useState<BatchItem[]>([]);
   const [running, setRunning] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [notice, setNotice] = useState("");
 
+  const activeModule =
+    IMPORT_MODULES.find((definition) => definition.id === moduleId) ?? IMPORT_MODULES[0];
   const readyCount = items.filter((item) => item.status === "ready").length;
   const errorCount = items.filter((item) => item.status === "error").length;
   const queuedCount = items.filter((item) => item.status === "queued").length;
@@ -72,14 +151,19 @@ export default function BatchAcademicOfferImportClient() {
     );
   }
 
+  function changeModule(nextModule: ImportModuleId) {
+    if (running) return;
+    setModuleId(nextModule);
+    setItems([]);
+    setNotice("");
+  }
+
   function addFiles(files: File[]) {
     if (running) return;
 
-    const compatible = files.filter((file) => {
-      const name = file.name.toLowerCase();
-      return name.endsWith(".xlsx") || name.endsWith(".csv");
-    });
-
+    const compatible = files.filter((file) =>
+      activeModule.allowedExtensions.includes(extensionOf(file.name)),
+    );
     const existingKeys = new Set(items.map((item) => fileKey(item.file)));
     const capacity = Math.max(0, MAX_FILES - items.length);
     const additions = compatible
@@ -91,15 +175,16 @@ export default function BatchAcademicOfferImportClient() {
         status: "queued" as const,
         sessionId: null,
         error: "",
-        campusesProcessed: 0,
+        processed: 0,
         warningCount: 0,
+        errorCount: 0,
       }));
 
     setItems((current) => [...current, ...additions]);
     setNotice(
-      additions.length === compatible.length
+      additions.length === files.length
         ? ""
-        : `Se omitieron duplicados, archivos incompatibles o elementos que exceden el límite de ${MAX_FILES}.`,
+        : `Se omitieron duplicados, formatos incompatibles o elementos que exceden el límite de ${MAX_FILES}. ${activeModule.label} acepta ${activeModule.formats}.`,
     );
   }
 
@@ -119,30 +204,35 @@ export default function BatchAcademicOfferImportClient() {
       status: "validating",
       sessionId: null,
       error: "",
-      campusesProcessed: 0,
+      processed: 0,
       warningCount: 0,
+      errorCount: 0,
     });
 
     try {
       const form = new FormData();
       form.set("file", item.file);
-      form.set("cycle", cycle);
+      if (activeModule.needsCycle) form.set("cycle", cycle);
 
-      const response = await fetch("/api/admin/import-academic-offer", {
+      const response = await fetch(activeModule.endpoint, {
         method: "POST",
         body: form,
       });
       const payload = (await response.json().catch(() => null)) as ImportPayload | null;
 
       if (!response.ok || !payload?.sessionId) {
-        throw new Error(payload?.error ?? `No se pudo validar el archivo (${response.status}).`);
+        throw new Error(
+          payload?.error ?? payload?.message ?? `No se pudo validar el archivo (${response.status}).`,
+        );
       }
 
       updateItem(item.id, {
         status: "ready",
         sessionId: payload.sessionId,
-        campusesProcessed: payload.campusesProcessed ?? 0,
-        warningCount: Array.isArray(payload.warnings) ? payload.warnings.length : 0,
+        processed:
+          payload.campusesProcessed ?? payload.processed ?? payload.ready ?? 0,
+        warningCount: countUnknown(payload.warnings),
+        errorCount: countUnknown(payload.errors),
       });
     } catch (error) {
       updateItem(item.id, {
@@ -202,64 +292,100 @@ export default function BatchAcademicOfferImportClient() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.28em] text-slate-400">
-              Oferta académica
+              Importaciones administrativas
             </div>
             <h1 className="mt-1 text-xl font-semibold">Importación masiva con preview</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-300">
-              Valida hasta {MAX_FILES} archivos XLSX o CSV. ReCalc procesa dos en paralelo y crea una sesión auditable por documento.
+              Valida hasta {MAX_FILES} archivos. ReCalc procesa dos en paralelo, crea una sesión auditable por documento y conserva publicación y rollback independientes.
             </p>
           </div>
-          <Link
-            href="/admin/importaciones"
-            className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
-          >
-            Volver al centro
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/importaciones/plantillas"
+              className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
+            >
+              Descargar plantillas
+            </Link>
+            <Link
+              href="/admin/importaciones"
+              className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
+            >
+              Volver al centro
+            </Link>
+          </div>
         </div>
       </section>
 
       <section className="ui-card ui-card-pad grid gap-4">
-        <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
           <label className="grid gap-2 text-sm font-semibold text-slate-200">
-            Ciclo para el lote
+            Tipo de importación
             <select
-              value={cycle}
-              onChange={(event) => setCycle(event.target.value as Cycle)}
+              value={moduleId}
+              onChange={(event) => changeModule(event.target.value as ImportModuleId)}
               disabled={running}
               className="ui-control"
             >
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
-              <option value="C3">C3</option>
+              {IMPORT_MODULES.map((definition) => (
+                <option key={definition.id} value={definition.id}>
+                  {definition.label} · {definition.formats}
+                </option>
+              ))}
             </select>
+            <span className="text-xs font-normal text-slate-400">
+              {activeModule.description}
+            </span>
           </label>
 
-          <div
-            className={`grid min-h-32 place-items-center rounded-3xl border border-dashed p-6 text-center transition ${
-              dragging ? "border-emerald-400 bg-emerald-500/10" : "border-white/15 bg-white/[0.02]"
-            }`}
-            onDragEnter={(event) => {
-              event.preventDefault();
-              if (!running) setDragging(true);
-            }}
-            onDragOver={(event) => event.preventDefault()}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-          >
-            <div>
-              <div className="font-semibold text-slate-100">Arrastra varios XLSX o CSV</div>
-              <label className="mt-3 inline-flex cursor-pointer rounded-full bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100">
-                Seleccionar archivos
-                <input
-                  type="file"
-                  multiple
-                  accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  className="hidden"
-                  disabled={running}
-                  onChange={handleSelection}
-                />
-              </label>
+          {activeModule.needsCycle ? (
+            <label className="grid gap-2 text-sm font-semibold text-slate-200">
+              Ciclo para el lote
+              <select
+                value={cycle}
+                onChange={(event) => setCycle(event.target.value as Cycle)}
+                disabled={running}
+                className="ui-control"
+              >
+                <option value="C1">C1</option>
+                <option value="C2">C2</option>
+                <option value="C3">C3</option>
+              </select>
+            </label>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+              Formato permitido: <strong className="text-slate-100">{activeModule.formats}</strong>
             </div>
+          )}
+        </div>
+
+        <div
+          className={`grid min-h-32 place-items-center rounded-3xl border border-dashed p-6 text-center transition ${
+            dragging ? "border-emerald-400 bg-emerald-500/10" : "border-white/15 bg-white/[0.02]"
+          }`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            if (!running) setDragging(true);
+          }}
+          onDragOver={(event) => event.preventDefault()}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
+          <div>
+            <div className="font-semibold text-slate-100">
+              Arrastra archivos de {activeModule.label}
+            </div>
+            <div className="mt-1 text-xs text-slate-400">Acepta {activeModule.formats}</div>
+            <label className="mt-3 inline-flex cursor-pointer rounded-full bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100">
+              Seleccionar archivos
+              <input
+                type="file"
+                multiple
+                accept={activeModule.accept}
+                className="hidden"
+                disabled={running}
+                onChange={handleSelection}
+              />
+            </label>
           </div>
         </div>
 
@@ -311,7 +437,7 @@ export default function BatchAcademicOfferImportClient() {
         </div>
 
         <div className="ui-scrollbar overflow-auto">
-          <table className="w-full min-w-[840px] border-collapse text-sm">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
             <thead className="bg-slate-950/80 text-left text-slate-300">
               <tr>
                 <th className="p-3">Archivo</th>
@@ -333,7 +459,7 @@ export default function BatchAcademicOfferImportClient() {
                     <td className="p-3 text-slate-300">{statusLabel(item.status)}</td>
                     <td className="p-3 text-slate-300">
                       {item.status === "ready"
-                        ? `${item.campusesProcessed} campus · ${item.warningCount} advertencia(s)`
+                        ? `${item.processed} procesado(s) · ${item.warningCount} advertencia(s) · ${item.errorCount} error(es)`
                         : "—"}
                     </td>
                     <td className="p-3 text-right">
