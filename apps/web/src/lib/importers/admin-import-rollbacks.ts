@@ -13,6 +13,14 @@ import {
   type AdminConfigSnapshot,
 } from "@/lib/admin-config-snapshots";
 import {
+  restoreCampusesSnapshot,
+  restoreOrganizationsSnapshot,
+  type CampusCatalogSnapshot,
+  type CampusImportPayload,
+  type OrganizationCatalogSnapshot,
+  type OrganizationImportPayload,
+} from "@/lib/importers/catalog-csv";
+import {
   getAdminImportSession,
   markAdminImportSessionRolledBack,
   type AdminImportSessionSerialized,
@@ -25,6 +33,7 @@ import {
 import { captureException } from "@/lib/observability";
 
 const ROLLBACK_CAPABILITY_BY_MODULE: Partial<Record<AdminConfigModule, AdminCapability>> = {
+  [AdminConfigModule.ACCESS]: AdminCapability.manage_org_members,
   [AdminConfigModule.BENEFITS]: AdminCapability.manage_benefits,
   [AdminConfigModule.PRICES]: AdminCapability.manage_prices,
   [AdminConfigModule.CTAS]: AdminCapability.manage_ctas,
@@ -71,8 +80,28 @@ export async function rollbackAdminImportSessionToBeforeSnapshot(input: {
     );
   }
 
-  const beforeSnapshot = session.beforeSnapshot as AdminConfigSnapshot;
-  await restoreDraftConfigSnapshot(session.module, beforeSnapshot);
+  if (
+    session.module === AdminConfigModule.ACCESS &&
+    session.fileName?.startsWith("organizations:") &&
+    session.payload
+  ) {
+    await restoreOrganizationsSnapshot(
+      session.beforeSnapshot as unknown as OrganizationCatalogSnapshot,
+      session.payload as unknown as OrganizationImportPayload,
+    );
+  } else if (
+    session.module === AdminConfigModule.DIRECTORY &&
+    session.fileName?.startsWith("campuses:") &&
+    session.payload
+  ) {
+    await restoreCampusesSnapshot(
+      session.beforeSnapshot as unknown as CampusCatalogSnapshot,
+      session.payload as unknown as CampusImportPayload,
+    );
+  } else {
+    const beforeSnapshot = session.beforeSnapshot as AdminConfigSnapshot;
+    await restoreDraftConfigSnapshot(session.module, beforeSnapshot);
+  }
 
   try {
     for (const path of getAdminConfigModulePaths(session.module)) {

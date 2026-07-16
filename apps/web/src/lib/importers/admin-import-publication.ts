@@ -32,6 +32,8 @@ export type AdminImportApplyOption = {
 };
 
 const APPLY_CAPABILITY_BY_MODULE: Partial<Record<AdminConfigModule, AdminCapability>> = {
+  [AdminConfigModule.ACCESS]: AdminCapability.manage_org_members,
+  [AdminConfigModule.DIRECTORY]: AdminCapability.manage_directory,
   [AdminConfigModule.BENEFITS]: AdminCapability.manage_benefits,
   [AdminConfigModule.PRICES]: AdminCapability.manage_prices,
   [AdminConfigModule.OFFER]: AdminCapability.manage_offers,
@@ -155,6 +157,14 @@ export function getAdminImportApplyTarget(session: {
   module: AdminConfigModule;
   fileName?: string | null;
 }) {
+  if (session.module === AdminConfigModule.ACCESS && session.fileName?.startsWith("organizations:")) {
+    return `/api/admin/organizations/import/${session.id}/apply`;
+  }
+
+  if (session.module === AdminConfigModule.DIRECTORY && session.fileName?.startsWith("campuses:")) {
+    return `/api/admin/campuses/import/${session.id}/apply`;
+  }
+
   if (session.module === AdminConfigModule.PRICES) {
     return `/api/admin/prices/import/${session.id}/apply`;
   }

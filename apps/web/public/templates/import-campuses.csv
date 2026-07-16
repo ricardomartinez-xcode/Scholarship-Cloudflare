@@ -1,0 +1,3 @@
+code,meta_key,name,slug,tier,kind,is_active,sort_order,address,phone,whatsapp
+HMO,HERMOSILLO,Hermosillo,hermosillo,A,campus,true,10,,,
+ONLINE,ONLINE,En línea,en-linea,,online,true,999,,,
