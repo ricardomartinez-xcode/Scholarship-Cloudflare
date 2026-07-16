@@ -885,7 +885,7 @@ function PlanesSection() {
                   Bucket content
                 </div>
                 <h3 className="mt-1 text-base font-semibold text-slate-100">
-                  Archivos disponibles en planes-de-estudio
+                  Archivos disponibles en documents
                 </h3>
               </div>
               <div className="text-xs text-slate-400">
@@ -909,7 +909,7 @@ function PlanesSection() {
                           <iframe
                             src={file.previewUrl}
                             title={`Preview bucket: ${file.fileName}`}
-                            className="h-full w-full"
+                            className="h-full-w-full"
                           />
                         </div>
                       ) : showImage ? (
@@ -918,7 +918,7 @@ function PlanesSection() {
                           <img
                             src={file.previewUrl}
                             alt={file.fileName}
-                            className="h-full w-full object-cover"
+                            className="h-full-w-full object-cover"
                           />
                         </div>
                       ) : null}
@@ -1397,7 +1397,7 @@ export default function UnidepWorkspace({
       <WabaEmbeddedSignupSection surface="workspace" />
     ) : (
       <WebCampaignsPanel />
-    );
+   );
   }
 
   if (sectionToRender === "historial") {
