@@ -1,0 +1,1226 @@
+codigo,concepto,seccion,costo_base,plantel,costo_plantel,activo_plantel,notas
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Agua Prieta,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Aguascalientes,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Altamira,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Cananea,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Cd. Mante,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Cd. del Carmen,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Chihuahua,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Culiacán,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Ensenada,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Hermosillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,La Paz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Los Cabos,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Mexicali,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Nogales,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Obregón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Online,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Puerto Peñasco,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Querétaro,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Saltillo,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Teocaltiche,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Tijuana,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Torreón,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Tuxpan,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Veracruz,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTR,EXAMEN EXTRAORDINARIO LIC,EXAMENES,3976,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHG,EXAMEN EXTRAORDINARIO BACH,EXAMENES,1510,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EEXTBACHOL,EXAMEN EXTRAORDINARIO BACH OL,EXAMENES,945,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXGLOB,EXAMEN GLOBAL*,EXAMENES,3976,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ETSOL,EXAMEN A TÍTULO DE SUFICIENCIA OL,EXAMENES,6385,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+EXAEGRESO,EXAMEN DE EGRESO,EXAMENES,7350,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TTL,TRÁMITE DE TÍTULO (LICENCIATURA),TRAMITES,13870,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDE,TRÁMITE DE GRADO Y DIPLOMA (ESPECIALIDAD),TRAMITES,13450,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TGDM,TRÁMITE DE GRADO Y DIPLOMA (MAESTRÍA),TRAMITES,29005,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PTCGAD,"PROCESO DE TITULACIÓN, CERTIFICADO Y GRADO ACADÉMICO (DOCTORADO)",TRAMITES,38670,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIBACH,CERTIFICADO ÍNTEGRO BACHILLERATO,TRAMITES,3520,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CILIC,CERTIFICADO ÍNTEGRO LICENCIATURA,TRAMITES,3520,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIESP,CERTIFICADO ÍNTEGRO ESPECIALIDAD,TRAMITES,3520,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIMAE,CERTIFICADO ÍNTEGRO MAESTRÍA,TRAMITES,3865,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CIDOC,CERTIFICADO ÍNTEGRO DOCTORADO,TRAMITES,5985,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CINTSU,CERTIFICADO ÍNTEGRO TSU,TRAMITES,3360,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPBACH,CERTIFICADO PARCIAL BACHILLERATO,TRAMITES,2355,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPLIC,CERTIFICADO PARCIAL LICENCIATURA,TRAMITES,2770,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPESP,CERTIFICADO PARCIAL ESPECIALIDAD,TRAMITES,1765,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPMAE,CERTIFICADO PARCIAL MAESTRÍA,TRAMITES,2775,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPDOC,CERTIFICADO PARCIAL DOCTORADO,TRAMITES,3865,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CPTSU,CERTIFICADO PARCIAL TSU,TRAMITES,1005,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REFISTITS,REPRESENTACIÓN FÍSICA DE TÍTULO SIMBÓLICO,TRAMITES,2775,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DIGTITULO,DIGITALIZACIÓN DE TÍTULO,TRAMITES,1530,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CERTITULO,CERTIFICACIÓN DE TÍTULO,TRAMITES,2545,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CMPGPTMOD,"CAMBIO DE PROGRAMA, PLANTEL O MODALIDAD",DIVERSOS,560,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+DEFORCLSP,DERECHO DE FORMACIÓN CLÍNICA SUPERVISADA POR MATERIA,DIVERSOS,550,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ASETES,ASESORÍA DE TESIS O TESINA,DIVERSOS,7650,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CSSIP,CARTA DE SERVICIO SOCIAL O DE INICIACIÓN A PRÁCTICAS,DIVERSOS,660,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CTI,CONSTANCIA TERMINACIÓN INGLÉS,DIVERSOS,935,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CONS,CONSTANCIA,DIVERSOS,290,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CRE,CREDENCIAL,DIVERSOS,210,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+KAR,KÁRDEX,DIVERSOS,465,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PASBACH,PASANTÍAS BACHILLERATO,DIVERSOS,3520,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RGD,"REPOSICIÓN DE GRADO Y DIPLOMA (MAESTRÍA, ESPECIALIDAD Y DOCTORADO)",DIVERSOS,13285,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+RTLIC,REPOSICIÓN DE TÍTULO (LICENCIATURA),DIVERSOS,11385,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+SCDM,SERVICIO DE CARTAS DESCRIPTIVAS POR MATERIA,DIVERSOS,660,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBACH,TRÁMITES SEP BACH,DIVERSOS,620,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPBAOL,TRÁMITES SEP BACH OL,DIVERSOS,620,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLICT,TRÁMITES SEP LIC,DIVERSOS,610,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIOL,TRÁMITES SEP LIC OL,DIVERSOS,590,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPLIEJ,TRÁMITES SEP LIC EJ,DIVERSOS,590,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPCISA,TRÁMITES SEP CS,DIVERSOS,610,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+TMTSEPPOSG,TRÁMITES SEP POS,DIVERSOS,850,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+PPE,PLAN DE PROTECCIÓN ESTUDIANTIL,DIVERSOS,300,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+ENVDOC,ENVÍO DE DOCUMENTOS,DIVERSOS,695,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+BJT,BAJA TOTAL,DIVERSOS,1200,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+REC,RECARGOS,DIVERSOS,410,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.
+CREX,CARGO POR INSCRIPCIÓN EXTEMPORÁNEA,DIVERSOS,410,Zacatecas,,true,Boletín de cuotas 2026-3; vigencia 18/05/2026–30/08/2026; costo común en los 25 boletines.

@@ -1,0 +1,119 @@
+﻿alcance,region,plantel,programa,nivel,modalidad,plan,modulo,tier,precio,precio_por_materia,activo,notas
+plantel + tier,Región 1,Chihuahua,,preparatoria,presencial,9,,T2,1890,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 1,Tijuana,,preparatoria,presencial,6,,T3,3087,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 2,Torreón,,preparatoria,presencial,6,,T2,3087,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 3,Querétaro,,preparatoria,presencial,6,,T2,3087,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 3,Querétaro,,preparatoria,presencial,9,,T2,2058,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 3,Zacatecas,,preparatoria,presencial,6,,T2,3087,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 3,Cd. Mante,,preparatoria,presencial,6,,T1,2754,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 1,Culiacán,,preparatoria,presencial,9,,T2,2058,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,preparatoria,presencial,6,,T3,3087,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,preparatoria,presencial,9,,T3,2058,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel + tier,Región 2,Nogales,,preparatoria,presencial,6,,T2,3087,,Activo,Fuente: Bachillerato; ciclo C3 2026.
+plantel,Online,Online,,preparatoria,online,6,,OL,1935,,Activo,Fuente: Bachillerato Online; ciclo C3 2026.
+plantel + tier,Región 1,Aguascalientes,,licenciatura,presencial,11,,T1,3268,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Aguascalientes,,licenciatura,presencial,9,,T1,4085,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Chihuahua,,licenciatura,presencial,11,,T2,3336,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Chihuahua,,licenciatura,presencial,9,,T2,4170,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Culiacán,,licenciatura,presencial,11,,T2,3708,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Culiacán,,licenciatura,presencial,9,,T2,4635,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,licenciatura,presencial,11,,T3,3976,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,licenciatura,presencial,9,,T3,4970,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Querétaro,,licenciatura,presencial,11,,T2,3708,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Querétaro,,licenciatura,presencial,9,,T2,4635,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Tijuana,,licenciatura,presencial,11,,T3,3976,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Tijuana,,licenciatura,presencial,9,,T3,4970,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Veracruz,,licenciatura,presencial,11,,T1,3268,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Veracruz,,licenciatura,presencial,9,,T1,4085,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Saltillo,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Saltillo,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Altamira,,licenciatura,presencial,11,,T1,3268,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Altamira,,licenciatura,presencial,9,,T1,4085,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Ensenada,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Ensenada,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Los Cabos,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Los Cabos,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Mexicali,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Mexicali,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Nogales,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Nogales,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Puerto Peñasco,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Puerto Peñasco,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Torreón,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Torreón,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Obregón,,licenciatura,presencial,11,,T1,3428,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 2,Obregón,,licenciatura,presencial,9,,T1,4285,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Agua Prieta,,licenciatura,presencial,11,,T1,3428,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Agua Prieta,,licenciatura,presencial,9,,T1,4285,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Cananea,,licenciatura,presencial,11,,T1,3428,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Cananea,,licenciatura,presencial,9,,T1,4285,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Cd. del Carmen,,licenciatura,presencial,11,,T1,3428,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Cd. del Carmen,,licenciatura,presencial,9,,T1,4285,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Cd. Mante,,licenciatura,presencial,11,,T1,3428,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Cd. Mante,,licenciatura,presencial,9,,T1,4285,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,La Paz,,licenciatura,presencial,11,,T3,3976,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,La Paz,,licenciatura,presencial,9,,T3,4970,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Teocaltiche,,licenciatura,presencial,11,,T1,3428,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Teocaltiche,,licenciatura,presencial,9,,T1,4285,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Tuxpan,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Tuxpan,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Zacatecas,,licenciatura,presencial,11,,T2,3672,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 3,Zacatecas,,licenciatura,presencial,9,,T2,4590,,Activo,Fuente: Licenciatura escolarizada; ciclo C3 2026.
+plantel + tier,Región 1,Aguascalientes,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Aguascalientes,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Altamira,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Altamira,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Cd. del Carmen,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Cd. del Carmen,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Ensenada,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Ensenada,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Obregón,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Obregón,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Puerto Peñasco,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Puerto Peñasco,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,La Paz,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,La Paz,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Torreón,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Torreón,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Teocaltiche,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Teocaltiche,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Veracruz,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Veracruz,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Tuxpan,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Tuxpan,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Cananea,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Cananea,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Zacatecas,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Zacatecas,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Cd. Mante,,licenciatura,ejecutiva,11,,T1,3950,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Cd. Mante,,licenciatura,ejecutiva,9,,T1,4937.5,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Chihuahua,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Chihuahua,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Querétaro,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 3,Querétaro,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Culiacán,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Culiacán,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Tijuana,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Tijuana,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Mexicali,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Mexicali,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Saltillo,,licenciatura,ejecutiva,11,,T2,4700,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 1,Saltillo,,licenciatura,ejecutiva,9,,T2,5875,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026.
+plantel + tier,Región 2,Nogales,,licenciatura,ejecutiva,11,,T2,3672,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026. Sin ajuste de precio en ejecutivas.
+plantel + tier,Región 2,Nogales,,licenciatura,ejecutiva,9,,T2,4590,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026. Sin ajuste de precio en ejecutivas.
+plantel + tier,Región 2,Los Cabos,,licenciatura,ejecutiva,11,,T2,3672,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026. Sin ajuste de precio en ejecutivas.
+plantel + tier,Región 2,Los Cabos,,licenciatura,ejecutiva,9,,T2,4590,,Activo,Fuente: Licenciatura Ejecutiva; ciclo C3 2026. Sin ajuste de precio en ejecutivas.
+plantel,Online,Online,,licenciatura,online,11,,OL,3524,,Activo,Fuente: Lic. Online; ciclo C3 2026.
+plantel,Online,Online,,licenciatura,online,9,,OL,4405,,Activo,Fuente: Lic. Online; ciclo C3 2026.
+plantel + tier,Región 1,Aguascalientes,,salud,presencial,12,,T1,3465,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Chihuahua,,salud,presencial,12,,T2,3985,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Culiacán,,salud,presencial,12,,T2,4310,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Hermosillo,,salud,presencial,12,,T3,4550,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Querétaro,,salud,presencial,12,,T2,4310,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Tijuana,,salud,presencial,12,,T3,4550,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Veracruz,,salud,presencial,12,,T1,3465,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 2,Mexicali,,salud,presencial,12,,T2,4310,,Activo,Fuente: Salud; ciclo C3 2026.
+plantel + tier,Región 1,Saltillo,,salud,presencial,12,,T2,4310,,Activo,Fuente: Salud; ciclo C3 2026.
+general,Nacional,,,posgrado,online,4,,,4847.04,,Activo,Fuente: Posgrado; ciclo C3 2026.
