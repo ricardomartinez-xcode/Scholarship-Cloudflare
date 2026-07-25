@@ -364,10 +364,12 @@ function DetailRow({
 
 type WabaEmbeddedSignupSectionProps = {
   surface?: "workspace" | "admin";
+  cloudOnly?: boolean;
 };
 
 export default function WabaEmbeddedSignupSection({
   surface = "workspace",
+  cloudOnly = false,
 }: WabaEmbeddedSignupSectionProps) {
   const appId = process.env.NEXT_PUBLIC_META_APP_ID?.trim() ?? DEFAULT_META_APP_ID;
   const embeddedSignupConfigId =
@@ -1100,7 +1102,7 @@ export default function WabaEmbeddedSignupSection({
         >
           {syncing ? "Sincronizando..." : "Sincronizar"}
         </button>
-        {isAdminSurface ? (
+        {isAdminSurface && !cloudOnly ? (
           <>
             <button
               type="button"
@@ -1146,7 +1148,7 @@ export default function WabaEmbeddedSignupSection({
         ) : null}
       </div>
 
-      {isAdminSurface && appId && embeddedSignupConfigId && whatsappApiConfigId ? (
+      {isAdminSurface && !cloudOnly && appId && embeddedSignupConfigId && whatsappApiConfigId ? (
         <div className="mt-3 grid gap-1 rounded-2xl border border-white/10 bg-slate-950/30 px-3 py-3 text-xs text-slate-300">
           <div>
             Facebook Login: <span className="font-semibold text-slate-100">{facebookStatusLabel}</span>
