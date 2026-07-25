@@ -131,26 +131,39 @@ export default function EmbeddedSignupConnector() {
       setMessage("El SDK de Facebook dejó de estar disponible. Recarga la página e inténtalo otra vez.");
       return;
     }
-    try {
-      facebook.login(async (response) => {
+    const handleLoginResponse = async (response: FbResponse | undefined) => {
       clearCallbackTimeout();
       setLoginStatus(response?.status ?? "unknown");
       const code = response?.authResponse?.code;
+
       if (!code) {
         setSubmitting(false);
         setMessage("Meta no devolvió un código de autorización.");
         await recordSession({ clientSessionId, status: "error", flowType: "embedded_signup", errorMessage: "missing_authorization_code" });
         return;
       }
-      const currentAssets = assetsRef.current;
-      const exchange = await fetch("/api/integrations/meta/exchange-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, clientSessionId, flowType: "embedded_signup", configId, sessionInfoVersion, facebookUserId: response?.authResponse?.userID ?? null, facebookLoginStatus: response?.status ?? null, ...currentAssets }),
-      });
-      const payload = await exchange.json().catch(() => null) as { ok?: boolean; error?: string } | null;
-      setSubmitting(false);
-      setMessage(exchange.ok && payload?.ok ? "Número de WhatsApp Business conectado correctamente." : payload?.error ?? "No fue posible guardar la conexión.");
+
+      try {
+        const currentAssets = assetsRef.current;
+        const exchange = await fetch("/api/integrations/meta/exchange-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, clientSessionId, flowType: "embedded_signup", configId, sessionInfoVersion, facebookUserId: response?.authResponse?.userID ?? null, facebookLoginStatus: response?.status ?? null, ...currentAssets }),
+        });
+        const payload = await exchange.json().catch(() => null) as { ok?: boolean; error?: string } | null;
+        setSubmitting(false);
+        setMessage(exchange.ok && payload?.ok ? "Número de WhatsApp Business conectado correctamente." : payload?.error ?? "No fue posible guardar la conexión.");
+      } catch (error) {
+        setSubmitting(false);
+        const errorMessage = error instanceof Error ? error.message : "meta_code_exchange_failed";
+        setMessage(`Meta devolvió el acceso, pero falló el guardado: ${errorMessage}`);
+        await recordSession({ clientSessionId, status: "error", flowType: "embedded_signup", errorMessage });
+      }
+    };
+
+    try {
+      facebook.login((response) => {
+        void handleLoginResponse(response);
       }, {
         config_id: configId,
         response_type: "code",
