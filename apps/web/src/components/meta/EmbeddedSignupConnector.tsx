@@ -28,6 +28,8 @@ export default function EmbeddedSignupConnector() {
   const graphVersion = process.env.NEXT_PUBLIC_META_GRAPH_API_VERSION?.trim() ?? "v25.0";
   const sessionInfoVersion = Number(process.env.NEXT_PUBLIC_WHATSAPP_ES_SESSION_INFO_VERSION ?? "3");
   const assetsRef = useRef<SignupAsset>({ wabaId: null, phoneNumberId: null, businessAccountId: null });
+  const activeSessionRef = useRef<string | null>(null);
+  const callbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [loginStatus, setLoginStatus] = useState("unknown");
   const [submitting, setSubmitting] = useState(false);
@@ -41,6 +43,18 @@ export default function EmbeddedSignupConnector() {
       body: JSON.stringify(body),
     }).catch(() => null);
   }, []);
+
+  const clearCallbackTimeout = useCallback(() => {
+    if (callbackTimeoutRef.current) {
+      clearTimeout(callbackTimeoutRef.current);
+      callbackTimeoutRef.current = null;
+    }
+  }, []);
+
+  const finishPendingState = useCallback(() => {
+    clearCallbackTimeout();
+    setSubmitting(false);
+  }, [clearCallbackTimeout]);
 
   useEffect(() => {
     if (!appId) return;
@@ -66,6 +80,8 @@ export default function EmbeddedSignupConnector() {
     return () => { metaWindow().fbAsyncInit = undefined; };
   }, [appId, graphVersion]);
 
+  useEffect(() => () => clearCallbackTimeout(), [clearCallbackTimeout]);
+
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (!["https://www.facebook.com", "https://web.facebook.com"].includes(event.origin)) return;
@@ -77,12 +93,21 @@ export default function EmbeddedSignupConnector() {
         assetsRef.current = next;
         setAssets(next);
         setMessage("Meta confirmó el número. Finalizando la conexión segura…");
-      } else if (payload.event === "CANCEL") setMessage("El registro fue cancelado.");
-      else if (payload.event === "ERROR") setMessage("Meta reportó un error durante el registro.");
+      } else if (payload.event === "CANCEL") {
+        finishPendingState();
+        setMessage("El registro fue cancelado o la ventana de Meta fue cerrada.");
+        const clientSessionId = activeSessionRef.current;
+        if (clientSessionId) void recordSession({ clientSessionId, status: "cancelled", flowType: "embedded_signup" });
+      } else if (payload.event === "ERROR") {
+        finishPendingState();
+        setMessage("Meta reportó un error durante el registro. Revisa el dominio permitido y el Configuration ID.");
+        const clientSessionId = activeSessionRef.current;
+        if (clientSessionId) void recordSession({ clientSessionId, status: "error", flowType: "embedded_signup", errorMessage: "embedded_signup_message_error" });
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [finishPendingState, recordSession]);
 
   const launch = useCallback(() => {
     if (!metaWindow().FB || !appId || !configId) {
@@ -90,12 +115,25 @@ export default function EmbeddedSignupConnector() {
       return;
     }
     const clientSessionId = crypto.randomUUID();
+    activeSessionRef.current = clientSessionId;
+    clearCallbackTimeout();
     setSubmitting(true);
-    setMessage(null);
+    setMessage("Completa el registro en la ventana de Meta. No cierres esta página.");
     void recordSession({ clientSessionId, status: "started", flowType: "embedded_signup", appId, configId, sessionInfoVersion });
+    callbackTimeoutRef.current = setTimeout(() => {
+      setSubmitting(false);
+      setMessage("Meta no devolvió respuesta. Permite ventanas emergentes, desactiva bloqueadores para este sitio y verifica el dominio/configuración de Facebook Login for Business.");
+      void recordSession({ clientSessionId, status: "error", flowType: "embedded_signup", errorMessage: "facebook_login_callback_timeout" });
+    }, 90000);
     const facebook = metaWindow().FB;
-    if (!facebook) return;
-    facebook.login(async (response) => {
+    if (!facebook) {
+      finishPendingState();
+      setMessage("El SDK de Facebook dejó de estar disponible. Recarga la página e inténtalo otra vez.");
+      return;
+    }
+    try {
+      facebook.login(async (response) => {
+      clearCallbackTimeout();
       setLoginStatus(response?.status ?? "unknown");
       const code = response?.authResponse?.code;
       if (!code) {
@@ -113,13 +151,19 @@ export default function EmbeddedSignupConnector() {
       const payload = await exchange.json().catch(() => null) as { ok?: boolean; error?: string } | null;
       setSubmitting(false);
       setMessage(exchange.ok && payload?.ok ? "Número de WhatsApp Business conectado correctamente." : payload?.error ?? "No fue posible guardar la conexión.");
-    }, {
-      config_id: configId,
-      response_type: "code",
-      override_default_response_type: true,
-      extras: { feature: "whatsapp_embedded_signup", sessionInfoVersion, setup: {} },
-    });
-  }, [appId, configId, recordSession, sessionInfoVersion]);
+      }, {
+        config_id: configId,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: { feature: "whatsapp_embedded_signup", sessionInfoVersion, setup: {} },
+      });
+    } catch (error) {
+      finishPendingState();
+      const errorMessage = error instanceof Error ? error.message : "facebook_login_launch_failed";
+      setMessage(`No se pudo abrir Meta: ${errorMessage}`);
+      void recordSession({ clientSessionId, status: "error", flowType: "embedded_signup", errorMessage });
+    }
+  }, [appId, clearCallbackTimeout, configId, finishPendingState, recordSession, sessionInfoVersion]);
 
   const ready = Boolean(appId && configId && sdkReady);
   return (
