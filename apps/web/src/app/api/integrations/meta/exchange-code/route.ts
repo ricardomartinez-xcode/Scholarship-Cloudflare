@@ -1,19 +1,7 @@
 import { NextResponse } from "next/server";
-
-export const dynamic = "force-dynamic";
-
-export async function POST() {
-  return NextResponse.json(
-    {
-      ok: false,
-      disabled: true,
-      code: "meta_code_exchange_temporarily_disabled",
-      message: "El intercambio OAuth de Meta esta deshabilitado temporalmente.",
-    },
-    { status: 503 },
-  );
-}
-
-export async function GET() {
-  return POST();
-}
+import { getSessionUser } from "@/lib/authz";
+import { recordMetaEmbeddedSignupSession } from "@/lib/meta-embedded-signup";
+import { upsertMetaWhatsappConnectionFromCode } from "@/lib/meta-whatsapp";
+export const dynamic="force-dynamic";
+type ExchangeBody = { code?: string; clientSessionId?: string; flowType?: "embedded_signup" | "whatsapp_api"; configId?: string; sessionInfoVersion?: number; facebookUserId?: string | null; facebookLoginStatus?: string | null; wabaId?: string | null; phoneNumberId?: string | null; businessAccountId?: string | null };
+export async function POST(request:Request){const session=await getSessionUser();if(session.status!=="ok")return NextResponse.json({ok:false,error:session.status},{status:session.status==="unauthenticated"?401:403});const b=await request.json().catch(()=>null) as ExchangeBody | null;const code=String(b?.code??"").trim();if(!code)return NextResponse.json({ok:false,error:"missing_authorization_code"},{status:400});try{const connection=await upsertMetaWhatsappConnectionFromCode({userId:session.user.id,code,wabaId:b?.wabaId,phoneNumberId:b?.phoneNumberId,businessAccountId:b?.businessAccountId});if(b?.clientSessionId)await recordMetaEmbeddedSignupSession({userId:session.user.id,clientSessionId:b.clientSessionId,status:"exchanged",flowType:b.flowType,configId:b.configId,sessionInfoVersion:b.sessionInfoVersion,facebookUserId:b.facebookUserId,facebookLoginStatus:b.facebookLoginStatus,wabaId:b.wabaId,phoneNumberId:b.phoneNumberId,businessAccountId:b.businessAccountId});return NextResponse.json({ok:true,connection});}catch(error){if(b?.clientSessionId)await recordMetaEmbeddedSignupSession({userId:session.user.id,clientSessionId:b.clientSessionId,status:"exchange_failed",flowType:b.flowType,errorMessage:error instanceof Error?error.message:"meta_code_exchange_failed"}).catch(()=>null);return NextResponse.json({ok:false,error:error instanceof Error?error.message:"meta_code_exchange_failed"},{status:500});}}
