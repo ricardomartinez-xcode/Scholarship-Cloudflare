@@ -1,3 +1,17 @@
-import {constants,createCipheriv,createDecipheriv,privateDecrypt} from "node:crypto";import {NextResponse} from "next/server";export const runtime="nodejs";
-function privateKey(){const k=process.env.WHATSAPP_FLOW_PRIVATE_KEY_PEM;if(!k)throw new Error("flow_private_key_not_configured");return k.replace(/\\n/g,"\n")}
-export async function POST(r:Request){try{const b=await r.json() as {encrypted_aes_key:string;encrypted_flow_data:string;initial_vector:string};const aes=privateDecrypt({key:privateKey(),padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:"sha256"},Buffer.from(b.encrypted_aes_key,"base64"));const iv=Buffer.from(b.initial_vector,"base64"),all=Buffer.from(b.encrypted_flow_data,"base64"),tag=all.subarray(-16),cipher=all.subarray(0,-16);const d=createDecipheriv("aes-128-gcm",aes,iv);d.setAuthTag(tag);const req=JSON.parse(Buffer.concat([d.update(cipher),d.final()]).toString()) as {version?:string};const response={version:req.version??"3.0",data:{acknowledged:true,dynamic_availability:false}};const responseIv=Buffer.from(iv.map(x=>x^0xff)),c=createCipheriv("aes-128-gcm",aes,responseIv),encrypted=Buffer.concat([c.update(JSON.stringify(response)),c.final(),c.getAuthTag()]);return new NextResponse(encrypted.toString("base64"),{headers:{"Content-Type":"text/plain"}})}catch{return NextResponse.json({error:"invalid_encrypted_flow_request"},{status:400})}}
+import { NextResponse } from "next/server";
+import { decryptFlowRequest, encryptFlowResponse, FlowEndpointError, responseFor, type EncryptedFlowRequest } from "@/lib/whatsapp-flow/flow-endpoint";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export async function POST(request: Request) {
+  let body: EncryptedFlowRequest;
+  try { body = await request.json() as EncryptedFlowRequest; }
+  catch { return new NextResponse(null, { status: 400 }); }
+  try {
+    const decrypted = decryptFlowRequest(body);
+    const encrypted = encryptFlowResponse(responseFor(decrypted.request), decrypted.aesKey, decrypted.iv);
+    return new NextResponse(encrypted, { status: 200, headers: { "Content-Type": "text/plain" } });
+  } catch (error) {
+    const status = error instanceof FlowEndpointError ? error.status : 500;
+    return new NextResponse(null, { status });
+  }
+}
