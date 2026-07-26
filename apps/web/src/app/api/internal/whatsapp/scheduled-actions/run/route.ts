@@ -1,0 +1,3 @@
+import {timingSafeEqual} from "node:crypto";import {NextResponse} from "next/server";import {runScheduledActions} from "@/lib/whatsapp-flow/worker";
+function authorized(v:string|null){const s=process.env.SCHEDULED_ACTIONS_WORKER_SECRET;if(!s||!v)return false;const a=Buffer.from(s),b=Buffer.from(v);return a.length===b.length&&timingSafeEqual(a,b)}
+export async function POST(r:Request){const token=r.headers.get("authorization")?.replace(/^Bearer\s+/i,"")??null;if(!authorized(token))return NextResponse.json({ok:false},{status:401});return NextResponse.json({ok:true,results:await runScheduledActions()})}
