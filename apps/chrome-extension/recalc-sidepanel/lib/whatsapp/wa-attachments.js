@@ -328,11 +328,23 @@
     return { applied: false };
   }
 
+  function isVisibleNode(node) {
+    if (!node) return false;
+    if (typeof node.getClientRects === "function") {
+      return node.getClientRects().length > 0;
+    }
+    if ("offsetParent" in node) {
+      return node.offsetParent !== null;
+    }
+    return false;
+  }
+
   async function waitForAttachmentIdle(pack, timeoutMs = 10000) {
     const idle = await textUtils.waitFor(() => {
-      if (selectors.findPreviewModal(pack)) return null;
+      const preview = selectors.findPreviewModal(pack);
+      if (isVisibleNode(preview)) return null;
       const caption = selectors.findCaptionInput(pack);
-      if (caption && textUtils.composerText(caption)) return null;
+      if (isVisibleNode(caption) && textUtils.composerText(caption)) return null;
       return { idle: true };
     }, timeoutMs, 250);
 
@@ -370,9 +382,7 @@
       250,
     );
     if (!previewClosed) {
-      throw Object.assign(new Error("WhatsApp no confirmó el cierre del preview después de enviar el adjunto."), {
-        code: "attachment_preview_stuck",
-      });
+      log("WhatsApp no confirmó de forma inmediata el cierre del preview; se validará el estado visible antes del siguiente envío.");
     }
     await textUtils.wait(900);
     await waitForAttachmentIdle(pack, 5000);
