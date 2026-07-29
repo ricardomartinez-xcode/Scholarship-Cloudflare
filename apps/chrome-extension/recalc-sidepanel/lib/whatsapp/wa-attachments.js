@@ -328,6 +328,23 @@
     return { applied: false };
   }
 
+  async function waitForAttachmentIdle(pack, timeoutMs = 10000) {
+    const idle = await textUtils.waitFor(() => {
+      if (selectors.findPreviewModal(pack)) return null;
+      const caption = selectors.findCaptionInput(pack);
+      if (caption && textUtils.composerText(caption)) return null;
+      return { idle: true };
+    }, timeoutMs, 250);
+
+    if (!idle) {
+      throw Object.assign(new Error("WhatsApp no liberó el preview del adjunto anterior."), {
+        code: "attachment_preview_stuck",
+      });
+    }
+
+    return idle;
+  }
+
   async function finalizeAttachmentSend(pack) {
     const sendButton = await textUtils.waitFor(() => {
       const previewAnchor = selectors.findPreviewModal(pack);
@@ -353,9 +370,12 @@
       250,
     );
     if (!previewClosed) {
-      log("El preview del adjunto no se cerró después de enviar; se continúa para evitar falso negativo.");
+      throw Object.assign(new Error("WhatsApp no confirmó el cierre del preview después de enviar el adjunto."), {
+        code: "attachment_preview_stuck",
+      });
     }
     await textUtils.wait(900);
+    await waitForAttachmentIdle(pack, 5000);
   }
 
   async function sendDocumentAttachments(files, caption, pack) {
@@ -412,6 +432,8 @@
 
     for (const [index, file] of files.entries()) {
       const shouldApplyCaption = index === captionIndex && normalizedCaption;
+
+      await waitForAttachmentIdle(pack);
 
       // Clear any stray text from the composer to ensure we don't carry over
       // unrelated drafts into the caption.
