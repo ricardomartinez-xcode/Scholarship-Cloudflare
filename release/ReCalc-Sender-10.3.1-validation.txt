@@ -1,0 +1,27 @@
+ReCalc Sender 10.3.1 — Validación del motor de imágenes
+
+Base funcional: implementación oficial ReCalc Sender 10.2.0.
+Versión del paquete: 10.3.1.
+
+Incluye:
+- chrome.debugger
+- activeTab
+- downloads
+- bridge de WhatsApp
+- parche MAIN world para menú de medios
+- selectores completos de adjuntos, preview y caption
+- prevención de selección de stickers
+- espera de cierre del preview anterior
+- caption precargado
+- prevención de envíos duplicados
+
+Pruebas requeridas:
+- runCampaign.test.js
+- waAttachments.test.js
+- waSelectors.test.js
+- contentWhatsappAttachMedia.test.js
+
+Resultado local previo: 23/23 aprobadas.
+
+Esta validación no realizó un envío a un número real de WhatsApp.
+Un envío real requiere destinatario de prueba y confirmación explícita.
