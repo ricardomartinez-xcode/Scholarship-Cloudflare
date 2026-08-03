@@ -33,7 +33,7 @@
         invalid: false,
         ready,
       };
-    }, 15000, 300);
+    }, 30000, 300);
 
     if (status?.invalid) {
       throw Object.assign(new Error("WhatsApp marcó el número como inválido o no disponible."), {

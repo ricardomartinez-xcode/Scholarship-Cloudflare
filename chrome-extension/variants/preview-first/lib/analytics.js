@@ -3,6 +3,14 @@
   const PROFILE_KEY = "recalc.senderProfile";
   const EVENTS_KEY = "recalc.senderAnalyticsEvents";
   const CAMPAIGNS_KEY = "recalc.localCampaigns";
+  const STATUS_EVENT = "recalc-analytics-status";
+
+  function emitStatus(state, detail = {}) {
+    if (typeof globalScope.dispatchEvent !== "function" || typeof globalScope.CustomEvent !== "function") return;
+    globalScope.dispatchEvent(new globalScope.CustomEvent(STATUS_EVENT, {
+      detail: { state, ...detail },
+    }));
+  }
 
   function randomUuid() {
     if (globalScope.crypto?.randomUUID) return globalScope.crypto.randomUUID();
@@ -50,6 +58,7 @@
   async function registerInstallation(profile = null) {
     const current = profile || await getProfile();
     if (!current) return { ok: false, skipped: true };
+    emitStatus("connecting", { stage: "registration", profile: current });
     try {
       const response = await fetch(`${APP_BASE_URL}/api/ext/analytics/installations`, {
         method: "POST",
@@ -64,12 +73,19 @@
         }),
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.ok) return { ok: false, error: data?.error || `HTTP ${response.status}` };
+      if (!response.ok || !data?.ok) {
+        const message = data?.error || `HTTP ${response.status}`;
+        emitStatus("offline", { stage: "registration", error: message, profile: current });
+        return { ok: false, error: message };
+      }
       const next = { ...current, registeredAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       await globalScope.chrome.storage.local.set({ [PROFILE_KEY]: next });
+      emitStatus("registered", { stage: "registration", profile: next });
       return { ok: true, profile: next };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : "analytics_unavailable" };
+      const message = error instanceof Error ? error.message : "analytics_unavailable";
+      emitStatus("offline", { stage: "registration", error: message, profile: current });
+      return { ok: false, error: message };
     }
   }
 
@@ -139,6 +155,7 @@
   async function syncCampaigns(campaigns = null) {
     const profile = await getProfile();
     if (!profile) return { ok: false, skipped: true };
+    emitStatus("syncing", { stage: "sync", profile });
     const stored = await globalScope.chrome.storage.local.get([CAMPAIGNS_KEY, EVENTS_KEY]);
     const source = Array.isArray(campaigns)
       ? campaigns
@@ -167,14 +184,22 @@
         }),
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.ok) return { ok: false, error: data?.error || `HTTP ${response.status}` };
+      if (!response.ok || !data?.ok) {
+        const message = data?.error || `HTTP ${response.status}`;
+        emitStatus("offline", { stage: "sync", error: message, profile });
+        return { ok: false, error: message };
+      }
+      const syncedProfile = { ...profile, lastSyncAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       await globalScope.chrome.storage.local.set({
-        [PROFILE_KEY]: { ...profile, lastSyncAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        [PROFILE_KEY]: syncedProfile,
         [EVENTS_KEY]: [],
       });
-      return { ok: true, sync: data.sync || null };
+      emitStatus("connected", { stage: "sync", profile: syncedProfile, sync: data.sync || null });
+      return { ok: true, sync: data.sync || null, profile: syncedProfile };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : "analytics_unavailable" };
+      const message = error instanceof Error ? error.message : "analytics_unavailable";
+      emitStatus("offline", { stage: "sync", error: message, profile });
+      return { ok: false, error: message };
     }
   }
 
@@ -182,6 +207,7 @@
     PROFILE_KEY,
     EVENTS_KEY,
     CAMPAIGNS_KEY,
+    STATUS_EVENT,
     randomUuid,
     normalizeNameId,
     getProfile,
