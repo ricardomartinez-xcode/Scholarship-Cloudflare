@@ -838,6 +838,113 @@ model ExtensionCampaignRecipient {
 }
 
 
+model ExtensionAnalyticsInstallation {
+  id               String   @id @db.Uuid
+  nameId           String
+  proofHash       String
+  extensionVersion String?
+  clientMeta       Json?
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+  lastSyncAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  campaigns ExtensionAnalyticsCampaign[]
+  recipients ExtensionAnalyticsRecipient[]
+  events     ExtensionAnalyticsEvent[]
+
+  @@index([nameId, lastSeenAt], map: "extension_analytics_installation_name_seen_idx")
+  @@index([lastSeenAt], map: "extension_analytics_installation_seen_idx")
+  @@map("extension_analytics_installation")
+  @@schema("recalc_admin")
+}
+
+model ExtensionAnalyticsCampaign {
+  id               String    @id @db.Uuid
+  installationId   String    @db.Uuid
+  nameId           String
+  campaignName     String
+  status           String    @default("draft")
+  messageTemplate  String?
+  scheduleAt       DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  batchSize        Int       @default(25)
+  messageDelayMs   Int       @default(4000)
+  batchDelayMs     Int       @default(30000)
+  jitterMs         Int       @default(3000)
+  hasMedia         Boolean   @default(false)
+  mediaType        String?
+  totalCount       Int       @default(0)
+  sentCount        Int       @default(0)
+  failedCount      Int       @default(0)
+  pendingCount     Int       @default(0)
+  invalidCount     Int       @default(0)
+  estimatedCostMxn Float     @default(0)
+  country          Json?
+  settings         Json?
+  meta             Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  installation ExtensionAnalyticsInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  recipients  ExtensionAnalyticsRecipient[]
+
+  @@index([installationId, updatedAt], map: "extension_analytics_campaign_installation_updated_idx")
+  @@index([nameId, updatedAt], map: "extension_analytics_campaign_name_updated_idx")
+  @@index([status, updatedAt], map: "extension_analytics_campaign_status_updated_idx")
+  @@map("extension_analytics_campaign")
+  @@schema("recalc_admin")
+}
+
+model ExtensionAnalyticsRecipient {
+  id              String    @id @db.Uuid
+  campaignId      String    @db.Uuid
+  installationId  String    @db.Uuid
+  nameId          String
+  contactValue    String
+  contactName     String?
+  status          String    @default("queued")
+  resolvedMessage String?
+  attemptedAt     DateTime?
+  sentAt          DateTime?
+  failedAt        DateTime?
+  lastError       String?
+  payload         Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  campaign     ExtensionAnalyticsCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  installation ExtensionAnalyticsInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactValue], map: "extension_analytics_recipient_campaign_contact_key")
+  @@index([campaignId, status, updatedAt], map: "extension_analytics_recipient_campaign_status_idx")
+  @@index([nameId, status, updatedAt], map: "extension_analytics_recipient_name_status_idx")
+  @@map("extension_analytics_recipient")
+  @@schema("recalc_admin")
+}
+
+model ExtensionAnalyticsEvent {
+  id             String   @id @db.Uuid
+  installationId String   @db.Uuid
+  campaignId     String?  @db.Uuid
+  recipientId    String?  @db.Uuid
+  eventType      String
+  occurredAt     DateTime
+  payload        Json?
+  createdAt      DateTime @default(now())
+
+  installation ExtensionAnalyticsInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId, occurredAt], map: "extension_analytics_event_installation_occurred_idx")
+  @@index([campaignId, occurredAt], map: "extension_analytics_event_campaign_occurred_idx")
+  @@index([eventType, occurredAt], map: "extension_analytics_event_type_occurred_idx")
+  @@map("extension_analytics_event")
+  @@schema("recalc_admin")
+}
+
+
 model ExtensionSessionToken {
   id               String    @id @default(uuid()) @db.Uuid
   userId           String    @db.Uuid
