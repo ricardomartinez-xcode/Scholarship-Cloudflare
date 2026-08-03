@@ -86,7 +86,7 @@ export default async function CampaignSenderAdminPage({ searchParams }: PageProp
     estimatedCostMxn: 0,
     lastActivityAt: null,
   };
-  const selectedNameId = requestedNameId || users[0]?.nameId || null;
+  const selectedNameId = requestedNameId;
   const campaigns = data?.campaigns ?? [];
   const selectedCampaign = requestedCampaignId
     ? campaigns.find((campaign) => campaign.id === requestedCampaignId) ?? campaigns[0] ?? null
