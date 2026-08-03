@@ -1,0 +1,32 @@
+ReCalc Sender 10.7.1 · Validación final
+Fecha: 2026-08-03
+Rama: fix/recalc-sender-offline-first
+Commit funcional: 4cfce8402d71338b190a907db95d74c9a06a4cf6
+
+Arquitectura validada
+- Sin inicio de sesión dentro de la extensión.
+- Sin cotizador ni pestaña de cotización.
+- Primer uso con Name_ID únicamente.
+- Campañas, destinatarios, cola y estados en chrome.storage.local.
+- Adjuntos en almacenamiento local de la extensión.
+- Analítica anónima complementaria y no bloqueante.
+- El runner inicia y se reanuda sin token de sesión.
+
+Pruebas
+- Node: 2/2 aprobadas.
+- Playwright: 10/10 aprobadas.
+- Imagen con texto: aprobada.
+- Imagen sin texto: aprobada.
+- Video con texto: aprobada.
+- Video sin texto: aprobada.
+- Bloqueo de Sticker Maker: aprobado.
+- Primer uso con Name_ID y API de analítica caída: aprobado.
+- Prisma generate: aprobado.
+- Typecheck: aprobado.
+- Build de producción: aprobado.
+
+Paquete
+release/ReCalc-Sender-10.7.1-offline-first.zip
+SHA-256: c6c64422665df0f88276dbb026b95722e2042d7d34053a42dfe634aebee9526e
+
+El ZIP se generó mediante lista blanca y no contiene background.js, panel.html, panel.js, campaigns.js ni lib/campaigns/runCampaign.js históricos.
