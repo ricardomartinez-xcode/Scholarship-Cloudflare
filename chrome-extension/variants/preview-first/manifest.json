@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ReCalc",
-  "version": "10.7.0",
-  "description": "ReCalc Sender con campañas persistentes, pausas seguras y envío verificado de texto, imágenes y videos como multimedia, nunca como sticker.",
+  "name": "ReCalc Sender",
+  "version": "10.7.1",
+  "description": "ReCalc Sender offline-first: campañas locales con texto, imágenes y videos, pausas seguras y analítica anónima opcional, sin inicio de sesión.",
   "minimum_chrome_version": "114",
   "icons": {
     "16": "icons/icon16.png",
@@ -19,10 +19,10 @@
     }
   },
   "side_panel": {
-    "default_path": "panel.html"
+    "default_path": "panel-offline.html"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background-offline.js"
   },
   "permissions": [
     "sidePanel",
@@ -50,5 +50,6 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "version_name": "10.7.1 · offline-first sin login"
 }

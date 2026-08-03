@@ -28,7 +28,7 @@ function loadRunner(initial = {}) {
   const env=createChrome(initial);
   const context={ self:{}, chrome:env.chrome, console, Date, setTimeout, clearTimeout };
   vm.createContext(context);
-  vm.runInContext(fs.readFileSync(`${base}/lib/campaigns/runCampaign.js`, 'utf8'), context);
+  vm.runInContext(fs.readFileSync(`${base}/lib/campaigns/runCampaign-offline.js`, 'utf8'), context);
   return {...env, runner:context.self.RecalcCampaignRunner};
 }
 
@@ -78,10 +78,10 @@ function loadRunner(initial = {}) {
 }
 
 {
-  const bg=fs.readFileSync(`${base}/background.js`,'utf8');
+  const bg=fs.readFileSync(`${base}/background-offline.js`,'utf8');
   assert.ok(bg.includes('{ url, active: false }'));
   assert.ok(bg.includes('"video/mp4"'));
   assert.ok(bg.includes('"video/webm"'));
 }
 
-console.log('PASS ReCalc Sender 10.7: resume, delays, media-only and anti-sticker guards');
+console.log('PASS ReCalc Sender 10.7.1: resume, delays, media-only and anti-sticker guards');

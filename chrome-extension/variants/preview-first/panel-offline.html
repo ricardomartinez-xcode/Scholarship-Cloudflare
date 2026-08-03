@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReCalc Sender</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="hero card">
+      <div class="hero-row">
+        <div class="hero-branding">
+          <div class="hero-brand hero-brand--recalc">
+            <img src="branding/logo-recalc.png" alt="ReCalc Sender" class="hero-logo hero-logo--recalc">
+          </div>
+        </div>
+        <span id="status-pill" class="pill">Preparando</span>
+      </div>
+      <div class="hero-session">
+        <div class="hero-session__meta">
+          <span class="eyebrow">Identidad local</span>
+          <strong id="profile-name-id">Sin Name_ID</strong>
+          <span id="analytics-status" class="sync-badge">Analítica opcional</span>
+          <span class="sync-badge sync-badge--live">Envíos <strong>offline-first</strong></span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button id="open-whatsapp-direct" class="btn btn-secondary btn-compact" type="button">WhatsApp</button>
+        <button id="change-name-id" class="btn btn-ghost btn-compact" type="button">Cambiar Name_ID</button>
+      </div>
+    </header>
+
+    <section id="setup-view" class="card hidden">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Primer uso</span>
+          <h2>Configura tu Name_ID</h2>
+        </div>
+      </div>
+      <p class="muted">No necesitas iniciar sesión. Este nombre identifica tus campañas en la analítica anónima y la extensión seguirá funcionando aunque ReCalc no esté disponible.</p>
+      <div id="setup-error" class="feedback feedback-error hidden"></div>
+      <form id="setup-form" class="form-grid single-column">
+        <label class="field">
+          <span>Name_ID</span>
+          <input id="name-id-input" type="text" minlength="2" maxlength="80" placeholder="Ej. Ricardo_UNIDEP" autocomplete="off" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Continuar</button>
+      </form>
+    </section>
+
+    <section id="app-view" class="app-shell hidden">
+      <section class="card tabs-card">
+        <div class="tabs-scroller" role="tablist" aria-label="Módulos ReCalc Sender">
+          <button type="button" class="tab-btn is-active" data-tab-target="campaign-panel">Campañas</button>
+          <button type="button" class="tab-btn" data-tab-target="reports-panel">Resultados</button>
+        </div>
+      </section>
+
+      <section id="campaign-panel" class="tab-panel is-active panel-stack">
+        <section class="campaign-stack">
+          <section class="card runner-card runner-card--compact">
+            <div class="section-head">
+              <div><span class="eyebrow">Runner local</span><h2>Ejecución actual</h2></div>
+              <button id="campaign-stop-runner" class="btn btn-ghost btn-compact" type="button">Pausar</button>
+            </div>
+            <div id="runner-status-card" class="runner-inline runner-inline--compact">
+              <div><strong id="runner-status-title">Sin ejecución activa</strong><p id="runner-status-copy" class="muted">Las campañas se almacenan y ejecutan desde este equipo.</p></div>
+              <span id="campaign-api-pill" class="pill success">Modo local</span>
+            </div>
+            <div class="stats-grid stats-grid--runner stats-grid--compact">
+              <div class="stat-card stat-card--compact"><span class="meta-label">Campañas</span><strong id="summary-campaigns">0</strong></div>
+              <div class="stat-card stat-card--compact"><span class="meta-label">Contactos</span><strong id="summary-recipients">0</strong></div>
+              <div class="stat-card stat-card--compact"><span class="meta-label">Enviados</span><strong id="summary-sent">0</strong></div>
+              <div class="stat-card stat-card--compact"><span class="meta-label">Fallidos</span><strong id="summary-failed">0</strong></div>
+            </div>
+          </section>
+
+          <section class="card campaign-card">
+            <div class="section-head">
+              <div><span class="eyebrow">Destinatarios</span><h2>Crear campaña</h2></div>
+              <label class="btn btn-ghost btn-compact file-btn">Importar CSV<input id="campaign-csv" type="file" accept=".csv,text/csv,.txt,text/plain" hidden></label>
+            </div>
+            <div id="campaign-feedback" class="feedback hidden"></div>
+            <form id="campaign-form" class="form-stack">
+              <section class="compact-section">
+                <div class="compact-grid compact-grid--two">
+                  <label class="field"><span>Lada predeterminada</span>
+                    <select id="campaign-country-code">
+                      <option value="52" selected>México +52</option>
+                      <option value="1">EE. UU./Canadá +1</option>
+                      <option value="57">Colombia +57</option>
+                      <option value="54">Argentina +54</option>
+                      <option value="34">España +34</option>
+                    </select>
+                  </label>
+                  <label class="field"><span>Costo estimado por envío (MXN)</span><input id="campaign-cost-per-message" type="number" min="0" step="0.01" value="0"></label>
+                </div>
+                <label class="field"><span>Lista manual</span><textarea id="campaign-recipients" rows="7" placeholder="Ana Gómez, 5580123456&#10;Bruno Ruiz, 5512345679&#10;+5215580000000"></textarea></label>
+                <div class="helper-row helper-row--stack">
+                  <span id="campaign-recipient-count" class="pill">0 contactos válidos</span>
+                  <span id="campaign-recipient-summary" class="helper-text">Formato por línea: Nombre, número o solo número.</span>
+                </div>
+              </section>
+
+              <section class="compact-section">
+                <div class="section-head section-head--tight section-head--stack-on-mobile">
+                  <div><span class="eyebrow">Template</span><h3>Mensaje base</h3></div>
+                  <div class="button-row button-row--compact templates-toolbar">
+                    <select id="campaign-template-library" class="template-select"><option value="">Templates guardados</option></select>
+                    <button id="campaign-template-save" class="btn btn-ghost btn-compact" type="button">Guardar</button>
+                    <button id="campaign-template-delete" class="btn btn-ghost btn-compact" type="button">Borrar</button>
+                  </div>
+                </div>
+                <label class="field"><span>Texto del mensaje</span><textarea id="campaign-template" rows="6" placeholder="Hola {{nombre}}, te comparto la información que acordamos."></textarea></label>
+                <p class="helper-text">Puedes usar variables como <strong>{{nombre}}</strong> y columnas importadas desde CSV.</p>
+              </section>
+
+              <section class="compact-section">
+                <div class="section-head section-head--tight section-head--stack-on-mobile">
+                  <div><span class="eyebrow">Multimedia local</span><h3>Imagen o video opcional</h3></div>
+                  <div class="button-row button-row--compact">
+                    <label class="btn btn-ghost btn-compact file-btn">Subir archivo<input id="campaign-image" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden></label>
+                    <button id="campaign-image-clear" class="btn btn-ghost btn-compact" type="button">Quitar</button>
+                  </div>
+                </div>
+                <span class="helper-text">Se guarda localmente y se envía exclusivamente mediante Fotos y videos; nunca como sticker.</span>
+                <div id="campaign-image-feedback" class="feedback hidden"></div>
+                <div id="campaign-image-empty" class="empty-state empty-state-compact">Sin archivo multimedia cargado.</div>
+                <div id="campaign-image-preview-wrap" class="media-preview hidden">
+                  <img id="campaign-image-preview" alt="Vista previa" class="media-preview__image">
+                  <div id="campaign-image-meta" class="media-preview__meta helper-text"></div>
+                </div>
+              </section>
+
+              <section class="compact-section">
+                <div class="section-head section-head--tight"><div><span class="eyebrow">Programación</span><h3>Automatización local</h3></div></div>
+                <div class="form-stack compact-stack">
+                  <label class="field"><span>Nombre de campaña</span><input id="campaign-name" type="text" placeholder="Ej. Becas zona norte"></label>
+                  <label class="field"><span>Programar para</span><input id="campaign-schedule" type="datetime-local"><small id="campaign-current-time" class="helper-text">Hora actual: —</small></label>
+                  <div class="compact-grid compact-grid--two">
+                    <label class="field"><span>Tamaño de lote</span><input id="campaign-batch-size" type="number" min="1" max="200" step="1" value="25"></label>
+                    <label class="field"><span>Delay por mensaje (seg)</span><input id="campaign-delay-seconds" type="number" min="1" max="120" step="0.5" value="4"></label>
+                    <label class="field"><span>Delay por lote (seg)</span><input id="campaign-batch-delay-seconds" type="number" min="0" max="1800" step="5" value="30"></label>
+                    <label class="field"><span>Variación segura (seg)</span><input id="campaign-jitter-seconds" type="number" min="0" max="60" step="1" value="3"></label>
+                  </div>
+                  <label class="toggle toggle-card"><input id="campaign-start-now" type="checkbox" checked><span>Activar al crear</span></label>
+                </div>
+              </section>
+
+              <section class="compact-section"><label class="field"><span>Notas internas</span><textarea id="campaign-notes" rows="3" placeholder="Objetivo, segmento o criterio operativo."></textarea></label></section>
+              <div class="button-row button-row--campaign-actions">
+                <button id="campaign-reset" class="btn btn-ghost" type="button">Limpiar</button>
+                <button id="campaign-submit" class="btn btn-primary" type="submit">Crear campaña</button>
+                <button id="campaign-start-selected" class="btn btn-secondary hidden" type="button">Ejecutar seleccionada</button>
+              </div>
+            </form>
+          </section>
+        </section>
+      </section>
+
+      <section id="reports-panel" class="tab-panel panel-stack hidden">
+        <section class="report-shell">
+          <div class="card report-toolbar">
+            <div class="section-head">
+              <div><span class="eyebrow">Historial local</span><h2>Campañas y resultados</h2></div>
+              <div class="button-row button-row--compact">
+                <button id="campaign-refresh-list" class="btn btn-ghost btn-compact" type="button">Recargar</button>
+                <button id="campaign-download-results" class="btn btn-secondary btn-compact" type="button">Exportar CSV</button>
+              </div>
+            </div>
+          </div>
+          <div class="report-grid">
+            <section class="card report-list-card">
+              <div id="campaign-list-empty" class="empty-state">Aún no hay campañas creadas.</div>
+              <div id="campaign-list" class="campaign-list hidden"></div>
+            </section>
+            <aside class="card report-detail-card">
+              <div id="campaign-detail-empty" class="empty-state">Selecciona una campaña para ver su detalle.</div>
+              <div id="campaign-detail" class="detail-stack hidden">
+                <div class="detail-head"><div><span class="eyebrow">Detalle</span><h2 id="campaign-detail-title">Campaña</h2></div><span id="campaign-detail-status" class="pill">queued</span></div>
+                <div class="button-row button-row--compact detail-actions">
+                  <button id="campaign-run-selected" class="btn btn-secondary btn-compact" type="button">Ejecutar</button>
+                  <button id="campaign-pause-selected" class="btn btn-ghost btn-compact" type="button">Pausar</button>
+                  <button id="campaign-delete-selected" class="btn btn-ghost btn-compact" type="button">Eliminar</button>
+                </div>
+                <div class="stats-grid stats-grid--detail stats-grid--compact">
+                  <div class="stat-card stat-card--compact"><span class="meta-label">Total</span><strong id="detail-total">0</strong></div>
+                  <div class="stat-card stat-card--compact"><span class="meta-label">Pendientes</span><strong id="detail-queued">0</strong></div>
+                  <div class="stat-card stat-card--compact"><span class="meta-label">Enviados</span><strong id="detail-sent">0</strong></div>
+                  <div class="stat-card stat-card--compact"><span class="meta-label">Fallidos</span><strong id="detail-failed">0</strong></div>
+                </div>
+                <div class="detail-grid detail-grid--report">
+                  <div class="insight-card"><div class="meta-label">Template</div><pre id="campaign-detail-template" class="template-preview">Sin template.</pre></div>
+                  <div class="insight-card"><div class="meta-label">Operación</div><div class="helper-stack"><div><strong id="campaign-detail-schedule">Inmediata</strong></div><div id="campaign-detail-delay">Delay: 4s</div><div id="campaign-detail-updated">Actualizada: —</div><div id="campaign-detail-cost">Costo estimado: $0.00</div></div></div>
+                </div>
+                <div id="campaign-detail-media-wrap" class="media-detail hidden"><img id="campaign-detail-media" alt="Multimedia de campaña" class="media-detail__image"></div>
+                <div class="insight-card recipients-panel"><div class="meta-label">Destinatarios</div><div id="campaign-detail-recipients" class="recipient-list recipient-list--compact recipient-list--capped"></div></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </section>
+    </section>
+  </div>
+  <script src="lib/analytics.js"></script>
+  <script src="panel-offline.js"></script>
+  <script src="lib/storage/attachments.js"></script>
+  <script src="lib/campaigns/buildMessage.js"></script>
+  <script src="campaigns-local.js"></script>
+</body>
+</html>
