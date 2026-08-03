@@ -42,31 +42,99 @@ function buildWhatsAppUrl({ phone, text }) {
   return url.toString();
 }
 
-function waitForTabComplete(tabId, { timeoutMs = 15000 } = {}) {
-  return new Promise((resolve) => {
-    let settled = false;
-    const listener = (updatedTabId, changeInfo) => {
-      if (updatedTabId !== tabId || changeInfo.status !== "complete") return;
-      done();
-    };
-    const timeoutId = setTimeout(() => done(), timeoutMs);
-    const cleanup = () => {
-      clearTimeout(timeoutId);
-      chrome.tabs.onUpdated.removeListener(listener);
-    };
-    function done() {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve();
+function matchesWhatsAppNavigationTarget(currentUrl, expectedUrl) {
+  try {
+    const current = new URL(String(currentUrl || ""));
+    const expected = new URL(String(expectedUrl || WHATSAPP_URL));
+    if (current.origin !== expected.origin) return false;
+
+    const expectedPhone = expected.searchParams.get("phone");
+    if (!expectedPhone) return true;
+    return current.searchParams.get("phone") === expectedPhone;
+  } catch {
+    return false;
+  }
+}
+
+function createTabNavigationWaiter(
+  tabId,
+  expectedUrl,
+  { timeoutMs = 30000, requireNavigationEvent = false, initialTab = null } = {},
+) {
+  let settled = false;
+  let sawNavigation = !requireNavigationEvent;
+  let sawTarget = false;
+  let pollId = null;
+  let timeoutId = null;
+  let resolvePromise;
+  let rejectPromise;
+
+  const cleanup = () => {
+    if (pollId) clearInterval(pollId);
+    if (timeoutId) clearTimeout(timeoutId);
+    chrome.tabs.onUpdated.removeListener(listener);
+  };
+
+  const finish = (tab) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    resolvePromise(tab || { id: tabId });
+  };
+
+  const fail = (message) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    rejectPromise(new Error(message));
+  };
+
+  const inspect = (tab, changeInfo = {}) => {
+    if (settled) return;
+    if (changeInfo.status === "loading" || changeInfo.url || tab?.status === "loading") {
+      sawNavigation = true;
     }
 
-    chrome.tabs.onUpdated.addListener(listener);
+    const currentUrl = changeInfo.url || tab?.url || "";
+    if (matchesWhatsAppNavigationTarget(currentUrl, expectedUrl)) {
+      sawTarget = true;
+    }
+
+    const isComplete = changeInfo.status === "complete" || (!changeInfo.status && tab?.status === "complete");
+    if (isComplete && sawNavigation && sawTarget) {
+      finish(tab);
+    }
+  };
+
+  const listener = (updatedTabId, changeInfo, tab) => {
+    if (updatedTabId !== tabId) return;
+    inspect(tab, changeInfo);
+  };
+
+  const promise = new Promise((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+
+  chrome.tabs.onUpdated.addListener(listener);
+  if (initialTab) inspect(initialTab);
+
+  pollId = setInterval(() => {
     chrome.tabs.get(tabId, (tab) => {
       if (chrome.runtime.lastError) return;
-      if (tab?.status === "complete") done();
+      inspect(tab);
     });
-  });
+  }, 250);
+
+  timeoutId = setTimeout(() => {
+    fail("WhatsApp Web no terminó de abrir el chat del destinatario dentro del tiempo esperado.");
+  }, timeoutMs);
+
+  return {
+    promise,
+    inspect,
+    cancel: () => fail("Se canceló la navegación de WhatsApp Web."),
+  };
 }
 
 async function ensureWhatsAppTab({ phone, text } = {}) {
@@ -74,15 +142,35 @@ async function ensureWhatsAppTab({ phone, text } = {}) {
   const tabs = await chrome.tabs.query({ url: WHATSAPP_HOST });
   const current = tabs[0];
   if (current?.id) {
-    await chrome.tabs.update(current.id, { url, active: false });
-    await waitForTabComplete(current.id);
+    const waiter = createTabNavigationWaiter(current.id, url, {
+      timeoutMs: 30000,
+      requireNavigationEvent: true,
+    });
+    try {
+      const updatedTab = await chrome.tabs.update(current.id, { url, active: false });
+      waiter.inspect(updatedTab, {
+        url: updatedTab?.url || "",
+        status: updatedTab?.status || "",
+      });
+      await waiter.promise;
+    } catch (error) {
+      waiter.cancel();
+      void waiter.promise.catch(() => null);
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 700));
     return current.id;
   }
   const tab = await chrome.tabs.create({ url, active: false });
   if (!tab?.id) {
     throw new Error("No fue posible abrir la pestaña de WhatsApp Web.");
   }
-  await waitForTabComplete(tab.id);
+  const waiter = createTabNavigationWaiter(tab.id, url, {
+    timeoutMs: 30000,
+    initialTab: tab,
+  });
+  await waiter.promise;
+  await new Promise((resolve) => setTimeout(resolve, 700));
   return tab.id;
 }
 

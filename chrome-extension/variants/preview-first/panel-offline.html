@@ -15,17 +15,23 @@
             <img src="branding/logo-recalc.png" alt="ReCalc Sender" class="hero-logo hero-logo--recalc">
           </div>
         </div>
-        <span id="status-pill" class="pill">Preparando</span>
+        <span id="status-pill" class="pill warning">ReCalc pendiente</span>
       </div>
       <div class="hero-session">
         <div class="hero-session__meta">
           <span class="eyebrow">Identidad local</span>
           <strong id="profile-name-id">Sin Name_ID</strong>
-          <span id="analytics-status" class="sync-badge">Analítica opcional</span>
-          <span class="sync-badge sync-badge--live">Envíos <strong>offline-first</strong></span>
+          <span class="sync-badge sync-badge--live">Runner: local</span>
+
+          <span class="meta-label connection-label">Conexión con ReCalc</span>
+          <strong id="recalc-connection-status">Pendiente de conexión</strong>
+          <span id="analytics-status" class="sync-badge">Sin sincronizar</span>
+          <span id="recalc-sync-detail" class="sync-detail">Aún no se ha sincronizado.</span>
+          <div id="recalc-sync-error" class="connection-error hidden" role="status"></div>
         </div>
       </div>
-      <div class="hero-actions">
+      <div class="hero-actions hero-actions--offline">
+        <button id="sync-recalc" class="btn btn-primary btn-compact" type="button">Sincronizar con ReCalc</button>
         <button id="open-whatsapp-direct" class="btn btn-secondary btn-compact" type="button">WhatsApp</button>
         <button id="change-name-id" class="btn btn-ghost btn-compact" type="button">Cambiar Name_ID</button>
       </div>

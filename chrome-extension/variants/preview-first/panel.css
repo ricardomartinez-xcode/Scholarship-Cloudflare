@@ -1327,3 +1327,55 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* ReCalc Sender 10.7.2 connection status */
+.hero-actions--offline {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero-session__meta .connection-label {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.sync-detail,
+.connection-error {
+  grid-column: 1 / -1;
+}
+
+.sync-detail {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.connection-error {
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 221, 224, 0.4);
+  border-radius: var(--radius-lg);
+  background: rgba(107, 17, 25, 0.42);
+  color: #fff4f5;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.hero .sync-badge.sync-badge--connected {
+  border-color: rgba(108, 181, 20, 0.56);
+  background: rgba(108, 181, 20, 0.24);
+}
+
+.hero .sync-badge.sync-badge--offline {
+  border-color: rgba(255, 221, 224, 0.42);
+  background: rgba(107, 17, 25, 0.38);
+}
+
+@media (max-width: 480px) {
+  .hero-actions--offline {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions--offline .btn {
+    width: 100%;
+  }
+}

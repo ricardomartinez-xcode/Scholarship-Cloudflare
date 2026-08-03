@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ReCalc Sender",
-  "version": "10.7.1",
-  "description": "ReCalc Sender offline-first: campañas locales con texto, imágenes y videos, pausas seguras y analítica anónima opcional, sin inicio de sesión.",
+  "version": "10.7.2",
+  "description": "ReCalc Sender offline-first: campañas locales sin inicio de sesión, conexión visible con ReCalc y sincronización manual de resultados.",
   "minimum_chrome_version": "114",
   "icons": {
     "16": "icons/icon16.png",
@@ -51,5 +51,5 @@
       "run_at": "document_idle"
     }
   ],
-  "version_name": "10.7.1 · offline-first sin login"
+  "version_name": "10.7.2 · conexión visible con ReCalc"
 }
