@@ -217,7 +217,10 @@
   function findPreviewModal(pack) {
     const selectors = getSelector("previewModal", pack);
     const found = firstVisible(selectors);
-    if (found) return found;
+    // firstVisible conserva un fallback al primer nodo para selectores que
+    // necesitan elementos ocultos. En un preview eso es incorrecto: después
+    // del envío WhatsApp puede mantener el nodo en el DOM con display:none.
+    if (found && isVisible(found)) return found;
 
     const sendSelectedButton = Array.from(
       document.querySelectorAll("button, [role='button']"),
@@ -317,10 +320,10 @@
 
       if (viableMediaInputs[0]?.input) return viableMediaInputs[0].input;
 
-      return sorted.find(({ input }) => {
-        const accept = String(input?.accept || "").toLowerCase().trim();
-        return accept.includes("image") && !accept.includes("audio");
-      })?.input || null;
+      // Nunca degradar a un input image/* simple: WhatsApp también lo usa
+      // para Sticker Maker. Si no hay un input multimedia verificable, se
+      // cancela el adjunto en lugar de arriesgar un sticker.
+      return null;
     }
 
     return sorted[0]?.input || null;
@@ -407,9 +410,16 @@
 
     const candidates = Array.from(
       document.querySelectorAll(
-        "[role='menuitem'], [role='button'], button, li, div[aria-label], div[title], div",
+        "[role='menuitem'], button, li[role='menuitem'], [data-animate-dropdown-item='true']",
       ),
-    ).filter((node) => isVisible(node));
+    )
+      .filter((node) => isVisible(node))
+      .map((node) =>
+        node.closest?.("[role='menuitem'], button, li[role='menuitem']") ||
+        (node instanceof Element ? node : null),
+      )
+      .filter(Boolean)
+      .filter((node, index, list) => list.indexOf(node) === index);
 
     return candidates.find((node) => matchAnyText(node, needles)) || null;
   }

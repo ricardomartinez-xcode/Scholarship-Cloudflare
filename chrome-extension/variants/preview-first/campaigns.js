@@ -696,9 +696,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    refs.campaignImagePreview.src = asset.secureUrl;
+    if (asset.resourceType === "video") {
+      refs.campaignImagePreview.removeAttribute("src");
+      refs.campaignImagePreview.alt = `Video cargado: ${asset.originalName || "video"}`;
+    } else {
+      refs.campaignImagePreview.src = asset.secureUrl;
+    }
     refs.campaignImageMeta.textContent = [
-      asset.originalName || "Imagen cargada",
+      asset.originalName || "Multimedia cargada",
       asset.format ? String(asset.format).toUpperCase() : "",
       asset.bytes ? formatBytes(asset.bytes) : "",
     ].filter(Boolean).join(" · ");
@@ -884,7 +889,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="campaign-item__summary">
           <div>Programacion: ${escapeHtml(formatSchedule(campaign.scheduleAt))}</div>
-          <div>${formatCampaignDelaySummary(campaign)} · Imagen: ${campaign.mediaUrl ? "Si" : "No"} · Enviados: ${campaign.stats?.sent ?? 0} · Fallidos: ${campaign.stats?.failed ?? 0}</div>
+          <div>${formatCampaignDelaySummary(campaign)} · Multimedia: ${campaign.mediaUrl ? "Sí" : "No"} · Enviados: ${campaign.stats?.sent ?? 0} · Fallidos: ${campaign.stats?.failed ?? 0}</div>
         </div>
       `;
       button.addEventListener("click", () => {
@@ -924,7 +929,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.campaignDetailTemplate.textContent = campaign.messageTemplate || "Sin template.";
     refs.campaignDetail?.querySelectorAll(".stats-grid--detail, .detail-grid--report, .media-detail, .recipients-panel").forEach((node) => node.classList.add("detail-collapsible"));
     refs.campaignDetailSchedule.textContent = formatSchedule(campaign.scheduleAt);
-    refs.campaignDetailDelay.textContent = `${formatCampaignDelaySummary(campaign)} · Imagen: ${campaign.mediaUrl ? "cargada" : "sin imagen"}`;
+    refs.campaignDetailDelay.textContent = `${formatCampaignDelaySummary(campaign)} · Multimedia: ${campaign.mediaUrl ? "cargada" : "sin archivo"}`;
     refs.campaignDetailUpdated.textContent = `Actualizada: ${formatDateTime(campaign.updatedAt)}`;
 
     if (campaign.mediaUrl) {
@@ -1146,7 +1151,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!hasMessage && !hasImage) {
-      throw new Error("Debes escribir un mensaje o subir una imagen antes de crear la campaña.");
+      throw new Error("Debes escribir un mensaje o subir una imagen o video antes de crear la campaña.");
     }
   }
 
@@ -1188,8 +1193,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!String(file.type || "").toLowerCase().startsWith("image/")) {
-      setImageFeedback("danger", "Solo puedes subir imagenes para campañas de WhatsApp.");
+    const mediaType = String(file.type || "").toLowerCase();
+    const allowedMediaTypes = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"]);
+    if (!allowedMediaTypes.has(mediaType)) {
+      setImageFeedback("danger", "Solo se permiten JPG, PNG, WEBP, MP4 o WEBM mediante Fotos y videos.");
       event.target.value = "";
       return;
     }
@@ -1200,7 +1207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const { response, data } = await fetchFormData("/api/ext/campaigns/upload", formData);
       if (!response.ok || !data?.ok || !data?.asset?.secureUrl) {
-        throw new Error(data?.error || "No fue posible subir la imagen.");
+        throw new Error(data?.error || "No fue posible subir el archivo multimedia.");
       }
 
       state.uploadedAsset = {
@@ -1212,10 +1219,10 @@ document.addEventListener("DOMContentLoaded", () => {
         originalName: file.name,
       };
       renderUploadedAsset();
-      setImageFeedback("success", `Imagen cargada: ${file.name}`);
+      setImageFeedback("success", `${mediaType.startsWith("video/") ? "Video" : "Imagen"} cargado: ${file.name}`);
     } catch (error) {
       clearUploadedAsset({ clearFeedback: false });
-      setImageFeedback("danger", error instanceof Error ? error.message : "No fue posible subir la imagen.");
+      setImageFeedback("danger", error instanceof Error ? error.message : "No fue posible subir el archivo multimedia.");
     } finally {
       event.target.value = "";
     }

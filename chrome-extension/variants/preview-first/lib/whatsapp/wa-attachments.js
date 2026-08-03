@@ -41,7 +41,7 @@
       }
       return true;
     }
-    return mime.startsWith("video/") || mime.startsWith("audio/");
+    return mime.startsWith("video/");
   }
 
   function splitAttachments(files) {
@@ -108,9 +108,8 @@
         // Buscar la opción de fotos y videos por palabras clave.
         const foundByName = selectors.findAttachmentOption("media");
         if (foundByName) return foundByName;
-        // Como último recurso usar la posición conocida (segunda opción). Si la
-        // posición no existe, devuelve undefined y waitFor continuará.
-        return selectors.findAttachmentOptionByPosition(1);
+        // Nunca usar posiciones: WhatsApp cambia el orden y podría abrir Sticker.
+        return null;
       }
       // Para documentos utilizamos la búsqueda por nombre únicamente. Buscar
       // directamente por posición puede resultar en enviar un contacto o
@@ -127,6 +126,17 @@
       throw Object.assign(new Error("La opción de adjuntar no tiene un contenedor clickable válido."), {
         code: "attachment_option_not_found",
       });
+    }
+
+    if (kind === "media") {
+      const optionText = [option.getAttribute?.("aria-label"), option.getAttribute?.("title"), option.textContent]
+        .map((value) => String(value || "").toLowerCase())
+        .join(" ");
+      if (/sticker|pegatina|calcoman/i.test(optionText)) {
+        throw Object.assign(new Error("Se bloqueó una opción de Sticker; el archivo no se enviará."), {
+          code: "sticker_option_blocked",
+        });
+      }
     }
 
     log("Seleccionando opción de adjunto.", { kind });
@@ -164,6 +174,15 @@
 
       const input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 5000, 200);
       if (input) {
+        if (kind === "media") {
+          const accept = String(input.accept || "").toLowerCase().trim();
+          const safeMediaInput = accept.includes("video") || (input.multiple && accept.includes("image"));
+          if (!safeMediaInput || (accept === "image/*" && !input.multiple)) {
+            throw Object.assign(new Error("El input detectado puede corresponder a Sticker y fue bloqueado."), {
+              code: "sticker_input_blocked",
+            });
+          }
+        }
         log("Input de adjunto listo.", {
           kind,
           accept: String(input.accept || ""),

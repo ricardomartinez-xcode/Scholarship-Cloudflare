@@ -32,10 +32,12 @@
   }
 
   function normalizeRunState(input, current) {
+    const campaignId = String(input.campaignId || current?.campaignId || "").trim();
+    const isSameCampaign = Boolean(current && current.campaignId === campaignId);
     return {
       ...current,
       runId: input.runId || current?.runId || `run_${Date.now()}`,
-      campaignId: String(input.campaignId || current?.campaignId || "").trim(),
+      campaignId,
       campaignName: input.campaignName ?? current?.campaignName ?? null,
       appBaseUrl: String(input.appBaseUrl || current?.appBaseUrl || "").trim(),
       extensionSessionToken: String(input.extensionSessionToken || current?.extensionSessionToken || "").trim(),
@@ -44,9 +46,11 @@
       paused: false,
       busy: false,
       status: "running",
-      currentBatch: null,
-      currentIndex: 0,
-      lastMessage: input.lastMessage || "Runner iniciado. Preparando primer batch.",
+      currentBatch: isSameCampaign ? (current?.currentBatch ?? null) : null,
+      currentIndex: isSameCampaign ? Number(current?.currentIndex || 0) : 0,
+      lastMessage: input.lastMessage || (isSameCampaign && current?.paused
+        ? "Runner reanudado desde el destinatario pendiente."
+        : "Runner iniciado. Preparando primer batch."),
       updatedAt: new Date().toISOString(),
     };
   }
@@ -257,9 +261,15 @@
         },
       });
 
+      const batchRecipients = working.currentBatch?.recipients || [];
+      const isLastRecipientInBatch = working.currentIndex + 1 >= batchRecipients.length;
+      const messageDelayMs = Number(
+        sendResult?.delayMs ?? recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000,
+      );
+      const batchDelayMs = Number(working.currentBatch?.campaign?.batchDelayMs ?? 0);
       const nextDelay = Math.max(
         MIN_RUNNER_DELAY_MS,
-        Number(sendResult?.delayMs ?? recipient.messageDelayMs ?? working.currentBatch?.campaign?.messageDelayMs ?? 4000),
+        isLastRecipientInBatch ? Math.max(messageDelayMs, batchDelayMs) : messageDelayMs,
       );
 
       const finalState = {
@@ -274,6 +284,8 @@
         lastRecipientId: recipient.id,
         lastRecipientPhone: phone,
         lastSentAt: new Date().toISOString(),
+        nextRunAt: new Date(Date.now() + nextDelay).toISOString(),
+        lastDelayType: isLastRecipientInBatch && batchDelayMs > messageDelayMs ? "batch" : "message",
       };
 
       if (campaignSnapshot?.status === "completed") {

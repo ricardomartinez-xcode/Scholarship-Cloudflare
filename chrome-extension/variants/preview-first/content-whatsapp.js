@@ -512,7 +512,11 @@ async function fetchMediaFile(url, extensionSessionToken) {
         ? "webp"
         : contentType.includes("gif")
           ? "gif"
-          : "jpg";
+          : contentType.includes("mp4")
+            ? "mp4"
+            : contentType.includes("webm")
+              ? "webm"
+              : "jpg";
 
   return new File([blob], `campaign-media.${extension}`, { type: contentType });
 }
@@ -571,11 +575,18 @@ async function attachMedia(selectorPack, mediaUrl, extensionSessionToken) {
         return needles.some((needle) => haystack.includes(needle.toLowerCase()));
       }) || null;
     if (!mediaOption) {
-      mediaOption = menuOptions[1] || menuOptions[0] || null;
+      mediaOption = null;
+    }
+  }
+  if (mediaOption) {
+    const optionText = [mediaOption.getAttribute?.("aria-label"), mediaOption.getAttribute?.("title"), mediaOption.textContent]
+      .map((value) => String(value || "").toLowerCase()).join(" ");
+    if (/sticker|pegatina|calcoman/i.test(optionText)) {
+      throw new Error("Se bloqueó una opción de Sticker; el archivo no se enviará.");
     }
   }
   if (!clickElement(mediaOption)) {
-    throw new Error("No fue posible seleccionar la opción de imagen en WhatsApp Web.");
+    throw new Error("No fue posible seleccionar Fotos y videos en WhatsApp Web.");
   }
   // Dar más tiempo para que el input de archivos se inserte luego de
   // seleccionar la opción correcta. En algunos casos el input tarda
@@ -583,6 +594,13 @@ async function attachMedia(selectorPack, mediaUrl, extensionSessionToken) {
   await wait(500);
 
   const fileInput = await waitFor(() => findFileInput(selectorPack), 10000, 300);
+  if (fileInput instanceof HTMLInputElement) {
+    const accept = String(fileInput.accept || "").toLowerCase().trim();
+    const safeMediaInput = accept.includes("video") || (fileInput.multiple && accept.includes("image"));
+    if (!safeMediaInput || (accept === "image/*" && !fileInput.multiple)) {
+      throw new Error("El input detectado puede corresponder a Sticker y fue bloqueado.");
+    }
+  }
   if (!(fileInput instanceof HTMLInputElement)) {
     throw new Error("No fue posible encontrar el input de adjuntos en WhatsApp Web.");
   }
