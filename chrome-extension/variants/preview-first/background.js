@@ -137,11 +137,11 @@ async function ensureWhatsAppTab({ phone, text } = {}) {
   const tabs = await chrome.tabs.query({ url: WHATSAPP_HOST });
   const current = tabs[0];
   if (current?.id) {
-    await chrome.tabs.update(current.id, { url, active: true });
+    await chrome.tabs.update(current.id, { url, active: false });
     await waitForTabComplete(current.id);
     return current.id;
   }
-  const tab = await chrome.tabs.create({ url, active: true });
+  const tab = await chrome.tabs.create({ url, active: false });
   if (!tab?.id) {
     throw new Error("No fue posible abrir la pestaña de WhatsApp Web.");
   }
@@ -328,19 +328,19 @@ function resolveMessage(working, recipient) {
   );
 }
 
-const UNSUPPORTED_CAMPAIGN_IMAGE_TYPES = new Set(["image/x-icon", "image/vnd.microsoft.icon"]);
+const UNSUPPORTED_CAMPAIGN_MEDIA_TYPES = new Set(["image/x-icon", "image/vnd.microsoft.icon"]);
 
 function normalizeContentType(value) {
   return String(value || "").split(";")[0].trim().toLowerCase();
 }
 
-function isSupportedCampaignImageType(value) {
+function isSupportedCampaignMediaType(value) {
   const normalized = normalizeContentType(value);
-  if (!normalized.startsWith("image/")) return false;
-  return !UNSUPPORTED_CAMPAIGN_IMAGE_TYPES.has(normalized);
+  if (UNSUPPORTED_CAMPAIGN_MEDIA_TYPES.has(normalized)) return false;
+  return ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"].includes(normalized);
 }
 
-function extensionForCampaignImageType(contentType) {
+function extensionForCampaignMediaType(contentType) {
   const normalized = normalizeContentType(contentType);
   if (normalized === "image/png") return "png";
   if (normalized === "image/webp") return "webp";
@@ -348,6 +348,8 @@ function extensionForCampaignImageType(contentType) {
   if (normalized === "image/bmp") return "bmp";
   if (normalized === "image/svg+xml") return "svg";
   if (normalized === "image/jfif") return "jfif";
+  if (normalized === "video/mp4") return "mp4";
+  if (normalized === "video/webm") return "webm";
   return "jpg";
 }
 
@@ -396,15 +398,15 @@ async function getAttachmentsForCampaign(working) {
     blob.type || response.headers.get("content-type") || "application/octet-stream",
   );
 
-  if (!isSupportedCampaignImageType(contentType)) {
+  if (!isSupportedCampaignMediaType(contentType)) {
     throw new Error(
-      `La imagen de campaña debe ser un archivo image/* compatible con WhatsApp. El backend entregó: ${contentType || "desconocido"}.`,
+      `El archivo de campaña debe ser JPG, PNG, WEBP, MP4 o WEBM compatible con Fotos y videos. El backend entregó: ${contentType || "desconocido"}.`,
     );
   }
 
   const fileName =
     filenameFromDisposition(response.headers.get("content-disposition")) ||
-    `campaign-media.${extensionForCampaignImageType(contentType)}`;
+    `campaign-media.${extensionForCampaignMediaType(contentType)}`;
 
   const payload = [{
     name: fileName,

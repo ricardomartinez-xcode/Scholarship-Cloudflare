@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ReCalc",
-  "version": "10.2.0",
-  "description": "ReCalc Sender con campañas personalizadas, retrasos y envío estable de texto, imágenes e imágenes con caption.",
+  "version": "10.7.0",
+  "description": "ReCalc Sender con campañas persistentes, pausas seguras y envío verificado de texto, imágenes y videos como multimedia, nunca como sticker.",
   "minimum_chrome_version": "114",
   "icons": {
     "16": "icons/icon16.png",

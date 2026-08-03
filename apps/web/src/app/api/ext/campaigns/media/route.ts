@@ -4,9 +4,6 @@ import { getSessionUser } from "@/lib/authz";
 import {
   STORAGE_BUCKETS,
   downloadStorageObject,
-  extensionFromImageContentType,
-  isSupportedImageContentType,
-  normalizeImageContentType,
 } from "@/lib/storage/supabase-storage";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +18,7 @@ function statusCodeForSessionState(status: "unauthenticated" | "forbidden" | "in
 function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: string | null) {
   const raw = String(value ?? "").split(";")[0].trim().toLowerCase();
   if (raw === "image/jpg" || raw === "image/pjpeg" || raw === "image/jfif") return "image/jpeg";
-  if (raw === "image/jpeg" || raw === "image/png" || raw === "image/webp") return raw;
+  if (["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"].includes(raw)) return raw;
 
   const pathname = (() => {
     try {
@@ -33,9 +30,9 @@ function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: 
 
   if (pathname.endsWith(".png")) return "image/png";
   if (pathname.endsWith(".webp")) return "image/webp";
-  if (pathname.endsWith(".jfif") || pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) {
-    return "image/jpeg";
-  }
+  if (pathname.endsWith(".jfif") || pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) return "image/jpeg";
+  if (pathname.endsWith(".mp4")) return "video/mp4";
+  if (pathname.endsWith(".webm")) return "video/webm";
 
   return "application/octet-stream";
 }
@@ -43,6 +40,8 @@ function normalizeMediaContentType(value: string | null | undefined, mediaUrl?: 
 function extensionFromContentType(contentType: string) {
   if (contentType === "image/png") return "png";
   if (contentType === "image/webp") return "webp";
+  if (contentType === "video/mp4") return "mp4";
+  if (contentType === "video/webm") return "webm";
   return "jpg";
 }
 
@@ -85,24 +84,24 @@ async function readStorageCampaignMedia(params: {
   });
   if (!object) {
     return NextResponse.json(
-      { ok: false, error: "No fue posible recuperar la imagen de la campaña." },
+      { ok: false, error: "No fue posible recuperar el archivo multimedia de la campaña." },
       { status: 404 },
     );
   }
 
-  const contentType = normalizeImageContentType(object.type) || normalizeMediaContentType(null, params.assetKey);
-  if (!isSupportedImageContentType(contentType)) {
+  const contentType = normalizeMediaContentType(object.type, params.assetKey);
+  if (!["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"].includes(contentType)) {
     return NextResponse.json(
       {
         ok: false,
-        error: `La imagen de campaña debe ser PNG, JPG o WEBP. Se recibió: ${contentType || "desconocido"}.`,
+        error: `El archivo debe ser JPG, PNG, WEBP, MP4 o WEBM. Se recibió: ${contentType || "desconocido"}.`,
       },
       { status: 415 },
     );
   }
 
   const fileName =
-    `${safeCampaignFileName(params.campaignName)}.${extensionFromImageContentType(contentType)}`;
+    `${safeCampaignFileName(params.campaignName)}.${extensionFromContentType(contentType)}`;
 
   return new NextResponse(object.stream(), {
     status: 200,
@@ -149,7 +148,7 @@ export async function GET(request: Request) {
 
   if (campaignId && !campaign?.mediaUrl) {
     return NextResponse.json(
-      { ok: false, error: "La campaña no tiene imagen asociada." },
+      { ok: false, error: "La campaña no tiene archivo multimedia asociado." },
       { status: 404 },
     );
   }
@@ -166,7 +165,7 @@ export async function GET(request: Request) {
 
   if (!campaign?.mediaUrl) {
     return NextResponse.json(
-      { ok: false, error: "La campaña no tiene imagen asociada." },
+      { ok: false, error: "La campaña no tiene archivo multimedia asociado." },
       { status: 404 },
     );
   }
@@ -178,7 +177,7 @@ export async function GET(request: Request) {
 
     if (!upstream.ok || !upstream.body) {
       return NextResponse.json(
-        { ok: false, error: "No fue posible recuperar la imagen de la campaña." },
+        { ok: false, error: "No fue posible recuperar el archivo multimedia de la campaña." },
         { status: 502 },
       );
     }
@@ -187,11 +186,11 @@ export async function GET(request: Request) {
       upstream.headers.get("content-type"),
       campaign.mediaUrl,
     );
-    if (!isSupportedImageContentType(contentType)) {
+    if (!["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"].includes(contentType)) {
       return NextResponse.json(
         {
           ok: false,
-          error: `La imagen de campaña debe ser PNG, JPG o WEBP. Se recibió: ${contentType}.`,
+          error: `El archivo debe ser JPG, PNG, WEBP, MP4 o WEBM. Se recibió: ${contentType}.`,
         },
         { status: 415 },
       );
@@ -219,7 +218,7 @@ export async function GET(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "No fue posible recuperar la imagen de la campaña.",
+            : "No fue posible recuperar el archivo multimedia de la campaña.",
       },
       { status: 500 },
     );

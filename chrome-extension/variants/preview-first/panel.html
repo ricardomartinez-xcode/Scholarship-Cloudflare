@@ -189,15 +189,15 @@
               </section>
               <section class="compact-section">
                 <div class="section-head section-head--tight section-head--stack-on-mobile">
-                  <div><span class="eyebrow">Imagen</span><h3>Imagen opcional para WhatsApp</h3></div>
+                  <div><span class="eyebrow">Multimedia</span><h3>Imagen o video opcional</h3></div>
                   <div class="button-row button-row--compact">
-                    <label class="btn btn-ghost btn-compact file-btn">Subir imagen<input id="campaign-image" type="file" accept="image/*" hidden></label>
+                    <label class="btn btn-ghost btn-compact file-btn">Subir archivo<input id="campaign-image" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden></label>
                     <button id="campaign-image-clear" class="btn btn-ghost btn-compact" type="button">Quitar</button>
                   </div>
                 </div>
-                <span class="helper-text">Si hay imagen, ReCalc intentará enviar el texto como caption dentro del preview, usando el backend oficial actual para upload y lectura del archivo.</span>
+                <span class="helper-text">El archivo se enviará exclusivamente mediante Fotos y videos. Puede enviarse con caption o sin texto; nunca se utiliza Sticker.</span>
                 <div id="campaign-image-feedback" class="feedback hidden"></div>
-                <div id="campaign-image-empty" class="empty-state empty-state-compact">Sin imagen cargada.</div>
+                <div id="campaign-image-empty" class="empty-state empty-state-compact">Sin archivo multimedia cargado.</div>
                 <div id="campaign-image-preview-wrap" class="media-preview hidden">
                   <img id="campaign-image-preview" alt="Preview de imagen de campaña" class="media-preview__image">
                   <div id="campaign-image-meta" class="media-preview__meta helper-text"></div>
