@@ -55,7 +55,7 @@ test("first use requires only Name_ID and remains usable with analytics offline"
   await page.getByLabel("Name_ID").fill("Ricardo_UNIDEP");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page.getByText("Modo local")).toBeVisible();
+  await expect(page.locator("#status-pill")).toHaveText("Modo local");
   await expect(page.getByRole("button", { name: "Campañas" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Resultados" })).toBeVisible();
   await expect(page.getByText("Ricardo_UNIDEP", { exact: true })).toBeVisible();
