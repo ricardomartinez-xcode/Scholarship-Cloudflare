@@ -154,7 +154,7 @@
     clickable.scrollIntoView?.({ block: "center", inline: "center" });
     clickable.focus?.();
 
-    ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((eventName) => {
+    ["pointerdown", "mousedown", "pointerup", "mouseup"].forEach((eventName) => {
       const event = new MouseEvent(eventName, {
         bubbles: true,
         cancelable: true,
