@@ -549,6 +549,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "CLEAR_CAMPAIGN_RUNNER") {
+    void self.RecalcCampaignRunner.clearCampaign(message.runId ?? null, message.campaignId ?? null)
+      .then((runner) => sendResponse({ ok: true, runner }))
+      .catch((error) => sendResponse({ ok: false, error: error instanceof Error ? error.message : "No fue posible limpiar el runner." }));
+    return true;
+  }
+
   if (message?.type === "GET_CAMPAIGN_STATUS" || message?.type === "GET_CAMPAIGN_RUNNER_STATUS") {
     void self.RecalcCampaignRunner.getCampaignStatus()
       .then((runner) => sendResponse({ ok: true, runner }))

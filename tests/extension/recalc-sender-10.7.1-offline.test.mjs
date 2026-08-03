@@ -11,7 +11,7 @@ const backgroundJs = fs.readFileSync(`${base}/background-offline.js`, "utf8");
 const manifest = JSON.parse(fs.readFileSync(`${base}/manifest.json`, "utf8"));
 
 assert.equal(manifest.name, "ReCalc Sender");
-assert.equal(manifest.version, "10.7.2");
+assert.equal(manifest.version, "10.7.3");
 assert.match(manifest.description, /offline-first/i);
 assert.match(manifest.description, /sin inicio de sesión/i);
 
@@ -40,7 +40,12 @@ assert.match(backgroundJs, /const LOCAL_CAMPAIGNS_KEY = "recalc\.localCampaigns"
 assert.match(backgroundJs, /RecalcAttachmentStore\.getAttachments/);
 assert.match(backgroundJs, /createTabNavigationWaiter/);
 assert.match(backgroundJs, /requireNavigationEvent: true/);
+assert.match(backgroundJs, /CLEAR_CAMPAIGN_RUNNER/);
+assert.match(campaignsJs, /type: "CLEAR_CAMPAIGN_RUNNER"/);
 assert.ok(!backgroundJs.includes("function waitForTabComplete"));
+const attachmentsJs = fs.readFileSync(`${base}/lib/whatsapp/wa-attachments.js`, "utf8");
+assert.match(attachmentsJs, /Input de adjunto listo sin abrir el selector nativo/);
+assert.match(attachmentsJs, /captureInputWithoutOpeningPicker/);
 
 const htmlIds = new Set([...panelHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
 const referencedIds = new Set([...campaignsJs.matchAll(/getElementById\("([^"]+)"\)/g)].map((match) => match[1]));
@@ -84,6 +89,15 @@ assert.equal(started.enabled, true);
 assert.equal(started.paused, false);
 assert.equal(storage[runner.ACTIVE_RUNNER_KEY].campaignId, "local-campaign");
 assert.ok(alarms.some((entry) => entry.type === "create"), "runner should schedule without a token");
+await assert.rejects(
+  () => runner.clearCampaign(started.runId, started.campaignId),
+  /Pausa la campaña antes de eliminarla/,
+);
+const paused = await runner.pauseCampaign(started.runId);
+assert.equal(paused.paused, true);
+const cleared = await runner.clearCampaign(started.runId, started.campaignId);
+assert.equal(cleared, null);
+assert.equal(storage[runner.ACTIVE_RUNNER_KEY], undefined);
 
 const navigationListeners = new Set();
 let currentTab = { id: 77, url: "https://web.whatsapp.com/", status: "complete" };
@@ -129,7 +143,7 @@ const navigationChrome = {
   scripting: { async executeScript() { return []; } },
   runtime: {
     lastError: null,
-    getManifest() { return { version: "10.7.2" }; },
+    getManifest() { return { version: "10.7.3" }; },
     onInstalled: { addListener() {} },
     onStartup: { addListener() {} },
     onMessage: { addListener() {} },
@@ -159,4 +173,4 @@ assert.equal(tabId, 77);
 assert.equal(completedNavigation, true, "must wait for the new WhatsApp navigation to complete");
 assert.equal(navigationListeners.size, 0, "navigation listeners must be cleaned up");
 
-console.log("PASS ReCalc Sender 10.7.2: connection UI, local runner and WhatsApp navigation race fixed");
+console.log("PASS ReCalc Sender 10.7.3: direct media input, paused campaign deletion and navigation race fixed");

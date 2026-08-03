@@ -58,11 +58,28 @@
   }
 
   function assignFilesToInput(input, files) {
+    if (!(input instanceof HTMLInputElement) || input.type !== "file") {
+      throw Object.assign(new Error("El destino de adjuntos no es un input de archivo válido."), {
+        code: "attachment_input_not_found",
+      });
+    }
+
     const transfer = new DataTransfer();
     files.forEach((file) => transfer.items.add(file));
-    input.files = transfer.files;
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "files");
+    if (typeof descriptor?.set === "function") descriptor.set.call(input, transfer.files);
+    else input.files = transfer.files;
+
+    const assignedFiles = Array.from(input.files || []);
+    if (assignedFiles.length !== files.length) {
+      throw Object.assign(new Error("Chrome no aceptó los archivos en el input de WhatsApp."), {
+        code: "attachment_assignment_failed",
+      });
+    }
+
+    input.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    return assignedFiles;
   }
 
   async function openAttachmentMenu(pack) {
@@ -94,36 +111,10 @@
     await textUtils.wait(500);
   }
 
-  async function chooseAttachmentOption(kind) {
-    // Para evitar depender del orden de las opciones del menú, primero intentamos
-    // localizar la opción correspondiente por palabras clave. Solo si no
-    // encontramos la opción por nombre hacemos un fallback a la posición
-    // numérica. WhatsApp ha cambiado el orden de los botones en varias
-    // versiones; apoyarnos exclusivamente en el índice puede provocar que
-    // seleccionemos la opción incorrecta (por ejemplo, Documentos en lugar de
-    // Fotos y videos). Si buscamos por nombre primero reducimos la probabilidad
-    // de fallar.
-    const option = await textUtils.waitFor(() => {
-      if (kind === "media") {
-        // Buscar la opción de fotos y videos por palabras clave.
-        const foundByName = selectors.findAttachmentOption("media");
-        if (foundByName) return foundByName;
-        // Nunca usar posiciones: WhatsApp cambia el orden y podría abrir Sticker.
-        return null;
-      }
-      // Para documentos utilizamos la búsqueda por nombre únicamente. Buscar
-      // directamente por posición puede resultar en enviar un contacto o
-      // ubicación sin querer.
-      return selectors.findAttachmentOption("document");
-    }, 5000, 150);
-    if (!option) {
-      throw Object.assign(new Error("No fue posible encontrar la opción correcta de adjuntos."), {
-        code: "attachment_option_not_found",
-      });
-    }
-
+  async function locateAttachmentOption(kind) {
+    const option = await textUtils.waitFor(() => selectors.findAttachmentOption(kind), 5000, 150);
     if (!(option instanceof Element)) {
-      throw Object.assign(new Error("La opción de adjuntar no tiene un contenedor clickable válido."), {
+      throw Object.assign(new Error("No fue posible encontrar la opción correcta de adjuntos."), {
         code: "attachment_option_not_found",
       });
     }
@@ -138,18 +129,39 @@
         });
       }
     }
+    return option;
+  }
 
-    log("Seleccionando opción de adjunto.", { kind });
-    const clicked = textUtils.clickElement(option);
-    if (!clicked) {
-      throw Object.assign(new Error("No fue posible seleccionar la opción de adjunto."), {
-        code: "attachment_option_not_found",
-      });
+  function isSafeMediaInput(input) {
+    const accept = String(input?.accept || "").toLowerCase().trim();
+    const multiple = Boolean(input?.multiple);
+    return (accept.includes("video") || (multiple && accept.includes("image"))) && !(accept === "image/*" && !multiple);
+  }
+
+  async function captureInputWithoutOpeningPicker(option, kind, pack) {
+    let capturedInput = null;
+    const originalInputClick = HTMLInputElement.prototype.click;
+    const preventNativePicker = (event) => event.preventDefault();
+
+    HTMLInputElement.prototype.click = function guardedFileInputClick(...args) {
+      if (this instanceof HTMLInputElement && this.type === "file") {
+        capturedInput = this;
+        return undefined;
+      }
+      return originalInputClick.apply(this, args);
+    };
+    option.addEventListener("click", preventNativePicker, true);
+
+    try {
+      const clicked = textUtils.clickElement(option);
+      if (!clicked) return null;
+      await textUtils.wait(180);
+    } finally {
+      option.removeEventListener("click", preventNativePicker, true);
+      HTMLInputElement.prototype.click = originalInputClick;
     }
-    // Dar más tiempo a la interfaz después de seleccionar la opción para
-    // asegurar que el input se genere correctamente. Un margen de 500 ms
-    // mejora la estabilidad en redes lentas o con cargas de CPU.
-    await textUtils.wait(500);
+
+    return capturedInput || selectors.findAttachmentInput(kind, pack);
   }
 
   async function waitForPreview(pack) {
@@ -170,23 +182,29 @@
   async function findReadyInput(kind, pack) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await openAttachmentMenu(pack);
-      await chooseAttachmentOption(kind);
+      const option = await locateAttachmentOption(kind);
 
-      const input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 5000, 200);
-      if (input) {
-        if (kind === "media") {
-          const accept = String(input.accept || "").toLowerCase().trim();
-          const safeMediaInput = accept.includes("video") || (input.multiple && accept.includes("image"));
-          if (!safeMediaInput || (accept === "image/*" && !input.multiple)) {
-            throw Object.assign(new Error("El input detectado puede corresponder a Sticker y fue bloqueado."), {
-              code: "sticker_input_blocked",
-            });
-          }
+      let input = await textUtils.waitFor(() => selectors.findAttachmentInput(kind, pack), 1500, 150);
+      let source = "direct_dom";
+
+      if (!input) {
+        input = await captureInputWithoutOpeningPicker(option, kind, pack);
+        source = "captured_option";
+      }
+
+      if (input instanceof HTMLInputElement) {
+        if (kind === "media" && !(isSafeMediaInput(input) || source === "captured_option")) {
+          throw Object.assign(new Error("El input detectado puede corresponder a Sticker y fue bloqueado."), {
+            code: "sticker_input_blocked",
+          });
         }
-        log("Input de adjunto listo.", {
+
+        log("Input de adjunto listo sin abrir el selector nativo.", {
           kind,
           accept: String(input.accept || ""),
+          multiple: Boolean(input.multiple),
           attempt: attempt + 1,
+          source,
         });
         return input;
       }

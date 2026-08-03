@@ -104,6 +104,7 @@ function attachmentFixture() {
         modalSendClicks: 0,
         modalSendIconClicks: 0,
         selectedOption: null,
+        nativePickerRequests: 0,
         lastChangedInput: null
       };
 
@@ -128,6 +129,7 @@ function attachmentFixture() {
 
       mediaOption.addEventListener("click", () => {
         window.fixtureState.selectedOption = "media-option";
+        window.fixtureState.nativePickerRequests += 1;
       });
 
       documentOption.addEventListener("click", () => {
@@ -148,6 +150,57 @@ function attachmentFixture() {
 
       modalSendIcon.addEventListener("click", () => {
         window.fixtureState.modalSendIconClicks += 1;
+      });
+    </script>
+  `;
+}
+
+function lazyAttachmentFixture() {
+  return `
+    <style>
+      button, [role="menuitem"], [role="textbox"] { min-width: 48px; min-height: 24px; }
+      #attachment-menu, #preview-modal { display: none; }
+    </style>
+    <footer><div id="main-composer" role="textbox" contenteditable="true"></div></footer>
+    <button id="attach-button" aria-label="Adjuntar"><span data-icon="plus"></span></button>
+    <div id="attachment-menu" role="menu">
+      <div id="media-option" role="menuitem">Fotos y videos</div>
+    </div>
+    <div id="preview-modal" role="dialog">
+      <div role="button" aria-label="Quitar archivo adjunto"></div>
+      <div id="modal-caption" role="textbox" contenteditable="true" data-tab="10"></div>
+      <button id="modal-send-button" aria-label="Enviar"><span data-icon="send"></span></button>
+    </div>
+    <script>
+      window.fixtureState = {
+        optionActivations: 0,
+        lastChangedInput: null,
+        modalSendClicks: 0
+      };
+      const menu = document.getElementById("attachment-menu");
+      const preview = document.getElementById("preview-modal");
+      document.getElementById("attach-button").addEventListener("click", () => {
+        menu.style.display = "block";
+      });
+      document.getElementById("media-option").addEventListener("click", () => {
+        window.fixtureState.optionActivations += 1;
+        let input = document.getElementById("lazy-media-input");
+        if (!input) {
+          input = document.createElement("input");
+          input.id = "lazy-media-input";
+          input.type = "file";
+          input.accept = "image/*";
+          input.addEventListener("change", () => {
+            window.fixtureState.lastChangedInput = input.id;
+            preview.style.display = "block";
+          });
+          document.body.appendChild(input);
+        }
+        input.click();
+      });
+      document.getElementById("modal-send-button").addEventListener("click", () => {
+        window.fixtureState.modalSendClicks += 1;
+        preview.style.display = "none";
       });
     </script>
   `;
@@ -259,6 +312,30 @@ test.describe("WhatsApp media automation", () => {
     }
   });
 
+  test("captura el input creado al activar Fotos y videos sin abrir el selector nativo", async ({ page }) => {
+    await setFixture(page, lazyAttachmentFixture());
+    let fileChooserOpened = false;
+    page.on("filechooser", () => { fileChooserOpened = true; });
+
+    const result = await page.evaluate(async () => {
+      const win = window as typeof window & {
+        RecalcWaAttachments: {
+          sendMediaAttachments: (files: File[], caption: string, pack: unknown) => Promise<{ ok: boolean; captionApplied: boolean }>;
+        };
+        fixtureState: { optionActivations: number; lastChangedInput: string | null; modalSendClicks: number };
+      };
+      const file = new File([new Uint8Array([137, 80, 78, 71])], "lazy.png", { type: "image/png" });
+      const sendResult = await win.RecalcWaAttachments.sendMediaAttachments([file], "", null);
+      return { sendResult, state: win.fixtureState };
+    });
+
+    expect(fileChooserOpened).toBe(false);
+    expect(result.sendResult.ok).toBe(true);
+    expect(result.state.optionActivations).toBe(1);
+    expect(result.state.lastChangedInput).toBe("lazy-media-input");
+    expect(result.state.modalSendClicks).toBe(1);
+  });
+
   test("no usa el input image/* simple que dispara Sticker Maker", async ({ page }) => {
     await setFixture(page, stickerOnlyAttachmentFixture());
 
@@ -292,6 +369,7 @@ test.describe("WhatsApp media automation", () => {
           modalSendClicks: number;
           modalSendIconClicks: number;
           selectedOption: string | null;
+          nativePickerRequests: number;
           lastChangedInput: string | null;
         };
       };
@@ -322,7 +400,8 @@ test.describe("WhatsApp media automation", () => {
     expect(result.sendResult.captionApplied).toBe(true);
     expect(result.state.attachButtonClicks).toBe(1);
     expect(result.state.attachIconClicks).toBe(0);
-    expect(result.state.selectedOption).toBe("media-option");
+    expect(result.state.selectedOption).toBeNull();
+    expect(result.state.nativePickerRequests).toBe(0);
     expect(result.state.lastChangedInput).toBe("media-input");
     expect(result.state.modalSendClicks).toBe(1);
     expect(result.state.modalSendIconClicks).toBe(0);
@@ -353,6 +432,7 @@ test.describe("ReCalc Sender 10.7 media matrix", () => {
           };
           fixtureState: {
             selectedOption: string | null;
+            nativePickerRequests: number;
             lastChangedInput: string | null;
             modalSendClicks: number;
           };
@@ -367,7 +447,8 @@ test.describe("ReCalc Sender 10.7 media matrix", () => {
       }, scenario);
 
       expect(result.sendResult.ok).toBe(true);
-      expect(result.state.selectedOption).toBe("media-option");
+      expect(result.state.selectedOption).toBeNull();
+      expect(result.state.nativePickerRequests).toBe(0);
       expect(result.state.lastChangedInput).toBe("media-input");
       expect(result.state.modalSendClicks).toBe(1);
       expect(result.modalCaption).toBe(scenario.caption);

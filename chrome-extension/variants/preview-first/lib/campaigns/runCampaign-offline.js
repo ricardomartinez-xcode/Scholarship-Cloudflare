@@ -99,6 +99,21 @@
     return nextState;
   }
 
+  async function clearCampaign(runId, campaignId) {
+    const current = await getState();
+    if (!current) return null;
+    if (runId && current.runId !== runId) return current;
+    if (campaignId && current.campaignId !== campaignId) return current;
+
+    const status = String(current.status || "").toLowerCase();
+    const canClear = !current.enabled || current.paused || ["paused", "stopped", "completed"].includes(status);
+    if (!canClear) throw new Error("Pausa la campaña antes de eliminarla.");
+
+    await clearState();
+    await chrome.alarms.clear(RUNNER_ALARM);
+    return null;
+  }
+
   async function getCampaignStatus() {
     return getState();
   }
@@ -314,6 +329,7 @@
     runCampaign,
     pauseCampaign,
     stopCampaign,
+    clearCampaign,
     getCampaignStatus,
     processTick,
   };

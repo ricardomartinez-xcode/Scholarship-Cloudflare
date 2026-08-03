@@ -519,12 +519,32 @@ document.addEventListener("DOMContentLoaded", () => {
   async function deleteCampaign() {
     const campaign = selectedCampaign();
     if (!campaign) return;
-    if (state.runner?.enabled && state.runner.campaignId === campaign.id) throw new Error("Pausa la campaña antes de eliminarla.");
+
+    const runnerResponse = await runtimeMessage({ type: "GET_CAMPAIGN_RUNNER_STATUS" })
+      .catch(() => ({ runner: state.runner }));
+    const runner = runnerResponse?.runner || null;
+    const ownsRunner = Boolean(runner && runner.campaignId === campaign.id);
+
+    if (ownsRunner) {
+      const status = String(runner.status || "").toLowerCase();
+      const canDelete = !runner.enabled || runner.paused || ["paused", "stopped", "completed"].includes(status);
+      if (!canDelete) throw new Error("Pausa la campaña antes de eliminarla.");
+
+      const cleared = await runtimeMessage({
+        type: "CLEAR_CAMPAIGN_RUNNER",
+        runId: runner.runId || null,
+        campaignId: campaign.id,
+      });
+      state.runner = cleared.runner || null;
+      renderRunner();
+    }
+
     const campaigns = state.campaigns.filter((item) => item.id !== campaign.id);
     if (campaign.mediaDraftId) await attachmentStore.clearAttachments(campaign.mediaDraftId);
     state.selectedCampaignId = campaigns[0]?.id || null;
     await saveCampaigns(campaigns);
     await analytics.queueEvent("campaign_deleted", null, campaign.id);
+    setFeedback("success", `Campaña eliminada: ${campaign.campaignName}.`);
   }
 
   function csvCell(value) {
